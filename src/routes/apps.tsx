@@ -73,7 +73,7 @@ function Apps() {
               onClick={() => ok ? toast(`${app.name} is coming in the next step.`) : setLocked(app.name)}
               className={cn("flex flex-col items-center gap-1.5 transition active:scale-95", i === 12 && "col-start-2 col-span-2")}>
               <span className="relative">
-                <span className="block h-[54px] w-[68px] overflow-hidden"><img src={app.icon} alt="" className={cn("h-[68px] w-[68px] max-w-none", !ok && "opacity-50 grayscale")} /></span>
+                <span className="block h-[54px] w-[66px] overflow-hidden"><img src={app.icon} alt="" className={cn("h-[72px] w-[66px] max-w-none", !ok && "opacity-50 grayscale")} /></span>
                 {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
               </span>
               <span className="text-xs font-semibold">{app.name}</span>
