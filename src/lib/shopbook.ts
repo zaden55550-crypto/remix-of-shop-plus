@@ -68,7 +68,7 @@ export type Account = {
   shopName: string;
   phone: string;
   currency: string;
-  logo?: string;
+  logo?: string | undefined;
   password: string; // screens-only phase; replaced by real auth later
   plan?: PlanId | "trial";
   trialStart?: number;

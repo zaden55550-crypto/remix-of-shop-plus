@@ -26,9 +26,9 @@ function Signup() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (f.password.length < 6) return toast.error("Password must be at least 6 characters");
-    if (f.password !== f.confirm) return toast.error("Passwords do not match");
-    if (!agree) return toast.error("Please accept the Terms & Privacy Policy");
+    if (f.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    if (f.password !== f.confirm) { toast.error("Passwords do not match"); return; }
+    if (!agree) { toast.error("Please accept the Terms & Privacy Policy"); return; }
     store.save({ shopName: f.shopName.trim(), phone: f.phone.trim(), password: f.password, currency: f.currency, logo: f.logo || undefined });
     store.signIn();
     nav({ to: "/plans" });
