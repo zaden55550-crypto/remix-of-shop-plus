@@ -388,8 +388,8 @@ const REASONS = { "Stock In": ["Purchase", "Manual entry", "Return", "Authorized
 function StockForm({ s, tr, mode }: Ctx & { mode: "Stock In" | "Stock Out" | "Adjustments" }) {
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
-  const [reason, setReason] = useState<string>(REASONS[mode][0]);
-  useEffect(() => { setReason(REASONS[mode][0]); setQty(""); }, [mode]);
+  const [reason, setReason] = useState<string>(REASONS[mode][0] ?? "");
+  useEffect(() => { setReason(REASONS[mode][0] ?? ""); setQty(""); }, [mode]);
   const p = s.products.find((x) => x.id === pid);
   const adj = mode === "Adjustments";
   const submit = () => {
