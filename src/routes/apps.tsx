@@ -58,7 +58,7 @@ function Apps() {
           </span>
           {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
         </span>
-        <span className="w-full truncate text-center text-[11px] font-semibold text-foreground">{app.name}</span>
+        <span className="w-full truncate text-center text-[11px] font-semibold text-foreground dark:hidden">{app.name}</span>
       </button>
     );
   };
