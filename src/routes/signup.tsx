@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Store } from "lucide-react";
+import { Lock, Mail, Store } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, LogoPicker, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/signup")({
 
 function Signup() {
   const nav = useNavigate();
-  const [f, setF] = useState({ shopName: "", phone: "", password: "", confirm: "", currency: "KSh", logo: "" });
+  const [f, setF] = useState({ shopName: "", email: "", password: "", confirm: "", currency: "KSh", logo: "" });
   const [agree, setAgree] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
@@ -31,7 +31,7 @@ function Signup() {
     if (f.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     if (f.password !== f.confirm) { toast.error("Passwords do not match"); return; }
     if (!agree) { toast.error("Please accept the Terms & Privacy Policy"); return; }
-    store.save({ shopName: f.shopName.trim(), phone: f.phone.trim(), password: f.password, currency: f.currency, logo: f.logo || undefined });
+    store.save({ shopName: f.shopName.trim(), email: f.email.trim(), password: f.password, currency: f.currency, logo: f.logo || undefined });
     store.signIn();
     nav({ to: "/plans" });
   };
@@ -44,10 +44,7 @@ function Signup() {
       <h1 className="mt-2 text-center text-2xl font-bold">Create Your Account</h1>
       <form onSubmit={submit} className="mt-4 space-y-2.5 px-5">
         <Field icon={<Store className="h-5 w-5" />} placeholder="Shop Name" value={f.shopName} onChange={set("shopName")} required />
-        <div className="flex gap-2">
-          <div className="flex h-12 w-20 items-center justify-center rounded-xl border border-input bg-card/40 font-medium">+254</div>
-          <Field className="flex-1" type="tel" inputMode="tel" placeholder="Phone Number" value={f.phone} onChange={set("phone")} required />
-        </div>
+        <Field icon={<Mail className="h-5 w-5" />} type="email" placeholder="Email" value={f.email} onChange={set("email")} required />
         <Field icon={<Lock className="h-5 w-5" />} password placeholder="Password" value={f.password} onChange={set("password")} required />
         <Field icon={<Lock className="h-5 w-5" />} password placeholder="Confirm Password" value={f.confirm} onChange={set("confirm")} required />
         <select value={f.currency} onChange={set("currency")}
