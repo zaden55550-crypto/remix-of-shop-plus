@@ -13,12 +13,13 @@ import Reports from "@/assets/icons/Reports.png.asset.json";
 import Summary from "@/assets/icons/Summary.png.asset.json";
 import Settings from "@/assets/icons/Settings.png.asset.json";
 import ChatDark from "@/assets/icons/AI_Chatbot_Dark_Mode.png.asset.json";
-import ChatLightDarkGreen from "@/assets/icons/AI_Chatbot_Dark_Green.jpeg.asset.json";
+import ChatLight from "@/assets/icons/AI_Chatbot_Light_Mode.png.asset.json";
 
 export type PlanId = "basic" | "plus" | "business";
 export type Tier = PlanId;
 
-export const chatIcons = { dark: ChatDark.url, light: ChatLightDarkGreen.url };
+// Per the supplied assets: the dark chatbot art is for light mode, the light art for dark mode.
+export const chatIcons = { dark: ChatLight.url, light: ChatDark.url };
 
 export const APPS: { id: string; name: string; icon: string; tier: Tier }[] = [
   { id: "dashboard", name: "Dashboard", icon: Dashboard.url, tier: "basic" },

@@ -1,11 +1,11 @@
 {
-  "asset_id": "af0e0303-0111-41af-95d0-9ef85546abca",
-  "content_type": "image/png",
-  "created_at": "2026-10-04T20:09:07Z",
-  "original_filename": "AI_Chatbot_Light_Mode.png",
+  "version": 1,
+  "asset_id": "9583e689-0618-4aa7-a90c-9b1cc00401c2",
   "project_id": "2e5fa378-6d1a-407e-a738-eb5ea501b214",
-  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/af0e0303-0111-41af-95d0-9ef85546abca/AI_Chatbot_Light_Mode.png",
-  "size": 632963,
-  "url": "/__l5e/assets-v1/af0e0303-0111-41af-95d0-9ef85546abca/AI_Chatbot_Light_Mode.png",
-  "version": 1
+  "url": "/__l5e/assets-v1/9583e689-0618-4aa7-a90c-9b1cc00401c2/AI_Chatbot_Light_Mode.png",
+  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/9583e689-0618-4aa7-a90c-9b1cc00401c2/AI_Chatbot_Light_Mode.png",
+  "original_filename": "AI_Chatbot_Light_Mode.png",
+  "size": 233354,
+  "content_type": "image/png",
+  "created_at": "2026-10-05T12:03:09Z"
 }

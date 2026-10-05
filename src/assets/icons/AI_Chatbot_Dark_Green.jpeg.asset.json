@@ -1,11 +1,11 @@
 {
+  "version": 1,
   "asset_id": "3ec9e4e6-6c98-4ab6-8878-28fc3e3c324e",
-  "content_type": "image/jpeg",
-  "created_at": "2026-10-05T09:27:40Z",
-  "original_filename": "AI_Chatbot_Dark_Green.jpeg",
-  "project_id": "2e5fa378-6d1a-407e-a738-eb5ea501b214",
-  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/3ec9e4e6-6c98-4ab6-8878-28fc3e3c324e/AI_Chatbot_Dark_Green.jpeg",
-  "size": 204227,
+  "project_id": "8bd6db12-187b-4ac0-8032-d48cd06641a7",
   "url": "/__l5e/assets-v1/3ec9e4e6-6c98-4ab6-8878-28fc3e3c324e/AI_Chatbot_Dark_Green.jpeg",
-  "version": 1
+  "r2_key": "a/v1/8bd6db12-187b-4ac0-8032-d48cd06641a7/3ec9e4e6-6c98-4ab6-8878-28fc3e3c324e/AI_Chatbot_Dark_Green.jpeg",
+  "original_filename": "AI_Chatbot_Dark_Green.jpeg",
+  "size": 204227,
+  "content_type": "image/jpeg",
+  "created_at": "2026-10-05T09:27:40Z"
 }

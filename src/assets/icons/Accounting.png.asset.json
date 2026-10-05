@@ -1,11 +1,11 @@
 {
-  "asset_id": "60872d13-3544-4a85-bf47-ee55f6dfa542",
-  "content_type": "image/png",
-  "created_at": "2026-10-04T20:09:09Z",
-  "original_filename": "Accounting.png",
+  "version": 1,
+  "asset_id": "0d0d5ccd-72d1-4eb1-aa1c-2bc85cbf6b05",
   "project_id": "2e5fa378-6d1a-407e-a738-eb5ea501b214",
-  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/60872d13-3544-4a85-bf47-ee55f6dfa542/Accounting.png",
-  "size": 35465,
-  "url": "/__l5e/assets-v1/60872d13-3544-4a85-bf47-ee55f6dfa542/Accounting.png",
-  "version": 1
+  "url": "/__l5e/assets-v1/0d0d5ccd-72d1-4eb1-aa1c-2bc85cbf6b05/Accounting.png",
+  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/0d0d5ccd-72d1-4eb1-aa1c-2bc85cbf6b05/Accounting.png",
+  "original_filename": "Accounting.png",
+  "size": 78692,
+  "content_type": "image/png",
+  "created_at": "2026-10-05T12:02:34Z"
 }

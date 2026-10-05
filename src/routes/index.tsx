@@ -37,7 +37,7 @@ function Login() {
       return;
     }
     store.signIn();
-    nav({ to: a.plan ? "/opening" : "/plans" });
+    nav({ to: a.plan ? "/apps" : "/plans" });
   };
 
   return (
