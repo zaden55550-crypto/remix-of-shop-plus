@@ -393,7 +393,7 @@ function StockForm({ s, tr, mode }: Ctx & { mode: "Stock In" | "Stock Out" | "Ad
   const p = s.products.find((x) => x.id === pid);
   const adj = mode === "Adjustments";
   const submit = () => {
-    if (!pid) return toast.error(tr("Select a product"));
+    if (!pid) { toast.error(tr("Select a product")); return; }
     const n = Number(qty);
     const ok = run(() => (mode === "Stock In" ? erp.stockIn(pid, n, reason) : mode === "Stock Out" ? erp.stockOut(pid, n, reason) : erp.adjustStock(pid, n, reason)), tr("Recorded"));
     if (ok) setQty("");
@@ -424,7 +424,7 @@ function Transfers({ s, tr, view, shop }: Ctx & { view: string }) {
   const [pid, setPid] = useState(""); const [qty, setQty] = useState(""); const [to, setTo] = useState("");
   const name = (id: string) => s.products.find((p) => p.id === id)?.name ?? "—";
   if (view === "New Transfer") return (
-    <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (!pid) return toast.error(tr("Select a product")); if (run(() => erp.createTransfer(pid, Number(qty), to, shop), tr("Transfer created"))) { setQty(""); setTo(""); } }}>
+    <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (!pid) { toast.error(tr("Select a product")); return; } if (run(() => erp.createTransfer(pid, Number(qty), to, shop), tr("Transfer created"))) { setQty(""); setTo(""); } }}>
       <p className="text-xs text-muted-foreground">{tr("From")}: <b className="text-foreground">{shop}</b></p>
       <select value={pid} onChange={(e) => setPid(e.target.value)} className={inputCls}><option value="">{tr("Select product")}</option>{s.products.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.qty})</option>)}</select>
       <input type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} placeholder={tr("Quantity")} className={inputCls} />
