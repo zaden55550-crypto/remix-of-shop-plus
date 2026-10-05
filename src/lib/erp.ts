@@ -258,7 +258,7 @@ export const returnSale = (saleId: string, lines: { productId: string; qty: numb
   const cust = sale.customerId ? s.customers.find((x) => x.id === sale.customerId) : undefined;
   if (refund === "credit") {
     if (!cust) throw new ErpError("Customer credit needs a registered customer");
-    cust.balance -= amount; // reduces debt or creates credit in the customer's favour
+    cust.balance = Math.round((cust.balance - amount) * 100) / 100; // reduces debt or creates credit in the customer's favour
   } else {
     s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method: refund, amount: -amount, kind: "REFUND", source: ref, customerId: cust?.id, user: c.user });
   }
