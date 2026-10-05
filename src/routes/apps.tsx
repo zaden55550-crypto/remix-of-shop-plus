@@ -47,7 +47,7 @@ function Apps() {
   const { t, dir } = getT(acct.language);
   const days = trialDaysLeft(acct);
   const planLabel = acct.plan === "trial" ? t("fullTrial") : t("planSuffix", (acct.plan ?? "").charAt(0).toUpperCase() + (acct.plan ?? "").slice(1));
-  const appName = (id: string) => t(id as TKey);
+  const appName = (id: string): string => t(id as TKey) ?? id;
 
   const openApp = (ok: boolean, name: string) => {
     if (ok) toast(t("comingNext", name));
