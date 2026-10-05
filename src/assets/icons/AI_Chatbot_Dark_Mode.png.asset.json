@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "ad467ba8-9cd3-4589-af37-7ebd5b1b20e8",
-  "project_id": "2e5fa378-6d1a-407e-a738-eb5ea501b214",
-  "url": "/__l5e/assets-v1/ad467ba8-9cd3-4589-af37-7ebd5b1b20e8/AI_Chatbot_Dark_Mode.png",
-  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/ad467ba8-9cd3-4589-af37-7ebd5b1b20e8/AI_Chatbot_Dark_Mode.png",
-  "original_filename": "AI_Chatbot_Dark_Mode.png",
-  "size": 212697,
   "content_type": "image/png",
-  "created_at": "2026-10-05T12:03:06Z"
+  "created_at": "2026-10-05T12:03:06Z",
+  "original_filename": "AI_Chatbot_Dark_Mode.png",
+  "project_id": "67bee33e-b12a-4b58-ac18-0dd9dd04e255",
+  "r2_key": "a/v1/67bee33e-b12a-4b58-ac18-0dd9dd04e255/ad467ba8-9cd3-4589-af37-7ebd5b1b20e8/AI_Chatbot_Dark_Mode.png",
+  "size": 212697,
+  "url": "/__l5e/assets-v1/ad467ba8-9cd3-4589-af37-7ebd5b1b20e8/AI_Chatbot_Dark_Mode.png",
+  "version": 1
 }

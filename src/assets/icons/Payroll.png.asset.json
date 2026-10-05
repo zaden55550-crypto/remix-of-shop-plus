@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "5aaa123a-fda0-415c-8f75-13242f654fa5",
-  "project_id": "2e5fa378-6d1a-407e-a738-eb5ea501b214",
-  "url": "/__l5e/assets-v1/5aaa123a-fda0-415c-8f75-13242f654fa5/Payroll.png",
-  "r2_key": "a/v1/2e5fa378-6d1a-407e-a738-eb5ea501b214/5aaa123a-fda0-415c-8f75-13242f654fa5/Payroll.png",
-  "original_filename": "Payroll.png",
-  "size": 82414,
   "content_type": "image/png",
-  "created_at": "2026-10-05T12:02:39Z"
+  "created_at": "2026-10-05T12:02:39Z",
+  "original_filename": "Payroll.png",
+  "project_id": "67bee33e-b12a-4b58-ac18-0dd9dd04e255",
+  "r2_key": "a/v1/67bee33e-b12a-4b58-ac18-0dd9dd04e255/5aaa123a-fda0-415c-8f75-13242f654fa5/Payroll.png",
+  "size": 82414,
+  "url": "/__l5e/assets-v1/5aaa123a-fda0-415c-8f75-13242f654fa5/Payroll.png",
+  "version": 1
 }
