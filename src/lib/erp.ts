@@ -4,14 +4,14 @@
 
 export type Product = {
   id: string; name: string; buy: number; sell: number; qty: number;
-  sku?: string; barcode?: string; categoryId?: string; brandId?: string;
-  unit?: string; image?: string; minStock?: number; createdAt: number;
+  sku?: string | undefined; barcode?: string | undefined; categoryId?: string | undefined; brandId?: string | undefined;
+  unit?: string | undefined; image?: string | undefined; minStock?: number | undefined; createdAt: number;
 };
 export type Named = { id: string; name: string };
 export type MoveType = "OPENING" | "PURCHASE" | "STOCK IN" | "SALE" | "STOCK OUT" | "ADJUSTMENT" | "RETURN" | "TRANSFER OUT" | "TRANSFER IN" | "TRANSFER CANCEL";
 export type Movement = {
   id: string; at: number; type: MoveType; productId: string; qty: number;
-  prev: number; next: number; reason?: string; source?: string; user: string;
+  prev: number; next: number; reason?: string | undefined; source?: string | undefined; user: string;
 };
 export type Transfer = {
   id: string; ref: string; productId: string; qty: number; from: string; to: string;

@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppsRouteImport } from './routes/apps'
+import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as SignupRouteImport } from './routes/signup'
 
@@ -22,6 +23,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppsRoute = AppsRouteImport.update({
   id: '/apps',
   path: '/apps',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoryRoute = InventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlansRoute = PlansRouteImport.update({
@@ -38,12 +44,14 @@ const SignupRoute = SignupRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
+  '/inventory': typeof InventoryRoute
   '/plans': typeof PlansRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
+  '/inventory': typeof InventoryRoute
   '/plans': typeof PlansRoute
   '/signup': typeof SignupRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
+  '/inventory': typeof InventoryRoute
   '/plans': typeof PlansRoute
   '/signup': typeof SignupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/apps' | '/plans' | '/signup'
+  fullPaths: '/' | '/apps' | '/inventory' | '/plans' | '/signup'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/apps' | '/plans' | '/signup'
-  id: '__root__' | '/' | '/apps' | '/plans' | '/signup'
+  to: '/' | '/apps' | '/inventory' | '/plans' | '/signup'
+  id: '__root__' | '/' | '/apps' | '/inventory' | '/plans' | '/signup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppsRoute: typeof AppsRoute
+  InventoryRoute: typeof InventoryRoute
   PlansRoute: typeof PlansRoute
   SignupRoute: typeof SignupRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/apps'
       fullPath: '/apps'
       preLoaderRoute: typeof AppsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventory': {
+      id: '/inventory'
+      path: '/inventory'
+      fullPath: '/inventory'
+      preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/plans': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppsRoute: AppsRoute,
+  InventoryRoute: InventoryRoute,
   PlansRoute: PlansRoute,
   SignupRoute: SignupRoute,
 }
