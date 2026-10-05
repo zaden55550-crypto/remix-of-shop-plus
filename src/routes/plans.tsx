@@ -46,7 +46,7 @@ const tone: Record<PlanId, { border: string; text: string; surface: string; badg
 
 function Plans() {
   const nav = useNavigate();
-  const { tr, t, dir, language } = useLanguage();
+  const { tr, t, dir } = useLanguage();
   const router = useRouter();
   const [yearly, setYearly] = useState(false);
   const [selected, setSelected] = useState<PlanId>("business");
@@ -83,8 +83,8 @@ function Plans() {
         </p>
         <div className="mt-6 space-y-3">
           <Field icon={<Smartphone className="h-5 w-5" />} type="tel" inputMode="tel" placeholder={tr("M-Pesa phone number")} value={phone} onChange={(event) => setPhone(event.target.value)} />
-          <ShopButton variant="success" onClick={requestPayment}>{tr("Send payment request")}</ShopButton>
-          <ShopButton variant="outline" onClick={startTrial}>{tr("Use the 30-day free trial instead")}</ShopButton>
+          <ShopButton variant="success" className="h-auto min-h-12 py-3 text-sm" onClick={requestPayment}>{tr("Send payment request")}</ShopButton>
+          <ShopButton variant="outline" className="h-auto min-h-12 py-3 text-sm" onClick={startTrial}>{tr("Use the 30-day free trial instead")}</ShopButton>
         </div>
         <p className="mt-4 text-xs text-muted-foreground">{tr("Your plan is only activated after payment is confirmed.")}</p>
       </main>
@@ -106,10 +106,10 @@ function Plans() {
       </p>
 
       <div className="mx-auto mt-4 grid w-full max-w-[300px] grid-cols-2 rounded-full border border-border bg-card/60 p-1 text-[12px]">
-        <ShopButton variant="bare" onClick={() => setYearly(false)} className={cn("h-8 rounded-full px-2 text-xs", !yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
+        <ShopButton variant="bare" onClick={() => setYearly(false)} className={cn("h-auto min-h-8 rounded-full px-2 py-1 text-xs", !yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
           {tr("Monthly")}
         </ShopButton>
-        <ShopButton variant="bare" onClick={() => setYearly(true)} className={cn("h-8 rounded-full px-2 text-xs", yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
+        <ShopButton variant="bare" onClick={() => setYearly(true)} className={cn("h-auto min-h-8 rounded-full px-2 py-1 text-xs", yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
           {tr("Yearly (Save 10%)")}
         </ShopButton>
       </div>
