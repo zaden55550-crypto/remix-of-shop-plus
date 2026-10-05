@@ -1,6 +1,10 @@
 import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { Camera, Eye, EyeOff, Globe, Moon, Sun, ChevronDown } from "lucide-react";
+import { Camera, Eye, EyeOff, Globe, Moon, Sun } from "lucide-react";
 import { RING_ICONS } from "@/lib/shopbook";
+import { useLanguage } from "@/hooks/use-language";
+import { LANGS, NATIVE } from "@/lib/i18n";
+import { ShopButton } from "@/components/ui/shop-button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export function useTheme() {
@@ -28,28 +32,31 @@ export function useTheme() {
 }
 
 export function ThemeToggle() {
+  const { tr } = useLanguage();
   const { dark, setDark } = useTheme();
   return (
     <div className="flex items-center rounded-full border border-border bg-card/60 p-0.5">
-      <button aria-label="Dark mode" onClick={() => setDark(true)}
+      <ShopButton variant="bare" aria-label={tr("Dark mode")} onClick={() => setDark(true)}
         className={cn("grid h-7 w-9 place-items-center rounded-full transition", dark ? "bg-primary text-primary-foreground glow" : "text-muted-foreground")}>
         <Moon className="h-4 w-4" />
-      </button>
-      <button aria-label="Light mode" onClick={() => setDark(false)}
+      </ShopButton>
+      <ShopButton variant="bare" aria-label={tr("Light mode")} onClick={() => setDark(false)}
         className={cn("grid h-7 w-9 place-items-center rounded-full transition", !dark ? "bg-primary text-primary-foreground glow" : "text-muted-foreground")}>
         <Sun className="h-4 w-4" />
-      </button>
+      </ShopButton>
     </div>
   );
 }
 
 export function TopBar() {
+  const { language, setLanguage, t, dir } = useLanguage();
   return (
     <div className="flex justify-end gap-2 px-4 pt-4">
       <ThemeToggle />
-      <button className="flex items-center gap-1.5 rounded-full border border-border bg-card/60 px-3 text-sm">
-        <Globe className="h-4 w-4" /> English <ChevronDown className="h-3.5 w-3.5" />
-      </button>
+      <Select value={language} onValueChange={(value) => { const next = LANGS.find(l => l === value); if (next) setLanguage(next); }} dir={dir}>
+        <SelectTrigger aria-label={t("language")} className="h-9 w-auto gap-2 rounded-full bg-card/60"><Globe className="h-4 w-4" /><SelectValue /></SelectTrigger>
+        <SelectContent>{LANGS.map(l => <SelectItem key={l} value={l}>{NATIVE[l]}</SelectItem>)}</SelectContent>
+      </Select>
     </div>
   );
 }
@@ -78,12 +85,13 @@ export function BrandRing({ size = 220 }: { size?: number }) {
 }
 
 export function LogoPicker({ value, onChange }: { value?: string | undefined; onChange?: (v: string) => void }) {
+  const { tr } = useLanguage();
   return (
     <label className="mx-auto flex w-fit cursor-pointer flex-col items-center gap-1.5">
       <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border-2 border-primary/70 glow">
-        {value ? <img src={value} alt="Shop logo" className="h-full w-full object-cover object-center" /> : <Camera className="h-7 w-7 text-primary" />}
+        {value ? <img src={value} alt={tr("Shop logo")} className="h-full w-full object-cover object-center" /> : <Camera className="h-7 w-7 text-primary" />}
       </span>
-      <span className="text-sm font-medium text-primary">{value ? "Change logo" : "Upload shop logo"}</span>
+      <span className="text-sm font-medium text-primary">{tr(value ? "Change logo" : "Upload shop logo")}</span>
       {onChange && (
         <input type="file" accept="image/*" className="hidden" onChange={(e) => {
           const f = e.target.files?.[0]; if (!f) return;
@@ -96,15 +104,16 @@ export function LogoPicker({ value, onChange }: { value?: string | undefined; on
 
 export function Field({ icon, password, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; password?: boolean }) {
   const [show, setShow] = useState(false);
+  const { tr } = useLanguage();
   return (
     <div className={cn("flex h-12 items-center gap-3 rounded-xl border border-input bg-card/40 px-3.5 focus-within:border-primary focus-within:glow", className)}>
       {icon && <span className="text-primary">{icon}</span>}
-      <input {...props} type={password ? (show ? "text" : "password") : props.type}
+      <input aria-label={props.placeholder} {...props} type={password ? (show ? "text" : "password") : props.type}
         className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground" />
       {password && (
-        <button type="button" aria-label={show ? "Hide password" : "Show password"} onClick={() => setShow(!show)} className="text-muted-foreground">
+        <ShopButton variant="bare" type="button" aria-label={tr(show ? "Hide password" : "Show password")} onClick={() => setShow(!show)} className="h-auto w-auto p-0 text-muted-foreground">
           {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-        </button>
+        </ShopButton>
       )}
     </div>
   );

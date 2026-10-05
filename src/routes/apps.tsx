@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, Check, ChevronDown, ChevronLeft, Mail, MessageCircle, Clock, Coins, Crown, Globe, HelpCircle, Lock, LogOut, Menu, Store, UserRound, X } from "lucide-react";
+import { Bell, Check, ChevronDown, ChevronLeft, Mail, MessageCircle, Phone, Clock, Coins, Crown, Globe, HelpCircle, Lock, LogOut, Menu, Store, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { APPS, canOpen, chatIcons, store, trialDaysLeft, type Account } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/hooks/use-language";
 import { getT, LANGS, NATIVE, SUPPORT, type TKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/apps")({
@@ -28,6 +29,7 @@ const SETTINGS_APP = APPS.find((a) => a.id === "settings");
 
 function Apps() {
   const nav = useNavigate();
+  const { t, dir, tr, language, setLanguage } = useLanguage();
   const { dark } = useTheme();
   const [acct, setAcct] = useState<Account | null>(null);
   const [locked, setLocked] = useState<string | null>(null);
@@ -44,7 +46,7 @@ function Apps() {
   }, [nav]);
 
   if (!acct) return <main className="app-screen" />;
-  const { t, dir } = getT(acct.language);
+
   const days = trialDaysLeft(acct);
   const planLabel = acct.plan === "trial" ? t("fullTrial") : t("planSuffix", (acct.plan ?? "").charAt(0).toUpperCase() + (acct.plan ?? "").slice(1));
   const appName = (id: string): string => t(id as TKey) ?? id;
@@ -57,16 +59,16 @@ function Apps() {
   const renderApp = (app: (typeof APPS)[number]) => {
     const ok = canOpen(acct, app.tier);
     return (
-      <button key={app.id} onClick={() => openApp(ok, appName(app.id))}
-        className="flex min-w-0 flex-col items-center gap-1 transition active:scale-95">
-        <span className="relative flex h-[58px] w-full max-w-[76px] items-center justify-center">
+      <ShopButton variant="bare" key={app.id} onClick={() => openApp(ok, appName(app.id))}
+        className="h-auto w-full min-w-0 flex-col items-center justify-start gap-2 rounded-none p-0">
+        <span className="relative flex aspect-square w-full max-w-[90px] items-center justify-center">
           <span className="block h-full w-full">
             <img src={dark ? app.iconDark : app.icon} alt="" className={cn("h-full w-full object-contain", !ok && "opacity-50 grayscale")} />
           </span>
           {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
         </span>
-        <span className="w-full truncate text-center text-[11px] font-semibold text-foreground dark:hidden">{appName(app.id)}</span>
-      </button>
+        <span className="min-h-8 w-full break-words text-center text-[11px] font-semibold leading-4 text-foreground">{appName(app.id)}</span>
+      </ShopButton>
     );
   };
 
@@ -75,14 +77,14 @@ function Apps() {
       <header className="flex items-center justify-between gap-2">
         <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
           {acct.logo
-            ? <img src={acct.logo} alt="Shop logo" className="h-full w-full object-cover object-center" />
+            ? <img src={acct.logo} alt={tr("Shop logo")} className="h-full w-full object-cover object-center" />
             : <Store className="h-4.5 w-4.5 text-primary" />}
         </span>
         <span className="min-w-0 flex-1 truncate text-center text-base font-bold">{acct.shopName}</span>
         <div className="flex shrink-0 items-center gap-2">
-          <button aria-label="Notifications" className="relative"><Bell className="h-5 w-5" /></button>
+          <ShopButton variant="bare" aria-label={tr("Notifications")} className="relative h-auto w-auto p-0"><Bell className="h-5 w-5" /></ShopButton>
           <ThemeToggle />
-          <button aria-label="Menu" onClick={() => { setPanel(null); setMenuOpen(true); }}><Menu className="h-5 w-5" /></button>
+          <ShopButton variant="bare" className="h-auto w-auto p-0" aria-label={tr("Menu")} onClick={() => { setPanel(null); setMenuOpen(true); }}><Menu className="h-5 w-5" /></ShopButton>
         </div>
       </header>
 
@@ -105,20 +107,20 @@ function Apps() {
             {row.map(renderApp)}
           </div>
         ))}
-        {SETTINGS_APP && <div className="flex justify-center">{renderApp(SETTINGS_APP)}</div>}
+        {SETTINGS_APP && <div className="mx-auto w-[calc((100%-1.5rem)/4)]">{renderApp(SETTINGS_APP)}</div>}
       </div>
 
-      <button aria-label="AI assistant" onClick={() => toast(t("aiSoon"))}
-        className="fixed bottom-6 right-[max(1rem,calc(50%-199px))] flex flex-col items-center">
+      <ShopButton variant="bare" aria-label={tr("AI assistant")} onClick={() => toast(t("aiSoon"))}
+        className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] flex flex-col items-center">
         <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-14 w-14 rounded-full" />
-      </button>
+      </ShopButton>
 
       {menuOpen && (
         <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" onClick={() => setMenuOpen(false)}>
           <div dir={dir} className="ms-auto flex h-full w-64 flex-col border-l border-border bg-card p-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <span className="text-lg font-extrabold tracking-tight">SHOP<span className="text-primary">BOOK</span></span>
-              <button aria-label="Close menu" onClick={() => setMenuOpen(false)}><X className="h-5 w-5" /></button>
+              <ShopButton variant="bare" className="h-auto w-auto p-0" aria-label={tr("Close menu")} onClick={() => setMenuOpen(false)}><X className="h-5 w-5" /></ShopButton>
             </div>
             <div className="mt-6 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
@@ -134,14 +136,14 @@ function Apps() {
             {panel === null ? (
               <nav className="mt-6 flex flex-col gap-1">
                 {([["profile", t("profileBusiness"), UserRound], ["language", t("language"), Globe], ["currency", t("currency"), Coins], ["help", t("help"), HelpCircle]] as const).map(([k, label, Icon]) => (
-                  <button key={k} onClick={() => setPanel(k)} className="flex items-center gap-3 rounded-xl px-3 py-3 text-start text-sm font-medium hover:bg-muted">
+                  <ShopButton variant="bare" key={k} onClick={() => setPanel(k)} className="h-auto justify-start gap-3 rounded-xl px-3 py-3 text-start text-sm font-medium hover:bg-muted">
                     <Icon className="h-4.5 w-4.5 text-primary" /> {label}
-                  </button>
+                  </ShopButton>
                 ))}
               </nav>
             ) : (
               <div className="mt-6 flex min-h-0 flex-1 flex-col">
-                <button onClick={() => setPanel(null)} className="mb-3 flex items-center gap-1 text-sm text-muted-foreground"><ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("back")}</button>
+                <ShopButton variant="bare" onClick={() => setPanel(null)} className="mb-3 h-auto justify-start gap-1 text-sm text-muted-foreground"><ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t("back")}</ShopButton>
                 {panel === "profile" && (
                   <div className="space-y-3 text-sm">
                     <div className="font-bold">{t("profile")}</div>
@@ -154,18 +156,18 @@ function Apps() {
                 {panel === "language" && (
                   <div className="flex flex-col gap-1 overflow-y-auto">
                     {LANGS.map((l) => (
-                      <button key={l} onClick={() => pick({ language: l })} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-muted">
-                        {NATIVE[l]} {(acct.language || "English") === l && <Check className="h-4 w-4 text-primary" />}
-                      </button>
+                      <ShopButton variant="bare" key={l} onClick={() => { setLanguage(l); setAcct(a => a ? { ...a, language: l } : a); toast.success(getT(l).t("saved")); }} className="h-auto justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-muted">
+                        {NATIVE[l]} {language === l && <Check className="h-4 w-4 text-primary" />}
+                      </ShopButton>
                     ))}
                   </div>
                 )}
                 {panel === "currency" && (
                   <div className="flex flex-col gap-1">
                     {CURRENCIES.map(([c, label]) => (
-                      <button key={c} onClick={() => pick({ currency: c })} className="flex items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm hover:bg-muted">
-                        {c} – {label} {acct.currency === c && <Check className="h-4 w-4 text-primary" />}
-                      </button>
+                      <ShopButton variant="bare" key={c} onClick={() => pick({ currency: c })} className="h-auto justify-between rounded-xl px-3 py-2.5 text-start text-sm hover:bg-muted">
+                        {c} – {tr(label)} {acct.currency === c && <Check className="h-4 w-4 text-primary" />}
+                      </ShopButton>
                     ))}
                   </div>
                 )}
@@ -176,9 +178,9 @@ function Apps() {
                     <div className="space-y-1">
                       {([1, 2, 3, 4] as const).map((n) => (
                         <div key={n} className="rounded-xl border border-border">
-                          <button onClick={() => setFaq(faq === n ? null : n)} className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-start font-medium">
+                          <ShopButton variant="bare" onClick={() => setFaq(faq === n ? null : n)} className="h-auto justify-between gap-2 px-3 py-2.5 text-start text-sm font-medium">
                             {t(`q${n}` as TKey)} <ChevronDown className={cn("h-4 w-4 shrink-0 transition", faq === n && "rotate-180")} />
-                          </button>
+                          </ShopButton>
                           {faq === n && <p className="px-3 pb-3 text-muted-foreground">{t(`a${n}` as TKey)}</p>}
                         </div>
                       ))}
@@ -192,17 +194,17 @@ function Apps() {
                       className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 hover:bg-muted">
                       <MessageCircle className="h-4 w-4 text-primary" /><span className="block font-medium">{t("whatsappSupport")}</span>
                     </a>
-                    <p className="text-xs text-muted-foreground">{t("hours")}</p>
+                    <a href={`tel:+${SUPPORT.whatsapp}`} className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 hover:bg-muted"><Phone className="h-4 w-4 text-primary" /><span><span className="block font-medium">{tr("Call support")}</span><span className="block text-xs text-muted-foreground" dir="ltr">{SUPPORT.phone}</span></span></a>
                   </div>
                 )}
               </div>
             )}
             <div className="mt-auto border-t border-border pt-3">
-              <button
+              <ShopButton variant="bare"
                 onClick={() => { store.signOut(); nav({ to: "/", replace: true }); }}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-3 text-sm font-medium text-destructive">
+                className="h-auto justify-start gap-2 rounded-xl px-3 py-3 text-sm font-medium text-destructive">
                 <LogOut className="h-4 w-4" /> {t("signOut")}
-              </button>
+              </ShopButton>
             </div>
           </div>
         </div>
