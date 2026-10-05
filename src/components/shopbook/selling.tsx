@@ -446,7 +446,7 @@ export function Cash({ s, money, tr }: SCtx) {
   const cs = erp.cashSession(s);
   const lastUp = s.cash.find((e) => e.type === "CASH UP");
   const submit = () => {
-    const ok = view === "CASH UP" ? run(() => erp.cashUp(+amt), tr("Cash-up saved")) : run(() => erp.cashEvent(view === "OPENING CASH" ? "OPENING" : view, +amt, note), tr("Recorded"));
+    const ok = view === "CASH UP" ? run(() => erp.cashUp(+amt), tr("Cash-up saved")) : run(() => erp.cashEvent(view === "OPENING CASH" ? "OPENING" : (view as "CASH IN" | "CASH OUT"), +amt, note), tr("Recorded"));
     if (ok !== undefined) { setAmt(""); setNote(""); }
   };
   return (
