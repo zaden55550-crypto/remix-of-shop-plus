@@ -32,8 +32,8 @@ function Login() {
     e.preventDefault();
     const a = store.get();
     const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
-    if (!a || (norm(a.shopName) !== norm(id) && norm(a.phone) !== norm(id)) || a.password !== pw) {
-      toast.error("Shop name, phone or password is incorrect");
+    if (!a || (norm(a.shopName) !== norm(id) && norm(a.email || "") !== norm(id)) || a.password !== pw) {
+      toast.error("Shop name, email or password is incorrect");
       return;
     }
     store.signIn();
@@ -48,7 +48,7 @@ function Login() {
       <h1 className="mt-3 text-center text-3xl font-bold">Login</h1>
       <p className="text-center text-sm text-muted-foreground">Sign in to your shop account</p>
       <form onSubmit={submit} className="mt-5 space-y-3 px-5">
-        <Field icon={<Store className="h-5 w-5" />} placeholder="Shop Name or Phone" value={id} onChange={(e) => setId(e.target.value)} required />
+        <Field icon={<Store className="h-5 w-5" />} placeholder="Shop Name or Email" value={id} onChange={(e) => setId(e.target.value)} required />
         <Field icon={<Lock className="h-5 w-5" />} password placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} required />
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2">
