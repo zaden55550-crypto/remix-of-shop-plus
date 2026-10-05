@@ -14,6 +14,8 @@ export const Route = createFileRoute("/apps")({
       { name: "description", content: "All your SHOPBOOK apps: POS, inventory, sales, accounting, payroll and more." },
       { property: "og:title", content: "Apps — SHOPBOOK ERP" },
       { property: "og:description", content: "All your SHOPBOOK business apps in one place." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Apps,
@@ -43,7 +45,7 @@ function Apps() {
           <LogOut className="h-5 w-5 rotate-180" /> Logout
         </button>
         <div className="flex min-w-0 items-center gap-1.5">
-          {acct.logo && <img src={acct.logo} alt="" className="h-6 w-6 rounded-full object-cover" />}
+          {acct.logo && <img src={acct.logo} alt="" className="h-6 w-6 rounded-full object-cover object-center" />}
           <span className="truncate text-base font-bold">{acct.shopName}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -65,7 +67,7 @@ function Apps() {
         </div>
       )}
 
-      <div className="mt-5 grid grid-cols-4 gap-x-2 gap-y-4">
+      <div className="mt-6 grid grid-cols-4 gap-x-2 gap-y-7">
         {APPS.map((app, i) => {
           const ok = canOpen(acct, app.tier);
           return (

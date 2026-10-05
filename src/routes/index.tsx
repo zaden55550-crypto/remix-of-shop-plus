@@ -13,6 +13,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Sign in to your SHOPBOOK shop account to run sales, stock and accounts." },
       { property: "og:title", content: "Log in — SHOPBOOK ERP" },
       { property: "og:description", content: "Sign in to your SHOPBOOK shop account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Login,

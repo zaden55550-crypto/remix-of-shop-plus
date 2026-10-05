@@ -53,7 +53,7 @@ export function BrandRing({ size = 220 }: { size?: number }) {
           const a = (i / RING_ICONS.length) * Math.PI * 2 - Math.PI / 2;
           return (
             <img key={i} src={src} alt="" className="absolute h-9 w-9 rounded-xl counter-spin"
-              style={{ left: size / 2 + Math.cos(a) * r - 18, top: size / 2 + Math.sin(a) * r - 18 }} />
+              style={{ left: `${(size / 2 + Math.cos(a) * r - 18).toFixed(3)}px`, top: `${(size / 2 + Math.sin(a) * r - 18).toFixed(3)}px` }} />
           );
         })}
       </div>
@@ -70,7 +70,7 @@ export function LogoPicker({ value, onChange }: { value?: string | undefined; on
   return (
     <label className="mx-auto flex w-fit cursor-pointer flex-col items-center gap-1.5">
       <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border-2 border-primary/70 glow">
-        {value ? <img src={value} alt="Shop logo" className="h-full w-full object-cover" /> : <Camera className="h-7 w-7 text-primary" />}
+        {value ? <img src={value} alt="Shop logo" className="h-full w-full object-cover object-center" /> : <Camera className="h-7 w-7 text-primary" />}
       </span>
       <span className="text-sm font-medium text-primary">{value ? "Change logo" : "Upload shop logo"}</span>
       {onChange && (
