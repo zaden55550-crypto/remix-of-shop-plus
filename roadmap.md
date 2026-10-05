@@ -9,4 +9,5 @@
 - [x] Translate login, signup and plans and synchronize all language selectors.
 - [x] Set the support phone to 0722288012.
 - [x] Use the new dark icons and enlarge icons with names in both themes.
-- [x] Verify language persistence, account flow and both themes.
+- [x] Verify language persistence, account flow and both themes.- [x] Phase 2.1 ERP core engine (device-local) + Phase 2.2 Inventory app
+- [ ] Phase 2.3 Sales & POS (next spec)
