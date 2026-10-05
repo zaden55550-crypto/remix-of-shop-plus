@@ -12,7 +12,6 @@ import Payroll from "@/assets/icons/Payroll.png.asset.json";
 import Reports from "@/assets/icons/Reports.png.asset.json";
 import Summary from "@/assets/icons/Summary.png.asset.json";
 import Settings from "@/assets/icons/Settings.png.asset.json";
-import ChatDark from "@/assets/icons/AI_Chatbot_Dark_Mode.png.asset.json";
 import ChatLight from "@/assets/icons/AI_Chatbot_Light_Mode.png.asset.json";
 import ChatLightV2 from "@/assets/Chatbot_Dark_v2.png.asset.json";
 
