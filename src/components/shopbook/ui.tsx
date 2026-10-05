@@ -8,11 +8,22 @@ export function useTheme() {
   useEffect(() => {
     const saved = localStorage.getItem("shopbook.theme");
     setDark(saved ? saved === "dark" : true);
+    const syncTheme = () => setDark(localStorage.getItem("shopbook.theme") !== "light");
+    window.addEventListener("storage", syncTheme);
+    window.addEventListener("shopbook-theme", syncTheme);
+    return () => {
+      window.removeEventListener("storage", syncTheme);
+      window.removeEventListener("shopbook-theme", syncTheme);
+    };
   }, []);
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, [dark]);
-  const set = (d: boolean) => { setDark(d); localStorage.setItem("shopbook.theme", d ? "dark" : "light"); };
+  const set = (d: boolean) => {
+    setDark(d);
+    localStorage.setItem("shopbook.theme", d ? "dark" : "light");
+    window.dispatchEvent(new Event("shopbook-theme"));
+  };
   return { dark, setDark: set };
 }
 
