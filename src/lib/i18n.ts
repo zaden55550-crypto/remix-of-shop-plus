@@ -6,8 +6,8 @@ export const NATIVE: Record<Lang, string> = {
   Portuguese: "Português", German: "Deutsch", Italian: "Italiano", Chinese: "中文", Hindi: "हिन्दी",
 };
 
-// Placeholder support contacts — replace with the real ones.
-export const SUPPORT = { email: "support@shopbook.app", whatsapp: "254700000000" };
+// Support phone supplied by the shop owner; email awaits confirmation.
+export const SUPPORT = { email: "support@shopbook.app", whatsapp: "254722288012", phone: "0722288012" };
 
 const KEYS = [
   "trialRemaining", "usingPlan", "daysLeft", "profileBusiness", "language", "currency", "help", "back",

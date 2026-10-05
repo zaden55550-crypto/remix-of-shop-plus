@@ -4,6 +4,7 @@ import { Lock, Store } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, LogoPicker, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
+import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
 
 export const Route = createFileRoute("/")({
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/")({
 
 function Login() {
   const nav = useNavigate();
+  const { tr, t, dir, language } = useLanguage();
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [remember, setRemember] = useState(true);
@@ -33,7 +35,7 @@ function Login() {
     const a = store.get();
     const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
     if (!a || (norm(a.shopName) !== norm(id) && norm(a.email || "") !== norm(id)) || a.password !== pw) {
-      toast.error("Shop name, email or password is incorrect");
+      toast.error(tr("Shop name, email or password is incorrect"));
       return;
     }
     store.signIn();
@@ -41,24 +43,24 @@ function Login() {
   };
 
   return (
-    <main className="app-screen pb-8">
+    <main dir={dir} className="app-screen pb-8">
       <TopBar />
       <div className="mt-4"><BrandRing /></div>
       <div className="mt-4"><LogoPicker value={logo} /></div>
-      <h1 className="mt-3 text-center text-3xl font-bold">Login</h1>
-      <p className="text-center text-sm text-muted-foreground">Sign in to your shop account</p>
+      <h1 className="mt-3 text-center text-3xl font-bold">{tr("Log In")}</h1>
+      <p className="text-center text-sm text-muted-foreground">{tr("Sign in to your shop account")}</p>
       <form onSubmit={submit} className="mt-5 space-y-3 px-5">
-        <Field icon={<Store className="h-5 w-5" />} placeholder="Shop Name or Email" value={id} onChange={(e) => setId(e.target.value)} required />
-        <Field icon={<Lock className="h-5 w-5" />} password placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} required />
-        <div className="flex items-center justify-between text-sm">
+        <Field icon={<Store className="h-5 w-5" />} placeholder={tr("Shop Name or Email")} value={id} onChange={(e) => setId(e.target.value)} required />
+        <Field icon={<Lock className="h-5 w-5" />} password placeholder={tr("Password")} value={pw} onChange={(e) => setPw(e.target.value)} required />
+        <div className="flex items-start justify-between gap-2 text-sm">
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 accent-primary" /> Remember me
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 accent-primary" /> {tr("Remember me")}
           </label>
-          <button type="button" className="text-primary" onClick={() => toast("Ask your shop admin to reset your password.")}>Forgot Password?</button>
+          <ShopButton variant="bare" type="button" className="h-auto w-auto p-0 text-start text-sm text-primary" onClick={() => toast(tr("Ask your shop admin to reset your password."))}>{tr("Forgot Password?")}</ShopButton>
         </div>
-        <ShopButton type="submit">Log In</ShopButton>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />OR<span className="h-px flex-1 bg-border" /></div>
-        <Link to="/signup" className="block"><ShopButton type="button" variant="outline">Create Account</ShopButton></Link>
+        <ShopButton type="submit">{tr("Log In")}</ShopButton>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />{tr("OR")}<span className="h-px flex-1 bg-border" /></div>
+        <Link to="/signup" className="block"><ShopButton type="button" variant="outline">{tr("Create Account")}</ShopButton></Link>
       </form>
     </main>
   );

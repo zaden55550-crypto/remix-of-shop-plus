@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { PLANS, fmtKsh, store, type PlanId } from "@/lib/shopbook";
+import { useLanguage } from "@/hooks/use-language";
+import { APPS } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/plans")({
@@ -44,6 +46,7 @@ const tone: Record<PlanId, { border: string; text: string; surface: string; badg
 
 function Plans() {
   const nav = useNavigate();
+  const { tr, t, dir, language } = useLanguage();
   const router = useRouter();
   const [yearly, setYearly] = useState(false);
   const [selected, setSelected] = useState<PlanId>("business");
@@ -61,53 +64,53 @@ function Plans() {
   const requestPayment = () => {
     const cleaned = phone.replace(/\s+/g, "");
     if (!/^(?:\+?254|0)?[17]\d{8}$/.test(cleaned)) {
-      toast.error("Enter a valid Kenyan M-Pesa phone number");
+      toast.error(tr("Enter a valid Kenyan M-Pesa phone number"));
       return;
     }
-    toast("Online payments are coming soon. Start the free trial for now — your data stays when you upgrade.");
+    toast(tr("Online payments are coming soon. Start the free trial for now — your data stays when you upgrade."));
   };
 
   if (paying) {
     return (
-      <main className="app-screen px-5 pb-8 pt-4">
-        <ShopButton variant="bare" onClick={() => setPaying(false)} aria-label="Back" className="mb-2 h-10 w-10 p-0">
-          <ChevronLeft />
+      <main dir={dir} className="app-screen px-5 pb-8 pt-4">
+        <ShopButton variant="bare" onClick={() => setPaying(false)} aria-label={t("back")} className="mb-2 h-10 w-10 p-0">
+          <ChevronLeft className="rtl:rotate-180" />
         </ShopButton>
         <Wordmark />
-        <h1 className="mt-5 text-2xl font-bold">Pay with M-Pesa</h1>
+        <h1 className="mt-5 text-2xl font-bold">{tr("Pay with M-Pesa")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {plan.name} plan · {fmtKsh(price)} / month{yearly ? `, billed as ${fmtKsh(price * 12)} yearly` : ""}
+          {t("planSuffix", plan.name)} · {fmtKsh(price)} {tr("/ month")}{yearly && <> · {tr("Billed yearly")}: {fmtKsh(price * 12)}</>}
         </p>
         <div className="mt-6 space-y-3">
-          <Field icon={<Smartphone className="h-5 w-5" />} type="tel" inputMode="tel" placeholder="M-Pesa phone number" value={phone} onChange={(event) => setPhone(event.target.value)} />
-          <ShopButton variant="success" onClick={requestPayment}>Send payment request</ShopButton>
-          <ShopButton variant="outline" onClick={startTrial}>Use the 30-day free trial instead</ShopButton>
+          <Field icon={<Smartphone className="h-5 w-5" />} type="tel" inputMode="tel" placeholder={tr("M-Pesa phone number")} value={phone} onChange={(event) => setPhone(event.target.value)} />
+          <ShopButton variant="success" onClick={requestPayment}>{tr("Send payment request")}</ShopButton>
+          <ShopButton variant="outline" onClick={startTrial}>{tr("Use the 30-day free trial instead")}</ShopButton>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">Your plan is only activated after payment is confirmed.</p>
+        <p className="mt-4 text-xs text-muted-foreground">{tr("Your plan is only activated after payment is confirmed.")}</p>
       </main>
     );
   }
 
   return (
-    <main className="app-screen px-3 pb-7 pt-4">
+    <main dir={dir} className="app-screen px-3 pb-7 pt-4">
       <div className="relative">
-        <ShopButton variant="bare" onClick={() => router.history.back()} aria-label="Back" className="absolute left-0 top-[-0.45rem] h-10 w-10 p-0">
-          <ChevronLeft />
+        <ShopButton variant="bare" onClick={() => router.history.back()} aria-label={t("back")} className="absolute left-0 top-[-0.45rem] h-10 w-10 p-0">
+          <ChevronLeft className="rtl:rotate-180" />
         </ShopButton>
         <Wordmark />
       </div>
 
-      <h1 className="mt-3 text-center text-[26px] font-bold leading-tight">Choose Your Plan</h1>
+      <h1 className="mt-3 text-center text-[26px] font-bold leading-tight">{tr("Choose Your Plan")}</h1>
       <p className="mx-auto mt-1 max-w-xs text-center text-sm leading-snug text-muted-foreground">
-        Unlock more features and grow your<br />business with SHOPBOOK
+        {tr("Unlock more features and grow your business with SHOPBOOK")}
       </p>
 
       <div className="mx-auto mt-4 grid w-full max-w-[300px] grid-cols-2 rounded-full border border-border bg-card/60 p-1 text-[12px]">
         <ShopButton variant="bare" onClick={() => setYearly(false)} className={cn("h-8 rounded-full px-2 text-xs", !yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
-          Monthly
+          {tr("Monthly")}
         </ShopButton>
         <ShopButton variant="bare" onClick={() => setYearly(true)} className={cn("h-8 rounded-full px-2 text-xs", yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
-          Yearly (Save 10%)
+          {tr("Yearly (Save 10%)")}
         </ShopButton>
       </div>
 
@@ -123,25 +126,25 @@ function Plans() {
               onClick={() => setSelected(item.id)}
               aria-pressed={active}
               className={cn(
-                "relative h-auto min-h-[350px] w-full flex-col items-stretch justify-start gap-0 rounded-lg border-2 px-2 py-3 text-left",
+                "relative h-auto min-h-[350px] w-full flex-col items-stretch justify-start gap-0 rounded-lg border-2 px-2 py-3 text-start",
                 itemTone.border,
                 itemTone.surface,
                 active && "plan-card-active",
               )}
             >
-              {yearly && <span className={cn("absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-extrabold", itemTone.badge)}>Save 10%</span>}
-              {item.best && <span className="absolute -right-0.5 -top-3 whitespace-nowrap rounded-full bg-badge-gold px-2 py-0.5 text-[8px] font-extrabold text-plan-contrast">BEST OPTION</span>}
+              {yearly && <span className={cn("absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-extrabold", itemTone.badge)}>{tr("Save 10%")}</span>}
+              {item.best && <span className="absolute -right-0.5 -top-3 whitespace-nowrap rounded-full bg-badge-gold px-2 py-0.5 text-[8px] font-extrabold text-plan-contrast">{tr("BEST OPTION")}</span>}
               <div className={cn("text-center text-[15px] font-extrabold uppercase", itemTone.text)}>{item.name}</div>
               <div className="mt-1 whitespace-nowrap text-center text-[17px] font-extrabold leading-none">{fmtKsh(shownPrice)}</div>
-              <div className="mt-1 text-center text-[10px] font-medium">/ month</div>
+              <div className="mt-1 text-center text-[10px] font-medium">{tr("/ month")}</div>
               <div className={cn("mt-2 min-h-10 rounded-md border px-1 py-1.5 text-center text-[9px] leading-tight", itemTone.border)}>
-                {yearly ? <><span className="block">Billed yearly</span><span>({fmtKsh(shownPrice * 12)} / year)</span></> : <span>{fmtKsh(item.yearly)} / month<br />(Billed yearly)</span>}
+                {yearly ? <><span className="block">{tr("Billed yearly")}</span><span>({fmtKsh(shownPrice * 12)} {tr("/ year")})</span></> : <span>{fmtKsh(item.yearly)} {tr("/ month")}<br />({tr("Billed yearly")})</span>}
               </div>
-              <p className="min-h-14 py-3 text-center text-[11px] font-medium leading-tight">{item.tagline}</p>
+              <p className="min-h-14 py-3 text-center text-[11px] font-medium leading-tight">{tr(item.tagline)}</p>
               <span className={cn("mb-2 h-px w-full", item.id === "basic" ? "bg-plan-basic" : item.id === "plus" ? "bg-plan-plus" : "bg-plan-business")} />
-              {item.intro && <span className="mb-1 text-[9px] font-semibold leading-tight">{item.intro}</span>}
+              {item.intro && <span className="mb-1 text-[9px] font-semibold leading-tight">{tr(item.intro)}</span>}
               <ul className="space-y-1 text-[9px] font-normal leading-tight">
-                {item.features.map((feature) => <li key={feature}>{feature}</li>)}
+                {item.features.map((feature) => <li key={feature}>{APPS.some(a => a.name === feature) ? t(feature.toLowerCase() as Parameters<typeof t>[0]) : tr(feature)}</li>)}
               </ul>
               {active && <span className="absolute bottom-2 right-2 grid h-5 w-5 place-items-center rounded-full bg-success text-success-foreground"><Check className="h-3 w-3" /></span>}
             </ShopButton>
@@ -149,16 +152,16 @@ function Plans() {
         })}
       </div>
 
-      <ShopButton className="mt-4" onClick={() => setPaying(true)}>
-        Continue with {plan.name} Plan <ArrowRight className="h-4 w-4" />
+      <ShopButton className="mt-4 h-auto min-h-12 whitespace-normal py-3 text-sm" onClick={() => setPaying(true)}>
+        {tr("Continue with {x} Plan", plan.name)} <ArrowRight className="h-4 w-4" />
       </ShopButton>
 
-      <div className="my-3 flex items-center gap-3 text-xs font-semibold"><span className="h-px flex-1 bg-muted-foreground/60" />OR<span className="h-px flex-1 bg-muted-foreground/60" /></div>
+      <div className="my-3 flex items-center gap-3 text-xs font-semibold"><span className="h-px flex-1 bg-muted-foreground/60" />{tr("OR")}<span className="h-px flex-1 bg-muted-foreground/60" /></div>
 
-      <ShopButton variant="success" onClick={startTrial}>
-        Get Started with Your 30-Day Free Trial <ArrowRight className="h-4 w-4" />
+      <ShopButton variant="success" className="h-auto min-h-12 whitespace-normal py-3 text-sm" onClick={startTrial}>
+        {tr("Get Started with Your 30-Day Free Trial")} <ArrowRight className="h-4 w-4" />
       </ShopButton>
-      <p className="mt-2 text-center text-[11px] text-muted-foreground">No payment required&nbsp;&nbsp; • &nbsp;&nbsp;Cancel anytime</p>
+      <p className="mt-2 text-center text-[11px] text-muted-foreground">{tr("No payment required • Cancel anytime")}</p>
     </main>
   );
 }
