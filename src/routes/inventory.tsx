@@ -71,7 +71,7 @@ function Inventory() {
           <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></ShopButton>
           <h1 className="text-lg font-bold tracking-wide">{tr("Inventory").toUpperCase()}</h1>
         </div>
-        <Tabs items={Object.keys(MENUS)} value={menu} onChange={(m) => go(m as Menu)} label={(k) => tr(k[0].toUpperCase() + k.slice(1)).toUpperCase()} />
+        <Tabs items={Object.keys(MENUS)} value={menu} onChange={(m) => go(m as Menu)} label={(k) => tr(k.charAt(0).toUpperCase() + k.slice(1)).toUpperCase()} />
         {MENUS[menu].length > 0 && <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />}
       </header>
 
@@ -104,7 +104,7 @@ function Tabs({ items, value, onChange, label, small }: { items: string[]; value
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: ReactNode; tone?: "warn" | "bad" }) {
+function Kpi({ label, value, tone }: { label: string; value: ReactNode; tone?: "warn" | "bad" | undefined }) {
   return (
     <div className="rounded-xl border border-border bg-card px-3 py-2.5">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
