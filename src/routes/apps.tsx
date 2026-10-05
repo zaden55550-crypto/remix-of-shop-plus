@@ -22,7 +22,7 @@ export const Route = createFileRoute("/apps")({
 });
 
 const ROWS = [APPS.slice(0, 4), APPS.slice(4, 8), APPS.slice(8, 12)];
-const SETTINGS_APP = APPS.find((a) => a.id === "settings")!;
+const SETTINGS_APP = APPS.find((a) => a.id === "settings");
 
 function Apps() {
   const nav = useNavigate();
@@ -51,14 +51,14 @@ function Apps() {
     const ok = canOpen(acct, app.tier);
     return (
       <button key={app.id} onClick={() => openApp(ok, app.name)}
-        className="flex flex-col items-center gap-1.5 transition active:scale-95">
-        <span className="relative">
-          <span className="block h-[50px] w-[66px] overflow-hidden">
-            <img src={app.icon} alt="" className={cn("h-[72px] w-[66px] max-w-none", !ok && "opacity-50 grayscale")} />
+        className="flex min-w-0 flex-col items-center gap-1 transition active:scale-95">
+        <span className="relative flex h-[58px] w-full max-w-[76px] items-center justify-center">
+          <span className="block h-full w-full">
+            <img src={app.icon} alt="" className={cn("h-full w-full object-contain", !ok && "opacity-50 grayscale")} />
           </span>
           {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
         </span>
-        <span className="text-xs font-semibold">{app.name}</span>
+        <span className="w-full truncate text-center text-[11px] font-semibold text-foreground">{app.name}</span>
       </button>
     );
   };
@@ -98,7 +98,7 @@ function Apps() {
             {row.map(renderApp)}
           </div>
         ))}
-        <div className="flex justify-center">{renderApp(SETTINGS_APP)}</div>
+        {SETTINGS_APP && <div className="flex justify-center">{renderApp(SETTINGS_APP)}</div>}
       </div>
 
       <button aria-label="AI assistant" onClick={() => toast("AI assistant is coming soon.")}
