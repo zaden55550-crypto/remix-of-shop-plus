@@ -53,7 +53,7 @@ export function BrandRing({ size = 220 }: { size?: number }) {
           const a = (i / RING_ICONS.length) * Math.PI * 2 - Math.PI / 2;
           return (
             <img key={i} src={src} alt="" className="absolute h-9 w-9 rounded-xl counter-spin"
-              style={{ left: size / 2 + Math.cos(a) * r - 18, top: size / 2 + Math.sin(a) * r - 18 }} />
+              style={{ left: `${(size / 2 + Math.cos(a) * r - 18).toFixed(3)}px`, top: `${(size / 2 + Math.sin(a) * r - 18).toFixed(3)}px` }} />
           );
         })}
       </div>
