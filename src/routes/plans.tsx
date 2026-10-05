@@ -56,7 +56,7 @@ function Plans() {
   const price = yearly ? plan.yearly : plan.monthly;
   const startTrial = () => {
     store.update({ plan: "trial", trialStart: Date.now() });
-    nav({ to: "/opening" });
+    nav({ to: "/apps" });
   };
   const requestPayment = () => {
     const cleaned = phone.replace(/\s+/g, "");
