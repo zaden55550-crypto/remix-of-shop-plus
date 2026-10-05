@@ -116,7 +116,7 @@ export function getT(lang?: string) {
   const l = (LANGS as readonly string[]).includes(lang || "") ? (lang as Lang) : "English";
   const row = T[l];
   const t = (k: Key, x?: string | number) => {
-    const s = row[KEYS.indexOf(k)] ?? T.English[KEYS.indexOf(k)];
+    const s = row[KEYS.indexOf(k)] ?? T.English[KEYS.indexOf(k)] ?? k;
     return x === undefined ? s : s.replace("{x}", String(x));
   };
   return { t, dir: l === "Arabic" ? ("rtl" as const) : ("ltr" as const) };

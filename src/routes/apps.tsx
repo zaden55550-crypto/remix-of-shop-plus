@@ -46,7 +46,7 @@ function Apps() {
   if (!acct) return <main className="app-screen" />;
   const { t, dir } = getT(acct.language);
   const days = trialDaysLeft(acct);
-  const planLabel = acct.plan === "trial" ? t("fullTrial") : t("planSuffix", acct.plan.charAt(0).toUpperCase() + acct.plan.slice(1));
+  const planLabel = acct.plan === "trial" ? t("fullTrial") : t("planSuffix", (acct.plan ?? "").charAt(0).toUpperCase() + (acct.plan ?? "").slice(1));
   const appName = (id: string) => t(id as TKey);
 
   const openApp = (ok: boolean, name: string) => {
