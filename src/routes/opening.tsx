@@ -9,6 +9,8 @@ export const Route = createFileRoute("/opening")({
       { name: "description", content: "Opening your SHOPBOOK workspace." },
       { property: "og:title", content: "Opening SHOPBOOK…" },
       { property: "og:description", content: "Opening your SHOPBOOK workspace." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Opening,

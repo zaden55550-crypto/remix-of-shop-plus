@@ -13,12 +13,12 @@ import Reports from "@/assets/icons/Reports.png.asset.json";
 import Summary from "@/assets/icons/Summary.png.asset.json";
 import Settings from "@/assets/icons/Settings.png.asset.json";
 import ChatDark from "@/assets/icons/AI_Chatbot_Dark_Mode.png.asset.json";
-import ChatLight from "@/assets/icons/AI_Chatbot_Light_Mode.png.asset.json";
+import ChatLightDarkGreen from "@/assets/icons/AI_Chatbot_Dark_Green.jpeg.asset.json";
 
 export type PlanId = "basic" | "plus" | "business";
 export type Tier = PlanId;
 
-export const chatIcons = { dark: ChatDark.url, light: ChatLight.url };
+export const chatIcons = { dark: ChatDark.url, light: ChatLightDarkGreen.url };
 
 export const APPS: { id: string; name: string; icon: string; tier: Tier }[] = [
   { id: "dashboard", name: "Dashboard", icon: Dashboard.url, tier: "basic" },
@@ -49,16 +49,16 @@ export const PLANS: {
   best?: boolean;
 }[] = [
   {
-    id: "basic", name: "Basic", monthly: 500, yearly: 500, tagline: "Start selling.",
-    features: ["Basic Dashboard", "Inventory", "Purchases", "Sales", "POS", "Basic product management", "Transaction history", "Basic settings"],
+    id: "basic", name: "Basic", monthly: 1050, yearly: 1000, tagline: "Start selling.",
+    features: ["Dashboard basic", "Inventory", "Purchases", "Sales", "POS", "Basic products", "Basic history", "Basic settings"],
   },
   {
     id: "plus", name: "Plus", monthly: 2100, yearly: 2000, tagline: "Manage your growing shop.", intro: "Everything in Basic, plus:",
-    features: ["Contacts", "Expenses", "Accounting", "Float", "Returns", "Credit sales", "Partial payments", "Mixed payments", "Cash-up", "Reports", "Advanced settings"],
+    features: ["Inventory", "Contacts", "Accounting", "Float", "Returns", "Credit & partial", "Mixed payments", "Cash-up (end of day)", "Reports", "Settings (advanced)"],
   },
   {
     id: "business", name: "Business", monthly: 4200, yearly: 4000, tagline: "Run the whole business.", intro: "Everything in Plus, plus:", best: true,
-    features: ["Payroll", "Summary", "Advanced analytics", "Advanced AI", "Advanced permissions", "Multi-shop", "Advanced integrations", "Custom reports", "Priority support", "Full settings"],
+    features: ["Payroll", "Summary", "Advanced analytics", "Advanced AI", "Advanced permissions", "Multi-shop", "Advanced integrations", "Custom reports", "Priority support", "Full settings access"],
   },
 ];
 

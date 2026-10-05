@@ -13,6 +13,8 @@ export const Route = createFileRoute("/signup")({
       { name: "description", content: "Create your SHOPBOOK shop account in under a minute. No verification needed." },
       { property: "og:title", content: "Create Account — SHOPBOOK ERP" },
       { property: "og:description", content: "Create your SHOPBOOK shop account." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Signup,

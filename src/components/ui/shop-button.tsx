@@ -5,6 +5,7 @@ const variants = {
   primary: "bg-primary text-primary-foreground glow hover:brightness-110",
   outline: "border-2 border-primary/70 bg-transparent text-foreground hover:bg-primary/10",
   success: "bg-success text-success-foreground hover:brightness-110",
+  bare: "bg-transparent text-foreground",
 };
 
 export function ShopButton({ variant = "primary", className, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof variants }) {
