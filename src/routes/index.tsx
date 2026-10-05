@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, Store } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, LogoPicker, TopBar } from "@/components/shopbook/ui";
@@ -23,6 +23,8 @@ function Login() {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [remember, setRemember] = useState(true);
+  const [logo, setLogo] = useState<string | undefined>();
+  useEffect(() => setLogo(store.get()?.logo), []);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +42,7 @@ function Login() {
     <main className="app-screen pb-8">
       <TopBar />
       <div className="mt-4"><BrandRing /></div>
-      <div className="mt-4"><LogoPicker value={store.get()?.logo} /></div>
+      <div className="mt-4"><LogoPicker value={logo} /></div>
       <h1 className="mt-3 text-center text-3xl font-bold">Login</h1>
       <p className="text-center text-sm text-muted-foreground">Sign in to your shop account</p>
       <form onSubmit={submit} className="mt-5 space-y-3 px-5">

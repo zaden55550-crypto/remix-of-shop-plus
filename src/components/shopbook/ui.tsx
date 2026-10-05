@@ -66,7 +66,7 @@ export function BrandRing({ size = 220 }: { size?: number }) {
   );
 }
 
-export function LogoPicker({ value, onChange }: { value?: string; onChange?: (v: string) => void }) {
+export function LogoPicker({ value, onChange }: { value?: string | undefined; onChange?: (v: string) => void }) {
   return (
     <label className="mx-auto flex w-fit cursor-pointer flex-col items-center gap-1.5">
       <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border-2 border-primary/70 glow">
