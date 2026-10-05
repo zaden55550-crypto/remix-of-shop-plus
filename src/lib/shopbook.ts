@@ -14,12 +14,14 @@ import Summary from "@/assets/icons/Summary.png.asset.json";
 import Settings from "@/assets/icons/Settings.png.asset.json";
 import ChatDark from "@/assets/icons/AI_Chatbot_Dark_Mode.png.asset.json";
 import ChatLight from "@/assets/icons/AI_Chatbot_Light_Mode.png.asset.json";
+import ChatLightV2 from "@/assets/Chatbot_Dark_v2.png.asset.json";
 
 export type PlanId = "basic" | "plus" | "business";
 export type Tier = PlanId;
 
 // Per the supplied assets: the dark chatbot art is for light mode, the light art for dark mode.
-export const chatIcons = { dark: ChatLight.url, light: ChatDark.url };
+// Light mode uses only the supplied black "chatbot" art (Chatbot_Dark_v2).
+export const chatIcons = { dark: ChatLight.url, light: ChatLightV2.url };
 
 export const APPS: { id: string; name: string; icon: string; tier: Tier }[] = [
   { id: "dashboard", name: "Dashboard", icon: Dashboard.url, tier: "basic" },
