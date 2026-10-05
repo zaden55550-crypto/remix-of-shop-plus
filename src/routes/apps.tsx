@@ -59,7 +59,7 @@ function Apps() {
   const renderApp = (app: (typeof APPS)[number]) => {
     const ok = canOpen(acct, app.tier);
     return (
-      <ShopButton variant="bare" key={app.id} onClick={() => (ok && app.id === "inventory" ? nav({ to: "/inventory" }) : openApp(ok, appName(app.id)))}
+      <ShopButton variant="bare" key={app.id} onClick={() => (ok && app.id === "inventory" ? nav({ to: "/inventory" }) : ok && app.id === "pos" ? nav({ to: "/pos" }) : ok && app.id === "sales" ? nav({ to: "/sales" }) : openApp(ok, appName(app.id)))}
         className="h-auto w-full min-w-0 flex-col items-center justify-start gap-2 rounded-none p-0">
         <span className="relative flex aspect-square w-full max-w-[90px] items-center justify-center">
           <span className="block h-full w-full">
