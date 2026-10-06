@@ -256,3 +256,22 @@
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; inset: 0; margin: 0 auto; }
 }
+
+/* Purchases: one-line records that scroll sideways instead of wrapping. */
+.pur-row { display: flex; align-items: center; gap: 8px; min-height: 30px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px; white-space: nowrap; overflow-x: auto; scrollbar-width: none; }
+.pur-row::-webkit-scrollbar { display: none; }
+.pur-row:last-child { border-bottom: 0; }
+.pur-name { flex: 1 1 auto; min-width: 90px; overflow: hidden; text-overflow: ellipsis; }
+.pur-amt { flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pur-muted { flex-shrink: 0; color: var(--muted-foreground); font-size: 10px; }
+.pur-badge { flex-shrink: 0; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; line-height: 14px; }
+.pur-badge-ok { background: var(--primary); color: var(--primary-foreground); }
+.pur-badge-warn { background: var(--warning); color: var(--primary-foreground); }
+.pur-badge-bad { background: var(--destructive); color: var(--foreground); }
+.pur-scroll { overflow-x: auto; }
+.pur-line { display: grid; grid-template-columns: minmax(90px,1fr) 44px 64px 52px 64px 18px; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px; white-space: nowrap; min-width: 360px; }
+.pur-line .inventory-input { height: 26px; padding: 0 5px; }
+.pur-line-head { font-size: 9px; color: var(--muted-foreground); }
+.pur-line-ret { grid-template-columns: minmax(90px,1fr) 44px 52px 64px; min-width: 0; }
+.pur-totals { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; font-size: 11px; }
+.pur-totals b { text-align: end; font-variant-numeric: tabular-nums; }
