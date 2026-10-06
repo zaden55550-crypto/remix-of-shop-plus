@@ -14,7 +14,7 @@ export function MethodPie({ by, money, tr }: { by: Record<Method, number>; money
     <div className="flex items-center gap-4">
       <div aria-hidden className="h-24 w-24 shrink-0 rounded-full border border-border" style={{ background: total ? `conic-gradient(${stops})` : "var(--muted)" }} />
       <ul className="min-w-0 flex-1 space-y-1 text-xs">
-        {METHODS.map((m) => <li key={m} className="flex items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[m] }} /><span className="flex-1">{tr(METHOD_LABEL[m])}</span><b className="tabular-nums">{money(by[m])}</b></li>)}
+        {METHODS.map((m) => <li key={m} className="flex items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: COLORS[m] }} /><span className="flex-1 first-letter:uppercase">{tr(METHOD_LABEL[m])}</span><b className="tabular-nums">{money(by[m])}</b></li>)}
       </ul>
     </div>
   );
