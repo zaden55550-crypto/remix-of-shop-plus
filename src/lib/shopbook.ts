@@ -1,6 +1,6 @@
 // Local-only store for the screens-first phase (no backend yet).
 import Dashboard from "@/assets/icons-final/Dashboard.png.asset.json";
-import Inventory from "@/assets/icons-final/Inventory.png.asset.json";
+import Inventory from "@/assets/Inventory-Purple.png.asset.json";
 import Purchases from "@/assets/icons-final/Purchases.png.asset.json";
 import Sales from "@/assets/icons-final/Sales.png.asset.json";
 import POS from "@/assets/icons-final/POS.png.asset.json";
@@ -13,7 +13,7 @@ import Reports from "@/assets/icons-final/Reports.png.asset.json";
 import Summary from "@/assets/icons-final/Summary.png.asset.json";
 import Settings from "@/assets/icons-final/Settings.png.asset.json";
 import DashboardD from "@/assets/icons-final/Dashboard.png.asset.json";
-import InventoryD from "@/assets/icons-final/Inventory.png.asset.json";
+import InventoryD from "@/assets/Inventory-Purple.png.asset.json";
 import PurchasesD from "@/assets/icons-final/Purchases.png.asset.json";
 import SalesD from "@/assets/icons-final/Sales.png.asset.json";
 import POSD from "@/assets/icons-final/POS.png.asset.json";
