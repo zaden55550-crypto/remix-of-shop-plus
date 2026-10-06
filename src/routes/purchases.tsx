@@ -121,7 +121,7 @@ function Badge({ s }: { s: string }) {
 }
 const Dot = ({ tone }: { tone: "ok" | "warn" | "bad" }) => <span className={cn("inventory-dot", tone === "warn" && "inventory-dot-low", tone === "bad" && "inventory-dot-out")} />;
 /** One record = one line; extra columns scroll sideways instead of wrapping. */
-const Row = ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => <div className={cn("pur-row", onClick && "cursor-pointer")} onClick={onClick}>{children}</div>;
+const Row = ({ children, onClick }: { children: ReactNode; onClick?: (() => void) | undefined }) => <div className={cn("pur-row", onClick && "cursor-pointer")} onClick={onClick}>{children}</div>;
 
 function Kpis({ s, money, tr, from = 0, to = Date.now() }: Omit<Ctx, "go"> & { from?: number; to?: number }) {
   const inR = (at: number) => at >= from && at <= to;
@@ -172,7 +172,7 @@ function NewPurchase({ s, money, tr, go, draft }: Ctx & { draft?: Draft }) {
   const [q, setQ] = useState("");
   const [lines, setLines] = useState<DraftLine[]>(draft?.lines ?? []);
   const [sup, setSup] = useState(draft?.supplierId ?? "");
-  const [pay, setPay] = useState<Record<"cash" | "mpesa" | "bank", string>>({ cash: "", mpesa: "", bank: "" });
+  const [pay, setPay] = useState<Record<erp.Method, string>>({ cash: "", mpesa: "", bank: "", credit: "" });
   const addLine = (p: erp.Product) => setLines((l) => (l.some((x) => x.productId === p.id) ? l : [...l, { productId: p.id, qty: "1", cost: String(p.buy), disc: "0" }]));
   const results = q.trim() ? erp.searchProducts(s, q).slice(0, 6) : [];
   const lt = (l: DraftLine) => Math.max(0, (+l.qty || 0) * (+l.cost || 0) - (+l.disc || 0));
@@ -182,7 +182,7 @@ function NewPurchase({ s, money, tr, go, draft }: Ctx & { draft?: Draft }) {
   const paidN = fin.ACCOUNTS.reduce((a, m) => a + (+pay[m] || 0), 0);
   const credit = Math.max(0, Math.round((total - paidN) * 100) / 100);
   const set = (i: number, k: keyof DraftLine, v: string) => setLines(lines.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  const clear = () => { setLines([]); setPay({ cash: "", mpesa: "", bank: "" }); if (draft) saveDrafts(loadDrafts().filter((d) => d.id !== draft.id)); };
+  const clear = () => { setLines([]); setPay({ cash: "", mpesa: "", bank: "", credit: "" }); if (draft) saveDrafts(loadDrafts().filter((d) => d.id !== draft.id)); };
   const confirm = () => {
     if (!sup) { toast.error(tr("Choose a supplier")); return; }
     if (paidN > total + 0.001) { toast.error(tr("Paid amount is more than the total")); return; }
