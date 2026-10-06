@@ -40,8 +40,36 @@ export const paySupplier = (supplierId: string, amount: number, method: Method) 
   if (amount > sup.balance + 0.001) throw new ErpError("Amount is more than the outstanding balance");
   ensureFunds(s, method, amount);
   sup.balance = r2(sup.balance - amount);
+  allocateToPurchases(s, sup.id, amount);
   s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method, amount: -amount, kind: "SUPPLIER PAYMENT", source: sup.name, user: c.user });
   c.audit("SUPPLIER PAYMENT", `${sup.name} • ${amount}`);
+});
+
+// ---------- Purchase balances (P.PAY = part paid) ----------
+export function purchaseBalance(s: ErpState, p: Purchase) {
+  const credRet = s.purchaseReturns.filter((r) => r.purchaseId === p.id && r.refund === "credit").reduce((a, r) => a + r.amount, 0);
+  return Math.max(0, r2(p.pay.credit - (p.settled ?? 0) - credRet));
+}
+export const purchaseStatus = (s: ErpState, p: Purchase) => payStatus(p.total, purchaseBalance(s, p), p.items.every((i) => i.returned >= i.qty));
+function allocateToPurchases(s: ErpState, supplierId: string, amount: number, only?: string) {
+  let left = amount;
+  for (const p of s.purchases.filter((x) => x.supplierId === supplierId && (!only || x.id === only)).sort((a, b) => a.at - b.at)) {
+    if (left <= 0.001) break; const b = purchaseBalance(s, p); if (b <= 0) continue;
+    const take = Math.min(b, left); p.settled = r2((p.settled ?? 0) + take); left -= take;
+  }
+}
+/** Pays one P.PAY/Credit purchase; supplier balance and money ledger move together. */
+export const payPurchase = (purchaseId: string, amount: number, method: Method) => commit((s, c) => {
+  const p = s.purchases.find((x) => x.id === purchaseId); if (!p) throw new ErpError("Purchase not found");
+  const sup = s.suppliers.find((x) => x.id === p.supplierId); if (!sup) throw new ErpError("Supplier not found");
+  if (method === "credit") throw new ErpError("Choose Cash, M-Pesa or Bank");
+  if (!(amount > 0)) throw new ErpError("Enter an amount");
+  if (amount > purchaseBalance(s, p) + 0.001) throw new ErpError("Amount is more than the outstanding balance");
+  ensureFunds(s, method, amount);
+  sup.balance = r2(sup.balance - amount);
+  allocateToPurchases(s, sup.id, amount, p.id);
+  s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method, amount: -amount, kind: "SUPPLIER PAYMENT", source: sup.name, user: c.user });
+  c.audit("SUPPLIER PAYMENT", `${p.ref} • ${sup.name} • ${amount}`);
 });
 
 // ---------- Purchases ----------
