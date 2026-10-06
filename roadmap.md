@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [ ] Build and verify Dashboard with the shared five-metric horizontal KPI row.
+
 - [x] Use the supplied dark chatbot in light mode.
 - [x] Center uploaded shop photos.
 - [x] Improve spacing between app rows.
