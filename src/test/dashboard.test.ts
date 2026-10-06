@@ -9,7 +9,7 @@ describe("Dashboard totals", () => {
     const sale = confirmSale({ cart: [{ productId: product.id, qty: 3 }], discount: 0, pay: { cash: 600, bank: 0, mpesa: 0, credit: 0 }, channel: "POS" });
     returnSale(sale.id, [{ productId: product.id, qty: 1 }], "cash");
     const before = localStorage.getItem("shopbook.erp");
-    expect(dashboardTotals(load())).toEqual({ sales: 400, stock: 800, purchases: null, expenses: null, profit: null });
+    expect(dashboardTotals(load())).toEqual({ sales: 400, stock: 800, purchases: 0, expenses: 0, profit: 200 });
     expect(localStorage.getItem("shopbook.erp")).toBe(before);
     localStorage.removeItem("shopbook.erp");
   });
