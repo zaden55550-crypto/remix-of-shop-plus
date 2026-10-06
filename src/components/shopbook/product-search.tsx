@@ -25,7 +25,7 @@ export function ProductSearch({ q, setQ, onScan, tr }: { q: string; setQ: (v: st
   );
 }
 
-function Scanner({ onCode, onClose, tr }: { onCode: (c: string) => void; onClose: () => void; tr: Tr }) {
+export function Scanner({ onCode, onClose, tr }: { onCode: (c: string) => void; onClose: () => void; tr: Tr }) {
   const video = useRef<HTMLVideoElement>(null);
   const [manual, setManual] = useState("");
   const [camOk, setCamOk] = useState(true);
