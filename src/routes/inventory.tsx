@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, Menu as MenuIcon, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { store, canOpen, type Account } from "@/lib/shopbook";
@@ -10,6 +10,7 @@ import { Reorder } from "@/components/shopbook/reorder";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
+import { lastBackup } from "@/lib/backup";
 import { ProductSearch, useErp, inputCls } from "@/components/shopbook/product-search";
 
 export const Route = createFileRoute("/inventory")({
