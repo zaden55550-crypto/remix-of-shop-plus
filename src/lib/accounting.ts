@@ -31,7 +31,7 @@ export function journal(s: ErpState): Entry[] {
     const cost = r.items.reduce((a, i) => a + i.qty * (sale?.items.find((y) => y.productId === i.productId)?.cost ?? 0), 0);
     push(r.at, r.ref, `Return ${r.saleRef}`, [dr("salesReturns", r.amount), cr(acc(r.refund), r.amount), dr("inventory", cost), cr("cogs", cost)]);
   });
-  s.purchases.forEach((p) => push(p.at, p.ref, "Purchase", [dr("inventory", p.total), ...(["cash", "mpesa", "bank"] as Method[]).map((m) => cr(m, p.pay[m])), cr("payables", p.pay.credit)]));
+  s.purchases.forEach((p) => push(p.at, p.ref, "Purchase", [dr("inventory", p.total), ...(["cash", "mpesa", "bank"] as const).map((m) => cr(m, p.pay[m])), cr("payables", p.pay.credit)]));
   s.purchaseReturns.forEach((r) => push(r.at, r.ref, `Return ${r.purchaseRef}`, [dr(acc(r.refund) === "receivables" ? "payables" : acc(r.refund), r.amount), cr("inventory", r.amount)]));
   s.payments.forEach((p) => {
     if (p.method === "credit") return;

@@ -22,7 +22,6 @@ export const Route = createFileRoute("/summary")({
 });
 
 const TABS = ["Business performance", "Sales performance", "Inventory", "Financial position", "Trends"];
-const dash = (t: string) => <span title={t}>—</span>;
 
 function Summary() {
   const acct = useAccount("business");
@@ -34,7 +33,6 @@ function Summary() {
   const money = moneyFor(acct.currency || "KSh");
   const p = performance(s, periodStart(period));
   const pos = position(s);
-  const na = tr("Not available yet");
   return (
     <AppShell title="Summary" tabs={TABS} tab={tab} setTab={setTab}>
       {(tab === TABS[0] || tab === TABS[1]) && <div className="mb-3 flex gap-1 overflow-x-auto [scrollbar-width:none]">
