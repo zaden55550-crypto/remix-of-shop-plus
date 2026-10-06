@@ -32,14 +32,14 @@ export function journal(s: ErpState): Entry[] {
     push(r.at, r.ref, `Return ${r.saleRef}`, [dr("salesReturns", r.amount), cr(acc(r.refund), r.amount), dr("inventory", cost), cr("cogs", cost)]);
   });
   s.purchases.forEach((p) => push(p.at, p.ref, "Purchase", [dr("inventory", p.total), ...(["cash", "mpesa", "bank"] as Method[]).map((m) => cr(m, p.pay[m])), cr("payables", p.pay.credit)]));
-  s.purchaseReturns.forEach((r) => push(r.at, r.ref, `Return ${r.purchaseRef}`, [dr(r.refund === "credit" ? "payables" : r.refund, r.amount), cr("inventory", r.amount)]));
+  s.purchaseReturns.forEach((r) => push(r.at, r.ref, `Return ${r.purchaseRef}`, [dr(acc(r.refund) === "receivables" ? "payables" : acc(r.refund), r.amount), cr("inventory", r.amount)]));
   s.payments.forEach((p) => {
     if (p.method === "credit") return;
     const v = Math.abs(p.amount);
     if (p.kind === "DEBT") push(p.at, p.ref, `Debt • ${p.source}`, [dr(p.method, v), cr("receivables", v)]);
     if (p.kind === "SUPPLIER PAYMENT") push(p.at, p.ref, `Supplier • ${p.source}`, [dr("payables", v), cr(p.method, v)]);
     if (p.kind === "EXPENSE") push(p.at, p.source, "Expense", [dr("expenses", v), cr(p.method, v)]);
-    if (p.kind === "DEPOSIT" || (p.kind === "TRANSFER" && p.amount > 0)) push(p.at, p.ref, p.kind === "DEPOSIT" ? "Deposit" : `Transfer ${p.source}`, [dr(p.method, v), cr(p.kind === "DEPOSIT" ? "equity" : "equity", v)]);
+    if (p.kind === "DEPOSIT" || (p.kind === "TRANSFER" && p.amount > 0)) push(p.at, p.ref, p.kind === "DEPOSIT" ? "Deposit" : `Transfer ${p.source}`, [dr(p.method, v), cr("equity", v)]);
     if (p.kind === "WITHDRAWAL" || (p.kind === "TRANSFER" && p.amount < 0)) push(p.at, p.ref, p.kind === "WITHDRAWAL" ? "Withdrawal" : `Transfer ${p.source}`, [dr("equity", v), cr(p.method, v)]);
   });
   s.payrolls.forEach((r) => push(r.at, r.ref, "Payroll", [dr("salaries", r.net), cr("salariesPayable", r.net)]));
