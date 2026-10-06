@@ -27,7 +27,7 @@ export type ErpState = {
 };
 export type Supplier = { id: string; name: string; phone?: string | undefined; email?: string | undefined; address?: string | undefined; info?: string | undefined; notes?: string | undefined; balance: number; createdAt: number };
 export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
-export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string };
+export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string; settled?: number | undefined };
 export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
 export type Expense = { id: string; ref: string; at: number; category: string; note?: string | undefined; amount: number; method: Method; user: string };
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean };
@@ -44,6 +44,8 @@ export type SaleItem = { productId: string; name: string; qty: number; price: nu
 export type Sale = {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
   pay: Record<Method, number>; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
+  /** Credit paid off after the sale; `pay` stays as recorded at sale time so accounting never double counts. */
+  settled?: number | undefined;
 };
 export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL"; source: string; customerId?: string | undefined; user: string };
 export type SaleReturn = { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
@@ -200,14 +202,34 @@ export const removeNamed = (kind: "categories" | "brands", id: string) => commit
   s.products.forEach((p) => { if (p[key] === id) delete p[key]; });
 });
 
-// ---------- Selling engine (shared by Sales → Billing and POS → Sell) ----------
+// ---------- Selling engine (shared by Sales → New Sale and POS → Sell) ----------
 export type CartLine = { productId: string; qty: number };
 export const lineTotal = (s: ErpState, cart: CartLine[]) =>
   cart.reduce((a, l) => a + (s.products.find((p) => p.id === l.productId)?.sell ?? 0) * l.qty, 0);
 export const methodOf = (pay: Record<Method, number>) => {
   const used = METHODS.filter((m) => pay[m] > 0);
-  return used.length > 1 ? "Mixed" : used[0] ? METHOD_LABEL[used[0]] : "—";
+  return used.length ? used.map((m) => METHOD_LABEL[m]).join(" + ") : "—";
 };
+
+// ---------- Payment status (P.PAY = part paid, rest still owed) ----------
+export type PayStatus = "Paid" | "P.PAY" | "Credit" | "Cancelled";
+const r2x = (n: number) => Math.round(n * 100) / 100;
+export function saleBalance(s: ErpState, x: Sale) {
+  const credRet = s.returns.filter((r) => r.saleId === x.id && r.refund === "credit").reduce((a, r) => a + r.amount, 0);
+  return Math.max(0, r2x(x.pay.credit - (x.settled ?? 0) - credRet));
+}
+export function payStatus(total: number, balance: number, fullyReturned: boolean): PayStatus {
+  if (fullyReturned) return "Cancelled";
+  if (balance <= 0.001) return "Paid";
+  return balance >= total - 0.001 ? "Credit" : "P.PAY";
+}
+export const saleStatus = (s: ErpState, x: Sale) => payStatus(x.total, saleBalance(s, x), x.items.every((i) => i.returned >= i.qty));
+/** Pays down a customer's open sales oldest-first so each sale shows its own balance. */
+function allocateToSales(s: ErpState, customerId: string, amount: number, onlySaleId?: string) {
+  let left = amount;
+  const open = s.sales.filter((x) => x.customerId === customerId && (!onlySaleId || x.id === onlySaleId)).sort((a, b) => a.at - b.at);
+  for (const x of open) { if (left <= 0.001) break; const b = saleBalance(s, x); if (b <= 0) continue; const take = Math.min(b, left); x.settled = r2x((x.settled ?? 0) + take); left -= take; }
+}
 
 export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Record<Method, number>; customerId?: string | undefined; channel: "POS" | "Sales"; sellerId?: string | undefined }) => commit((s, c) => {
   if (!input.cart.length) throw new ErpError("Cart is empty");
@@ -254,8 +276,22 @@ export const receiveDebt = (customerId: string, amount: number, method: Method) 
   if (!(amount > 0)) throw new ErpError("Enter an amount");
   if (amount > cu.balance + 0.001) throw new ErpError("Amount is more than the outstanding balance");
   cu.balance -= amount;
+  allocateToSales(s, customerId, amount);
   s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method, amount, kind: "DEBT", source: cu.name, customerId, user: c.user });
   c.audit("DEBT PAYMENT", `${cu.name} • ${amount}`);
+});
+
+/** Adds a payment against one P.PAY/Credit sale. */
+export const paySale = (saleId: string, amount: number, method: Method) => commit((s, c) => {
+  const x = s.sales.find((v) => v.id === saleId); if (!x) throw new ErpError("Sale not found");
+  const cu = x.customerId ? s.customers.find((v) => v.id === x.customerId) : undefined; if (!cu) throw new ErpError("Customer not found");
+  if (method === "credit") throw new ErpError("Choose Cash, M-Pesa or Bank");
+  if (!(amount > 0)) throw new ErpError("Enter an amount");
+  if (amount > saleBalance(s, x) + 0.001) throw new ErpError("Amount is more than the outstanding balance");
+  cu.balance -= amount;
+  allocateToSales(s, cu.id, amount, x.id);
+  s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method, amount, kind: "DEBT", source: x.ref, customerId: cu.id, user: c.user });
+  c.audit("SALE PAYMENT", `${x.ref} • ${amount}`);
 });
 
 /** Partial returns supported; the original sale stays intact apart from the returned counter. */

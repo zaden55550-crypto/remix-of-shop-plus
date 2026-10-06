@@ -26,3 +26,4 @@
 - Demo seed lives in src/lib/demo.ts and only calls public ERP actions; it loads only into an empty shop and reset works only on demo-flagged devices, so real records are never wiped.
 - Support chat lives in Cloud (support_threads/support_messages): owners need Google sign-in, AI replies are written only by the server route, and the support role (user_roles) gates the /support-inbox, so messages can't be forged or read by others.
 - Purchase drafts are device-local unsaved work (not ERP records); only confirmed purchases go through finance.ts so stock, money and supplier balances change once.
+- Part payments (P.PAY) after a sale/purchase are tracked in a separate settled amount on the record; the original pay split stays untouched so accounting never counts money twice. Purchases and Sales share the navy shell in erp-shell.tsx.

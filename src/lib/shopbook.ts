@@ -69,7 +69,7 @@ export const PLANS: {
   },
   {
     id: "plus", name: "Plus", monthly: 2100, yearly: 2000, tagline: "Manage your growing shop.", intro: "Everything in Basic, plus:",
-    features: ["Inventory", "Contacts", "Accounting", "Float", "Returns", "Credit & partial", "Mixed payments", "Cash-up (end of day)", "Reports", "Settings (advanced)"],
+    features: ["Inventory", "Contacts", "Accounting", "Float", "Returns", "Credit & partial", "Cash-up (end of day)", "Reports", "Settings (advanced)"],
   },
   {
     id: "business", name: "Business", monthly: 4200, yearly: 4000, tagline: "Run the whole business.", intro: "Everything in Plus, plus:", best: true,

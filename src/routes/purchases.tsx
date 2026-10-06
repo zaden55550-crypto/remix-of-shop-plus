@@ -1,13 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Banknote, ChevronLeft, ChevronRight, CreditCard, Menu as MenuIcon, MinusCircle, Plus, Receipt, RotateCcw, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Banknote, CheckCircle2, ChevronRight, CircleDollarSign, CreditCard, FileText, MessageCircle, MinusCircle, Plus, Printer, Receipt, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { ProductSearch, useErp } from "@/components/shopbook/product-search";
 import { run, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
+import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, Tabs, toneOf, type Tr } from "@/components/shopbook/erp-shell";
 import { useLanguage } from "@/hooks/use-language";
-import { lastBackup } from "@/lib/backup";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
 import * as fin from "@/lib/finance";
@@ -26,15 +26,15 @@ export const Route = createFileRoute("/purchases")({
 
 const MENUS = {
   Overview: [],
-  Purchases: ["All Purchases", "New Purchase", "Drafts", "Completed", "Cancelled"],
+  Purchases: ["All Purchases", "Drafts", "Completed", "Cancelled"],
   Suppliers: ["All Suppliers", "Add Supplier", "Balances", "History"],
-  Payments: ["All Payments", "Make Payment", "Partial Payments", "History"],
+  Payments: ["All Payments", "Make Payment", "P.PAY", "History"],
   Returns: ["All Returns", "New Return", "Pending", "Completed", "History"],
   Reports: ["Purchase Report", "Supplier Report", "Payment Report", "Return Report"],
 } as const;
 type Menu = keyof typeof MENUS;
-type Tr = (t: string) => string;
-type Ctx = { s: erp.ErpState; money: (n: number) => string; tr: Tr; go: (m: Menu, sub?: string) => void };
+type View = null | { k: "new"; draft?: Draft } | { k: "detail"; id: string } | { k: "done"; id: string };
+type Ctx = { s: erp.ErpState; money: (n: number) => string; tr: Tr; go: (m: Menu, sub?: string) => void; open: (v: View) => void; shop: string };
 
 // Drafts are unsaved work, not financial records, so they stay outside the ERP ledger.
 type DraftLine = { productId: string; qty: string; cost: string; disc: string };
@@ -49,9 +49,8 @@ function useDrafts() {
 }
 
 const supName = (s: erp.ErpState, id?: string) => s.suppliers.find((x) => x.id === id)?.name ?? "—";
-const purStatus = (p: erp.Purchase) => (p.items.every((i) => i.returned >= i.qty) ? "Cancelled" : p.pay.credit > 0.001 ? "Pending" : "Paid");
-const methods = (pay: Record<erp.Method, number>) => erp.METHODS.filter((m) => pay[m] > 0.001);
 const supplierPayments = (s: erp.ErpState) => s.payments.filter((p) => p.kind === "SUPPLIER PAYMENT");
+const paidOf = (s: erp.ErpState, p: erp.Purchase) => Math.max(0, p.total - fin.purchaseBalance(s, p));
 function supplierStats(s: erp.ErpState, sup: erp.Supplier) {
   const pur = s.purchases.filter((p) => p.supplierId === sup.id);
   const purchases = pur.reduce((a, p) => a + p.total, 0);
@@ -63,83 +62,47 @@ function supplierStats(s: erp.ErpState, sup: erp.Supplier) {
 
 function Purchases() {
   const acct = useAccount("basic");
-  const nav = useNavigate();
-  const { tr, dir } = useLanguage();
+  const { tr } = useLanguage();
   const s = useErp();
   const [menu, setMenu] = useState<Menu>("Overview");
   const [sub, setSub] = useState("");
-  const [open, setOpen] = useState(false);
-  const [lb, setLb] = useState(0);
-  useEffect(() => { setLb(lastBackup()); }, [s]);
+  const [view, setView] = useState<View>(null);
   if (!acct) return <main className="app-screen" />;
   const cur = acct.currency || "KSh";
   const money = (n: number) => `${cur} ${(Math.round(n * 100) / 100 || 0).toLocaleString("en-KE")}`;
-  const go = (m: Menu, sm?: string) => { setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); setOpen(false); };
-  const ctx: Ctx = { s, money, tr, go };
+  const go = (m: Menu, sm?: string) => { setView(null); setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); };
+  const ctx: Ctx = { s, money, tr, go, open: setView, shop: acct.shopName };
   return (
-    <main dir={dir} className="inventory-screen flex w-full flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="inventory-header">
-          <div className="flex shrink-0 items-center gap-1"><ShopButton variant="bare" className="h-auto w-auto p-0" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-4 w-4 rtl:rotate-180" /></ShopButton><h1>{tr("Purchases").toUpperCase()}</h1></div>
-          <p className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{acct.shopName}</p>
-          <div className="relative shrink-0">
-            <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Menu")} onClick={() => setOpen(!open)}><MenuIcon className="h-5 w-5" /></ShopButton>
-            {open && <div className="absolute end-0 top-9 z-30 w-48 rounded-xl border border-border bg-popover p-1 shadow-lg">
-              {(Object.keys(MENUS) as Menu[]).map((m) => <ShopButton variant="bare" key={m} onClick={() => go(m)} className={cn("block w-full rounded-lg px-3 py-2 text-start text-xs font-medium hover:bg-muted", menu === m && "text-primary")}>{tr(m)}</ShopButton>)}
-              <ShopButton variant="bare" onClick={() => nav({ to: "/apps" })} className="block w-full rounded-lg px-3 py-2 text-start text-xs font-medium text-muted-foreground hover:bg-muted">{tr("Apps")}</ShopButton>
-            </div>}
-          </div>
-        </div>
-        <p className="inventory-backup"><span className={cn("h-2 w-2 rounded-full", lb ? "bg-success" : "bg-warning")} />{lb ? `✓ ${tr("Backed up")} • ${Date.now() - lb < 60000 ? tr("now") : new Date(lb).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : tr("Not backed up yet")}</p>
-        <Tabs items={Object.keys(MENUS)} value={menu} onChange={(m) => go(m as Menu)} tr={tr} />
-        {MENUS[menu].length > 0 && <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} tr={tr} />}
-      </header>
-      <section className="inventory-content flex-1">
-        {menu === "Overview" && <Overview {...ctx} />}
-        {menu === "Purchases" && (sub === "New Purchase" ? <NewPurchase {...ctx} /> : sub === "Drafts" || sub === "Cancelled" ? <Drafts {...ctx} cancelled={sub === "Cancelled"} /> : <PurchaseList {...ctx} completed={sub === "Completed"} />)}
-        {menu === "Suppliers" && (sub === "Add Supplier" ? <AddSupplier {...ctx} /> : sub === "History" ? <SupplierHistory {...ctx} /> : <SupplierList {...ctx} balances={sub === "Balances"} />)}
-        {menu === "Payments" && (sub === "Make Payment" ? <MakePayment {...ctx} /> : <PaymentList {...ctx} partial={sub === "Partial Payments"} />)}
-        {menu === "Returns" && (sub === "New Return" ? <NewReturn {...ctx} /> : sub === "Pending" ? <Empty>{tr("No pending returns. Returns complete as soon as they are saved.")}</Empty> : <ReturnList {...ctx} />)}
-        {menu === "Reports" && <Reports {...ctx} view={sub} />}
-      </section>
-    </main>
+    <ErpShell title="Purchases" shop={acct.shopName} menus={MENUS} menu={menu} sub={sub} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
+      {view?.k === "new" ? <NewPurchase {...ctx} draft={view.draft} />
+        : view?.k === "detail" ? <PurchaseDetail {...ctx} id={view.id} />
+        : view?.k === "done" ? <Done {...ctx} id={view.id} />
+        : <>
+          {menu === "Overview" && <Overview {...ctx} />}
+          {menu === "Purchases" && (sub === "Drafts" || sub === "Cancelled" ? <Drafts {...ctx} cancelled={sub === "Cancelled"} /> : <PurchaseList {...ctx} completed={sub === "Completed"} />)}
+          {menu === "Suppliers" && (sub === "Add Supplier" ? <AddSupplier {...ctx} /> : sub === "History" ? <SupplierHistory {...ctx} /> : <SupplierList {...ctx} balances={sub === "Balances"} />)}
+          {menu === "Payments" && (sub === "Make Payment" ? <MakePayment {...ctx} /> : sub === "P.PAY" ? <OpenPurchases {...ctx} /> : <PaymentList {...ctx} />)}
+          {menu === "Returns" && (sub === "New Return" ? <NewReturn {...ctx} /> : sub === "Pending" ? <Empty>{tr("No pending returns. Returns complete as soon as they are saved.")}</Empty> : <ReturnList {...ctx} />)}
+          {menu === "Reports" && <Reports {...ctx} view={sub} />}
+        </>}
+    </ErpShell>
   );
 }
 
-function Tabs({ items, value, onChange, tr, small }: { items: string[]; value: string; onChange: (v: string) => void; tr: Tr; small?: boolean }) {
-  return <div role="tablist" className={cn("inventory-tabs", small && "inventory-tabs-sub")}>{items.map((k) => <ShopButton variant="bare" role="tab" aria-selected={value === k} key={k} onClick={() => onChange(k)} className="inventory-tab">{tr(k)}</ShopButton>)}</div>;
-}
-const Empty = ({ children }: { children: ReactNode }) => <p className="py-6 text-center text-[11px] text-muted-foreground">{children}</p>;
-function Box({ title, action, children }: { title: string; action?: () => void; children: ReactNode }) {
-  const { tr } = useLanguage();
-  return <div className="inventory-box"><div className="inventory-box-heading"><h2>{title}</h2>{action && <ShopButton variant="bare" className="inventory-view-all" onClick={action}>{tr("View All")} ›</ShopButton>}</div>{children}</div>;
-}
-function Badge({ s }: { s: string }) {
-  const { tr } = useLanguage();
-  const tone = s === "Paid" || s === "Completed" ? "ok" : s === "Pending" || s === "Draft" ? "warn" : "bad";
-  return <span className={cn("pur-badge", `pur-badge-${tone}`)}>{tr(s)}</span>;
-}
-const Dot = ({ tone }: { tone: "ok" | "warn" | "bad" }) => <span className={cn("inventory-dot", tone === "warn" && "inventory-dot-low", tone === "bad" && "inventory-dot-out")} />;
-/** One record = one line; extra columns scroll sideways instead of wrapping. */
-const Row = ({ children, onClick }: { children: ReactNode; onClick?: (() => void) | undefined }) => <div className={cn("pur-row", onClick && "cursor-pointer")} onClick={onClick}>{children}</div>;
-
-function Kpis({ s, money, tr, from = 0, to = Date.now() }: Omit<Ctx, "go"> & { from?: number; to?: number }) {
-  const inR = (at: number) => at >= from && at <= to;
-  const pur = s.purchases.filter((p) => inR(p.at));
-  const total = pur.reduce((a, p) => a + p.total, 0);
-  const credit = pur.reduce((a, p) => a + p.pay.credit, 0);
-  const ret = s.purchaseReturns.filter((r) => inR(r.at)).reduce((a, r) => a + r.amount, 0);
+function Kpis({ s, money, tr, from = 0, to = Date.now() }: Pick<Ctx, "s" | "money" | "tr"> & { from?: number; to?: number }) {
+  const pur = s.purchases.filter((p) => p.at >= from && p.at <= to);
+  const by = (st: erp.PayStatus) => pur.filter((p) => fin.purchaseStatus(s, p) === st).reduce((a, p) => a + p.total, 0);
   return <KpiRow>
-    <Kpi icon={<ShoppingCart className="text-primary" />} label={tr("Purchases")} value={money(total)} />
-    <Kpi icon={<Banknote className="text-warning" />} label={tr("Paid")} value={money(total - credit)} />
-    <Kpi icon={<CreditCard className="text-primary" />} label={tr("Credit")} value={money(credit)} tone={credit > 0 ? "warn" : undefined} />
-    <Kpi icon={<RotateCcw className="text-destructive" />} label={tr("Returns")} value={money(ret)} />
+    <Kpi icon={<ShoppingCart className="text-primary" />} label={tr("Purchases")} value={money(pur.reduce((a, p) => a + p.total, 0))} />
+    <Kpi icon={<Banknote className="text-warning" />} label={tr("Paid")} value={money(by("Paid"))} />
+    <Kpi icon={<CircleDollarSign className="text-warning" />} label="P.PAY" value={money(by("P.PAY"))} />
+    <Kpi icon={<CreditCard className="text-destructive" />} label={tr("Credit")} value={money(by("Credit"))} />
   </KpiRow>;
 }
 
-function PurRow({ p, s, money }: { p: erp.Purchase; s: erp.ErpState; money: (n: number) => string }) {
-  const st = purStatus(p);
-  return <Row><Dot tone={st === "Paid" ? "ok" : st === "Pending" ? "warn" : "bad"} /><b>{p.ref}</b><span className="pur-name">{supName(s, p.supplierId)}</span><span className="pur-amt">{money(p.total)}</span><Badge s={st} /></Row>;
+function PurRow({ p, c, balance }: { p: erp.Purchase; c: Ctx; balance?: boolean }) {
+  const st = fin.purchaseStatus(c.s, p);
+  return <Row onClick={() => c.open({ k: "detail", id: p.id })}><Dot tone={toneOf(st)} /><b>{p.ref}</b><span className="pur-name">{supName(c.s, p.supplierId)}</span><span className="pur-amt">{c.money(p.total)}</span>{balance && <span className="pur-muted">{c.tr("Balance")}: {c.money(fin.purchaseBalance(c.s, p))}</span>}<Badge s={st} /></Row>;
 }
 function RetRow({ r, s, money, tr }: { r: erp.PurchaseReturn; s: erp.ErpState; money: (n: number) => string; tr: Tr }) {
   const pur = s.purchases.find((p) => p.id === r.purchaseId);
@@ -149,88 +112,179 @@ function RetRow({ r, s, money, tr }: { r: erp.PurchaseReturn; s: erp.ErpState; m
 
 function Overview(c: Ctx) {
   const { s, money, tr, go } = c;
-  const owed = s.suppliers.filter((x) => x.balance > 0.001).sort((a, b) => b.balance - a.balance);
+  const owed = s.purchases.filter((p) => fin.purchaseBalance(s, p) > 0.001);
+  const top = s.suppliers.map((x) => ({ x, n: s.purchases.filter((p) => p.supplierId === x.id).length })).filter((t) => t.n > 0).sort((a, b) => b.n - a.n).slice(0, 5);
   return (<>
     <Kpis {...c} />
-    <Box title={tr("Recent Purchases")} action={() => go("Purchases")}>{s.purchases.length ? s.purchases.slice(0, 5).map((p) => <PurRow key={p.id} p={p} s={s} money={money} />) : <Empty>{tr("No purchases yet")}</Empty>}</Box>
-    <Box title={tr("Outstanding Supplier Payments")} action={() => go("Payments", "Make Payment")}>{owed.length ? owed.slice(0, 5).map((x) => <Row key={x.id}><Dot tone="warn" /><span className="pur-name">{x.name}</span><span className="pur-amt">{money(x.balance)}</span><Badge s="Due" /></Row>) : <Empty>{tr("Nothing owed to suppliers")}</Empty>}</Box>
+    <Box title={tr("Recent Purchases")} action={() => go("Purchases")}>{s.purchases.length ? s.purchases.slice(0, 5).map((p) => <PurRow key={p.id} p={p} c={c} />) : <Empty>{tr("No purchases yet")}</Empty>}</Box>
+    <Box title={tr("Top Suppliers")} action={() => go("Suppliers")}>{top.length ? top.map(({ x, n }) => <Row key={x.id}><Dot tone={x.balance > 0 ? "warn" : "ok"} /><span className="pur-name">{x.name}</span><span className="pur-amt">{n}</span></Row>) : <Empty>{tr("No suppliers yet")}</Empty>}</Box>
+    <Box title={tr("Outstanding Supplier Payments")} action={() => go("Payments", "P.PAY")}>{owed.length ? owed.slice(0, 5).map((p) => <PurRow key={p.id} p={p} c={c} balance />) : <Empty>{tr("Nothing owed to suppliers")}</Empty>}</Box>
     <Box title={tr("Recent Returns")} action={() => go("Returns")}>{s.purchaseReturns.length ? s.purchaseReturns.slice(0, 5).map((r) => <RetRow key={r.id} r={r} s={s} money={money} tr={tr} />) : <Empty>{tr("No returns yet")}</Empty>}</Box>
   </>);
 }
 
-function Search({ q, setQ, tr, ph }: { q: string; setQ: (v: string) => void; tr: Tr; ph: string }) {
-  return <div className="inventory-search mb-1.5"><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr(ph)} aria-label={tr(ph)} /></div>;
-}
-
-function PurchaseList({ s, money, tr, completed }: Ctx & { completed: boolean }) {
+function PurchaseList(c: Ctx & { completed: boolean }) {
+  const { s, tr, completed } = c;
   const [q, setQ] = useState("");
-  const list = s.purchases.filter((p) => (!completed || purStatus(p) !== "Cancelled") && `${p.ref} ${supName(s, p.supplierId)}`.toLowerCase().includes(q.toLowerCase()));
-  return <><Search q={q} setQ={setQ} tr={tr} ph="Search purchases..." /><div className="inventory-box">{list.length ? list.map((p) => <PurRow key={p.id} p={p} s={s} money={money} />) : <Empty>{tr("No purchases yet")}</Empty>}</div></>;
+  const list = s.purchases.filter((p) => (!completed || fin.purchaseStatus(s, p) !== "Cancelled") && `${p.ref} ${supName(s, p.supplierId)}`.toLowerCase().includes(q.toLowerCase()));
+  return <>
+    <BigButton onClick={() => c.open({ k: "new" })}><Plus className="h-4 w-4" />{tr("New Purchase")}</BigButton>
+    <Search q={q} setQ={setQ} tr={tr} ph="Search purchases..." />
+    <div className="inventory-box">{list.length ? list.map((p) => <PurRow key={p.id} p={p} c={c} />) : <Empty>{tr("No purchases yet")}</Empty>}</div>
+  </>;
 }
 
-function NewPurchase({ s, money, tr, go, draft }: Ctx & { draft?: Draft }) {
+/** Cash, M-Pesa and Bank rows added one at a time; whatever is unpaid becomes credit (P.PAY). */
+function PayRows({ rows, setRows, tr }: { rows: { m: erp.Method; a: string }[]; setRows: (r: { m: erp.Method; a: string }[]) => void; tr: Tr }) {
+  return <>
+    {rows.map((r, i) => <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-1.5">
+      <select className="inventory-input" value={r.m} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, m: e.target.value as erp.Method } : x)))}>{fin.ACCOUNTS.map((m) => <option key={m} value={m} disabled={m !== r.m && rows.some((x) => x.m === m)}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
+      <input className="inventory-input" inputMode="decimal" placeholder="0" value={r.a} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))} />
+      <button aria-label={tr("Remove")} disabled={rows.length === 1} onClick={() => setRows(rows.filter((_, j) => j !== i))}><MinusCircle className="h-4 w-4 text-destructive" /></button></div>)}
+    {rows.length < fin.ACCOUNTS.length && <ShopButton className="inventory-save w-fit px-3" onClick={() => setRows([...rows, { m: fin.ACCOUNTS.find((m) => !rows.some((r) => r.m === m)) ?? "cash", a: "" }])}><Plus className="h-3.5 w-3.5" />{tr("Add Payment Method")}</ShopButton>}
+  </>;
+}
+const sumRows = (rows: { a: string }[]) => rows.reduce((a, r) => a + (+r.a || 0), 0);
+
+function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
+  const { s, money, tr, go, draft } = c;
   const [q, setQ] = useState("");
   const [lines, setLines] = useState<DraftLine[]>(draft?.lines ?? []);
   const [sup, setSup] = useState(draft?.supplierId ?? "");
-  const [pay, setPay] = useState<Record<erp.Method, string>>({ cash: "", mpesa: "", bank: "", credit: "" });
+  const [rows, setRows] = useState<{ m: erp.Method; a: string }[]>([{ m: "cash", a: "" }]);
+  const [note, setNote] = useState("");
   const addLine = (p: erp.Product) => setLines((l) => (l.some((x) => x.productId === p.id) ? l : [...l, { productId: p.id, qty: "1", cost: String(p.buy), disc: "0" }]));
   const results = q.trim() ? erp.searchProducts(s, q).slice(0, 6) : [];
   const lt = (l: DraftLine) => Math.max(0, (+l.qty || 0) * (+l.cost || 0) - (+l.disc || 0));
   const subtotal = lines.reduce((a, l) => a + (+l.qty || 0) * (+l.cost || 0), 0);
   const discount = lines.reduce((a, l) => a + Math.min(+l.disc || 0, (+l.qty || 0) * (+l.cost || 0)), 0);
   const total = Math.round((subtotal - discount) * 100) / 100;
-  const paidN = fin.ACCOUNTS.reduce((a, m) => a + (+pay[m] || 0), 0);
+  const paidN = sumRows(rows);
   const credit = Math.max(0, Math.round((total - paidN) * 100) / 100);
   const set = (i: number, k: keyof DraftLine, v: string) => setLines(lines.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
-  const clear = () => { setLines([]); setPay({ cash: "", mpesa: "", bank: "", credit: "" }); if (draft) saveDrafts(loadDrafts().filter((d) => d.id !== draft.id)); };
   const confirm = () => {
     if (!sup) { toast.error(tr("Choose a supplier")); return; }
     if (paidN > total + 0.001) { toast.error(tr("Paid amount is more than the total")); return; }
+    const pay: Record<erp.Method, number> = { cash: 0, mpesa: 0, bank: 0, credit };
+    rows.forEach((r) => { pay[r.m] += +r.a || 0; });
     const r = run(() => fin.confirmPurchase({
       // Line discounts are folded into the unit buying price so stock value and profit use the real cost.
       lines: lines.map((l) => ({ productId: l.productId, qty: +l.qty, cost: +l.qty > 0 ? Math.round((lt(l) / +l.qty) * 100) / 100 : 0 })),
-      pay: { cash: +pay.cash || 0, mpesa: +pay.mpesa || 0, bank: +pay.bank || 0, credit }, supplierId: sup, updateCost: true,
-    }), tr("Purchase recorded"));
-    if (r) { clear(); go("Purchases", "All Purchases"); }
+      pay, supplierId: sup, updateCost: true,
+    }));
+    if (r) { if (draft) saveDrafts(loadDrafts().filter((d) => d.id !== draft.id)); c.open({ k: "done", id: r.id }); }
   };
   const saveDraft = () => {
     if (!lines.length) { toast.error(tr("Add products to the purchase")); return; }
     const d: Draft = { id: draft?.id ?? crypto.randomUUID(), at: Date.now(), supplierId: sup, lines, status: "draft" };
-    saveDrafts([d, ...loadDrafts().filter((x) => x.id !== d.id)]); toast.success(tr("Draft saved")); setLines([]); go("Purchases", "Drafts");
+    saveDrafts([d, ...loadDrafts().filter((x) => x.id !== d.id)]); toast.success(tr("Draft saved")); go("Purchases", "Drafts");
   };
   return (<div className="inventory-form">
+    <p className="inventory-form-title">{tr("New Purchase")}</p>
     <label className="inventory-field"><span>{tr("Supplier")} <span className="text-destructive">*</span></span>
       <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5">
         <select className="inventory-input" value={sup} onChange={(e) => setSup(e.target.value)}><option value="">{tr("Select supplier")}</option>{s.suppliers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
         <ShopButton className="inventory-save px-3" onClick={() => go("Suppliers", "Add Supplier")}><Plus className="h-3.5 w-3.5" />{tr("Add")}</ShopButton>
       </div></label>
-    <div><p className="inventory-field mb-1">{tr("Items")}</p><ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) addLine(p); else toast.error(tr("Product not found. Add it in Inventory first.")); }} />
-      {results.map((p) => <button key={p.id} onClick={() => { addLine(p); setQ(""); }} className="pur-row w-full text-start"><span className="pur-name">{p.name}</span><span className="pur-muted">{tr("Stock")} {p.qty}</span></button>)}</div>
-    {lines.length > 0 && <div className="pur-scroll"><div className="pur-line pur-line-head"><span>{tr("Product")}</span><span>{tr("Qty")}</span><span>{tr("Buying price")}</span><span>{tr("Discount")}</span><span>{tr("Total")}</span><span /></div>
+    <div><ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) addLine(p); else toast.error(tr("Product not found. Add it in Inventory first.")); }} />
+      {results.map((p) => <button key={p.id} onClick={() => { addLine(p); setQ(""); }} className="pur-row w-full text-start"><Plus className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="pur-name">{p.name}</span><span className="pur-muted">{tr("Stock")} {p.qty}</span></button>)}</div>
+    {lines.length > 0 && <div className="pur-scroll"><div className="pur-line pur-line-head"><span>{tr("Product")}</span><span>{tr("Qty")}</span><span>{tr("Cost")}</span><span>{tr("Disc")}</span><span>{tr("Total")}</span><span /></div>
       {lines.map((l, i) => <div key={l.productId} className="pur-line"><span className="truncate">{s.products.find((x) => x.id === l.productId)?.name}</span>
         <input className="inventory-input" inputMode="decimal" aria-label={tr("Quantity")} value={l.qty} onChange={(e) => set(i, "qty", e.target.value)} />
-        <input className="inventory-input" inputMode="decimal" aria-label={tr("Buying price")} value={l.cost} onChange={(e) => set(i, "cost", e.target.value)} />
+        <input className="inventory-input" inputMode="decimal" aria-label={tr("Cost")} value={l.cost} onChange={(e) => set(i, "cost", e.target.value)} />
         <input className="inventory-input" inputMode="decimal" aria-label={tr("Discount")} value={l.disc} onChange={(e) => set(i, "disc", e.target.value)} />
         <span className="text-end tabular-nums">{lt(l).toLocaleString("en-KE")}</span>
         <button aria-label={tr("Remove")} onClick={() => setLines(lines.filter((_, j) => j !== i))}><MinusCircle className="h-4 w-4 text-destructive" /></button></div>)}</div>}
     {lines.length > 0 && <>
-      <div className="pur-totals"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("Discount")}</span><b>{money(discount)}</b><span>{tr("Total")}</span><b className="text-primary">{money(total)}</b></div>
+      <div className="pur-totals"><span>{tr("Items")}</span><b>{lines.length}</b><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("Discount")}</span><b>{money(discount)}</b><span>{tr("Total")}</span><b className="text-primary">{money(total)}</b></div>
       <p className="inventory-form-title">{tr("Payment Method")}</p>
-      {fin.ACCOUNTS.map((m) => <div key={m} className="grid grid-cols-2 gap-1.5"><span className="inventory-input flex items-center">{tr(erp.METHOD_LABEL[m])}</span><input className="inventory-input" inputMode="decimal" placeholder="0" value={pay[m]} onChange={(e) => setPay({ ...pay, [m]: e.target.value })} /></div>)}
-      <div className="grid grid-cols-2 gap-1.5"><span className="inventory-input flex items-center">{tr("Credit")}</span><span className={cn("inventory-input flex items-center tabular-nums", credit > 0 && "text-warning")}>{credit.toLocaleString("en-KE")}</span></div>
-      <div className="grid grid-cols-[1fr_2fr] gap-1.5"><ShopButton variant="outline" className="inventory-save" onClick={saveDraft}>{tr("Save draft")}</ShopButton><ShopButton className="inventory-save" onClick={confirm}>{tr("Save Purchase")}</ShopButton></div>
+      <PayRows rows={rows} setRows={setRows} tr={tr} />
+      <div className="pur-totals"><span>{tr("Total Payment")}</span><b>{money(paidN)}</b><span>{tr("Remaining Balance")}</span><b className={cn(credit > 0 && "text-warning")}>{money(credit)}</b>{credit > 0 && <><span>{tr("Status")}</span><span className="justify-self-end"><Badge s={paidN > 0 ? "P.PAY" : "Credit"} /></span></>}</div>
+      <label className="inventory-field"><span>{tr("Notes (Optional)")}</span><input className="inventory-input" placeholder={tr("Enter notes...")} value={note} onChange={(e) => setNote(e.target.value)} /></label>
+      <div className="grid grid-cols-[1fr_2fr] gap-1.5"><ShopButton variant="outline" className="inventory-save" onClick={saveDraft}>{tr("Save draft")}</ShopButton><ShopButton className="inventory-save" onClick={confirm}>{tr("Complete Purchase")}</ShopButton></div>
     </>}
   </div>);
+}
+
+function PurchaseDoc({ p, s, money, tr, shop }: Pick<Ctx, "s" | "money" | "tr" | "shop"> & { p: erp.Purchase }) {
+  return <div className="print-area receipt-paper rounded-md p-4 text-[11px]">
+    <p className="text-center text-sm font-extrabold uppercase">{shop}</p>
+    <p className="mt-2">{tr("Purchase No")}: {p.ref}</p><p>{tr("Date")}: {new Date(p.at).toLocaleString("en-GB")}</p><p>{tr("Supplier")}: {supName(s, p.supplierId)}</p>
+    <div className="my-2 border-t border-dashed" />
+    {p.items.map((i) => <div key={i.productId} className="grid grid-cols-[1fr_auto_auto_auto] gap-2"><span>{i.name}</span><span>{i.qty}</span><span>{i.cost.toLocaleString("en-KE")}</span><span>{(i.qty * i.cost).toLocaleString("en-KE")}</span></div>)}
+    <div className="my-2 border-t border-dashed" />
+    <div className="flex justify-between font-bold"><span>{tr("Total")}</span><span>{money(p.total)}</span></div>
+    {fin.ACCOUNTS.filter((m) => p.pay[m] > 0).map((m) => <div key={m} className="flex justify-between"><span>{tr(erp.METHOD_LABEL[m])}</span><span>{money(p.pay[m])}</span></div>)}
+    <div className="flex justify-between"><span>{tr("Total Paid")}</span><span>{money(paidOf(s, p))}</span></div>
+    <div className="flex justify-between font-bold"><span>{tr("Balance")}</span><span>{money(fin.purchaseBalance(s, p))}</span></div>
+  </div>;
+}
+const docText = (p: erp.Purchase, s: erp.ErpState, money: (n: number) => string, shop: string) => [shop, `${p.ref} • ${supName(s, p.supplierId)}`, ...p.items.map((i) => `${i.name} ${i.qty} × ${i.cost}`), `Total ${money(p.total)}`, `Paid ${money(paidOf(s, p))}`, `Balance ${money(fin.purchaseBalance(s, p))}`].join("\n");
+
+function Done(c: Ctx & { id: string }) {
+  const { s, tr, money, shop } = c;
+  const p = s.purchases.find((x) => x.id === c.id);
+  const [print, setPrint] = useState(false);
+  if (!p) return <Empty>{tr("Purchase not found")}</Empty>;
+  const A = ({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) => <button className="pur-action" onClick={onClick}>{icon}<span className="flex-1 text-start">{label}</span><ChevronRight className="h-4 w-4" /></button>;
+  return <div className="grid gap-2">
+    <div className="pur-done"><CheckCircle2 className="h-16 w-16 text-primary" /><p className="text-lg font-bold">{tr("Purchase Completed")}</p><p className="text-[11px] text-muted-foreground">{tr("Purchase")} {p.ref} {tr("has been completed successfully.")}</p></div>
+    <A icon={<FileText className="h-4 w-4" />} label={tr("View Purchase")} onClick={() => c.open({ k: "detail", id: p.id })} />
+    <A icon={<Printer className="h-4 w-4" />} label={tr("Print Purchase")} onClick={() => { setPrint(true); setTimeout(() => window.print(), 50); }} />
+    <A icon={<MessageCircle className="h-4 w-4 text-primary" />} label={tr("Send Purchase (WhatsApp)")} onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(docText(p, s, money, shop))}`, "_blank")} />
+    <BigButton onClick={() => c.open({ k: "new" })}><Plus className="h-4 w-4" />{tr("New Purchase")}</BigButton>
+    <button className="pur-action" onClick={() => c.go("Purchases")}><ArrowLeft className="h-4 w-4" />{tr("Back to Purchases")}</button>
+    {print && <PurchaseDoc p={p} s={s} money={money} tr={tr} shop={shop} />}
+  </div>;
+}
+
+function PurchaseDetail(c: Ctx & { id: string }) {
+  const { s, money, tr } = c;
+  const [tab, setTab] = useState("Items");
+  const [adding, setAdding] = useState(false);
+  const [rows, setRows] = useState<{ m: erp.Method; a: string }[]>([{ m: "cash", a: "" }]);
+  const p = s.purchases.find((x) => x.id === c.id);
+  if (!p) return <Empty>{tr("Purchase not found")}</Empty>;
+  const sup = s.suppliers.find((x) => x.id === p.supplierId);
+  const bal = fin.purchaseBalance(s, p);
+  const st = fin.purchaseStatus(s, p);
+  const rets = s.purchaseReturns.filter((r) => r.purchaseId === p.id);
+  const pays = s.payments.filter((x) => x.source === p.ref || (x.kind === "SUPPLIER PAYMENT" && x.source === sup?.name && x.at >= p.at));
+  const save = () => {
+    const picked = rows.filter((r) => +r.a > 0);
+    if (!picked.length) { toast.error(tr("Enter an amount")); return; }
+    if (sumRows(picked) > bal + 0.001) { toast.error(tr("Amount is more than the outstanding balance")); return; }
+    for (const r of picked) if (run(() => fin.payPurchase(p.id, +r.a, r.m)) === undefined) return;
+    toast.success(tr("Payment recorded")); setAdding(false); setRows([{ m: "cash", a: "" }]);
+  };
+  return <div className="grid gap-1.5">
+    <div className="flex items-center justify-between"><p className="inventory-form-title m-0">{tr("Purchase")} {p.ref}</p><Badge s={st} /></div>
+    <Box title={sup?.name ?? tr("No supplier")}>{sup?.phone && <p className="text-[11px] text-muted-foreground">{sup.phone}</p>}<p className="text-[11px] text-muted-foreground">{new Date(p.at).toLocaleString("en-GB")}</p></Box>
+    <MoneyTrio total={p.total} paid={paidOf(s, p)} balance={bal} money={money} tr={tr} />
+    {bal > 0.001 && !adding && <BigButton onClick={() => setAdding(true)}><Plus className="h-4 w-4" />{tr("Add Payment")}</BigButton>}
+    {adding && <div className="inventory-box grid gap-1.5"><p className="text-[11px]">{tr("Outstanding Balance")}: <b>{money(bal)}</b></p><PayRows rows={rows} setRows={setRows} tr={tr} /><ShopButton className="inventory-save" onClick={save}>{tr("Save Payment")}</ShopButton></div>}
+    <Tabs small items={["Items", "Payments", "Returns", "History"]} value={tab} onChange={setTab} tr={tr} />
+    <div className="inventory-box mt-0">
+      {tab === "Items" && p.items.map((i) => <Row key={i.productId}><span className="pur-name">{i.name}</span><span className="pur-muted">× {i.qty}</span><span className="pur-muted">{i.cost.toLocaleString("en-KE")}</span><span className="pur-amt">{money(i.qty * i.cost)}</span></Row>)}
+      {tab === "Payments" && (pays.length ? pays.map((x) => <Row key={x.id}><Dot tone="ok" /><b>{x.ref}</b><span className="pur-name">{tr(erp.METHOD_LABEL[x.method])}</span><span className="pur-amt">{money(Math.abs(x.amount))}</span></Row>) : <Empty>{tr("No payments yet")}</Empty>)}
+      {tab === "Returns" && (rets.length ? rets.map((r) => <RetRow key={r.id} r={r} s={s} money={money} tr={tr} />) : <Empty>{tr("No returns yet")}</Empty>)}
+      {tab === "History" && s.audit.filter((a) => a.detail?.includes(p.ref)).map((a) => <Row key={a.id}><span className="pur-muted">{new Date(a.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span><span className="pur-name">{tr(a.action)}</span></Row>)}
+    </div>
+    <ShopButton variant="outline" className="inventory-save" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(docText(p, s, money, c.shop))}`, "_blank")}><Receipt className="h-4 w-4" />{tr("Send Purchase (WhatsApp)")}</ShopButton>
+  </div>;
 }
 
 function Drafts(c: Ctx & { cancelled: boolean }) {
   const { s, money, tr, cancelled } = c;
   const drafts = useDrafts().filter((d) => d.status === (cancelled ? "cancelled" : "draft"));
-  const [open, setOpen] = useState<Draft | null>(null);
-  if (open) return <NewPurchase {...c} draft={open} />;
+  const done = cancelled ? s.purchases.filter((p) => fin.purchaseStatus(s, p) === "Cancelled") : [];
   const amt = (d: Draft) => d.lines.reduce((a, l) => a + Math.max(0, (+l.qty || 0) * (+l.cost || 0) - (+l.disc || 0)), 0);
-  return <div className="inventory-box">{drafts.length ? drafts.map((d) => <Row key={d.id} onClick={cancelled ? undefined : () => setOpen(d)}><Dot tone={cancelled ? "bad" : "warn"} /><span className="pur-name">{supName(s, d.supplierId)}</span><span className="pur-muted">{d.lines.length} {tr("items")}</span><span className="pur-amt">{money(amt(d))}</span><Badge s={cancelled ? "Cancelled" : "Draft"} />
-    {!cancelled && <button className="pur-muted" onClick={(e) => { e.stopPropagation(); saveDrafts(loadDrafts().map((x) => (x.id === d.id ? { ...x, status: "cancelled" as const } : x))); }}>{tr("Cancel")}</button>}</Row>) : <Empty>{tr(cancelled ? "No cancelled purchases" : "No drafts")}</Empty>}</div>;
+  return <div className="inventory-box">
+    {done.map((p) => <PurRow key={p.id} p={p} c={c} />)}
+    {drafts.map((d) => <Row key={d.id} onClick={cancelled ? undefined : () => c.open({ k: "new", draft: d })}><Dot tone={cancelled ? "bad" : "warn"} /><span className="pur-name">{supName(s, d.supplierId)}</span><span className="pur-muted">{d.lines.length} {tr("items")}</span><span className="pur-amt">{money(amt(d))}</span><Badge s={cancelled ? "Cancelled" : "Draft"} />
+      {!cancelled && <button className="pur-muted" onClick={(e) => { e.stopPropagation(); saveDrafts(loadDrafts().map((x) => (x.id === d.id ? { ...x, status: "cancelled" as const } : x))); }}>{tr("Cancel")}</button>}</Row>)}
+    {!drafts.length && !done.length && <Empty>{tr(cancelled ? "No cancelled purchases" : "No drafts")}</Empty>}
+  </div>;
 }
 
 function SupplierList({ s, money, tr, go, balances }: Ctx & { balances: boolean }) {
@@ -245,15 +299,15 @@ function SupplierList({ s, money, tr, go, balances }: Ctx & { balances: boolean 
   </>);
 }
 
-function SupplierDetail({ sup, s, money, tr, back }: Omit<Ctx, "go"> & { sup: erp.Supplier; back: () => void }) {
+function SupplierDetail({ sup, s, money, tr, back }: Pick<Ctx, "s" | "money" | "tr"> & { sup: erp.Supplier; back: () => void }) {
   const st = supplierStats(s, sup);
   const pur = s.purchases.filter((p) => p.supplierId === sup.id);
   const ids = new Set(pur.map((p) => p.id));
   return (<>
     <ShopButton variant="bare" className="inventory-view-all mb-1" onClick={back}>‹ {tr("Back")}</ShopButton>
     <Box title={sup.name}>{[["Phone", sup.phone], ["Email", sup.email], ["Address", sup.address], ["Business Information", sup.info], ["Notes", sup.notes]].filter(([, v]) => v).map(([k, v]) => <Row key={k}><span className="pur-muted">{tr(k!)}</span><span className="pur-name text-end">{v}</span></Row>)}</Box>
-    <KpiRow className="mt-2"><Kpi label={tr("Purchases")} value={money(st.purchases)} /><Kpi label={tr("Paid")} value={money(st.paid)} /><Kpi label={tr("Balance")} value={money(sup.balance)} tone={sup.balance > 0 ? "warn" : undefined} /><Kpi label={tr("Returns")} value={money(st.returns)} /></KpiRow>
-    <Box title={tr("Purchase history")}>{pur.length ? pur.map((p) => <PurRow key={p.id} p={p} s={s} money={money} />) : <Empty>{tr("No purchases yet")}</Empty>}</Box>
+    <MoneyTrio total={st.purchases} paid={st.paid} balance={sup.balance} money={money} tr={tr} />
+    <Box title={tr("Purchase history")}>{pur.length ? pur.map((p) => { const ps = fin.purchaseStatus(s, p); return <Row key={p.id}><Dot tone={toneOf(ps)} /><b>{p.ref}</b><span className="pur-amt">{money(p.total)}</span><Badge s={ps} /></Row>; }) : <Empty>{tr("No purchases yet")}</Empty>}</Box>
     <Box title={tr("Payment history")}>{supplierPayments(s).filter((p) => p.source === sup.name).map((p) => <Row key={p.id}><Dot tone="ok" /><b>{p.ref}</b><span className="pur-muted">{tr(erp.METHOD_LABEL[p.method])}</span><span className="pur-amt">{money(-p.amount)}</span><Badge s="Paid" /></Row>)}</Box>
     <Box title={tr("Return history")}>{s.purchaseReturns.filter((r) => ids.has(r.purchaseId)).map((r) => <RetRow key={r.id} r={r} s={s} money={money} tr={tr} />)}</Box>
   </>);
@@ -277,38 +331,42 @@ function SupplierHistory({ s, money, tr }: Ctx) {
   return <div className="inventory-box">{rows.length ? rows.map((r) => <Row key={r.id}><Dot tone={r.st === "Return" ? "bad" : "ok"} /><b>{r.ref}</b><span className="pur-name">{r.who}</span><span className="pur-muted">{tr(r.st)}</span><span className="pur-amt">{money(r.amt)}</span></Row>) : <Empty>{tr("No history yet")}</Empty>}</div>;
 }
 
-function PaymentList({ s, money, tr, partial }: Ctx & { partial: boolean }) {
+function PaymentList({ s, money, tr }: Ctx) {
   const [q, setQ] = useState("");
-  const owed = new Set(s.suppliers.filter((x) => x.balance > 0.001).map((x) => x.name));
-  const list = supplierPayments(s).filter((p) => (!partial || owed.has(p.source ?? "")) && `${p.ref} ${p.source}`.toLowerCase().includes(q.toLowerCase()));
-  return <><Search q={q} setQ={setQ} tr={tr} ph="Search payments..." /><div className="inventory-box">{list.length ? list.map((p) => { const st = owed.has(p.source ?? "") ? "Pending" : "Paid"; return <Row key={p.id}><Dot tone={st === "Paid" ? "ok" : "warn"} /><b>{p.ref}</b><span className="pur-name">{p.source}</span><span className="pur-amt">{money(-p.amount)}</span><span className="pur-muted">{tr(erp.METHOD_LABEL[p.method])}</span><Badge s={st} /></Row>; }) : <Empty>{tr("No supplier payments yet")}</Empty>}</div></>;
+  const list = s.payments.filter((p) => (p.kind === "SUPPLIER PAYMENT" || p.kind === "PURCHASE") && `${p.ref} ${p.source}`.toLowerCase().includes(q.toLowerCase()));
+  const label = (p: erp.Payment) => (p.kind === "PURCHASE" ? `${p.source} • ${supName(s, s.purchases.find((x) => x.ref === p.source)?.supplierId)}` : p.source);
+  return <><Search q={q} setQ={setQ} tr={tr} ph="Search payments..." /><div className="inventory-box">{list.length ? list.map((p) => <Row key={p.id}><Dot tone="ok" /><b>{p.ref}</b><span className="pur-name">{label(p)}</span><span className="pur-amt">{money(-p.amount)}</span><span className="pur-muted">{tr(erp.METHOD_LABEL[p.method])}</span><Badge s="Paid" /></Row>) : <Empty>{tr("No supplier payments yet")}</Empty>}</div></>;
+}
+
+function OpenPurchases(c: Ctx) {
+  const [q, setQ] = useState("");
+  const list = c.s.purchases.filter((p) => fin.purchaseBalance(c.s, p) > 0.001 && `${p.ref} ${supName(c.s, p.supplierId)}`.toLowerCase().includes(q.toLowerCase()));
+  return <><Search q={q} setQ={setQ} tr={c.tr} ph="Search partial payments..." /><div className="inventory-box">{list.length ? list.map((p) => <PurRow key={p.id} p={p} c={c} balance />) : <Empty>{c.tr("Nothing owed to suppliers")}</Empty>}</div></>;
 }
 
 function MakePayment({ s, money, tr, go }: Ctx) {
-  const owed = s.suppliers.filter((x) => x.balance > 0.001);
-  const [sup, setSup] = useState(owed[0]?.id ?? "");
+  const open = s.purchases.filter((p) => fin.purchaseBalance(s, p) > 0.001);
+  const [pid, setPid] = useState(open[0]?.id ?? "");
   const [rows, setRows] = useState<{ m: erp.Method; a: string }[]>([{ m: "cash", a: "" }]);
   const [note, setNote] = useState("");
-  const sel = s.suppliers.find((x) => x.id === sup);
-  const total = rows.reduce((a, r) => a + (+r.a || 0), 0);
+  const p = s.purchases.find((x) => x.id === pid);
+  const bal = p ? fin.purchaseBalance(s, p) : 0;
+  const total = sumRows(rows);
   const save = () => {
-    if (!sel) { toast.error(tr("Choose a supplier")); return; }
+    if (!p) { toast.error(tr("Choose purchase")); return; }
     const picked = rows.filter((r) => +r.a > 0);
     if (!picked.length) { toast.error(tr("Enter an amount")); return; }
-    if (total > sel.balance + 0.001) { toast.error(tr("Amount is more than the outstanding balance")); return; }
-    for (const r of picked) if (run(() => fin.paySupplier(sel.id, +r.a, r.m)) === undefined) return;
+    if (total > bal + 0.001) { toast.error(tr("Amount is more than the outstanding balance")); return; }
+    for (const r of picked) if (run(() => fin.payPurchase(p.id, +r.a, r.m)) === undefined) return;
     toast.success(tr("Payment recorded")); setRows([{ m: "cash", a: "" }]); setNote(""); go("Payments", "All Payments");
   };
   return <div className="inventory-form">
-    <label className="inventory-field"><span>{tr("Supplier")} <span className="text-destructive">*</span></span><select className="inventory-input" value={sup} onChange={(e) => setSup(e.target.value)}><option value="">{tr("Select supplier")}</option>{owed.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
-    <div className="pur-totals"><span>{tr("Outstanding Balance")}</span><b>{money(sel?.balance ?? 0)}</b></div>
+    <p className="inventory-form-title">{tr("Make Payment")}</p>
+    <label className="inventory-field"><span>{tr("Purchase")} <span className="text-destructive">*</span></span><select className="inventory-input" value={pid} onChange={(e) => setPid(e.target.value)}><option value="">{tr("Choose purchase")}</option>{open.map((x) => <option key={x.id} value={x.id}>{x.ref} - {supName(s, x.supplierId)}</option>)}</select></label>
+    <div className="pur-totals"><span>{tr("Outstanding Balance")}</span><b>{money(bal)}</b></div>
     <p className="inventory-field">{tr("Payment Method")} <span className="text-destructive">*</span></p>
-    {rows.map((r, i) => <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-1.5">
-      <select className="inventory-input" value={r.m} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, m: e.target.value as erp.Method } : x)))}>{fin.ACCOUNTS.map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
-      <input className="inventory-input" inputMode="decimal" placeholder="0" value={r.a} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))} />
-      <button aria-label={tr("Remove")} disabled={rows.length === 1} onClick={() => setRows(rows.filter((_, j) => j !== i))}><MinusCircle className="h-4 w-4 text-destructive" /></button></div>)}
-    {rows.length < 3 && <ShopButton className="inventory-save w-fit px-3" onClick={() => setRows([...rows, { m: fin.ACCOUNTS.find((m) => !rows.some((r) => r.m === m)) ?? "cash", a: "" }])}><Plus className="h-3.5 w-3.5" />{tr("Add Payment Method")}</ShopButton>}
-    <div className="pur-totals"><span>{tr("Total Payment")}</span><b>{money(total)}</b><span>{tr("Remaining Balance")}</span><b>{money(Math.max(0, (sel?.balance ?? 0) - total))}</b></div>
+    <PayRows rows={rows} setRows={setRows} tr={tr} />
+    <div className="pur-totals"><span>{tr("Total Payment")}</span><b>{money(total)}</b><span>{tr("Remaining Balance")}</span><b>{money(Math.max(0, bal - total))}</b></div>
     <label className="inventory-field"><span>{tr("Notes (Optional)")}</span><input className="inventory-input" placeholder={tr("Enter notes...")} value={note} onChange={(e) => setNote(e.target.value)} /></label>
     <ShopButton className="inventory-save" onClick={save}>{tr("Save Payment")}</ShopButton>
   </div>;
@@ -335,7 +393,7 @@ function NewReturn({ s, money, tr, go }: Ctx) {
     if (run(() => fin.returnPurchase(pur.id, Object.entries(qty).map(([productId, v]) => ({ productId, qty: +v || 0 })), refund, note ? `${reason} — ${note}` : reason), tr("Return recorded")) !== undefined) { setQty({}); go("Returns", "All Returns"); }
   };
   return <div className="inventory-form">
-    <label className="inventory-field"><span>{tr("Original Purchase")} <span className="text-destructive">*</span></span><select className="inventory-input" value={pid} onChange={(e) => { setPid(e.target.value); setQty({}); }}><option value="">{tr("Choose purchase")}</option>{s.purchases.filter((p) => purStatus(p) !== "Cancelled").map((p) => <option key={p.id} value={p.id}>{p.ref} - {supName(s, p.supplierId)}</option>)}</select></label>
+    <label className="inventory-field"><span>{tr("Original Purchase")} <span className="text-destructive">*</span></span><select className="inventory-input" value={pid} onChange={(e) => { setPid(e.target.value); setQty({}); }}><option value="">{tr("Choose purchase")}</option>{s.purchases.filter((p) => fin.purchaseStatus(s, p) !== "Cancelled").map((p) => <option key={p.id} value={p.id}>{p.ref} - {supName(s, p.supplierId)}</option>)}</select></label>
     {pur && <><label className="inventory-field"><span>{tr("Supplier")}</span><span className="inventory-input flex items-center text-primary">{supName(s, pur.supplierId)}</span></label>
       <div className="inventory-box">{pur.items.map((i) => <div key={i.productId} className="pur-line pur-line-ret"><span className="truncate">{i.name}</span><span className="pur-muted">{i.qty - i.returned} {tr("left")}</span><input className="inventory-input" inputMode="decimal" placeholder="0" aria-label={tr("Quantity")} value={qty[i.productId] ?? ""} onChange={(e) => setQty({ ...qty, [i.productId]: e.target.value })} /><span className="text-end tabular-nums">{((+(qty[i.productId] ?? 0) || 0) * i.cost).toLocaleString("en-KE")}</span></div>)}</div>
       <label className="inventory-field"><span>{tr("Reason")} <span className="text-destructive">*</span></span><select className="inventory-input" value={reason} onChange={(e) => setReason(e.target.value)}><option value="">{tr("Select reason")}</option>{REASONS.map((r) => <option key={r} value={r}>{tr(r)}</option>)}</select></label>
@@ -347,7 +405,7 @@ function NewReturn({ s, money, tr, go }: Ctx) {
 }
 
 const dayKey = (n: number) => new Date(n).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-function Reports({ s, money, tr, view }: Omit<Ctx, "go"> & { view: string }) {
+function Reports({ s, money, tr, view }: Ctx & { view: string }) {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const f = from ? new Date(from).getTime() : 0;
@@ -364,8 +422,8 @@ function Reports({ s, money, tr, view }: Omit<Ctx, "go"> & { view: string }) {
     {view === "Supplier Report" && <Box title={tr("Supplier Report")}>{s.suppliers.length ? s.suppliers.map((x) => { const st = supplierStats(s, x); return <Row key={x.id}><span className="pur-name">{x.name}</span><span className="pur-muted">{tr("Purchases")}: {money(st.purchases)}</span><span className="pur-muted">{tr("Paid")}: {money(st.paid)}</span><span className={cn("pur-amt", x.balance > 0 && "text-warning")}>{tr("Outstanding")}: {money(x.balance)}</span><span className="pur-muted">{tr("Returns")}: {money(st.returns)}</span></Row>; }) : <Empty>{tr("No suppliers yet")}</Empty>}</Box>}
     {view === "Payment Report" && <Box title={tr("Payment Report")}>
       {fin.ACCOUNTS.map((m) => <Row key={m}><span className="pur-name">{tr(erp.METHOD_LABEL[m])}</span><span className="pur-amt">{money(pays.filter((p) => p.method === m).reduce((a, p) => a - p.amount, 0))}</span></Row>)}
-      <Row><span className="pur-name">{tr("Credit")}</span><span className="pur-amt">{money(pur.reduce((a, p) => a + p.pay.credit, 0))}</span></Row>
-      <Row><span className="pur-name">{tr("Mixed")}</span><span className="pur-amt">{pur.filter((p) => methods(p.pay).length > 1).length} {tr("purchases")}</span></Row>
+      <Row><span className="pur-name">{tr("Credit")}</span><span className="pur-amt">{money(pur.reduce((a, p) => a + fin.purchaseBalance(s, p), 0))}</span></Row>
+      <Row><span className="pur-name">P.PAY</span><span className="pur-amt">{pur.filter((p) => fin.purchaseStatus(s, p) === "P.PAY").length} {tr("purchases")}</span></Row>
     </Box>}
     {view === "Return Report" && <Box title={tr("Return Report")}>{rets.length ? rets.flatMap((r) => r.items.map((i) => <Row key={r.id + i.productId}><Receipt className="h-3.5 w-3.5 shrink-0 text-primary" /><span className="pur-name">{i.name}</span><span className="pur-muted">× {i.qty}</span><span className="pur-muted">{supName(s, s.purchases.find((p) => p.id === r.purchaseId)?.supplierId)}</span><span className="pur-amt">{money(i.amount)}</span><span className="pur-muted">{r.reason ?? "—"}</span></Row>)) : <Empty>{tr("No returns in this period")}</Empty>}</Box>}
   </>);

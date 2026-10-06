@@ -10,7 +10,7 @@ export const Route = createFileRoute("/pos")({
       { title: "POS — SHOPBOOK ERP" },
       { name: "description", content: "Fast point of sale: scan, cart, payment, receipt and cash-up." },
       { property: "og:title", content: "POS — SHOPBOOK ERP" },
-      { property: "og:description", content: "Sell fast with search, scan, mixed payments and receipts." },
+      { property: "og:description", content: "Sell fast with search, scan, split payments, part payments and receipts." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

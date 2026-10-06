@@ -1,4 +1,4 @@
-// Shared selling UI: Sales → Billing and POS → Sell use the same components and the same engine.
+// Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";
@@ -289,7 +289,7 @@ export function SalesList({ s, money, tr, shop, onlyChannel }: SCtx & { onlyChan
   );
 }
 
-function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; onDone: () => void }) {
+export function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; onDone: () => void }) {
   const [q, setQ] = useState<Record<string, string>>({});
   const hasCust = !!sale.customerId && s.customers.some((c) => c.id === sale.customerId);
   const [refund, setRefund] = useState<erp.Method>("cash");
