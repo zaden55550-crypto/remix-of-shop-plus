@@ -275,3 +275,7 @@
 .pur-line-ret { grid-template-columns: minmax(90px,1fr) 44px 52px 64px; min-width: 0; }
 .pur-totals { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; font-size: 11px; }
 .pur-totals b { text-align: end; font-variant-numeric: tabular-nums; }
+.pur-badge-info { background: oklch(0.6 0.2 262); color: oklch(0.98 0 0); }
+.inventory-dot-info { background: oklch(0.6 0.2 262); }
+.pur-done { display: grid; justify-items: center; gap: 6px; padding: 24px 0 12px; text-align: center; }
+.pur-action { display: flex; width: 100%; align-items: center; gap: 10px; border: 1px solid var(--border); background: var(--card); border-radius: 6px; padding: 10px; font-size: 12px; }
