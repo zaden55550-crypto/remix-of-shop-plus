@@ -221,14 +221,12 @@ function Dashboard() {
             const item = sale.items[0]?.name ?? "";
             const more = sale.items.length > 1 ? ` +${sale.items.length - 1}` : "";
             return (
-              <button key={sale.id} onClick={() => setOpen(sale)} className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-start gap-2 border-b border-border py-2 text-start last:border-0">
-                <p className="text-[11px] font-bold tabular-nums">{sale.ref}</p>
-                <div className="min-w-0">
-                  <p className="truncate text-[12px] font-semibold">{item}{more}</p>
-                  <p className="text-[12px] font-bold tabular-nums text-success">{money(sale.total)}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">{methods.map((m) => tr(METHOD_LABEL[m])).join(" + ")}{cust ? ` • ${cust}` : ""}</p>
-                </div>
-                <ChevronRight className="mt-1 h-4 w-4 text-muted-foreground rtl:rotate-180" />
+              <button key={sale.id} onClick={() => setOpen(sale)} className="flex w-full items-center gap-2 border-b border-border py-2 text-start last:border-0">
+                <p className="shrink-0 text-[11px] font-bold tabular-nums">{sale.ref}</p>
+                <p className="min-w-0 flex-1 truncate text-[12px] font-semibold">{item}{more}</p>
+                <p className="shrink-0 whitespace-nowrap text-[12px] font-bold tabular-nums text-success">{money(sale.total)}</p>
+                <p className="max-w-24 shrink truncate text-[10px] text-muted-foreground">{methods.map((m) => tr(METHOD_LABEL[m])).join("+")}</p>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground rtl:rotate-180" />
               </button>
             );
           })}
