@@ -80,8 +80,14 @@ Notifications|Arifa|Notifications|الإشعارات|Notificaciones|Notificaçõ
 AI assistant|Msaidizi wa AI|Assistant IA|المساعد الذكي|Asistente IA|Assistente IA|KI-Assistent|Assistente IA|AI助手|AI सहायक
 `.trim().split('\n').map(row => row.split('|'));
 
-const dictionary = new Map(rows.map(row => [row[0], row]));
+const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));
 export function translateText(lang: Lang, text: string, x?: string | number) {
-  const translated = dictionary.get(text)?.[LANGS.indexOf(lang)] ?? text;
+  const translated = dictionary.get(text.toLowerCase())?.[LANGS.indexOf(lang)] ?? text;
   return x === undefined ? translated : translated.replace('{x}', String(x));
+}
+
+export function translateCurrent(text: string) {
+  const saved = typeof window === 'undefined' ? 'English' : localStorage.getItem('shopbook.language');
+  const lang = LANGS.find(l => l === saved) ?? 'English';
+  return translateText(lang, text);
 }
