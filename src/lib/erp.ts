@@ -23,7 +23,13 @@ export type ErpState = {
   movements: Movement[]; transfers: Transfer[]; audit: Audit[]; seq: Record<string, number>;
   customers: Customer[]; sales: Sale[]; payments: Payment[]; returns: SaleReturn[]; cash: CashEvent[];
   employees: Employee[]; commissions: Commission[]; payrolls: PayrollRun[]; payrollPayments: PayrollPayment[];
+  suppliers: Supplier[]; purchases: Purchase[]; purchaseReturns: PurchaseReturn[]; expenses: Expense[]; expenseCategories: Named[];
 };
+export type Supplier = { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number };
+export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
+export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string };
+export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
+export type Expense = { id: string; ref: string; at: number; category: string; note?: string | undefined; amount: number; method: Method; user: string };
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean };
 export type Employee = { id: string; name: string; phone?: string | undefined; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
 /** Commission ledger: adjustments are new negative rows, never edits/deletes. */
@@ -39,13 +45,13 @@ export type Sale = {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
   pay: Record<Method, number>; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
 };
-export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND"; source: string; customerId?: string | undefined; user: string };
+export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL"; source: string; customerId?: string | undefined; user: string };
 export type SaleReturn = { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
 export type CashEvent = { id: string; at: number; type: "OPENING" | "CASH IN" | "CASH OUT" | "CASH UP"; amount: number; note?: string | undefined; expected?: number | undefined; counted?: number | undefined; user: string };
 
 const KEY = "shopbook.erp";
 const EVT = "shopbook-erp";
-const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [] });
+const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [], suppliers: [], purchases: [], purchaseReturns: [], expenses: [], expenseCategories: [] });
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 export function load(): ErpState {
@@ -290,9 +296,10 @@ export function cashSession(s: ErpState) {
   const cin = ev.filter((e) => e.type === "CASH IN").reduce((a, e) => a + e.amount, 0);
   const cout = ev.filter((e) => e.type === "CASH OUT").reduce((a, e) => a + e.amount, 0);
   const cashPay = s.payments.filter((p) => p.at > lastUp && p.method === "cash");
-  const sales = cashPay.filter((p) => p.kind !== "REFUND").reduce((a, p) => a + p.amount, 0);
+  const sales = cashPay.filter((p) => p.kind !== "REFUND" && p.amount > 0).reduce((a, p) => a + p.amount, 0);
   const refunds = -cashPay.filter((p) => p.kind === "REFUND").reduce((a, p) => a + p.amount, 0);
-  return { opening, cin, cout, sales, refunds, expected: opening + sales - refunds + cin - cout, since: lastUp };
+  const paidOut = -cashPay.filter((p) => p.kind !== "REFUND" && p.amount < 0).reduce((a, p) => a + p.amount, 0);
+  return { opening, cin, cout: cout + paidOut, sales, refunds, expected: opening + sales - refunds + cin - cout - paidOut, since: lastUp };
 }
 export const cashEvent = (type: "OPENING" | "CASH IN" | "CASH OUT", amount: number, note?: string) => commit((s, c) => {
   if (!(amount > 0)) throw new ErpError("Enter an amount");
