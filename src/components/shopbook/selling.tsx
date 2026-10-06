@@ -1,4 +1,4 @@
-// Shared selling UI: Sales → Billing and POS → Sell use the same components and the same engine.
+// Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";

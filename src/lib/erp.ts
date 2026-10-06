@@ -202,7 +202,7 @@ export const removeNamed = (kind: "categories" | "brands", id: string) => commit
   s.products.forEach((p) => { if (p[key] === id) delete p[key]; });
 });
 
-// ---------- Selling engine (shared by Sales → Billing and POS → Sell) ----------
+// ---------- Selling engine (shared by Sales → New Sale and POS → Sell) ----------
 export type CartLine = { productId: string; qty: number };
 export const lineTotal = (s: ErpState, cart: CartLine[]) =>
   cart.reduce((a, l) => a + (s.products.find((p) => p.id === l.productId)?.sell ?? 0) * l.qty, 0);
