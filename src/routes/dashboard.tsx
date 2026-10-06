@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { AlertTriangle, Banknote, Building2, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Landmark, Menu, Package, Receipt, ShoppingCart, Smartphone, TrendingDown, TrendingUp, Users, Wallet, type LucideIcon } from "lucide-react";
 import { ReceiptSheet, moneyFor, useAccount } from "@/components/shopbook/selling";
 import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
@@ -43,9 +43,7 @@ function range(p: P, custom: [string, string]): [number, number] {
 
 function compact(_cur: string) {
   return (n: number) => {
-    const a = Math.abs(n), sign = n < 0 ? "−" : "";
-    const v = a >= 1e6 ? `${+(a / 1e6).toFixed(1)}M` : a >= 1e3 ? `${+(a / 1e3).toFixed(1)}K` : `${Math.round(a)}`;
-    return `${sign}${v}`;
+    return Math.round(n).toLocaleString("en-US");
   };
 }
 
@@ -69,11 +67,14 @@ function Section({ title, to, link, children }: { title: string; to?: string; li
   );
 }
 
-function Box({ label, value, tone, to }: { label: string; value: ReactNode; tone?: "good" | "warn" | "bad" | undefined; to?: string }) {
+function Box({ label, value, tone, to, icon: Icon, color }: { label: string; value: ReactNode; tone?: "good" | "warn" | "bad" | undefined; to?: string; icon?: LucideIcon; color?: string }) {
   const inner = (
-    <div className="h-full rounded-lg border border-border bg-background/60 px-2.5 py-2">
-      <p className="whitespace-nowrap text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
-      <p className={cn("mt-0.5 whitespace-nowrap text-sm font-bold tabular-nums", tone === "good" && "text-success", tone === "warn" && "text-warning", tone === "bad" && "text-destructive")}>{value}</p>
+    <div className={cn("h-full rounded-lg border bg-background/60 px-2 py-1.5", tone === "warn" ? "border-warning/50" : tone === "bad" ? "border-destructive/50" : "border-border")}>
+      <div className="flex items-center gap-1">
+        {Icon && <Icon className="h-3.5 w-3.5 shrink-0" style={{ color }} />}
+        <p className="whitespace-nowrap text-[10px] font-bold uppercase text-foreground/80">{label}</p>
+      </div>
+      <p className={cn("mt-0.5 whitespace-nowrap text-[11px] font-semibold tabular-nums", tone === "good" && "text-success", tone === "warn" && "text-warning", tone === "bad" && "text-destructive")}>{value}</p>
     </div>
   );
   return to ? <Link to={to} className="block min-w-0">{inner}</Link> : inner;
@@ -87,6 +88,7 @@ function Dashboard() {
   const [p, setP] = useState<P>("This month");
   const [custom, setCustom] = useState<[string, string]>(["", ""]);
   const [menu, setMenu] = useState(false);
+  const [pick, setPick] = useState(false);
   const [open, setOpen] = useState<Sale | null>(null);
   const [, tick] = useState(0);
   useEffect(() => { const i = setInterval(() => tick((n) => n + 1), 30000); return () => clearInterval(i); }, []);
@@ -152,26 +154,32 @@ function Dashboard() {
           {backed ? `✓ ${tr("Backed up")} • ${ago(lb, tr)}` : `⚠ ${tr("Backup pending")}`}
         </p>
 
-        <section className="rounded-xl border border-border bg-card p-2 shadow-sm">
-          <div className="flex gap-1 overflow-x-auto">
-            {PS.map((x) => (
-              <button key={x} onClick={() => setP(x)} className={cn("shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-bold uppercase", p === x ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{tr(x)}</button>
-            ))}
+        <section className="relative rounded-xl border border-border bg-card p-2 shadow-sm">
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={() => setPick((v) => !v)} className="flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-background/60 px-2 py-1.5 text-[12px] font-bold">
+              <CalendarDays className="h-3.5 w-3.5 text-success" />{tr(p)}<ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+            <p className="flex min-w-0 items-center gap-1 truncate text-[10px] text-muted-foreground"><CalendarDays className="h-3 w-3 shrink-0" /><span className="truncate">{fmtD(from || (s.sales.at(-1)?.at ?? to))} - {fmtD(to)}</span></p>
           </div>
+          {pick && (
+            <div className="absolute start-2 top-full z-30 mt-1 w-40 overflow-hidden rounded-lg border border-border bg-card text-[12px] shadow-lg">
+              {PS.map((x) => <button key={x} onClick={() => { setP(x); setPick(false); }} className={cn("block w-full px-3 py-2 text-start font-semibold hover:bg-muted", p === x && "text-primary")}>{tr(x)}</button>)}
+            </div>
+          )}
           {p === "Custom" && (
             <div className="mt-2 flex gap-2 text-[11px]">
               <input type="date" aria-label={tr("From")} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1" />
               <input type="date" aria-label={tr("To")} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1" />
             </div>
           )}
-          <p className="mt-1 px-1 text-[10px] text-muted-foreground">{fmtD(from || (s.sales.at(-1)?.at ?? to))} - {fmtD(to)}</p>
         </section>
 
-        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-          {([["Sales", perf.sales, "good"], ["Purchases", t.purchases], ["Expenses", t.expenses], ["Profit", profit, profit < 0 ? "bad" : "good"], ["Stock value", pos.stock]] as [string, number, ("good" | "bad")?][]).map(([l, v, tone]) => (
-            <div key={l} className="shrink-0 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
-              <p className="whitespace-nowrap text-[10px] font-semibold uppercase text-muted-foreground">{tr(l)}</p>
-              <p className={cn("mt-0.5 whitespace-nowrap text-base font-bold tabular-nums", tone === "good" && "text-success", tone === "bad" && "text-destructive")}>{k(v)}</p>
+        <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1">
+          {([["Sales", perf.sales, TrendingUp, "var(--success)", "good"], ["Purchases", t.purchases, ShoppingCart, "var(--primary)"], ["Expenses", t.expenses, Wallet, "var(--destructive)"], ["Profit", profit, profit < 0 ? TrendingDown : TrendingUp, profit < 0 ? "var(--destructive)" : "var(--success)", profit < 0 ? "bad" : "good"], ["Stock value", pos.stock, Package, "var(--warning)"]] as [string, number, LucideIcon, string, ("good" | "bad")?][]).map(([l, v, Icon, c, tone]) => (
+            <div key={l} className="shrink-0 rounded-lg border border-border bg-card px-2 py-1.5 shadow-sm">
+              <Icon className="h-3.5 w-3.5" style={{ color: c }} />
+              <p className="mt-0.5 whitespace-nowrap text-[10px] font-bold uppercase text-foreground/80">{tr(l)}</p>
+              <p className={cn("whitespace-nowrap text-[11px] font-semibold tabular-nums", tone === "good" && "text-success", tone === "bad" && "text-destructive")}>{k(v)}</p>
             </div>
           ))}
         </div>
@@ -197,20 +205,20 @@ function Dashboard() {
         </Section>
 
         <Section title={tr("Money position")} to="/float" link={tr("View details")}>
-          <div className="grid grid-cols-4 gap-1.5">
-            <Box label={tr("Cash")} value={k(bal.cash)} />
-            <Box label={tr("M-Pesa")} value={k(bal.mpesa)} />
-            <Box label={tr("Bank")} value={k(bal.bank)} />
-            <Box label={tr("Credit")} value={k(pos.receivables)} to="/contacts" />
+          <div className="grid grid-cols-2 gap-1.5 min-[380px]:grid-cols-4">
+            <Box icon={Banknote} color="var(--success)" label={tr("Cash")} value={k(bal.cash)} />
+            <Box icon={Smartphone} color="var(--primary)" label={tr("M-Pesa")} value={k(bal.mpesa)} />
+            <Box icon={Landmark} color="var(--primary)" label={tr("Bank")} value={k(bal.bank)} />
+            <Box icon={Users} color="var(--warning)" label={tr("Credit")} value={k(pos.receivables)} to="/contacts" />
           </div>
         </Section>
 
         <Section title={tr("Needs attention")}>
           <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-            <div className="shrink-0"><Box to="/inventory" label={tr("Low stock")} value={pos.low + pos.out ? String(pos.low + pos.out) : "0"} tone={pos.low + pos.out ? "warn" : "good"} /></div>
-            <div className="shrink-0"><Box to="/contacts" label={tr("Receivables")} value={money(pos.receivables)} /></div>
-            <div className="shrink-0"><Box to="/contacts" label={tr("Payables")} value={money(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} /></div>
-            <div className="shrink-0"><Box to="/pos" label={tr("Cash-up")} value={cashUp === "Variance" && cashVariance ? money((cashVariance.counted ?? 0) - (cashVariance.expected ?? 0)) : tr(cashUp)} tone={cashUp === "Done" ? "good" : cashUp === "Pending" ? "warn" : "bad"} /></div>
+            <div className="shrink-0"><Box icon={AlertTriangle} color="var(--warning)" to="/inventory" label={tr("Low stock")} value={pos.low + pos.out ? String(pos.low + pos.out) : "0"} tone={pos.low + pos.out ? "warn" : "good"} /></div>
+            <div className="shrink-0"><Box icon={Users} color="var(--primary)" to="/contacts" label={tr("Receivables")} value={money(pos.receivables)} /></div>
+            <div className="shrink-0"><Box icon={Building2} color="var(--warning)" to="/contacts" label={tr("Payables")} value={money(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} /></div>
+            <div className="shrink-0"><Box icon={Receipt} color="var(--destructive)" to="/pos" label={tr("Cash-up")} value={cashUp === "Variance" && cashVariance ? money((cashVariance.counted ?? 0) - (cashVariance.expected ?? 0)) : tr(cashUp)} tone={cashUp === "Done" ? "good" : cashUp === "Pending" ? "warn" : "bad"} /></div>
           </div>
         </Section>
 
@@ -224,7 +232,8 @@ function Dashboard() {
                 <p className="shrink-0 text-[11px] font-bold tabular-nums">{sale.ref}</p>
                 <p className="min-w-0 flex-1 truncate text-[12px] font-semibold">{item}{more}</p>
                 <p className="shrink-0 whitespace-nowrap text-[12px] font-bold tabular-nums text-success">{money(sale.total)}</p>
-                <p className="max-w-24 shrink truncate text-[10px] text-muted-foreground">{methods.map((m) => tr(METHOD_LABEL[m])).join("+")}</p>
+                <p className="max-w-20 shrink truncate text-[10px] text-muted-foreground">{methods.map((m) => tr(METHOD_LABEL[m])).join("+")}</p>
+                <p className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{new Date(sale.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground rtl:rotate-180" />
               </button>
             );
