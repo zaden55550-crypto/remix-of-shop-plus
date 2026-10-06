@@ -4,7 +4,7 @@ import { returnStatus } from "@/lib/erp";
 
 export const REPORT_TYPES = ["Sales", "Inventory", "Returns", "Commission"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
-export type Report = { title: string; money: boolean; kpis: { label: string; value: number | null; money: boolean }[]; rows: { label: string; value: number | string; note?: string }[] };
+export type Report = { title: string; money: boolean; kpis: { label: string; value: number | null; money: boolean }[]; rows: { label: string; value: number | string; note?: string | undefined }[] };
 type Range = { from: number; to: number };
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
