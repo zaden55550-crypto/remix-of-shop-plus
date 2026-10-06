@@ -40,7 +40,7 @@ export function NeedsAttention({ pos, money, tr }: { pos: ReturnType<typeof posi
     <KpiRow>
       <Kpi label={tr("Low stock")} value={pos.low + pos.out} tone={pos.low + pos.out ? "warn" : undefined} />
       <Kpi label={tr("Receivables")} value={money(pos.receivables)} />
-      <Kpi label={tr("Payables")} value={<span title={tr("Not available yet")}>—</span>} />
+      <Kpi label={tr("Payables")} value={money(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} />
       <Kpi label={tr("Cash-up")} value={tr(pos.cashUpPending ? "Pending" : "Done")} tone={pos.cashUpPending ? "warn" : undefined} />
     </KpiRow>
   </>);
