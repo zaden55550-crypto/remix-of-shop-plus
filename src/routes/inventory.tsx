@@ -119,7 +119,7 @@ function Box({ title, children, onView, tr }: { title: string; children: ReactNo
   return <div className="inventory-box"><div className="inventory-box-heading"><h2>{title}</h2>{onView && <ShopButton variant="bare" className="inventory-view-all" onClick={onView}>{tr("View All")} <ChevronRight className="h-3 w-3 rtl:rotate-180" /></ShopButton>}</div>{children}</div>;
 }
 
-function StockDot({ p }: { p?: erp.Product }) {
+function StockDot({ p }: { p?: erp.Product | undefined }) {
   const status = p ? erp.stockStatus(p) : "OK";
   return <span aria-label={status} className={cn("inventory-dot", status === "LOW" && "inventory-dot-low", status === "OUT" && "inventory-dot-out")} />;
 }
