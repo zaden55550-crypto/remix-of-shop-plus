@@ -42,11 +42,11 @@ function range(p: P, custom: [string, string]): [number, number] {
   return [a, b];
 }
 
-function compact(cur: string) {
+function compact(_cur: string) {
   return (n: number) => {
     const a = Math.abs(n), sign = n < 0 ? "−" : "";
     const v = a >= 1e6 ? `${+(a / 1e6).toFixed(1)}M` : a >= 1e3 ? `${+(a / 1e3).toFixed(1)}K` : `${Math.round(a)}`;
-    return `${sign}${v}`.replace(/^/, cur && a === 0 ? "" : "");
+    return `${sign}${v}`;
   };
 }
 
