@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
-import { NATIVE } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type Msg = { id: string; sender: "user" | "ai" | "support"; body: string };
@@ -61,7 +60,7 @@ export function HelpChat({ open, onClose, shopName, email, icon }: { open: boole
     await load(thread);
     try {
       const { data } = await supabase.auth.getSession();
-      const r = await fetch("/api/help-chat", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token}` }, body: JSON.stringify({ threadId: thread, language: NATIVE[language as keyof typeof NATIVE] ?? language }) });
+      const r = await fetch("/api/help-chat", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token}` }, body: JSON.stringify({ threadId: thread, language }) });
       if (!r.ok || !r.body) { const b = await r.json().catch(() => ({})); setError(b.error ?? tr("AI request failed")); }
       else { const rd = r.body.getReader(); const dec = new TextDecoder(); let acc = ""; for (;;) { const { done, value } = await rd.read(); if (done) break; acc += dec.decode(value, { stream: true }); setStreaming(acc); } }
     } catch { setError(tr("AI request failed")); }
