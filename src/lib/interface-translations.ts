@@ -78,10 +78,32 @@ Menu|Menyu|Menu|القائمة|Menú|Menu|Menü|Menu|菜单|मेन्यू
 Close menu|Funga menyu|Fermer le menu|إغلاق القائمة|Cerrar menú|Fechar menu|Menü schließen|Chiudi menu|关闭菜单|मेन्यू बंद करें
 Notifications|Arifa|Notifications|الإشعارات|Notificaciones|Notificações|Benachrichtigungen|Notifiche|通知|सूचनाएँ
 AI assistant|Msaidizi wa AI|Assistant IA|المساعد الذكي|Asistente IA|Assistente IA|KI-Assistent|Assistente IA|AI助手|AI सहायक
+Sign in with Google for AI|Ingia kwa Google kutumia AI|Se connecter avec Google pour l’IA|تسجيل الدخول عبر Google للذكاء الاصطناعي|Entrar con Google para IA|Entrar com Google para IA|Mit Google für KI anmelden|Accedi con Google per l’IA|通过 Google 登录使用 AI|AI के लिए Google से साइन इन करें
+Confirm Stock In|Thibitisha kuingiza bidhaa|Confirmer l’entrée de stock|تأكيد إدخال المخزون|Confirmar entrada|Confirmar entrada|Bestandseingang bestätigen|Conferma entrata scorte|确认入库|स्टॉक आवक की पुष्टि करें
+Confirm Stock Out|Thibitisha kutoa bidhaa|Confirmer la sortie de stock|تأكيد إخراج المخزون|Confirmar salida|Confirmar saída|Bestandsabgang bestätigen|Conferma uscita scorte|确认出库|स्टॉक जावक की पुष्टि करें
+Confirm Adjustment|Thibitisha marekebisho|Confirmer l’ajustement|تأكيد التسوية|Confirmar ajuste|Confirmar ajuste|Korrektur bestätigen|Conferma rettifica|确认调整|समायोजन की पुष्टि करें
+Confirm Cash-up|Thibitisha hesabu ya fedha|Confirmer la clôture|تأكيد إقفال الصندوق|Confirmar cierre de caja|Confirmar fechamento|Kassenabschluss bestätigen|Conferma chiusura cassa|确认结账|नकद मिलान की पुष्टि करें
+Opening stock|Bidhaa za mwanzo|Stock initial|المخزون الافتتاحي|Existencias iniciales|Estoque inicial|Anfangsbestand|Scorte iniziali|期初库存|प्रारंभिक स्टॉक
+Failed|Imeshindikana|Échec|فشل|Error|Falhou|Fehlgeschlagen|Operazione fallita|失败|विफल
+Stopped|Imesimamishwa|Arrêté|تم الإيقاف|Detenido|Interrompido|Gestoppt|Interrotto|已停止|रोक दिया गया
+Not enough stock for {name} (available {qty})|Bidhaa hazitoshi kwa {name} (zilizopo {qty})|Stock insuffisant pour {name} (disponible {qty})|المخزون غير كافٍ لـ {name} (المتاح {qty})|Stock insuficiente de {name} (disponible {qty})|Estoque insuficiente de {name} (disponível {qty})|Nicht genug Bestand für {name} (verfügbar {qty})|Scorte insufficienti per {name} (disponibili {qty})|{name} 库存不足（可用 {qty}）|{name} का स्टॉक अपर्याप्त (उपलब्ध {qty})
+Invalid quantity for {name}|Idadi si sahihi kwa {name}|Quantité invalide pour {name}|كمية غير صالحة لـ {name}|Cantidad no válida para {name}|Quantidade inválida para {name}|Ungültige Menge für {name}|Quantità non valida per {name}|{name} 数量无效|{name} की मात्रा अमान्य
+Insufficient stock: {name} (available {qty})|Bidhaa hazitoshi: {name} (zilizopo {qty})|Stock insuffisant : {name} (disponible {qty})|مخزون غير كافٍ: {name} (المتاح {qty})|Stock insuficiente: {name} (disponible {qty})|Estoque insuficiente: {name} (disponível {qty})|Unzureichender Bestand: {name} (verfügbar {qty})|Scorte insufficienti: {name} (disponibili {qty})|库存不足：{name}（可用 {qty}）|अपर्याप्त स्टॉक: {name} (उपलब्ध {qty})
+Only {qty} of {name} can be returned|Ni {qty} tu za {name} zinaweza kurejeshwa|Seulement {qty} de {name} peuvent être retournés|يمكن إرجاع {qty} فقط من {name}|Solo se pueden devolver {qty} de {name}|Só podem ser devolvidos {qty} de {name}|Nur {qty} von {name} können retourniert werden|È possibile restituire solo {qty} di {name}|{name} 最多可退 {qty} 件|{name} की केवल {qty} इकाइयाँ लौटाई जा सकती हैं
 `.trim().split('\n').map(row => row.split('|'));
 
 const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));
 export function translateText(lang: Lang, text: string, x?: string | number) {
+  const patterns: [RegExp, string, string[]][] = [
+    [/^Not enough stock for (.+) \(available (.+)\)$/, 'Not enough stock for {name} (available {qty})', ['name', 'qty']],
+    [/^Insufficient stock: (.+) \(available (.+)\)$/, 'Insufficient stock: {name} (available {qty})', ['name', 'qty']],
+    [/^Invalid quantity for (.+)$/, 'Invalid quantity for {name}', ['name']],
+    [/^Only (.+) of (.+) can be returned$/, 'Only {qty} of {name} can be returned', ['qty', 'name']],
+  ];
+  for (const [pattern, key, fields] of patterns) {
+    const match = text.match(pattern);
+    if (match) { let value = dictionary.get(key.toLowerCase())?.[LANGS.indexOf(lang)] ?? key; fields.forEach((field, index) => { value = value.replace(`{${field}}`, match[index + 1] ?? ''); }); return value; }
+  }
   const translated = dictionary.get(text.toLowerCase())?.[LANGS.indexOf(lang)] ?? text;
   return x === undefined ? translated : translated.replace('{x}', String(x));
 }

@@ -107,7 +107,8 @@ export const addProduct = (input: NewProduct) => commit((s, c) => {
   if (!input.name.trim()) throw new ErpError("Product name is required");
   if (input.buy < 0 || input.sell < 0 || input.qty < 0) throw new ErpError("Prices and quantity can't be negative");
   if (input.barcode && s.products.some((p) => p.barcode === input.barcode)) throw new ErpError("Barcode already used by another product");
-  if (input.sku && s.products.some((p) => p.sku?.toLowerCase() === input.sku!.toLowerCase())) throw new ErpError("SKU already used");
+  const suppliedSku = input.sku;
+  if (suppliedSku && s.products.some((p) => p.sku?.toLowerCase() === suppliedSku.toLowerCase())) throw new ErpError("SKU already used");
   const sku = input.sku || c.nextRef("SKU").replace("SKU-0000", "SKU-");
   const p: Product = { ...input, qty: 0, sku, id: uid(), createdAt: Date.now() };
   s.products.unshift(p);
