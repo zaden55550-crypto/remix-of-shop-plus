@@ -12,3 +12,6 @@
 - [x] Verify language persistence, account flow and both themes.- [x] Phase 2.1 ERP core engine (device-local) + Phase 2.2 Inventory app
 - [x] Phase 2.3 Sales & POS (shared selling engine, cart, payments, receipts, returns, customers, cash-up)
 - [ ] Seller permissions (needs staff accounts)
+- [ ] Translate all working ERP screens in ten languages
+- [ ] Enforce compact one-row KPIs globally
+- [ ] Add and verify AI reorder recommendations from supplied sales/stock data
