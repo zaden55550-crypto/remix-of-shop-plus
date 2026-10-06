@@ -99,7 +99,7 @@ function Dashboard() {
   const lb = lastBackup();
   const backed = lb && lb >= lastChange;
   const cashVariance = s.cash.find((e) => e.type === "CASH UP");
-  const cashUp = pos.cashUpPending ? "Pending" : cashVariance && "variance" in cashVariance && Number((cashVariance as { variance?: number }).variance) ? "Variance" : "Done";
+  const cashUp = pos.cashUpPending ? "Pending" : cashVariance && cashVariance.counted !== undefined && cashVariance.expected !== undefined && cashVariance.counted !== cashVariance.expected ? "Variance" : "Done";
 
   const rows: [string, string | number][] = [
     ["Period", `${fmtD(from || to)} - ${fmtD(to)}`],
