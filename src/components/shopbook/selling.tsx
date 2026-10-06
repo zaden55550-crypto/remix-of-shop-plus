@@ -289,7 +289,7 @@ export function SalesList({ s, money, tr, shop, onlyChannel }: SCtx & { onlyChan
   );
 }
 
-function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; onDone: () => void }) {
+export function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; onDone: () => void }) {
   const [q, setQ] = useState<Record<string, string>>({});
   const hasCust = !!sale.customerId && s.customers.some((c) => c.id === sale.customerId);
   const [refund, setRefund] = useState<erp.Method>("cash");

@@ -1,7 +1,7 @@
 // Purchases, Expenses, Suppliers and Float — all written through the shared ERP `commit`.
 // Money moves are rows in the one `payments` ledger (negative = money out), so Float,
 // POS cash-up, Accounting, Dashboard and Summary all read the same records.
-import { commit, cashSession, ErpError, uid, METHODS, type ErpState, type Method, type Purchase, type Supplier } from "@/lib/erp";
+import { commit, cashSession, ErpError, uid, METHODS, payStatus, type ErpState, type Method, type Purchase, type Supplier } from "@/lib/erp";
 
 export const ACCOUNTS: Method[] = ["cash", "mpesa", "bank"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
