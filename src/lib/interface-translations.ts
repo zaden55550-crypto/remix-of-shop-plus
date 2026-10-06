@@ -369,6 +369,11 @@ AI request failed|Ombi la AI limeshindwa|Échec de la requête IA|فشل طلب 
 Reorder|Agiza tena|Réapprovisionner|إعادة الطلب|Reponer|Repor|Nachbestellen|Riordina|补货|पुनः ऑर्डर करें
 Advice only|Ushauri pekee|À titre indicatif uniquement|للاسترشاد فقط|Solo orientativo|Apenas orientação|Nur als Empfehlung|Solo indicativo|仅供参考|केवल सलाह
 Paid|Imelipwa|Payé|مدفوع|Pagado|Pago|Bezahlt|Pagato|已付款|भुगतान किया गया
+Dashboard|Dashibodi|Tableau de bord|لوحة التحكم|Panel|Painel|Dashboard|Dashboard|仪表盘|डैशबोर्ड
+Purchases|Manunuzi|Achats|المشتريات|Compras|Compras|Einkäufe|Acquisti|采购|खरीद
+Expenses|Matumizi|Dépenses|المصروفات|Gastos|Despesas|Ausgaben|Spese|支出|खर्च
+Profit|Faida|Bénéfice|الربح|Beneficio|Lucro|Gewinn|Utile|利润|लाभ
+Not available yet|Bado haipatikani|Pas encore disponible|غير متاح بعد|Aún no disponible|Ainda não disponível|Noch nicht verfügbar|Non ancora disponibile|暂不可用|अभी उपलब्ध नहीं
 `.trim().split('\n').map(row => row.split('|'));
 
 const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));
