@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppsRouteImport } from './routes/apps'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ApiReorderRouteImport } from './routes/api/reorder'
@@ -39,6 +41,11 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PayrollRoute = PayrollRouteImport.update({
+  id: '/payroll',
+  path: '/payroll',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlansRoute = PlansRouteImport.update({
   id: '/plans',
   path: '/plans',
@@ -47,6 +54,11 @@ const PlansRoute = PlansRouteImport.update({
 const PosRoute = PosRouteImport.update({
   id: '/pos',
   path: '/pos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SalesRoute = SalesRouteImport.update({
@@ -70,8 +82,10 @@ export interface FileRoutesByFullPath {
   '/apps': typeof AppsRoute
   '/dashboard': typeof DashboardRoute
   '/inventory': typeof InventoryRoute
+  '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/signup': typeof SignupRoute
   '/api/reorder': typeof ApiReorderRoute
@@ -81,8 +95,10 @@ export interface FileRoutesByTo {
   '/apps': typeof AppsRoute
   '/dashboard': typeof DashboardRoute
   '/inventory': typeof InventoryRoute
+  '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/signup': typeof SignupRoute
   '/api/reorder': typeof ApiReorderRoute
@@ -93,8 +109,10 @@ export interface FileRoutesById {
   '/apps': typeof AppsRoute
   '/dashboard': typeof DashboardRoute
   '/inventory': typeof InventoryRoute
+  '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/signup': typeof SignupRoute
   '/api/reorder': typeof ApiReorderRoute
@@ -106,8 +124,10 @@ export interface FileRouteTypes {
     | '/apps'
     | '/dashboard'
     | '/inventory'
+    | '/payroll'
     | '/plans'
     | '/pos'
+    | '/reports'
     | '/sales'
     | '/signup'
     | '/api/reorder'
@@ -117,8 +137,10 @@ export interface FileRouteTypes {
     | '/apps'
     | '/dashboard'
     | '/inventory'
+    | '/payroll'
     | '/plans'
     | '/pos'
+    | '/reports'
     | '/sales'
     | '/signup'
     | '/api/reorder'
@@ -128,8 +150,10 @@ export interface FileRouteTypes {
     | '/apps'
     | '/dashboard'
     | '/inventory'
+    | '/payroll'
     | '/plans'
     | '/pos'
+    | '/reports'
     | '/sales'
     | '/signup'
     | '/api/reorder'
@@ -140,8 +164,10 @@ export interface RootRouteChildren {
   AppsRoute: typeof AppsRoute
   DashboardRoute: typeof DashboardRoute
   InventoryRoute: typeof InventoryRoute
+  PayrollRoute: typeof PayrollRoute
   PlansRoute: typeof PlansRoute
   PosRoute: typeof PosRoute
+  ReportsRoute: typeof ReportsRoute
   SalesRoute: typeof SalesRoute
   SignupRoute: typeof SignupRoute
   ApiReorderRoute: typeof ApiReorderRoute
@@ -177,6 +203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payroll': {
+      id: '/payroll'
+      path: '/payroll'
+      fullPath: '/payroll'
+      preLoaderRoute: typeof PayrollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/plans': {
       id: '/plans'
       path: '/plans'
@@ -189,6 +222,13 @@ declare module '@tanstack/react-router' {
       path: '/pos'
       fullPath: '/pos'
       preLoaderRoute: typeof PosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sales': {
@@ -220,8 +260,10 @@ const rootRouteChildren: RootRouteChildren = {
   AppsRoute: AppsRoute,
   DashboardRoute: DashboardRoute,
   InventoryRoute: InventoryRoute,
+  PayrollRoute: PayrollRoute,
   PlansRoute: PlansRoute,
   PosRoute: PosRoute,
+  ReportsRoute: ReportsRoute,
   SalesRoute: SalesRoute,
   SignupRoute: SignupRoute,
   ApiReorderRoute: ApiReorderRoute,
