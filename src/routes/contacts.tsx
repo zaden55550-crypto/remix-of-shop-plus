@@ -7,7 +7,7 @@ import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import * as fin from "@/lib/finance";
-import { SupplierList } from "@/routes/purchases";
+import { SupplierList } from "@/components/shopbook/suppliers";
 
 export const Route = createFileRoute("/contacts")({
   head: () => ({ meta: [

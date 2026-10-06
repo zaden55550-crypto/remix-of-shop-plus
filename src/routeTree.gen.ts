@@ -10,12 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountingRouteImport } from './routes/accounting'
 import { Route as AppsRouteImport } from './routes/apps'
+import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ExpensesRouteImport } from './routes/expenses'
+import { Route as FloatRouteImport } from './routes/float'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
+import { Route as PurchasesRouteImport } from './routes/purchases'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -28,14 +33,34 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountingRoute = AccountingRouteImport.update({
+  id: '/accounting',
+  path: '/accounting',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppsRoute = AppsRouteImport.update({
   id: '/apps',
   path: '/apps',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContactsRoute = ContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExpensesRoute = ExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FloatRoute = FloatRouteImport.update({
+  id: '/float',
+  path: '/float',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -56,6 +81,11 @@ const PlansRoute = PlansRouteImport.update({
 const PosRoute = PosRouteImport.update({
   id: '/pos',
   path: '/pos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PurchasesRoute = PurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsRoute = ReportsRouteImport.update({
@@ -91,12 +121,17 @@ const ApiReorderRoute = ApiReorderRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/apps': typeof AppsRoute
+  '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
+  '/expenses': typeof ExpensesRoute
+  '/float': typeof FloatRoute
   '/inventory': typeof InventoryRoute
   '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/purchases': typeof PurchasesRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
@@ -106,12 +141,17 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/apps': typeof AppsRoute
+  '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
+  '/expenses': typeof ExpensesRoute
+  '/float': typeof FloatRoute
   '/inventory': typeof InventoryRoute
   '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/purchases': typeof PurchasesRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
@@ -122,12 +162,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accounting': typeof AccountingRoute
   '/apps': typeof AppsRoute
+  '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
+  '/expenses': typeof ExpensesRoute
+  '/float': typeof FloatRoute
   '/inventory': typeof InventoryRoute
   '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/purchases': typeof PurchasesRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
@@ -139,12 +184,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accounting'
     | '/apps'
+    | '/contacts'
     | '/dashboard'
+    | '/expenses'
+    | '/float'
     | '/inventory'
     | '/payroll'
     | '/plans'
     | '/pos'
+    | '/purchases'
     | '/reports'
     | '/sales'
     | '/settings'
@@ -154,12 +204,17 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accounting'
     | '/apps'
+    | '/contacts'
     | '/dashboard'
+    | '/expenses'
+    | '/float'
     | '/inventory'
     | '/payroll'
     | '/plans'
     | '/pos'
+    | '/purchases'
     | '/reports'
     | '/sales'
     | '/settings'
@@ -169,12 +224,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/accounting'
     | '/apps'
+    | '/contacts'
     | '/dashboard'
+    | '/expenses'
+    | '/float'
     | '/inventory'
     | '/payroll'
     | '/plans'
     | '/pos'
+    | '/purchases'
     | '/reports'
     | '/sales'
     | '/settings'
@@ -185,12 +245,17 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountingRoute: typeof AccountingRoute
   AppsRoute: typeof AppsRoute
+  ContactsRoute: typeof ContactsRoute
   DashboardRoute: typeof DashboardRoute
+  ExpensesRoute: typeof ExpensesRoute
+  FloatRoute: typeof FloatRoute
   InventoryRoute: typeof InventoryRoute
   PayrollRoute: typeof PayrollRoute
   PlansRoute: typeof PlansRoute
   PosRoute: typeof PosRoute
+  PurchasesRoute: typeof PurchasesRoute
   ReportsRoute: typeof ReportsRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
@@ -208,6 +273,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accounting': {
+      id: '/accounting'
+      path: '/accounting'
+      fullPath: '/accounting'
+      preLoaderRoute: typeof AccountingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/apps': {
       id: '/apps'
       path: '/apps'
@@ -215,11 +287,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contacts': {
+      id: '/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof ContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/expenses': {
+      id: '/expenses'
+      path: '/expenses'
+      fullPath: '/expenses'
+      preLoaderRoute: typeof ExpensesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/float': {
+      id: '/float'
+      path: '/float'
+      fullPath: '/float'
+      preLoaderRoute: typeof FloatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -248,6 +341,13 @@ declare module '@tanstack/react-router' {
       path: '/pos'
       fullPath: '/pos'
       preLoaderRoute: typeof PosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/purchases': {
+      id: '/purchases'
+      path: '/purchases'
+      fullPath: '/purchases'
+      preLoaderRoute: typeof PurchasesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports': {
@@ -297,12 +397,17 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountingRoute: AccountingRoute,
   AppsRoute: AppsRoute,
+  ContactsRoute: ContactsRoute,
   DashboardRoute: DashboardRoute,
+  ExpensesRoute: ExpensesRoute,
+  FloatRoute: FloatRoute,
   InventoryRoute: InventoryRoute,
   PayrollRoute: PayrollRoute,
   PlansRoute: PlansRoute,
   PosRoute: PosRoute,
+  PurchasesRoute: PurchasesRoute,
   ReportsRoute: ReportsRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
