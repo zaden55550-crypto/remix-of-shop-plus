@@ -69,7 +69,7 @@ function Section({ title, to, link, children }: { title: string; to?: string; li
   );
 }
 
-function Box({ label, value, tone, to }: { label: string; value: ReactNode; tone?: "good" | "warn" | "bad"; to?: string }) {
+function Box({ label, value, tone, to }: { label: string; value: ReactNode; tone?: "good" | "warn" | "bad" | undefined; to?: string }) {
   const inner = (
     <div className="h-full rounded-lg border border-border bg-background/60 px-2.5 py-2">
       <p className="whitespace-nowrap text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
