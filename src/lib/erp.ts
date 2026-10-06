@@ -25,10 +25,10 @@ export type ErpState = {
   employees: Employee[]; commissions: Commission[]; payrolls: PayrollRun[]; payrollPayments: PayrollPayment[];
   suppliers: Supplier[]; purchases: Purchase[]; purchaseReturns: PurchaseReturn[]; expenses: Expense[]; expenseCategories: Named[];
 };
-export type Supplier = { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number };
+export type Supplier = { id: string; name: string; phone?: string | undefined; email?: string | undefined; address?: string | undefined; info?: string | undefined; notes?: string | undefined; balance: number; createdAt: number };
 export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
 export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string };
-export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
+export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
 export type Expense = { id: string; ref: string; at: number; category: string; note?: string | undefined; amount: number; method: Method; user: string };
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean };
 export type Employee = { id: string; name: string; phone?: string | undefined; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };

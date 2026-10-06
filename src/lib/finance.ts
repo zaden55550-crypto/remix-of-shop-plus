@@ -25,10 +25,11 @@ function ensureFunds(s: ErpState, m: Method, amount: number) {
 }
 
 // ---------- Suppliers ----------
-export const addSupplier = (name: string, phone?: string) => commit((s, c) => {
+export type SupplierExtra = { email?: string; address?: string; info?: string; notes?: string };
+export const addSupplier = (name: string, phone?: string, extra: SupplierExtra = {}) => commit((s, c) => {
   const n = name.trim(); if (!n) throw new ErpError("Enter a supplier name");
   if (n.length > 100) throw new ErpError("Name is too long");
-  const sup: Supplier = { id: uid(), name: n, phone: phone?.trim() || undefined, balance: 0, createdAt: Date.now() };
+  const sup: Supplier = { id: uid(), name: n, phone: phone?.trim() || undefined, email: extra.email?.trim() || undefined, address: extra.address?.trim() || undefined, info: extra.info?.trim() || undefined, notes: extra.notes?.trim() || undefined, balance: 0, createdAt: Date.now() };
   s.suppliers.unshift(sup); c.audit("SUPPLIER CREATED", n); return sup;
 });
 
@@ -74,7 +75,7 @@ export const confirmPurchase = (input: { lines: PurchaseLine[]; pay: Record<Meth
 });
 
 /** Items go back to the supplier: stock out, then refund in money or reduce what we owe. */
-export const returnPurchase = (purchaseId: string, lines: { productId: string; qty: number }[], refund: Method) => commit((s, c) => {
+export const returnPurchase = (purchaseId: string, lines: { productId: string; qty: number }[], refund: Method, reason?: string) => commit((s, c) => {
   const pur = s.purchases.find((x) => x.id === purchaseId); if (!pur) throw new ErpError("Purchase not found");
   const picked = lines.filter((l) => l.qty > 0); if (!picked.length) throw new ErpError("Choose items to return");
   const ref = c.nextRef("PRT");
@@ -93,7 +94,7 @@ export const returnPurchase = (purchaseId: string, lines: { productId: string; q
   } else {
     s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method: refund, amount, kind: "SUPPLIER REFUND", source: ref, user: c.user });
   }
-  s.purchaseReturns.unshift({ id: uid(), ref, at: Date.now(), purchaseId, purchaseRef: pur.ref, items, amount, refund, user: c.user });
+  s.purchaseReturns.unshift({ id: uid(), ref, at: Date.now(), purchaseId, purchaseRef: pur.ref, items, amount, refund, reason: reason?.trim() || undefined, user: c.user });
   c.audit("PURCHASE RETURN", `${ref} for ${pur.ref} • ${amount}`);
 });
 
