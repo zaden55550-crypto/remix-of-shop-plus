@@ -7,6 +7,8 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { ProductSearch, inputCls } from "@/components/shopbook/product-search";
 import { store, canOpen, type Account, type Tier } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
+import { Kpi, KpiRow } from "@/components/shopbook/kpi";
+import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
 
@@ -16,7 +18,7 @@ export type SCtx = { s: erp.ErpState; money: (n: number) => string; tr: Tr; shop
 export const dt = (n: number) => new Date(n).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const tm = (n: number) => new Date(n).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 export const run = <T,>(fn: () => T, ok?: string): T | undefined => {
-  try { const r = fn(); if (ok) toast.success(ok); return r; } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); return undefined; }
+  try { const r = fn(); if (ok) toast.success(ok); return r; } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); return undefined; }
 };
 const sameDay = (a: number, b = Date.now()) => new Date(a).toDateString() === new Date(b).toDateString();
 
@@ -55,9 +57,6 @@ export function AppShell({ title, tabs, tab, setTab, children }: { title: string
   );
 }
 
-export function Kpi({ label, value }: { label: string; value: ReactNode }) {
-  return <div className="rounded-xl border border-border bg-card px-3 py-2.5"><p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p><p className="mt-0.5 text-lg font-bold">{value}</p></div>;
-}
 export const Title = ({ children }: { children: ReactNode }) => <h2 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground first:mt-0">{children}</h2>;
 export const Empty = ({ children }: { children: ReactNode }) => <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
 const Label = ({ t, children }: { t: string; children: ReactNode }) => <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t}<div className="mt-1">{children}</div></label>;
@@ -66,7 +65,7 @@ function Sheet({ onClose, children, title }: { onClose: () => void; children: Re
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
       <div className="mx-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-card p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between"><p className="text-lg font-bold">{title}</p><button onClick={onClose} aria-label="Close"><X className="h-5 w-5" /></button></div>
+        <div className="mb-3 flex items-center justify-between"><p className="text-lg font-bold">{title}</p><button onClick={onClose} aria-label={translateCurrent("Close")}><X className="h-5 w-5" /></button></div>
         {children}
       </div>
     </div>
@@ -102,7 +101,7 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
           return (
             <button key={p.id} onClick={() => add(p.id)} disabled={p.qty <= 0} className="flex w-full items-center gap-3 border-b border-border py-2.5 text-start disabled:opacity-50">
               {p.image && <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover" />}
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{p.name}</p><p className="text-[11px] text-muted-foreground">{p.sku} • {p.qty > 0 ? `${p.qty} ${p.unit || "pcs"}` : tr("Out of stock")}</p></div>
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{p.name}</p><p className="text-[11px] text-muted-foreground">{p.sku} • {p.qty > 0 ? `${p.qty} ${p.unit || tr("pcs")}` : tr("Out of stock")}</p></div>
               <span className="shrink-0 text-sm font-bold">{money(p.sell)}</span>
               {n > 0 && <span className="grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">{n}</span>}
             </button>
@@ -244,7 +243,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
 }
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode }) {
-  const text = () => [`SHOPBOOK — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${i.qty * i.price}`), `TOTAL ${money(sale.total)}`, `${tr("Payment")}: ${erp.methodOf(sale.pay)}`].join("\n");
+  const text = () => [`SHOPBOOK — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${i.qty * i.price}`), `${tr("TOTAL")} ${money(sale.total)}`, `${tr("Payment")}: ${tr(erp.methodOf(sale.pay))}`].join("\n");
   const share = async () => {
     try { if (navigator.share) await navigator.share({ title: sale.ref, text: text() }); else { await navigator.clipboard.writeText(text()); toast.success(tr("Receipt copied")); } } catch { /* cancelled */ }
   };
@@ -407,12 +406,12 @@ export function SalesReport({ s, money, tr, onlyChannel }: SCtx & { onlyChannel?
   return (
     <div>
       <div className="mb-3 flex gap-1">{(["today", "7d", "all"] as const).map((r) => <button key={r} onClick={() => setRange(r)} className={cn("rounded-full px-3 py-1 text-xs font-semibold", range === r ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>{tr(r === "today" ? "Today" : r === "7d" ? "Last 7 days" : "All time")}</button>)}</div>
-      <div className="grid grid-cols-2 gap-2">
+      <KpiRow>
         <Kpi label={tr("Sales")} value={st.count} />
         <Kpi label={tr("Net sales")} value={money(st.net)} />
         <Kpi label={tr("Returns")} value={money(st.returned)} />
         <Kpi label={tr("Gross profit")} value={money(st.profit)} />
-      </div>
+      </KpiRow>
       <Title>{tr("By payment")}</Title>
       {erp.METHODS.map((m) => <div key={m} className="flex justify-between border-b border-border py-2 text-sm"><span>{tr(erp.METHOD_LABEL[m])}</span><span>{money(st.byMethod[m])}</span></div>)}
       <Title>{tr("Top products")}</Title>
@@ -427,12 +426,12 @@ export function SalesOverview(ctx: SCtx) {
   const owed = s.customers.reduce((a, c) => a + Math.max(0, c.balance), 0);
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2">
+      <KpiRow>
         <Kpi label={tr("Today's sales")} value={money(st.net)} />
         <Kpi label={tr("Transactions")} value={st.count} />
         <Kpi label={tr("Customer debt")} value={money(owed)} />
         <Kpi label={tr("Returns today")} value={money(st.returned)} />
-      </div>
+      </KpiRow>
       <Title>{tr("Recent sales")}</Title>
       <SalesList {...ctx} s={{ ...s, sales: s.sales.slice(0, 5) }} />
     </div>
@@ -454,14 +453,14 @@ export function Cash({ s, money, tr }: SCtx) {
       <div className="mb-3 flex gap-1 overflow-x-auto [scrollbar-width:none]">
         {(["OPENING CASH", "CASH IN", "CASH OUT", "CASH UP", "CASH HISTORY"] as const).map((k) => <button key={k} onClick={() => setView(k)} className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-semibold", view === k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>{tr(k)}</button>)}
       </div>
-      <div className="rounded-xl border border-border bg-card p-3 text-sm">
-        <div className="flex justify-between"><span>{tr("Opening Cash")}</span><span>{money(cs.opening)}</span></div>
-        <div className="flex justify-between"><span>{tr("Cash Sales")}</span><span>{money(cs.sales)}</span></div>
-        {cs.refunds > 0 && <div className="flex justify-between"><span>{tr("Cash Refunds")}</span><span>− {money(cs.refunds)}</span></div>}
-        <div className="flex justify-between"><span>{tr("Cash In")}</span><span>{money(cs.cin)}</span></div>
-        <div className="flex justify-between"><span>{tr("Cash Out")}</span><span>− {money(cs.cout)}</span></div>
-        <div className="mt-1 flex justify-between border-t border-border pt-1 font-bold"><span>{tr("Expected Cash")}</span><span>{money(cs.expected)}</span></div>
-      </div>
+      <KpiRow>
+        <Kpi label={tr("Opening Cash")} value={money(cs.opening)} />
+        <Kpi label={tr("Cash Sales")} value={money(cs.sales)} />
+        <Kpi label={tr("Cash Refunds")} value={money(cs.refunds)} />
+        <Kpi label={tr("Cash In")} value={money(cs.cin)} />
+        <Kpi label={tr("Cash Out")} value={money(cs.cout)} />
+        <Kpi label={tr("Expected Cash")} value={money(cs.expected)} />
+      </KpiRow>
       {view !== "CASH HISTORY" ? (
         <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
           <input type="number" min="0" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={tr(view === "CASH UP" ? "Counted cash" : "Amount")} className={inputCls} />

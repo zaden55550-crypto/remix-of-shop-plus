@@ -5,6 +5,9 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { store, canOpen, type Account } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
+import { Kpi, KpiRow } from "@/components/shopbook/kpi";
+import { Reorder } from "@/components/shopbook/reorder";
+import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
 import { ProductSearch, useErp, inputCls } from "@/components/shopbook/product-search";
@@ -28,12 +31,12 @@ const MENUS = {
   products: ["All Products", "Add Product", "Categories", "Brands"],
   stock: ["Stock Levels", "Stock In", "Stock Out", "Adjustments", "History"],
   transfers: ["New Transfer", "Pending", "Received", "History"],
-  reports: ["Stock Report", "Movement", "Valuation", "Performance"],
+  reports: ["Stock Report", "Movement", "Valuation", "Performance", "AI Reorder"],
 } as const;
 type Menu = keyof typeof MENUS;
 
 const run = (fn: () => unknown, ok: string) => {
-  try { fn(); toast.success(ok); return true; } catch (e) { toast.error(e instanceof Error ? e.message : "Failed"); return false; }
+  try { fn(); toast.success(ok); return true; } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); return false; }
 };
 const dt = (n: number) => new Date(n).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -99,18 +102,9 @@ function Tabs({ items, value, onChange, label, small }: { items: string[]; value
   );
 }
 
-function Kpi({ label, value, tone }: { label: string; value: ReactNode; tone?: "warn" | "bad" | undefined }) {
-  return (
-    <div className="rounded-xl border border-border bg-card px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-      <p className={cn("mt-0.5 text-lg font-bold", tone === "warn" && "text-amber-500", tone === "bad" && "text-destructive")}>{value}</p>
-    </div>
-  );
-}
-
 function Status({ p }: { p: erp.Product }) {
   const st = erp.stockStatus(p);
-  return <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold", st === "OK" && "bg-primary/15 text-primary", st === "LOW" && "bg-amber-500/15 text-amber-500", st === "OUT" && "bg-destructive/15 text-destructive")}>{st}</span>;
+  return <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold", st === "OK" && "bg-primary/15 text-primary", st === "LOW" && "bg-warning/15 text-warning", st === "OUT" && "bg-destructive/15 text-destructive")}>{translateCurrent(st)}</span>;
 }
 
 function Title({ children }: { children: ReactNode }) { return <h2 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground first:mt-0">{children}</h2>; }
@@ -133,8 +127,8 @@ function MoveRow({ m, s, tr }: { m: erp.Movement; s: erp.ErpState; tr: Ctx["tr"]
           <span className="text-muted-foreground">{tr("Source")}</span><span>{m.source ?? "—"}</span>
           <span className="text-muted-foreground">{tr("Previous")}</span><span>{m.prev}</span>
           <span className="text-muted-foreground">{tr("New")}</span><span>{m.next}</span>
-          <span className="text-muted-foreground">{tr("Reason")}</span><span>{m.reason ?? "—"}</span>
-          <span className="text-muted-foreground">{tr("Performed by")}</span><span>{m.user}</span>
+          <span className="text-muted-foreground">{tr("Reason")}</span><span>{m.reason ? tr(m.reason) : "—"}</span>
+          <span className="text-muted-foreground">{tr("Performed by")}</span><span>{tr(m.user)}</span>
         </div>
       )}
     </button>
@@ -150,12 +144,12 @@ function Overview({ s, money, tr, go }: Ctx) {
   const adj = s.movements.filter((m) => m.type === "ADJUSTMENT").slice(0, 3);
   return (
     <div>
-      <div className="grid grid-cols-2 gap-2">
+      <KpiRow>
         <Kpi label={tr("Products")} value={s.products.length} />
         <Kpi label={tr("Stock value")} value={money(value)} />
         <Kpi label={tr("Low stock")} value={low.length} tone={low.length ? "warn" : undefined} />
         <Kpi label={tr("Out of stock")} value={out.length} tone={out.length ? "bad" : undefined} />
-      </div>
+      </KpiRow>
       {s.products.length === 0 && (
         <div className="mt-6 rounded-xl border border-dashed border-border p-5 text-center">
           <p className="text-sm text-muted-foreground">{tr("No products yet. Add your first product to start tracking stock.")}</p>
@@ -192,7 +186,7 @@ function ProductList({ s, money, tr, onUnknown }: Ctx & { onUnknown: (code: stri
             {p.image && <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover" />}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{p.name}</p>
-              <p className="truncate text-[11px] text-muted-foreground">{p.sku} • {p.qty} {p.unit || "pcs"} • {money(p.buy)} → {money(p.sell)}</p>
+              <p className="truncate text-[11px] text-muted-foreground">{p.sku} • {p.qty} {p.unit || tr("pcs")} • {money(p.buy)} → {money(p.sell)}</p>
             </div>
             <Status p={p} />
           </button>
@@ -218,11 +212,11 @@ function ProductSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: erp.Erp
           <div className="flex-1"><p className="text-lg font-bold">{p.name}</p><p className="text-xs text-muted-foreground">{[p.sku, p.barcode, cat, brand].filter(Boolean).join(" • ")}</p></div>
           <button onClick={onClose} aria-label={tr("Close")}><X className="h-5 w-5" /></button>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <KpiRow className="mt-3">
           <Kpi label={tr("Stock")} value={`${p.qty}`} />
           <Kpi label={tr("Cost value")} value={money(p.qty * p.buy)} />
           <Kpi label={tr("Sell value")} value={money(p.qty * p.sell)} />
-        </div>
+        </KpiRow>
         <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
           <label>{tr("Buying price")}<input type="number" value={buy} onChange={(e) => setBuy(e.target.value)} className={inputCls} /></label>
           <label>{tr("Selling price")}<input type="number" value={sell} onChange={(e) => setSell(e.target.value)} className={inputCls} /></label>
@@ -267,7 +261,7 @@ function AddProduct({ s, tr, cur, barcode, done }: Ctx & { barcode: string; done
             <L t="Brand"><select value={f.brandId} onChange={set("brandId")} className={inputCls}><option value="">—</option>{s.brands.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></L>
             <L t="SKU"><input value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} className={inputCls} /></L>
             <L t="Barcode"><input value={f.barcode} onChange={set("barcode")} className={inputCls} /></L>
-            <L t="Unit"><input value={f.unit} onChange={set("unit")} placeholder="pcs" className={inputCls} /></L>
+            <L t="Unit"><input value={f.unit} onChange={set("unit")} placeholder={tr("pcs")} className={inputCls} /></L>
             <L t="Min stock"><input type="number" min="0" value={f.minStock} onChange={set("minStock")} placeholder="5" className={inputCls} /></L>
           </div>
           <L t="Image">
@@ -395,12 +389,13 @@ function Transfers({ s, tr, view, shop }: Ctx & { view: string }) {
 }
 
 function Reports({ s, money, tr, view }: Ctx & { view: string }) {
+  if (view === "AI Reorder") return <Reorder s={s} money={money} />;
   if (view === "Valuation") {
     const cost = s.products.reduce((a, p) => a + p.qty * p.buy, 0);
     const sell = s.products.reduce((a, p) => a + p.qty * p.sell, 0);
     return (
       <div>
-        <div className="grid grid-cols-2 gap-2"><Kpi label={tr("Cost value")} value={money(cost)} /><Kpi label={tr("Selling value")} value={money(sell)} /></div>
+        <KpiRow><Kpi label={tr("Cost value")} value={money(cost)} /><Kpi label={tr("Selling value")} value={money(sell)} /></KpiRow>
         <p className="mt-2 text-xs text-muted-foreground">{tr("Potential profit")}: <b className="text-foreground">{money(sell - cost)}</b></p>
         {s.products.map((p) => <div key={p.id} className="flex justify-between border-b border-border py-2.5 text-sm"><span className="truncate">{p.name} <span className="text-xs text-muted-foreground">× {p.qty}</span></span><span>{money(p.qty * p.buy)}</span></div>)}
       </div>
