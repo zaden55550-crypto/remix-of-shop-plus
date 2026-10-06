@@ -30,6 +30,7 @@ function Scanner({ onCode, onClose, tr }: { onCode: (c: string) => void; onClose
   const [manual, setManual] = useState("");
   const [camOk, setCamOk] = useState(true);
   const [denied, setDenied] = useState(false);
+  const cb = useRef(onCode); cb.current = onCode;
   useEffect(() => {
     let stream: MediaStream | null = null; let stop = false;
     type Det = { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
@@ -45,14 +46,14 @@ function Scanner({ onCode, onClose, tr }: { onCode: (c: string) => void; onClose
         const det: Det = Native ? new Native() : new (await import("barcode-detector/ponyfill")).BarcodeDetector() as unknown as Det;
         const tick = async () => {
           if (stop || !video.current) return;
-          try { const r = await det.detect(video.current); if (r[0]?.rawValue) { if (navigator.vibrate) navigator.vibrate(60); onCode(r[0].rawValue); return; } } catch { /* keep scanning */ }
+          try { const r = await det.detect(video.current); if (r[0]?.rawValue) { if (navigator.vibrate) navigator.vibrate(60); cb.current(r[0].rawValue); return; } } catch { /* keep scanning */ }
           setTimeout(tick, 150);
         };
         tick();
       } catch (e) { setDenied(e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError")); setCamOk(false); }
     })();
     return () => { stop = true; stream?.getTracks().forEach((t) => t.stop()); };
-  }, [onCode]);
+  }, []);
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 px-6 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4" onClick={(e) => e.stopPropagation()}>
