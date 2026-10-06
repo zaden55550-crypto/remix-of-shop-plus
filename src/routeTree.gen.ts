@@ -18,7 +18,9 @@ import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SalesRouteImport } from './routes/sales'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as ApiReorderRouteImport } from './routes/api/reorder'
 
 const IndexRoute = IndexRouteImport.update({
@@ -66,9 +68,19 @@ const SalesRoute = SalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SummaryRoute = SummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiReorderRoute = ApiReorderRouteImport.update({
@@ -87,7 +99,9 @@ export interface FileRoutesByFullPath {
   '/pos': typeof PosRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/summary': typeof SummaryRoute
   '/api/reorder': typeof ApiReorderRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +114,9 @@ export interface FileRoutesByTo {
   '/pos': typeof PosRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/summary': typeof SummaryRoute
   '/api/reorder': typeof ApiReorderRoute
 }
 export interface FileRoutesById {
@@ -114,7 +130,9 @@ export interface FileRoutesById {
   '/pos': typeof PosRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
+  '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
+  '/summary': typeof SummaryRoute
   '/api/reorder': typeof ApiReorderRoute
 }
 export interface FileRouteTypes {
@@ -129,7 +147,9 @@ export interface FileRouteTypes {
     | '/pos'
     | '/reports'
     | '/sales'
+    | '/settings'
     | '/signup'
+    | '/summary'
     | '/api/reorder'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -142,7 +162,9 @@ export interface FileRouteTypes {
     | '/pos'
     | '/reports'
     | '/sales'
+    | '/settings'
     | '/signup'
+    | '/summary'
     | '/api/reorder'
   id:
     | '__root__'
@@ -155,7 +177,9 @@ export interface FileRouteTypes {
     | '/pos'
     | '/reports'
     | '/sales'
+    | '/settings'
     | '/signup'
+    | '/summary'
     | '/api/reorder'
   fileRoutesById: FileRoutesById
 }
@@ -169,7 +193,9 @@ export interface RootRouteChildren {
   PosRoute: typeof PosRoute
   ReportsRoute: typeof ReportsRoute
   SalesRoute: typeof SalesRoute
+  SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
+  SummaryRoute: typeof SummaryRoute
   ApiReorderRoute: typeof ApiReorderRoute
 }
 
@@ -238,11 +264,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/summary': {
+      id: '/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof SummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/reorder': {
@@ -265,7 +305,9 @@ const rootRouteChildren: RootRouteChildren = {
   PosRoute: PosRoute,
   ReportsRoute: ReportsRoute,
   SalesRoute: SalesRoute,
+  SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
+  SummaryRoute: SummaryRoute,
   ApiReorderRoute: ApiReorderRoute,
 }
 export const routeTree = rootRouteImport

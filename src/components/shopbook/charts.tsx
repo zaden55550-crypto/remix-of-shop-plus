@@ -1,4 +1,6 @@
-import type { Tr } from "@/components/shopbook/selling";
+import { Title, type Tr } from "@/components/shopbook/selling";
+import { Kpi, KpiRow } from "@/components/shopbook/kpi";
+import type { position } from "@/lib/summary";
 import { METHODS, METHOD_LABEL, type Method } from "@/lib/erp";
 
 const COLORS: Record<Method, string> = { cash: "var(--primary)", mpesa: "var(--success, oklch(0.7 0.17 150))", bank: "var(--warning, oklch(0.8 0.15 80))", credit: "var(--destructive)" };
@@ -30,4 +32,16 @@ export function TrendBars({ data, money }: { data: { day: number; value: number 
       ))}
     </div>
   );
+}
+
+export function NeedsAttention({ pos, money, tr }: { pos: ReturnType<typeof position>; money: (n: number) => string; tr: (t: string) => string }) {
+  return (<>
+    <Title>{tr("Needs attention")}</Title>
+    <KpiRow>
+      <Kpi label={tr("Low stock")} value={pos.low + pos.out} tone={pos.low + pos.out ? "warn" : undefined} />
+      <Kpi label={tr("Receivables")} value={money(pos.receivables)} />
+      <Kpi label={tr("Payables")} value={<span title={tr("Not available yet")}>—</span>} />
+      <Kpi label={tr("Cash-up")} value={tr(pos.cashUpPending ? "Pending" : "Done")} tone={pos.cashUpPending ? "warn" : undefined} />
+    </KpiRow>
+  </>);
 }

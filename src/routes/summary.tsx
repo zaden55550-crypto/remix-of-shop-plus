@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useErp } from "@/components/shopbook/product-search";
 import { AppShell, Empty, Title, moneyFor, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
-import { MethodPie, TrendBars } from "@/components/shopbook/charts";
+import { MethodPie, NeedsAttention, TrendBars } from "@/components/shopbook/charts";
 import { useLanguage } from "@/hooks/use-language";
 import { PERIODS, performance, periodStart, position, trend, type Period } from "@/lib/summary";
 import { cn } from "@/lib/utils";
@@ -77,14 +77,3 @@ function Summary() {
 
 const Row = ({ l, r }: { l: string; r: string }) => <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b border-border py-2 text-sm"><span className="truncate">{l}</span><b className="tabular-nums">{r}</b></div>;
 
-export function NeedsAttention({ pos, money, tr }: { pos: ReturnType<typeof position>; money: (n: number) => string; tr: (t: string) => string }) {
-  return (<>
-    <Title>{tr("Needs attention")}</Title>
-    <KpiRow>
-      <Kpi label={tr("Low stock")} value={pos.low + pos.out} tone={pos.low + pos.out ? "warn" : undefined} />
-      <Kpi label={tr("Receivables")} value={money(pos.receivables)} />
-      <Kpi label={tr("Payables")} value={<span title={tr("Not available yet")}>—</span>} />
-      <Kpi label={tr("Cash-up")} value={tr(pos.cashUpPending ? "Pending" : "Done")} tone={pos.cashUpPending ? "warn" : undefined} />
-    </KpiRow>
-  </>);
-}

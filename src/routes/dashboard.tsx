@@ -4,6 +4,9 @@ import { useErp } from "@/components/shopbook/product-search";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { useLanguage } from "@/hooks/use-language";
 import { dashboardTotals } from "@/lib/dashboard";
+import { MethodPie, NeedsAttention } from "@/components/shopbook/charts";
+import { performance, position } from "@/lib/summary";
+import { METHODS, METHOD_LABEL } from "@/lib/erp";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [
@@ -34,6 +37,11 @@ function Dashboard() {
       <KpiRow>
         {metrics.map(([label, value]) => <Kpi key={label} label={tr(label)} value={value === null ? <span title={tr("Not available yet")}>—</span> : money(value)} />)}
       </KpiRow>
+      <Title>{tr("Sales breakdown")}</Title>
+      <MethodPie by={performance(s, 0).byMethod} money={money} tr={tr} />
+      <Title>{tr("Money")}</Title>
+      <KpiRow>{METHODS.map((m) => <Kpi key={m} label={tr(METHOD_LABEL[m])} value={money(performance(s, 0).byMethod[m])} />)}</KpiRow>
+      <NeedsAttention pos={position(s)} money={money} tr={tr} />
       <Title>{tr("Recent sales")}</Title>
       {s.sales.length === 0 ? <Empty>{tr("No sales yet")}</Empty> : s.sales.slice(0, 5).map(sale => (
         <div key={sale.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-3 text-sm">
