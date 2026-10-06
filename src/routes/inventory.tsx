@@ -29,7 +29,7 @@ export const Route = createFileRoute("/inventory")({
 const MENUS = {
   overview: [],
   products: ["All Products", "Add Product", "Categories", "Brands"],
-  stock: ["Stock Levels", "Stock In", "Stock Out", "Adjustments", "History"],
+  stock: ["Stock Levels", "Stock In", "Stock Out", "Returned Goods", "Adjustments", "History"],
   transfers: ["New Transfer", "Pending", "Received", "History"],
   reports: ["Stock Report", "Movement", "Valuation", "Performance", "AI Reorder"],
 } as const;
@@ -48,6 +48,9 @@ function Inventory() {
   const [sub, setSub] = useState<string>("");
   const [prefillBarcode, setPrefill] = useState("");
   const s = useErp();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [lb, setLb] = useState(0);
+  useEffect(() => { setLb(lastBackup()); }, []);
 
   useEffect(() => {
     const a = store.get();
@@ -67,8 +70,17 @@ function Inventory() {
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex items-center gap-2 px-4 py-3">
           <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></ShopButton>
-          <h1 className="text-lg font-bold tracking-wide">{tr("Inventory").toUpperCase()}</h1>
+          <h1 className="shrink-0 text-lg font-bold tracking-wide">{tr("Inventory").toUpperCase()}</h1>
+          <p className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{acct.shopName}</p>
+          <div className="relative shrink-0">
+            <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Menu")} onClick={() => setMenuOpen(!menuOpen)}><MenuIcon className="h-5 w-5" /></ShopButton>
+            {menuOpen && <div className="absolute end-0 top-9 z-30 w-48 rounded-xl border border-border bg-popover p-1 shadow-lg">
+              {(Object.keys(MENUS) as Menu[]).map((m) => <button key={m} onClick={() => { go(m); setMenuOpen(false); }} className={cn("block w-full rounded-lg px-3 py-2 text-start text-sm font-medium hover:bg-muted", menu === m && "text-primary")}>{tr(m.charAt(0).toUpperCase() + m.slice(1))}</button>)}
+              <button onClick={() => nav({ to: "/apps" })} className="block w-full rounded-lg px-3 py-2 text-start text-sm font-medium text-muted-foreground hover:bg-muted">{tr("Apps")}</button>
+            </div>}
+          </div>
         </div>
+        <p className="-mt-1 flex items-center gap-1.5 px-4 pb-2 text-[11px] text-muted-foreground"><span className={cn("h-2 w-2 rounded-full", lb ? "bg-success" : "bg-warning")} />{lb ? `${tr("Backed up")} • ${new Date(lb).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : tr("Not backed up yet")}</p>
         <Tabs items={Object.keys(MENUS)} value={menu} onChange={(m) => go(m as Menu)} label={(k) => tr(k.charAt(0).toUpperCase() + k.slice(1)).toUpperCase()} />
         {MENUS[menu].length > 0 && <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />}
       </header>
@@ -80,6 +92,7 @@ function Inventory() {
         {menu === "products" && (sub === "Categories" || sub === "Brands") && <NamedList {...ctx} kind={sub === "Brands" ? "brands" : "categories"} />}
         {menu === "stock" && sub === "Stock Levels" && <StockLevels {...ctx} />}
         {menu === "stock" && (sub === "Stock In" || sub === "Stock Out" || sub === "Adjustments") && <StockForm {...ctx} mode={sub} />}
+        {menu === "stock" && sub === "Returned Goods" && <ReturnedGoods {...ctx} />}
         {menu === "stock" && sub === "History" && <History {...ctx} />}
         {menu === "transfers" && <Transfers {...ctx} view={sub} />}
         {menu === "reports" && <Reports {...ctx} view={sub} />}
@@ -105,6 +118,26 @@ function Tabs({ items, value, onChange, label, small }: { items: string[]; value
 function Status({ p }: { p: erp.Product }) {
   const st = erp.stockStatus(p);
   return <span className={cn("rounded px-1.5 py-0.5 text-[10px] font-bold", st === "OK" && "bg-primary/15 text-primary", st === "LOW" && "bg-warning/15 text-warning", st === "OUT" && "bg-destructive/15 text-destructive")}>{translateCurrent(st)}</span>;
+}
+
+function Box({ title, children }: { title: string; children: ReactNode }) { return <div className="mt-4 rounded-xl border border-border bg-card px-3 py-2"><h2 className="py-1 text-sm font-bold">{title}</h2>{children}</div>; }
+
+function ReturnedGoods({ s, money, tr }: Ctx) {
+  const [q, setQ] = useState("");
+  const rows = s.returns.filter((r) => !q || `${r.ref} ${r.saleRef} ${r.items.map((i) => i.name).join(" ")}`.toLowerCase().includes(q.toLowerCase()));
+  return (
+    <div>
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search returns...")} className="h-11 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none focus:border-primary" />
+      <p className="mt-2 text-[11px] text-muted-foreground">{tr("Sales returns restore stock automatically. Record returns from Sales.")}</p>
+      {rows.length === 0 ? <Empty>{tr("No returns yet.")}</Empty> : rows.map((r) => (
+        <div key={r.id} className="border-b border-border py-2.5">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground"><span className="font-bold text-foreground">{r.ref}</span><span>{dt(r.at)}</span></div>
+          {r.items.map((i, k) => <div key={k} className="flex items-center justify-between text-sm"><span className="truncate">{i.name} <span className="text-muted-foreground">× {i.qty}</span></span><span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">+{i.qty} {tr("Stock")}</span></div>)}
+          <p className="text-[11px] text-muted-foreground">{tr("Sale")}: {r.saleRef} • {money(r.amount)} • {tr("Refund")}: {tr(r.refund)}</p>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function Title({ children }: { children: ReactNode }) { return <h2 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground first:mt-0">{children}</h2>; }
@@ -156,12 +189,12 @@ function Overview({ s, money, tr, go }: Ctx) {
           <ShopButton className="mt-3" onClick={() => go("products", "Add Product")}>{tr("Add Product")}</ShopButton>
         </div>
       )}
-      {ins.length > 0 && <><Title>{tr("Recent Stock In")}</Title>{ins.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)}</>}
-      {outs.length > 0 && <><Title>{tr("Recent Stock Out")}</Title>{outs.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)}</>}
-      {low.length + out.length > 0 && <><Title>{tr("Low / Out of Stock")}</Title>{[...out, ...low].map((p) => (
+      {ins.length > 0 && <Box title={tr("Recent Stock In")}>{ins.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)}</Box>}
+      {outs.length > 0 && <Box title={tr("Recent Stock Out")}>{outs.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)}</Box>}
+      {low.length + out.length > 0 && <Box title={tr("Low / Out of Stock")}>{[...out, ...low].map((p) => (
         <div key={p.id} className="flex items-center justify-between border-b border-border py-2.5 text-sm"><span>{p.name}</span><span className="flex items-center gap-2">{p.qty} <Status p={p} /></span></div>
-      ))}</>}
-      {adj.length > 0 && <><Title>{tr("Recent Adjustments")}</Title>{adj.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)}</>}
+      ))}</Box>}
+      {adj.length > 0 && <Box title={tr("Recent Adjustments")}>{adj.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)}</Box>}
     </div>
   );
 }
