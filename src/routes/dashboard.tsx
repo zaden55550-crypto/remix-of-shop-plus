@@ -206,11 +206,11 @@ function Dashboard() {
         </Section>
 
         <Section title={tr("Needs attention")}>
-          <div className="grid grid-cols-2 gap-2">
-            <Box to="/inventory" label={tr("Low stock")} value={pos.low + pos.out} tone={pos.low + pos.out ? "warn" : "good"} />
-            <Box to="/contacts" label={tr("Receivables")} value={money(pos.receivables)} />
-            <Box to="/contacts" label={tr("Payables")} value={money(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} />
-            <Box to="/pos" label={tr("Cash-up")} value={cashUp === "Variance" && cashVariance ? money((cashVariance.counted ?? 0) - (cashVariance.expected ?? 0)) : tr(cashUp)} tone={cashUp === "Done" ? "good" : cashUp === "Pending" ? "warn" : "bad"} />
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+            <div className="shrink-0"><Box to="/inventory" label={tr("Low stock")} value={pos.low + pos.out ? String(pos.low + pos.out) : "0"} tone={pos.low + pos.out ? "warn" : "good"} /></div>
+            <div className="shrink-0"><Box to="/contacts" label={tr("Receivables")} value={money(pos.receivables)} /></div>
+            <div className="shrink-0"><Box to="/contacts" label={tr("Payables")} value={money(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} /></div>
+            <div className="shrink-0"><Box to="/pos" label={tr("Cash-up")} value={cashUp === "Variance" && cashVariance ? money((cashVariance.counted ?? 0) - (cashVariance.expected ?? 0)) : tr(cashUp)} tone={cashUp === "Done" ? "good" : cashUp === "Pending" ? "warn" : "bad"} /></div>
           </div>
         </Section>
 
