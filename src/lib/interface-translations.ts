@@ -440,6 +440,57 @@ PARTIALLY RETURNED|IMEREJESHWA KIASI|PARTIELLEMENT RETOURNÉ|تم الإرجاع
 FULLY RETURNED|IMEREJESHWA KIKAMILIFU|ENTIÈREMENT RETOURNÉ|تم الإرجاع بالكامل|TOTALMENTE DEVUELTO|TOTALMENTE DEVOLVIDO|VOLLSTÄNDIG ZURÜCKGEGEBEN|COMPLETAMENTE RESTITUITO|已全额退回|पूरी तरह से वापस किया गया
 Payroll|Malipo ya mishahara|Paie|الرواتب|Nómina|Folha de pagamento|Gehaltsabrechnung|Paga|工资|वेतन
 Builder|Mjenzi|Constructeur|المنشئ|Constructor|Construtor|Builder|Costruttore|构建器|निर्माता
+Business insights|Maarifa ya biashara|Analyses commerciales|رؤى الأعمال|Análisis del negocio|Análises do negócio|Geschäftseinblicke|Analisi aziendali|经营洞察|व्यवसाय संबंधी जानकारी
+No sales in this period|Hakuna mauzo katika kipindi hiki|Aucune vente sur cette période|لا توجد مبيعات خلال هذه الفترة|No hay ventas en este período|Nenhuma venda neste período|Keine Verkäufe in diesem Zeitraum|Nessuna vendita in questo periodo|此期间无销售|इस अवधि में कोई बिक्री नहीं
+Best seller|Bidhaa inayouzwa zaidi|Meilleure vente|المنتج الأكثر مبيعًا|Producto más vendido|Produto mais vendido|Meistverkaufter Artikel|Prodotto più venduto|畅销商品|सबसे अधिक बिकने वाला उत्पाद
+Credit sales|Mauzo ya mkopo|Ventes à crédit|مبيعات آجلة|Ventas a crédito|Vendas a crédito|Verkäufe auf Kredit|Vendite a credito|赊销|उधार बिक्री
+Sales by seller|Mauzo kwa muuzaji|Ventes par vendeur|المبيعات حسب البائع|Ventas por vendedor|Vendas por vendedor|Verkäufe nach Verkäufer|Vendite per venditore|按销售员统计销售额|विक्रेता के अनुसार बिक्री
+Retail value|Thamani ya rejareja|Valeur au détail|القيمة بسعر التجزئة|Valor de venta al público|Valor de varejo|Einzelhandelswert|Valore al dettaglio|零售价值|खुदरा मूल्य
+At selling price|Kwa bei ya kuuza|Au prix de vente|بسعر البيع|A precio de venta|Ao preço de venda|Zum Verkaufspreis|Al prezzo di vendita|按销售价|बिक्री मूल्य पर
+Receivables|Madeni ya kupokea|Créances|الذمم المدينة|Cuentas por cobrar|Contas a receber|Forderungen|Crediti da riscuotere|应收账款|प्राप्य राशि
+Payables|Madeni ya kulipa|Dettes à payer|الذمم الدائنة|Cuentas por pagar|Contas a pagar|Verbindlichkeiten|Debiti da pagare|应付账款|देय राशि
+Owed to customers|Kiasi tunachowadai na wateja|Sommes dues aux clients|مبالغ مستحقة للعملاء|Importes adeudados a clientes|Valores devidos aos clientes|Kunden geschuldete Beträge|Importi dovuti ai clienti|欠客户款项|ग्राहकों को देय राशि
+Last 14 days|Siku 14 zilizopita|14 derniers jours|آخر 14 يومًا|Últimos 14 días|Últimos 14 dias|Letzte 14 Tage|Ultimi 14 giorni|过去14天|पिछले 14 दिन
+Replace all records on this device with this backup?|Ungependa kubadilisha rekodi zote kwenye kifaa hiki kwa kutumia nakala hii ya akiba?|Remplacer tous les enregistrements de cet appareil par cette sauvegarde ?|هل تريد استبدال جميع السجلات على هذا الجهاز بهذه النسخة الاحتياطية؟|¿Reemplazar todos los registros de este dispositivo con esta copia de seguridad?|Substituir todos os registros deste dispositivo por este backup?|Alle Datensätze auf diesem Gerät durch diese Sicherung ersetzen?|Sostituire tutti i record su questo dispositivo con questo backup?|要用此备份替换此设备上的所有记录吗？|क्या इस डिवाइस के सभी रिकॉर्ड इस बैकअप से बदलें?
+Backup restored|Nakala ya akiba imerejeshwa|Sauvegarde restaurée|تمت استعادة النسخة الاحتياطية|Copia de seguridad restaurada|Backup restaurado|Sicherung wiederhergestellt|Backup ripristinato|备份已恢复|बैकअप बहाल हो गया
+Appearance|Mwonekano|Apparence|المظهر|Apariencia|Aparência|Darstellung|Aspetto|外观|दिखावट
+Enter a valid shop name and email|Weka jina halali la duka na anwani halali ya barua pepe|Saisissez un nom de boutique et une adresse e-mail valides|أدخل اسم متجر وعنوان بريد إلكتروني صالحين|Introduce un nombre de tienda y un correo electrónico válidos|Insira um nome de loja e um e-mail válidos|Geben Sie einen gültigen Shopnamen und eine gültige E-Mail-Adresse ein|Inserisci un nome del negozio e un indirizzo email validi|请输入有效的店铺名称和电子邮箱地址|दुकान का मान्य नाम और ईमेल दर्ज करें
+Staff accounts and roles are not available yet.|Akaunti na majukumu ya wafanyakazi bado havipatikani.|Les comptes et rôles du personnel ne sont pas encore disponibles.|حسابات الموظفين وأدوارهم غير متاحة بعد.|Las cuentas y los roles del personal aún no están disponibles.|As contas e funções dos funcionários ainda não estão disponíveis.|Mitarbeiterkonten und Rollen sind noch nicht verfügbar.|Gli account e i ruoli del personale non sono ancora disponibili.|员工账户和角色功能尚未开放。|कर्मचारियों के खाते और भूमिकाएँ अभी उपलब्ध नहीं हैं।
+Next|Endelea|Suivant|التالي|Siguiente|Próximo|Weiter|Avanti|下一步|अगला
+Numbers are never reused, so records stay traceable.|Nambari hazitumiki tena kamwe, hivyo rekodi zinaendelea kufuatilika.|Les numéros ne sont jamais réutilisés, ce qui garantit la traçabilité des enregistrements.|لا تُعاد استخدام الأرقام مطلقًا، لتظل السجلات قابلة للتتبع.|Los números nunca se reutilizan, por lo que los registros siguen siendo rastreables.|Os números nunca são reutilizados, mantendo os registros rastreáveis.|Nummern werden nie wiederverwendet, damit Datensätze nachvollziehbar bleiben.|I numeri non vengono mai riutilizzati, così i record restano tracciabili.|编号不会重复使用，确保记录始终可追溯。|नंबरों का दोबारा उपयोग कभी नहीं किया जाता, इसलिए रिकॉर्ड का पता लगाया जा सकता है।
+Saved on this device|Imehifadhiwa kwenye kifaa hiki|Enregistré sur cet appareil|محفوظ على هذا الجهاز|Guardado en este dispositivo|Salvo neste dispositivo|Auf diesem Gerät gespeichert|Salvato su questo dispositivo|已保存在此设备上|इस डिवाइस पर सहेजा गया
+Last backup file|Faili ya mwisho ya nakala ya akiba|Dernier fichier de sauvegarde|آخر ملف نسخ احتياطي|Último archivo de copia de seguridad|Último arquivo de backup|Letzte Sicherungsdatei|Ultimo file di backup|最近的备份文件|पिछली बैकअप फ़ाइल
+No backup file yet|Bado hakuna faili ya nakala ya akiba|Aucun fichier de sauvegarde pour le moment|لا يوجد ملف نسخ احتياطي بعد|Aún no hay ningún archivo de copia de seguridad|Ainda não há arquivo de backup|Noch keine Sicherungsdatei|Nessun file di backup ancora|暂无备份文件|अभी तक कोई बैकअप फ़ाइल नहीं है
+Download backup|Pakua nakala ya akiba|Télécharger la sauvegarde|تنزيل النسخة الاحتياطية|Descargar copia de seguridad|Baixar backup|Sicherung herunterladen|Scarica backup|下载备份|बैकअप डाउनलोड करें
+Restore backup|Rejesha nakala ya akiba|Restaurer la sauvegarde|استعادة النسخة الاحتياطية|Restaurar copia de seguridad|Restaurar backup|Sicherung wiederherstellen|Ripristina backup|恢复备份|बैकअप बहाल करें
+Audit log|Kumbukumbu ya ukaguzi|Journal d’audit|سجل التدقيق|Registro de auditoría|Registro de auditoria|Auditprotokoll|Registro di audit|审计日志|ऑडिट लॉग
+No activity yet|Bado hakuna shughuli|Aucune activité pour le moment|لا يوجد نشاط بعد|Aún no hay actividad|Ainda não há atividade|Noch keine Aktivitäten|Nessuna attività ancora|暂无活动|अभी तक कोई गतिविधि नहीं है
+Manage Subscription|Dhibiti usajili|Gérer l’abonnement|إدارة الاشتراك|Gestionar suscripción|Gerenciar assinatura|Abonnement verwalten|Gestisci abbonamento|管理订阅|सदस्यता प्रबंधित करें
+Sales breakdown|Mchanganuo wa mauzo|Répartition des ventes|تفصيل المبيعات|Desglose de ventas|Detalhamento das vendas|Verkaufsaufschlüsselung|Ripartizione delle vendite|销售明细|बिक्री का विवरण
+Money|Fedha|Argent|الأموال|Dinero|Dinheiro|Geld|Denaro|资金|धन
+Needs attention|Inahitaji uangalizi|Nécessite votre attention|يتطلب الانتباه|Requiere atención|Requer atenção|Handlungsbedarf|Richiede attenzione|需要关注|ध्यान देने की आवश्यकता है
+Cash-up|Kufunga hesabu za fedha taslimu|Clôture de caisse|إقفال الصندوق|Cierre de caja|Fechamento de caixa|Kassenabschluss|Chiusura di cassa|收银结算|नकदी मिलान
+General|Jumla|Général|عام|General|Geral|Allgemein|Generale|常规|सामान्य
+Business|Biashara|Entreprise|الأعمال|Negocio|Negócio|Unternehmen|Azienda|商家|व्यवसाय
+Users & Access|Watumiaji na ruhusa za ufikiaji|Utilisateurs et accès|المستخدمون والوصول|Usuarios y acceso|Usuários e acesso|Benutzer und Zugriff|Utenti e accesso|用户与访问权限|उपयोगकर्ता और पहुँच
+Features|Vipengele|Fonctionnalités|الميزات|Funciones|Funcionalidades|Funktionen|Funzionalità|功能|सुविधाएँ
+Transaction numbering|Uwekaji nambari za miamala|Numérotation des transactions|ترقيم المعاملات|Numeración de transacciones|Numeração de transações|Transaktionsnummerierung|Numerazione delle transazioni|交易编号|लेन-देन क्रमांकन
+Data & System|Data na mfumo|Données et système|البيانات والنظام|Datos y sistema|Dados e sistema|Daten und System|Dati e sistema|数据与系统|डेटा और सिस्टम
+Subscription|Usajili|Abonnement|الاشتراك|Suscripción|Assinatura|Abonnement|Abbonamento|订阅|सदस्यता
+This is not a SHOPBOOK backup file|Hii si faili ya nakala ya akiba ya SHOPBOOK|Ce fichier n’est pas une sauvegarde SHOPBOOK|هذا ليس ملف نسخ احتياطي من SHOPBOOK|Este no es un archivo de copia de seguridad de SHOPBOOK|Este não é um arquivo de backup do SHOPBOOK|Dies ist keine SHOPBOOK-Sicherungsdatei|Questo non è un file di backup di SHOPBOOK|这不是 SHOPBOOK 备份文件|यह SHOPBOOK की बैकअप फ़ाइल नहीं है
+Backup file is damaged|Faili ya nakala ya akiba imeharibika|Le fichier de sauvegarde est endommagé|ملف النسخ الاحتياطي تالف|El archivo de copia de seguridad está dañado|O arquivo de backup está corrompido|Die Sicherungsdatei ist beschädigt|Il file di backup è danneggiato|备份文件已损坏|बैकअप फ़ाइल क्षतिग्रस्त है
+Language|Lugha|Langue|اللغة|Idioma|Idioma|Sprache|Lingua|语言|भाषा
+Currency|Sarafu|Devise|العملة|Moneda|Moeda|Währung|Valuta|货币|मुद्रा
+Business performance|Utendaji wa biashara|Performance de l’entreprise|أداء الأعمال|Rendimiento del negocio|Desempenho do negócio|Geschäftsentwicklung|Andamento aziendale|经营表现|व्यवसाय का प्रदर्शन
+Sales performance|Utendaji wa mauzo|Performance des ventes|أداء المبيعات|Rendimiento de ventas|Desempenho das vendas|Verkaufsleistung|Andamento delle vendite|销售业绩|बिक्री का प्रदर्शन
+Financial position|Hali ya kifedha|Situation financière|المركز المالي|Situación financiera|Posição financeira|Finanzlage|Situazione finanziaria|财务状况|वित्तीय स्थिति
+Trends|Mienendo|Tendances|الاتجاهات|Tendencias|Tendências|Trends|Tendenze|趋势|रुझान
+Week|Wiki|Semaine|أسبوع|Semana|Semana|Woche|Settimana|周|सप्ताह
+Month|Mwezi|Mois|شهر|Mes|Mês|Monat|Mese|月|महीना
+Year|Mwaka|Année|سنة|Año|Ano|Jahr|Anno|年|वर्ष
+Summary|Muhtasari|Résumé|ملخص|Resumen|Resumo|Zusammenfassung|Riepilogo|摘要|सारांश
+Settings|Mipangilio|Paramètres|الإعدادات|Configuración|Configurações|Einstellungen|Impostazioni|设置|सेटिंग्स
+BACKUP RESTORED|NAKALA YA AKIBA IMEREJESHWA|SAUVEGARDE RESTAURÉE|تمت استعادة النسخة الاحتياطية|COPIA DE SEGURIDAD RESTAURADA|BACKUP RESTAURADO|SICHERUNG WIEDERHERGESTELLT|BACKUP RIPRISTINATO|备份已恢复|बैकअप बहाल हो गया
 `.trim().split('\n').map(row => row.split('|'));
 
 const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));
