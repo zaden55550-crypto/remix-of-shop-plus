@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { ReceiptSheet, moneyFor, useAccount } from "@/components/shopbook/selling";
 import { useErp } from "@/components/shopbook/product-search";
-import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { useLanguage } from "@/hooks/use-language";
 import { performance, position } from "@/lib/summary";
 import { floatBalances, purchaseTotals } from "@/lib/finance";
