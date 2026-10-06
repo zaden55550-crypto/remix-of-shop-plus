@@ -1,1 +1,0 @@
-CREATE POLICY ai_state_server_only ON public.ai_access_state FOR ALL TO service_role USING (true) WITH CHECK (true);
