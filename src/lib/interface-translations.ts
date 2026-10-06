@@ -374,6 +374,72 @@ Purchases|Manunuzi|Achats|المشتريات|Compras|Compras|Einkäufe|Acquisti|
 Expenses|Matumizi|Dépenses|المصروفات|Gastos|Despesas|Ausgaben|Spese|支出|खर्च
 Profit|Faida|Bénéfice|الربح|Beneficio|Lucro|Gewinn|Utile|利润|लाभ
 Not available yet|Bado haipatikani|Pas encore disponible|غير متاح بعد|Aún no disponible|Ainda não disponível|Noch nicht verfügbar|Non ancora disponibile|暂不可用|अभी उपलब्ध नहीं
+Employees|Wafanyakazi|Employés|الموظفون|Empleados|Funcionários|Mitarbeiter|Dipendenti|员工|कर्मचारी
+Payroll due|Malipo ya mishahara yaliyoiva|Paie due|الرواتب المستحقة|Nómina pendiente|Folha de pagamento devida|Fällige Gehaltsabrechnung|Paga dovuta|待发工资|वेतन देय
+Commission|Kamisheni|Commission|العمولة|Comisión|Comissão|Provision|Commissione|佣金|कमीशन
+Commission history|Historia ya kamisheni|Historique des commissions|سجل العمولات|Historial de comisiones|Histórico de comissões|Provisionsverlauf|Cronologia commissioni|佣金历史|कमीशन इतिहास
+No commission yet|Hakuna kamisheni bado|Aucune commission pour l'instant|لا توجد عمولة بعد|Aún no hay comisión|Nenhuma comissão ainda|Noch keine Provision|Nessuna commissione ancora|暂无佣金|अभी तक कोई कमीशन नहीं
+Awaiting payment|Inasubiri malipo|En attente de paiement|بانتظار الدفع|Esperando pago|Aguardando pagamento|Zahlung ausstehend|In attesa di pagamento|等待付款|भुगतान लंबित
+Employee added|Mfanyakazi ameongezwa|Employé ajouté|تمت إضافة الموظف|Empleado añadido|Funcionário adicionado|Mitarbeiter hinzugefügt|Dipendente aggiunto|员工已添加|कर्मचारी जोड़ा गया
+Add employee|Ongeza mfanyakazi|Ajouter un employé|إضافة موظف|Añadir empleado|Adicionar funcionário|Mitarbeiter hinzufügen|Aggiungi dipendente|添加员工|कर्मचारी जोड़ें
+Name|Jina|Nom|الاسم|Nombre|Nome|Name|Nome|姓名|नाम
+Role|Jukumu|Rôle|الدور|Rol|Função|Rolle|Ruolo|职位|भूमिका
+Fixed salary|Mshahara maalum|Salaire fixe|راتب ثابت|Salario fijo|Salário fixo|Festgehalt|Stipendio fisso|固定工资|निश्चित वेतन
+Salary + commission|Mshahara + kamisheni|Salaire + commission|راتب + عمولة|Salario + comisión|Salário + comissão|Gehalt + Provision|Stipendio + commissione|工资 + 佣金|वेतन + कमीशन
+Commission only|Kamisheni pekee|Commission uniquement|عمولة فقط|Solo comisión|Somente comissão|Nur Provision|Solo commissione|仅佣金|केवल कमीशन
+Monthly salary|Mshahara wa mwezi|Salaire mensuel|الراتب الشهري|Salario mensual|Salário mensal|Monatsgehalt|Stipendio mensile|月薪|मासिक वेतन
+% of sale|% ya mauzo|% des ventes|نسبة مئوية من المبيعات|% de venta|% da venda|% des Verkaufs|% di vendita|销售百分比|बिक्री का प्रतिशत
+Fixed per sale|Kiasi maalum kwa kila mauzo|Fixe par vente|مبلغ ثابت لكل بيع|Fijo por venta|Fixo por venda|Fest pro Verkauf|Fisso per vendita|每笔销售固定金额|प्रति बिक्री निश्चित
+% of profit|% ya faida|% de profit|نسبة مئوية من الأرباح|% de ganancia|% do lucro|% des Gewinns|% di profitto|利润百分比|लाभ का प्रतिशत
+Value|Thamani|Valeur|القيمة|Valor|Valor|Wert|Valore|价值|मूल्य
+Eligible paid sales only|Mauzo yaliyolipwa yanayostahiki tu|Ventes payées éligibles uniquement|المبيعات المدفوعة المؤهلة فقط|Solo ventas pagadas elegibles|Somente vendas pagas elegíveis|Nur berechtigte bezahlte Verkäufe|Solo vendite pagate idonee|仅限符合条件的已支付销售额|केवल पात्र भुगतान की गई बिक्री
+All employees|Wafanyakazi wote|Tous les employés|جميع الموظفين|Todos los empleados|Todos os funcionários|Alle Mitarbeiter|Tutti i dipendenti|所有员工|सभी कर्मचारी
+No employees yet|Hakuna wafanyakazi bado|Aucun employé pour l'instant|لا يوجد موظفون بعد|Aún no hay empleados|Nenhum funcionário ainda|Noch keine Mitarbeiter|Nessun dipendente ancora|暂无员工|अभी तक कोई कर्मचारी नहीं
+Salary|Mshahara|Salaire|الراتب|Salario|Salário|Gehalt|Stipendio|工资|वेतन
+Balance|Salio|Solde|الرصيد|Saldo|Saldo|Saldo|Saldo|余额|शेष
+Process payroll|Fanya malipo ya mishahara|Traiter la paie|معالجة الرواتب|Procesar nómina|Processar folha de pagamento|Gehaltsabrechnung verarbeiten|Elabora busta paga|处理工资|वेतन प्रक्रिया करें
+Deductions|Makato|Déductions|الخصومات|Deducciones|Deduções|Abzüge|Deduzioni|扣除|कटौतियाँ
+Gross pay|Malipo jumla|Salaire brut|إجمالي الأجر|Salario bruto|Salário bruto|Bruttolohn|Paga lorda|总薪酬|सकल वेतन
+Net pay|Malipo halisi|Salaire net|صافي الأجر|Salario neto|Salário líquido|Nettolohn|Paga netta|净薪酬|शुद्ध वेतन
+Payroll confirmed|Malipo ya mishahara yamethibitishwa|Paie confirmée|تم تأكيد الرواتب|Nómina confirmada|Folha de pagamento confirmada|Gehaltsabrechnung bestätigt|Paga confermata|工资已确认|वेतन की पुष्टि हो गई
+Confirm payroll|Thibitisha malipo ya mishahara|Confirmer la paie|تأكيد الرواتب|Confirmar nómina|Confirmar folha de pagamento|Gehaltsabrechnung bestätigen|Conferma busta paga|确认工资|वेतन की पुष्टि करें
+Payroll history|Historia ya malipo ya mishahara|Historique de la paie|سجل الرواتب|Historial de nóminas|Histórico de folha de pagamento|Gehaltsabrechnungsverlauf|Cronologia buste paga|工资历史|वेतन इतिहास
+No payroll yet|Hakuna malipo ya mishahara bado|Aucune paie pour l'instant|لا توجد رواتب بعد|Aún no hay nóminas|Nenhuma folha de pagamento ainda|Noch keine Gehaltsabrechnung|Nessuna busta paga ancora|暂无工资|अभी तक कोई वेतन नहीं
+Payment recorded|Malipo yamerekodiwa|Paiement enregistré|تم تسجيل الدفع|Pago registrado|Pagamento registrado|Zahlung erfasst|Pagamento registrato|付款已记录|भुगतान दर्ज किया गया
+Pay|Lipa|Payer|دفع|Pagar|Pagar|Zahlen|Paga|支付|भुगतान करें
+Commission by employee|Kamisheni kwa mfanyakazi|Commission par employé|عمولة حسب الموظف|Comisión por empleado|Comissão por funcionário|Provision nach Mitarbeiter|Commissione per dipendente|按员工计算佣金|कर्मचारी द्वारा कमीशन
+To|Kwa|À|إلى|A|Para|Bis|A|到|को
+Save report|Hifadhi ripoti|Enregistrer le rapport|حفظ التقرير|Guardar informe|Salvar relatório|Bericht speichern|Salva rapporto|保存报告|रिपोर्ट सहेजें
+Export CSV|Hamisha CSV|Exporter CSV|تصدير CSV|Exportar CSV|Exportar CSV|CSV exportieren|Esporta CSV|导出 CSV|CSV निर्यात करें
+No records in this period|Hakuna rekodi katika kipindi hiki|Aucun enregistrement pour cette période|لا توجد سجلات في هذه الفترة|No hay registros en este período|Nenhum registro neste período|Keine Aufzeichnungen in diesem Zeitraum|Nessun record in questo periodo|此期间无记录|इस अवधि में कोई रिकॉर्ड नहीं
+Seller|Muuzaji|Vendeur|البائع|Vendedor|Vendedor|Verkäufer|Venditore|销售员|विक्रेता
+No seller|Hakuna muuzaji|Pas de vendeur|لا يوجد بائع|Sin vendedor|Nenhum vendedor|Kein Verkäufer|Nessun venditore|无销售员|कोई विक्रेता नहीं
+Sales returns|Marejesho ya mauzo|Retours de ventes|مرتجعات المبيعات|Devoluciones de ventas|Devoluções de vendas|Verkaufsretouren|Resi di vendita|销售退货|बिक्री वापसी
+Purchase returns|Marejesho ya ununuzi|Retours d'achats|مرتجعات المشتريات|Devoluciones de compras|Devoluções de compra|Einkaufsretouren|Resi di acquisto|采购退货|खरीद वापसी
+Refunded|Imerejeshwa|Remboursé|تم الاسترداد|Reembolsado|Reembolsado|Erstattet|Rimborsato|已退款|वापस कर दिया गया
+Sales by product|Mauzo kwa bidhaa|Ventes par produit|المبيعات حسب المنتج|Ventas por producto|Vendas por produto|Verkäufe nach Produkt|Vendite per prodotto|按产品销售|उत्पाद द्वारा बिक्री
+Average sale|Mauzo ya wastani|Vente moyenne|متوسط البيع|Venta promedio|Venda média|Durchschnittlicher Verkauf|Vendita media|平均销售额|औसत बिक्री
+Stock valuation|Tathmini ya hisa|Valorisation des stocks|تقييم المخزون|Valoración de existencias|Avaliação de estoque|Lagerbewertung|Valutazione scorte|库存估值|स्टॉक मूल्यांकन
+Returns history|Historia ya marejesho|Historique des retours|سجل المرتجعات|Historial de devoluciones|Histórico de devoluções|Retourenverlauf|Cronologia resi|退货历史|वापसी इतिहास
+Seller not found|Muuzaji hakupatikana|Vendeur introuvable|لم يتم العثور على البائع|Vendedor no encontrado|Vendedor não encontrado|Verkäufer nicht gefunden|Venditore non trovato|未找到销售员|विक्रेता नहीं मिला
+Enter an employee name|Weka jina la mfanyakazi|Saisissez un nom d'employé|أدخل اسم موظف|Introduce un nombre de empleado|Insira um nome de funcionário|Geben Sie einen Mitarbeiternamen ein|Inserisci il nome di un dipendente|输入员工姓名|एक कर्मचारी का नाम दर्ज करें
+Enter a valid salary|Weka mshahara halali|Saisissez un salaire valide|أدخل راتبًا صالحًا|Introduce un salario válido|Insira um salário válido|Geben Sie ein gültiges Gehalt ein|Inserisci uno stipendio valido|输入有效工资|एक वैध वेतन दर्ज करें
+Set a commission rule|Weka kanuni ya kamisheni|Définir une règle de commission|تحديد قاعدة عمولة|Establece una regla de comisión|Defina uma regra de comissão|Legen Sie eine Provisionsregel fest|Imposta una regola per la commissione|设置佣金规则|एक कमीशन नियम सेट करें
+Percentage can't exceed 100|Asilimia haiwezi kuzidi 100|Le pourcentage ne peut excéder 100|لا يمكن أن تتجاوز النسبة المئوية 100|El porcentaje no puede exceder 100|A porcentagem não pode exceder 100|Prozentsatz darf 100 nicht überschreiten|La percentuale non può superare il 100|百分比不能超过 100|प्रतिशत 100 से अधिक नहीं हो सकता
+Employee not found|Mfanyakazi hakupatikana|Employé introuvable|لم يتم العثور على الموظف|Empleado no encontrado|Funcionário não encontrado|Mitarbeiter nicht gefunden|Dipendente non trovato|未找到员工|कर्मचारी नहीं मिला
+Choose a valid period|Chagua kipindi halali|Choisissez une période valide|اختر فترة صالحة|Elige un período válido|Escolha um período válido|Wählen Sie einen gültigen Zeitraum|Scegli un periodo valido|选择一个有效期间|एक वैध अवधि चुनें
+Deductions can't be negative|Makato hayawezi kuwa hasi|Les déductions ne peuvent pas être négatives|لا يمكن أن تكون الخصومات سالبة|Las deducciones no pueden ser negativas|As deduções não podem ser negativas|Abzüge können nicht negativ sein|Le deduzioni non possono essere negative|扣除不能为负|कटौतियाँ नकारात्मक नहीं हो सकतीं
+Payroll already confirmed for this period|Malipo ya mishahara tayari yamethibitishwa kwa kipindi hiki|Paie déjà confirmée pour cette période|تم تأكيد الرواتب بالفعل لهذه الفترة|Nómina ya confirmada para este período|Folha de pagamento já confirmada para este período|Gehaltsabrechnung für diesen Zeitraum bereits bestätigt|Paga già confermata per questo periodo|此期间的工资已确认|इस अवधि के लिए वेतन पहले ही पुष्टि हो चुकी है
+Deductions exceed gross pay|Makato yanazidi malipo jumla|Les déductions dépassent le salaire brut|الخصومات تتجاوز إجمالي الأجر|Las deducciones exceden el salario bruto|As deduções excedem o salário bruto|Abzüge übersteigen das Bruttogehalt|Le deduzioni superano la paga lorda|扣除额超过总薪酬|कटौतियाँ सकल वेतन से अधिक हैं
+Payroll not found|Malipo ya mishahara hayakupatikana|Paie introuvable|لم يتم العثور على الرواتب|Nómina no encontrada|Folha de pagamento não encontrada|Gehaltsabrechnung nicht gefunden|Busta paga non trovata|未找到工资|वेतन नहीं मिला
+Amount is more than the outstanding pay|Kiasi ni kikubwa kuliko malipo yanayosubiri|Le montant est supérieur au paiement en suspens|المبلغ أكبر من الدفعة المستحقة|La cantidad es mayor que el pago pendiente|O valor é maior do que o pagamento pendente|Der Betrag ist höher als die ausstehende Zahlung|L'importo è superiore alla paga in sospeso|金额超过未支付的工资|राशि बकाया भुगतान से अधिक है
+EARNED|IMEPATIKANA|GANHE|مكتسب|GANADO|GANHO|VERDIENT|GUADAGNATO|已赚取|अर्जित
+RETURN ADJUSTMENT|MABADILIKO YA MAREJESHO|AJUSTEMENT DE RETOUR|تعديل المرتجع|AJUSTE DE DEVOLUCIÓN|AJUSTE DE DEVOLUÇÃO|RÜCKGABEANPASSUNG|ADEGUAMENTO RESO|退货调整|वापसी समायोजन
+NOT RETURNED|HAIJAREJESHWA|NON RETOURNÉ|لم يتم الإرجاع|NO DEVUELTO|NÃO DEVOLVIDO|NICHT ZURÜCKGEGEBEN|NON RESTITUITO|未退回|वापस नहीं किया गया
+PARTIALLY RETURNED|IMEREJESHWA KIASI|PARTIELLEMENT RETOURNÉ|تم الإرجاع جزئيًا|DEVUELTO PARCIALMENTE|PARCIALMENTE DEVOLVIDO|TEILWEISE ZURÜCKGEGEBEN|PARZIALMENTE RESTITUITO|部分退回|आंशिक रूप से वापस किया गया
+FULLY RETURNED|IMEREJESHWA KIKAMILIFU|ENTIÈREMENT RETOURNÉ|تم الإرجاع بالكامل|TOTALMENTE DEVUELTO|TOTALMENTE DEVOLVIDO|VOLLSTÄNDIG ZURÜCKGEGEBEN|COMPLETAMENTE RESTITUITO|已全额退回|पूरी तरह से वापस किया गया
+Payroll|Malipo ya mishahara|Paie|الرواتب|Nómina|Folha de pagamento|Gehaltsabrechnung|Paga|工资|वेतन
+Builder|Mjenzi|Constructeur|المنشئ|Constructor|Construtor|Builder|Costruttore|构建器|निर्माता
 `.trim().split('\n').map(row => row.split('|'));
 
 const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));

@@ -143,6 +143,8 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
 
 function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.ErpState; money: SCtx["money"]; tr: Tr; cart: erp.CartLine[]; onClose: () => void; onDone: (s: erp.Sale) => void; channel: SCtx["channel"] }) {
   const [customerId, setCustomer] = useState("");
+  const [sellerId, setSeller] = useState("");
+  const sellers = s.employees.filter((e) => e.active);
   const [newCust, setNewCust] = useState<string | null>(null);
   const [dMode, setDMode] = useState<"fixed" | "percent">("fixed");
   const [dVal, setDVal] = useState("");
@@ -202,8 +204,10 @@ function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.Erp
           {nums.credit > 0 && <div className="flex justify-between"><span>{tr("Outstanding")}</span><span className="font-bold">{money(nums.credit)}</span></div>}
           {nums.credit > 0 && !customerId && <p className="mt-1 text-xs text-destructive">{tr("Credit needs a registered customer")}</p>}
         </div>
+        {sellers.length > 0 && <label className="block text-sm"><span className="text-xs text-muted-foreground">{tr("Seller")}</span>
+          <select className={inputCls} value={sellerId} onChange={(e) => setSeller(e.target.value)}><option value="">{tr("No seller")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>}
         <ShopButton disabled={over || Math.abs(remaining) > 0.001 || (nums.credit > 0 && !customerId)}
-          onClick={() => { const sale = run(() => erp.confirmSale({ cart, discount, pay: nums, customerId: customerId || undefined, channel })); if (sale) { toast.success(`${tr("Sale completed")} • ${sale.ref}`); onDone(sale); } }}>
+          onClick={() => { const sale = run(() => erp.confirmSale({ cart, discount, pay: nums, customerId: customerId || undefined, channel, sellerId: sellerId || undefined })); if (sale) { toast.success(`${tr("Sale completed")} • ${sale.ref}`); onDone(sale); } }}>
           {tr("Confirm Sale")}
         </ShopButton>
       </div>
@@ -312,8 +316,18 @@ function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: erp.Erp
 }
 
 export function ReturnsList({ s, money, tr }: SCtx) {
+  const refunded = s.returns.filter((r) => r.refund !== "credit").reduce((a, r) => a + r.amount, 0);
+  const credit = s.returns.filter((r) => r.refund === "credit").reduce((a, r) => a + r.amount, 0);
+  const touched = s.sales.filter((x) => erp.returnStatus(x) !== "NOT RETURNED");
   return (
     <div>
+      <KpiRow className="mb-3">
+        <Kpi label={tr("Sales returns")} value={s.returns.length} />
+        <Kpi label={tr("Purchase returns")} value={<span title={tr("Not available yet")}>—</span>} />
+        <Kpi label={tr("Refunded")} value={money(refunded)} />
+        <Kpi label={tr("Credit")} value={money(credit)} />
+      </KpiRow>
+      {touched.length > 0 && <p className="mb-2 text-[11px] text-muted-foreground">{touched.map((x) => `${x.ref} • ${tr(erp.returnStatus(x))}`).join("  |  ")}</p>}
       <p className="mb-2 text-xs text-muted-foreground">{tr("To return items, open the original sale in Sales and tap Return items.")}</p>
       {s.returns.length === 0 && <Empty>{tr("No returns yet")}</Empty>}
       {s.returns.map((r) => (

@@ -22,7 +22,14 @@ export type ErpState = {
   products: Product[]; categories: Named[]; brands: Named[];
   movements: Movement[]; transfers: Transfer[]; audit: Audit[]; seq: Record<string, number>;
   customers: Customer[]; sales: Sale[]; payments: Payment[]; returns: SaleReturn[]; cash: CashEvent[];
+  employees: Employee[]; commissions: Commission[]; payrolls: PayrollRun[]; payrollPayments: PayrollPayment[];
 };
+export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean };
+export type Employee = { id: string; name: string; phone?: string | undefined; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
+/** Commission ledger: adjustments are new negative rows, never edits/deletes. */
+export type Commission = { id: string; at: number; employeeId: string; source: string; amount: number; kind: "EARNED" | "RETURN ADJUSTMENT"; pending: boolean; payrollId?: string | undefined };
+export type PayrollRun = { id: string; ref: string; at: number; employeeId: string; from: number; to: number; salary: number; commission: number; deductions: number; net: number; paid: number; user: string };
+export type PayrollPayment = { id: string; ref: string; at: number; payrollId: string; employeeId: string; method: Method; amount: number; user: string };
 export type Method = "cash" | "mpesa" | "bank" | "credit";
 export const METHODS: Method[] = ["cash", "mpesa", "bank", "credit"];
 export const METHOD_LABEL: Record<Method, string> = { cash: "Cash", mpesa: "M-Pesa", bank: "Bank", credit: "Credit" };
@@ -30,7 +37,7 @@ export type Customer = { id: string; name: string; phone?: string | undefined; b
 export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number };
 export type Sale = {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
-  pay: Record<Method, number>; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales";
+  pay: Record<Method, number>; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
 };
 export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND"; source: string; customerId?: string | undefined; user: string };
 export type SaleReturn = { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
@@ -38,7 +45,7 @@ export type CashEvent = { id: string; at: number; type: "OPENING" | "CASH IN" | 
 
 const KEY = "shopbook.erp";
 const EVT = "shopbook-erp";
-const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [] });
+const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [] });
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 export function load(): ErpState {
@@ -196,7 +203,7 @@ export const methodOf = (pay: Record<Method, number>) => {
   return used.length > 1 ? "Mixed" : used[0] ? METHOD_LABEL[used[0]] : "—";
 };
 
-export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Record<Method, number>; customerId?: string | undefined; channel: "POS" | "Sales" }) => commit((s, c) => {
+export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Record<Method, number>; customerId?: string | undefined; channel: "POS" | "Sales"; sellerId?: string | undefined }) => commit((s, c) => {
   if (!input.cart.length) throw new ErpError("Cart is empty");
   const items: SaleItem[] = input.cart.map((l) => {
     const p = s.products.find((x) => x.id === l.productId);
@@ -219,7 +226,10 @@ export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Re
   items.forEach((i) => c.move(i.productId, "SALE", -i.qty, "Sale", ref));
   (["cash", "mpesa", "bank"] as Method[]).forEach((m) => { if (input.pay[m] > 0) s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method: m, amount: input.pay[m], kind: "SALE", source: ref, customerId: cust?.id, user: c.user }); });
   if (cust && input.pay.credit > 0) cust.balance += input.pay.credit;
-  const sale: Sale = { id: uid(), ref, at: Date.now(), items, subtotal, discount, total, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, channel: input.channel };
+  const sale: Sale = { id: uid(), ref, at: Date.now(), items, subtotal, discount, total, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, channel: input.channel, sellerId: undefined };
+  const seller = input.sellerId ? s.employees.find((e) => e.id === input.sellerId && e.active) : undefined;
+  if (input.sellerId && !seller) throw new ErpError("Seller not found");
+  if (seller) { sale.sellerId = seller.id; const amt = commissionFor(seller, sale); if (amt > 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: seller.id, source: ref, amount: amt, kind: "EARNED", pending: seller.rule.paidOnly && input.pay.credit > 0 }); }
   s.sales.unshift(sale);
   c.audit("SALE", `${ref} • ${total}${cust ? ` • ${cust.name}` : ""}`);
   return sale;
@@ -264,6 +274,11 @@ export const returnSale = (saleId: string, lines: { productId: string; qty: numb
     s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method: refund, amount: -amount, kind: "REFUND", source: ref, customerId: cust?.id, user: c.user });
   }
   s.returns.unshift({ id: uid(), ref, at: Date.now(), saleId, saleRef: sale.ref, items, amount, refund, user: c.user });
+  const earned = s.commissions.filter((x) => x.source === sale.ref).reduce((a, x) => a + x.amount, 0);
+  if (sale.sellerId && earned > 0 && sale.total > 0) {
+    const adj = -Math.min(earned, Math.round(earned * (amount / sale.total) * 100) / 100);
+    if (adj < 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: sale.sellerId, source: sale.ref, amount: adj, kind: "RETURN ADJUSTMENT", pending: false });
+  }
   c.audit("SALES RETURN", `${ref} for ${sale.ref} • ${amount}`);
 });
 
@@ -290,4 +305,71 @@ export const cashUp = (counted: number) => commit((s, c) => {
   const expected = cashSession(s).expected;
   s.cash.unshift({ id: uid(), at: Date.now(), type: "CASH UP", amount: counted - expected, expected, counted, user: c.user });
   c.audit("CASH UP", `Expected ${expected} • Counted ${counted}`);
+});
+
+/** Commission earned on a sale per the employee's rule (immediate by default). */
+export function commissionFor(e: Employee, sale: Pick<Sale, "items" | "total" | "subtotal">) {
+  if (e.comp === "salary" || e.rule.kind === "none" || !(e.rule.value > 0)) return 0;
+  const ratio = sale.subtotal ? sale.total / sale.subtotal : 1;
+  const profit = sale.items.reduce((a, i) => a + i.qty * (i.price * ratio - i.cost), 0);
+  const v = e.rule.kind === "percent" ? sale.total * e.rule.value / 100 : e.rule.kind === "profit" ? Math.max(0, profit) * e.rule.value / 100 : e.rule.value;
+  return Math.round(v * 100) / 100;
+}
+export function returnStatus(sale: Sale): "NOT RETURNED" | "PARTIALLY RETURNED" | "FULLY RETURNED" {
+  const r = sale.items.reduce((a, i) => a + i.returned, 0), q = sale.items.reduce((a, i) => a + i.qty, 0);
+  return r === 0 ? "NOT RETURNED" : r >= q ? "FULLY RETURNED" : "PARTIALLY RETURNED";
+}
+
+// ---------- Payroll ----------
+export type NewEmployee = Omit<Employee, "id" | "createdAt" | "active">;
+function checkEmployee(e: NewEmployee) {
+  if (!e.name.trim()) throw new ErpError("Enter an employee name");
+  if (!(e.salary >= 0) || (e.comp !== "commission" && !(e.salary > 0))) throw new ErpError("Enter a valid salary");
+  if (e.comp !== "salary" && (e.rule.kind === "none" || !(e.rule.value > 0))) throw new ErpError("Set a commission rule");
+  if (e.rule.kind !== "fixed" && e.rule.value > 100) throw new ErpError("Percentage can't exceed 100");
+}
+export const addEmployee = (e: NewEmployee) => commit((s, c) => {
+  checkEmployee(e);
+  const emp: Employee = { ...e, name: e.name.trim(), salary: e.comp === "commission" ? 0 : e.salary, rule: e.comp === "salary" ? { kind: "none", value: 0, paidOnly: false } : e.rule, id: uid(), active: true, createdAt: Date.now() };
+  s.employees.unshift(emp); c.audit("EMPLOYEE ADDED", emp.name); return emp;
+});
+export const setEmployeeActive = (id: string, active: boolean) => commit((s, c) => {
+  const e = s.employees.find((x) => x.id === id); if (!e) throw new ErpError("Employee not found");
+  e.active = active; c.audit(active ? "EMPLOYEE ACTIVATED" : "EMPLOYEE DEACTIVATED", e.name);
+});
+/** Paid-only commission becomes eligible once the customer has no outstanding credit from that sale's customer. */
+export function eligibleCommission(s: ErpState, employeeId: string) {
+  return s.commissions.filter((x) => x.employeeId === employeeId && !x.payrollId && (!x.pending || isPaid(s, x.source)));
+}
+function isPaid(s: ErpState, saleRef: string) {
+  const sale = s.sales.find((x) => x.ref === saleRef); if (!sale?.customerId) return true;
+  return (s.customers.find((c) => c.id === sale.customerId)?.balance ?? 0) <= 0.001;
+}
+export function payrollPreview(s: ErpState, employeeId: string, deductions: number) {
+  const e = s.employees.find((x) => x.id === employeeId); if (!e) throw new ErpError("Employee not found");
+  const commission = Math.round(eligibleCommission(s, employeeId).reduce((a, x) => a + x.amount, 0) * 100) / 100;
+  const gross = e.salary + commission;
+  return { salary: e.salary, commission, deductions, net: Math.round((gross - deductions) * 100) / 100 };
+}
+export const confirmPayroll = (employeeId: string, from: number, to: number, deductions: number) => commit((s, c) => {
+  if (!(to >= from)) throw new ErpError("Choose a valid period");
+  if (!(deductions >= 0)) throw new ErpError("Deductions can't be negative");
+  if (s.payrolls.some((p) => p.employeeId === employeeId && p.from <= to && p.to >= from)) throw new ErpError("Payroll already confirmed for this period");
+  const pv = payrollPreview(s, employeeId, deductions);
+  if (pv.net < 0) throw new ErpError("Deductions exceed gross pay");
+  const run: PayrollRun = { id: uid(), ref: c.nextRef("PR"), at: Date.now(), employeeId, from, to, ...pv, paid: 0, user: c.user };
+  eligibleCommission(s, employeeId).forEach((x) => { const row = s.commissions.find((y) => y.id === x.id); if (row) row.payrollId = run.id; });
+  s.payrolls.unshift(run); c.audit("PAYROLL CONFIRMED", `${run.ref} • ${run.net}`); return run;
+});
+export const payPayroll = (payrollId: string, method: Method, amount: number) => commit((s, c) => {
+  const r = s.payrolls.find((x) => x.id === payrollId); if (!r) throw new ErpError("Payroll not found");
+  if (method === "credit") throw new ErpError("Choose Cash, M-Pesa or Bank");
+  if (!(amount > 0)) throw new ErpError("Enter an amount");
+  if (amount > r.net - r.paid + 0.001) throw new ErpError("Amount is more than the outstanding pay");
+  if (method === "cash" && amount > cashSession(s).expected) throw new ErpError("Not enough cash in the drawer");
+  r.paid = Math.round((r.paid + amount) * 100) / 100;
+  const ref = c.nextRef("PP");
+  s.payrollPayments.unshift({ id: uid(), ref, at: Date.now(), payrollId, employeeId: r.employeeId, method, amount, user: c.user });
+  if (method === "cash") s.cash.unshift({ id: uid(), at: Date.now(), type: "CASH OUT", amount, note: `Payroll ${r.ref}`, user: c.user });
+  c.audit("PAYROLL PAYMENT", `${ref} • ${r.ref} • ${amount}`);
 });
