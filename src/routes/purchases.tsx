@@ -126,8 +126,7 @@ function Overview(c: Ctx) {
 function PurchaseList(c: Ctx & { completed: boolean }) {
   const { s, tr, completed } = c;
   const [q, setQ] = useState("");
-  const list = s.purchases.filter((p) => (!completed || fin.purchaseStatus(s, p) !== "Cancelled") && (completed || true) && `${p.ref} ${supName(s, p.supplierId)}`.toLowerCase().includes(q.toLowerCase()))
-    .filter((p) => !completed || true);
+  const list = s.purchases.filter((p) => (!completed || fin.purchaseStatus(s, p) !== "Cancelled") && `${p.ref} ${supName(s, p.supplierId)}`.toLowerCase().includes(q.toLowerCase()));
   return <>
     <BigButton onClick={() => c.open({ k: "new" })}><Plus className="h-4 w-4" />{tr("New Purchase")}</BigButton>
     <Search q={q} setQ={setQ} tr={tr} ph="Search purchases..." />
