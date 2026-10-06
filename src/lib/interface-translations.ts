@@ -480,6 +480,28 @@ Manage Subscription|Dhibiti usajili|Gérer l’abonnement|إدارة الاشت�
 Sales breakdown|Mchanganuo wa mauzo|Répartition des ventes|تفصيل المبيعات|Desglose de ventas|Detalhamento das vendas|Verkaufsaufschlüsselung|Ripartizione delle vendite|销售明细|बिक्री का विवरण
 Money|Fedha|Argent|الأموال|Dinero|Dinheiro|Geld|Denaro|资金|धन
 Needs attention|Inahitaji uangalizi|Nécessite votre attention|يتطلب الانتباه|Requiere atención|Requer atenção|Handlungsbedarf|Richiede attenzione|需要关注|ध्यान देने की आवश्यकता है
+Backed up|Imehifadhiwa|Sauvegardé|تم النسخ الاحتياطي|Copia hecha|Backup feito|Gesichert|Backup eseguito|已备份|बैकअप हो गया
+Backup pending|Hifadhi inasubiri|Sauvegarde en attente|النسخ الاحتياطي معلق|Copia pendiente|Backup pendente|Sicherung ausstehend|Backup in sospeso|备份待处理|बैकअप लंबित
+now|sasa|maintenant|الآن|ahora|agora|jetzt|ora|刚刚|अभी
+min ago|dak zilizopita|min|دقيقة مضت|min|min atrás|Min.|min fa|分钟前|मिनट पहले
+h ago|saa zilizopita|h|ساعة مضت|h|h atrás|Std.|h fa|小时前|घंटे पहले
+d ago|siku zilizopita|j|يوم مضى|d|d atrás|T.|g fa|天前|दिन पहले
+Refresh dashboard|Onyesha upya dashibodi|Actualiser le tableau de bord|تحديث لوحة التحكم|Actualizar panel|Atualizar painel|Dashboard aktualisieren|Aggiorna dashboard|刷新仪表板|डैशबोर्ड रीफ़्रेश करें
+Export dashboard|Hamisha dashibodi|Exporter le tableau de bord|تصدير لوحة التحكم|Exportar panel|Exportar painel|Dashboard exportieren|Esporta dashboard|导出仪表板|डैशबोर्ड निर्यात करें
+Share dashboard|Shiriki dashibodi|Partager le tableau de bord|مشاركة لوحة التحكم|Compartir panel|Compartilhar painel|Dashboard teilen|Condividi dashboard|分享仪表板|डैशबोर्ड साझा करें
+View details|Angalia maelezo|Voir les détails|عرض التفاصيل|Ver detalles|Ver detalhes|Details anzeigen|Vedi dettagli|查看详情|विवरण देखें
+View all|Angalia zote|Tout voir|عرض الكل|Ver todo|Ver tudo|Alle anzeigen|Vedi tutto|查看全部|सभी देखें
+This week|Wiki hii|Cette semaine|هذا الأسبوع|Esta semana|Esta semana|Diese Woche|Questa settimana|本周|इस सप्ताह
+This month|Mwezi huu|Ce mois-ci|هذا الشهر|Este mes|Este mês|Dieser Monat|Questo mese|本月|इस महीने
+This year|Mwaka huu|Cette année|هذا العام|Este año|Este ano|Dieses Jahr|Quest'anno|今年|इस वर्ष
+Custom|Maalum|Personnalisé|مخصص|Personalizado|Personalizado|Benutzerdefiniert|Personalizzato|自定义|कस्टम
+Business overview|Muhtasari wa biashara|Aperçu de l'activité|نظرة عامة على العمل|Resumen del negocio|Visão geral do negócio|Geschäftsübersicht|Panoramica aziendale|业务概览|व्यवसाय अवलोकन
+Sales by payment method|Mauzo kwa njia ya malipo|Ventes par mode de paiement|المبيعات حسب طريقة الدفع|Ventas por método de pago|Vendas por método de pagamento|Umsatz nach Zahlungsart|Vendite per metodo di pagamento|按付款方式的销售|भुगतान विधि द्वारा बिक्री
+Total sales|Jumla ya mauzo|Ventes totales|إجمالي المبيعات|Ventas totales|Vendas totais|Gesamtumsatz|Vendite totali|总销售额|कुल बिक्री
+Money position|Hali ya fedha|Position de trésorerie|الوضع المالي|Posición de dinero|Posição financeira|Geldbestand|Posizione di cassa|资金状况|धन की स्थिति
+Variance|Tofauti|Écart|فرق|Diferencia|Diferença|Abweichung|Differenza|差异|अंतर
+Done|Imekamilika|Fait|تم|Hecho|Feito|Erledigt|Fatto|已完成|पूर्ण
+Period|Kipindi|Période|الفترة|Período|Período|Zeitraum|Periodo|期间|अवधि
 Cash-up|Kufunga hesabu za fedha taslimu|Clôture de caisse|إقفال الصندوق|Cierre de caja|Fechamento de caixa|Kassenabschluss|Chiusura di cassa|收银结算|नकदी मिलान
 General|Jumla|Général|عام|General|Geral|Allgemein|Generale|常规|सामान्य
 Business|Biashara|Entreprise|الأعمال|Negocio|Negócio|Unternehmen|Azienda|商家|व्यवसाय
