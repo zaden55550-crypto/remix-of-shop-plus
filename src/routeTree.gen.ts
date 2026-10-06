@@ -16,6 +16,7 @@ import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ApiReorderRouteImport } from './routes/api/reorder'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +53,11 @@ const SignupRoute = SignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReorderRoute = ApiReorderRouteImport.update({
+  id: '/api/reorder',
+  path: '/api/reorder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/pos': typeof PosRoute
   '/sales': typeof SalesRoute
   '/signup': typeof SignupRoute
+  '/api/reorder': typeof ApiReorderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/pos': typeof PosRoute
   '/sales': typeof SalesRoute
   '/signup': typeof SignupRoute
+  '/api/reorder': typeof ApiReorderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,13 +88,29 @@ export interface FileRoutesById {
   '/pos': typeof PosRoute
   '/sales': typeof SalesRoute
   '/signup': typeof SignupRoute
+  '/api/reorder': typeof ApiReorderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/apps' | '/inventory' | '/plans' | '/pos' | '/sales' | '/signup'
+    | '/'
+    | '/apps'
+    | '/inventory'
+    | '/plans'
+    | '/pos'
+    | '/sales'
+    | '/signup'
+    | '/api/reorder'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/apps' | '/inventory' | '/plans' | '/pos' | '/sales' | '/signup'
+  to:
+    | '/'
+    | '/apps'
+    | '/inventory'
+    | '/plans'
+    | '/pos'
+    | '/sales'
+    | '/signup'
+    | '/api/reorder'
   id:
     | '__root__'
     | '/'
@@ -96,6 +120,7 @@ export interface FileRouteTypes {
     | '/pos'
     | '/sales'
     | '/signup'
+    | '/api/reorder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -106,6 +131,7 @@ export interface RootRouteChildren {
   PosRoute: typeof PosRoute
   SalesRoute: typeof SalesRoute
   SignupRoute: typeof SignupRoute
+  ApiReorderRoute: typeof ApiReorderRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -159,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/reorder': {
+      id: '/api/reorder'
+      path: '/api/reorder'
+      fullPath: '/api/reorder'
+      preLoaderRoute: typeof ApiReorderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -170,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   PosRoute: PosRoute,
   SalesRoute: SalesRoute,
   SignupRoute: SignupRoute,
+  ApiReorderRoute: ApiReorderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
