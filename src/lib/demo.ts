@@ -118,7 +118,7 @@ function seed() {
   // Credit test (HP laptop, then KSh 10,000 payment) and mixed payment test
   confirmSale({ cart: [c("LAP-001")], discount: 0, pay: P(40000, 0, 0, 32000), customerId: brian.id, channel: "Sales" });
   receiveDebt(brian.id, 10000, "cash");
-  confirmSale({ cart: [c("ACC-007", 2), c("ACC-005")], discount: 0, pay: P(3000, 4000, 0, 3000), customerId: brian.id, channel: "POS" });
+  confirmSale({ cart: [c("ACC-008", 2), c("ACC-005")], discount: 0, pay: P(3000, 4000, 0, 3000), customerId: brian.id, channel: "POS" });
 
   // Supplier credit test
   paySupplier(eac.id, 50000, "bank");
