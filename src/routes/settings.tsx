@@ -10,6 +10,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
 import { APPS, canOpen, store } from "@/lib/shopbook";
 import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
+import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,7 @@ function Settings() {
     if (!window.confirm(tr("Replace all records on this device with this backup?"))) return;
     try { restoreJson(await f.text()); toast.success(tr("Backup restored")); } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); }
   };
+  const run = (fn: () => void, ok: string) => { try { fn(); toast.success(tr(ok)); force((n) => n + 1); } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); } };
   const Sec = ({ id, children }: { id: string; children: ReactNode }) => (
     <div className="border-b border-border">
       <button className="flex w-full items-center justify-between py-3.5 text-sm font-bold tracking-wide" onClick={() => setOpen(open === id ? null : id)} aria-expanded={open === id}>
@@ -92,6 +94,16 @@ function Settings() {
         {s.audit.length === 0 ? <p className="text-xs text-muted-foreground">{tr("No activity yet")}</p> : s.audit.slice(0, 30).map((a) => (
           <div key={a.id} className="border-b border-border py-1.5 text-xs"><b>{tr(a.action)}</b> • {a.detail}<span className="block text-muted-foreground">{a.user} • {dt(a.at)}</span></div>
         ))}
+      </Sec>
+      <Sec id="Demo data">
+        <p className="text-xs text-muted-foreground">{tr("Sample electronics shop for testing every app. Real shops start empty.")}</p>
+        {!isDemo() ? (
+          <ShopButton disabled={!isEmptyShop()} onClick={() => run(() => loadDemoData(), "Demo data loaded")}>{tr("Load demo data")}</ShopButton>
+        ) : (<>
+          <ShopButton onClick={() => { if (window.confirm(tr("Reset demo data? A backup is kept first."))) run(() => resetDemoData(acct.shopName), "Demo data reset"); }}>{tr("Reset demo data")}</ShopButton>
+          <ShopButton variant="outline" onClick={() => { if (window.confirm(tr("Remove demo data and start with an empty shop?"))) run(() => clearDemoData(acct.shopName), "Demo data removed"); }}>{tr("Remove demo data")}</ShopButton>
+        </>)}
+        {!isDemo() && !isEmptyShop() && <p className="text-xs text-muted-foreground">{tr("Demo data can only be loaded into an empty shop")}</p>}
       </Sec>
       <Sec id="Subscription">
         <ShopButton variant="outline" onClick={() => nav({ to: "/plans" })}>{tr("Manage Subscription")}</ShopButton>
