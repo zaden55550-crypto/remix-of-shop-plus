@@ -29,23 +29,27 @@ function Scanner({ onCode, onClose, tr }: { onCode: (c: string) => void; onClose
   const video = useRef<HTMLVideoElement>(null);
   const [manual, setManual] = useState("");
   const [camOk, setCamOk] = useState(true);
+  const [denied, setDenied] = useState(false);
   useEffect(() => {
     let stream: MediaStream | null = null; let stop = false;
-    const Detector = (window as unknown as { BarcodeDetector?: new (o?: unknown) => { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> } }).BarcodeDetector;
+    type Det = { detect: (v: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
     (async () => {
       try {
-        if (!Detector || !navigator.mediaDevices) throw new Error("no");
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error("no camera");
+        // Asks the phone for camera permission only now, when the user chose to scan.
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        if (stop) { stream.getTracks().forEach((t) => t.stop()); return; }
         if (!video.current) return;
         video.current.srcObject = stream; await video.current.play();
-        const det = new Detector();
+        const Native = (window as unknown as { BarcodeDetector?: new () => Det }).BarcodeDetector;
+        const det: Det = Native ? new Native() : new (await import("barcode-detector/ponyfill")).BarcodeDetector() as unknown as Det;
         const tick = async () => {
           if (stop || !video.current) return;
-          try { const r = await det.detect(video.current); if (r[0]?.rawValue) { onCode(r[0].rawValue); return; } } catch { /* keep scanning */ }
-          requestAnimationFrame(tick);
+          try { const r = await det.detect(video.current); if (r[0]?.rawValue) { if (navigator.vibrate) navigator.vibrate(60); onCode(r[0].rawValue); return; } } catch { /* keep scanning */ }
+          setTimeout(tick, 150);
         };
         tick();
-      } catch { setCamOk(false); }
+      } catch (e) { setDenied(e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError")); setCamOk(false); }
     })();
     return () => { stop = true; stream?.getTracks().forEach((t) => t.stop()); };
   }, [onCode]);
@@ -54,7 +58,7 @@ function Scanner({ onCode, onClose, tr }: { onCode: (c: string) => void; onClose
       <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between"><p className="font-semibold">{tr("Scan barcode")}</p><button onClick={onClose} aria-label={tr("Close")}><X className="h-5 w-5" /></button></div>
         {camOk ? <video ref={video} playsInline muted className="aspect-video w-full rounded-xl bg-muted object-cover" />
-          : <p className="mb-2 text-xs text-muted-foreground">{tr("Camera scanning isn't available on this device. Type the barcode instead.")}</p>}
+          : <p className="mb-2 text-xs text-muted-foreground">{tr(denied ? "Camera permission is needed for barcode scanning. Allow camera access in your browser settings, or type the barcode or search instead." : "Camera scanning isn't available on this device. Type the barcode instead.")}</p>}
         <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (manual.trim()) onCode(manual.trim()); }}>
           <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={tr("Barcode")} className={inputCls} />
           <ShopButton className="h-11 w-24">{tr("OK")}</ShopButton>
