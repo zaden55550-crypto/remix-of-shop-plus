@@ -60,14 +60,24 @@ function ago(t: number, tr: (s: string) => string) {
 
 function Section({ title, to, link, children }: { title: string; to?: string; link?: string; children: ReactNode }) {
   return (
-    <section className="border-b border-border py-3">
+    <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-[13px] font-bold">{title}</h2>
+        <h2 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{title}</h2>
         {to && <Link to={to} className="flex items-center text-[11px] font-semibold text-primary">{link}<ChevronRight className="h-3.5 w-3.5 rtl:rotate-180" /></Link>}
       </div>
       {children}
     </section>
   );
+}
+
+function Box({ label, value, tone, to }: { label: string; value: ReactNode; tone?: "good" | "warn" | "bad"; to?: string }) {
+  const inner = (
+    <div className="h-full rounded-lg border border-border bg-background/60 px-2.5 py-2">
+      <p className="whitespace-nowrap text-[10px] font-semibold uppercase text-muted-foreground">{label}</p>
+      <p className={cn("mt-0.5 whitespace-nowrap text-sm font-bold tabular-nums", tone === "good" && "text-success", tone === "warn" && "text-warning", tone === "bad" && "text-destructive")}>{value}</p>
+    </div>
+  );
+  return to ? <Link to={to} className="block min-w-0">{inner}</Link> : inner;
 }
 
 function Dashboard() {
@@ -119,16 +129,13 @@ function Dashboard() {
 
   return (
     <main dir={dir} className="app-screen mx-auto flex min-h-screen w-full max-w-md flex-col bg-background pb-10 text-foreground">
-      <header className="sticky top-0 z-20 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
-        <button aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })} className="p-1"><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></button>
-        <div className="min-w-0">
-          <h1 className="truncate text-base font-bold tracking-wide">{tr("Dashboard").toUpperCase()}</h1>
-          <p className={cn("truncate text-[10px]", backed ? "text-success" : "text-muted-foreground")}>
-            {backed ? `✓ ${tr("Backed up")} • ${ago(lb, tr)}` : `⚠ ${tr("Backup pending")}`}
-          </p>
+      <header className="sticky top-0 z-20 grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
+        <div className="flex min-w-0 items-center gap-1">
+          <button aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })} className="p-1"><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></button>
+          <h1 className="truncate text-sm font-bold tracking-wide">{tr("Dashboard").toUpperCase()}</h1>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="max-w-[90px] truncate text-[11px] text-muted-foreground">{tr("Admin")}</span>
+        <p className="max-w-[140px] truncate text-center text-[12px] font-semibold text-muted-foreground">{account.shopName}</p>
+        <div className="flex justify-end">
           <button aria-label={tr("Menu")} onClick={() => setMenu((v) => !v)} className="p-1"><Menu className="h-5 w-5" /></button>
         </div>
         {menu && (
@@ -141,35 +148,40 @@ function Dashboard() {
         )}
       </header>
 
-      <div className="px-3">
-        <div className="flex items-center justify-between gap-2 border-b border-border py-2">
-          <select aria-label={tr("Period")} value={p} onChange={(e) => setP(e.target.value as P)} className="rounded-md border border-border bg-card px-2 py-1 text-[12px] font-semibold">
-            {PS.map((x) => <option key={x} value={x}>{tr(x)}</option>)}
-          </select>
-          <span className="truncate text-[11px] text-muted-foreground">{fmtD(from || (s.sales.at(-1)?.at ?? to))} - {fmtD(to)}</span>
-        </div>
-        {p === "Custom" && (
-          <div className="flex gap-2 border-b border-border py-2 text-[11px]">
-            <input type="date" aria-label={tr("From")} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} className="min-w-0 flex-1 rounded border border-border bg-card px-2 py-1" />
-            <input type="date" aria-label={tr("To")} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} className="min-w-0 flex-1 rounded border border-border bg-card px-2 py-1" />
-          </div>
-        )}
+      <div className="flex flex-col gap-3 px-3 pt-2">
+        <p className={cn("text-[10px]", backed ? "text-success" : "text-muted-foreground")}>
+          {backed ? `✓ ${tr("Backed up")} • ${ago(lb, tr)}` : `⚠ ${tr("Backup pending")}`}
+        </p>
 
-        <Section title={tr("Business overview")}>
-          <KpiRow>
-            <Kpi label={tr("Sales")} value={k(perf.sales)} />
-            <Kpi label={tr("Purchases")} value={k(t.purchases)} />
-            <Kpi label={tr("Expenses")} value={k(t.expenses)} />
-            <Kpi label={tr("Profit")} value={k(profit)} tone={profit < 0 ? "bad" : undefined} />
-            <Kpi label={tr("Stock value")} value={k(pos.stock)} />
-          </KpiRow>
-        </Section>
+        <section className="rounded-xl border border-border bg-card p-2 shadow-sm">
+          <div className="flex gap-1 overflow-x-auto">
+            {PS.map((x) => (
+              <button key={x} onClick={() => setP(x)} className={cn("shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-[11px] font-bold uppercase", p === x ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{tr(x)}</button>
+            ))}
+          </div>
+          {p === "Custom" && (
+            <div className="mt-2 flex gap-2 text-[11px]">
+              <input type="date" aria-label={tr("From")} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1" />
+              <input type="date" aria-label={tr("To")} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1" />
+            </div>
+          )}
+          <p className="mt-1 px-1 text-[10px] text-muted-foreground">{fmtD(from || (s.sales.at(-1)?.at ?? to))} - {fmtD(to)}</p>
+        </section>
+
+        <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+          {([["Sales", perf.sales, "good"], ["Purchases", t.purchases], ["Expenses", t.expenses], ["Profit", profit, profit < 0 ? "bad" : "good"], ["Stock value", pos.stock]] as [string, number, ("good" | "bad")?][]).map(([l, v, tone]) => (
+            <div key={l} className="shrink-0 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+              <p className="whitespace-nowrap text-[10px] font-semibold uppercase text-muted-foreground">{tr(l)}</p>
+              <p className={cn("mt-0.5 whitespace-nowrap text-base font-bold tabular-nums", tone === "good" && "text-success", tone === "bad" && "text-destructive")}>{k(v)}</p>
+            </div>
+          ))}
+        </div>
 
         <Section title={tr("Sales by payment method")} to="/reports" link={tr("View details")}>
           <div className="flex items-center gap-4">
-            <div className="relative h-24 w-24 shrink-0 rounded-full" style={{ background: byTotal ? `conic-gradient(${(() => { let acc = 0; return METHODS.map((m) => { const a = acc; acc += (perf.byMethod[m] / byTotal) * 360; return `${COLORS[m]} ${a}deg ${acc}deg`; }).join(", "); })()})` : "var(--muted)" }}>
-              <div className="absolute inset-3 grid place-items-center rounded-full bg-background text-center">
-                <div><p className="text-sm font-bold tabular-nums">{k(byTotal)}</p><p className="text-[9px] text-muted-foreground">{tr("Total sales")}</p></div>
+            <div className="relative h-20 w-20 shrink-0 rounded-full" style={{ background: byTotal ? `conic-gradient(${(() => { let acc = 0; return METHODS.map((m) => { const a = acc; acc += (perf.byMethod[m] / byTotal) * 360; return `${COLORS[m]} ${a}deg ${acc}deg`; }).join(", "); })()})` : "var(--muted)" }}>
+              <div className="absolute inset-2.5 grid place-items-center rounded-full bg-card text-center">
+                <div><p className="text-[13px] font-bold tabular-nums">{k(byTotal)}</p><p className="text-[8px] text-muted-foreground">{tr("Total sales")}</p></div>
               </div>
             </div>
             <ul className="min-w-0 flex-1 space-y-1.5 text-[12px]">
@@ -186,38 +198,38 @@ function Dashboard() {
         </Section>
 
         <Section title={tr("Money position")} to="/float" link={tr("View details")}>
-          <KpiRow>
-            <Kpi label={tr("Cash")} value={k(bal.cash)} />
-            <Kpi label={tr("M-Pesa")} value={k(bal.mpesa)} />
-            <Kpi label={tr("Bank")} value={k(bal.bank)} />
-            <Link to="/contacts"><Kpi label={tr("Credit")} value={k(pos.receivables)} /></Link>
-          </KpiRow>
+          <div className="grid grid-cols-4 gap-1.5">
+            <Box label={tr("Cash")} value={k(bal.cash)} />
+            <Box label={tr("M-Pesa")} value={k(bal.mpesa)} />
+            <Box label={tr("Bank")} value={k(bal.bank)} />
+            <Box label={tr("Credit")} value={k(pos.receivables)} to="/contacts" />
+          </div>
         </Section>
 
         <Section title={tr("Needs attention")}>
-          <KpiRow>
-            <Link to="/inventory"><Kpi label={tr("Low stock")} value={pos.low + pos.out} tone={pos.low + pos.out ? "warn" : undefined} /></Link>
-            <Link to="/contacts"><Kpi label={tr("Receivables")} value={k(pos.receivables)} /></Link>
-            <Link to="/contacts"><Kpi label={tr("Payables")} value={k(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} /></Link>
-            <Link to="/pos"><Kpi label={tr("Cash-up")} value={tr(cashUp)} tone={cashUp === "Done" ? undefined : cashUp === "Pending" ? "warn" : "bad"} /></Link>
-          </KpiRow>
+          <div className="grid grid-cols-2 gap-2">
+            <Box to="/inventory" label={tr("Low stock")} value={pos.low + pos.out} tone={pos.low + pos.out ? "warn" : "good"} />
+            <Box to="/contacts" label={tr("Receivables")} value={money(pos.receivables)} />
+            <Box to="/contacts" label={tr("Payables")} value={money(pos.payables)} tone={pos.payables > 0 ? "warn" : undefined} />
+            <Box to="/pos" label={tr("Cash-up")} value={cashUp === "Variance" && cashVariance ? money((cashVariance.counted ?? 0) - (cashVariance.expected ?? 0)) : tr(cashUp)} tone={cashUp === "Done" ? "good" : cashUp === "Pending" ? "warn" : "bad"} />
+          </div>
         </Section>
 
         <Section title={tr("Recent sales")} to="/sales" link={tr("View all")}>
           {s.sales.length === 0 ? <p className="py-4 text-center text-[12px] text-muted-foreground">{tr("No sales yet")}</p> : s.sales.slice(0, 5).map((sale) => {
-            const method = METHODS.filter((m) => sale.pay[m] > 0).sort((a, b) => sale.pay[b] - sale.pay[a])[0];
+            const methods = METHODS.filter((m) => sale.pay[m] > 0).sort((a, b) => sale.pay[b] - sale.pay[a]);
             const cust = sale.customerId ? s.customers.find((c) => c.id === sale.customerId)?.name : undefined;
+            const item = sale.items[0]?.name ?? "";
+            const more = sale.items.length > 1 ? ` +${sale.items.length - 1}` : "";
             return (
-              <button key={sale.id} onClick={() => setOpen(sale)} className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-b border-border py-2 text-start last:border-0">
+              <button key={sale.id} onClick={() => setOpen(sale)} className="grid w-full grid-cols-[5.5rem_minmax(0,1fr)_auto] items-start gap-2 border-b border-border py-2 text-start last:border-0">
+                <p className="text-[11px] font-bold tabular-nums">{sale.ref}</p>
                 <div className="min-w-0">
-                  <p className="truncate text-[12px] font-semibold">{sale.ref}{cust ? <span className="font-normal text-muted-foreground"> • {cust}</span> : null}</p>
-                  <p className="text-[10px] text-muted-foreground">{new Date(sale.at).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                  <p className="truncate text-[12px] font-semibold">{item}{more}</p>
+                  <p className="text-[12px] font-bold tabular-nums text-success">{money(sale.total)}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">{methods.map((m) => tr(METHOD_LABEL[m])).join(" + ")}{cust ? ` • ${cust}` : ""}</p>
                 </div>
-                <div className="text-end">
-                  <p className="whitespace-nowrap text-[12px] font-semibold tabular-nums">{money(sale.total)}</p>
-                  {method && <p className="text-[10px] font-semibold" style={{ color: COLORS[method] }}>{tr(METHOD_LABEL[method])}</p>}
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground rtl:rotate-180" />
+                <ChevronRight className="mt-1 h-4 w-4 text-muted-foreground rtl:rotate-180" />
               </button>
             );
           })}
