@@ -26,6 +26,7 @@ import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SummaryRouteImport } from './routes/summary'
+import { Route as SupportInboxRouteImport } from './routes/support-inbox'
 import { Route as ApiHelpChatRouteImport } from './routes/api/help-chat'
 import { Route as ApiReorderRouteImport } from './routes/api/reorder'
 
@@ -114,6 +115,11 @@ const SummaryRoute = SummaryRouteImport.update({
   path: '/summary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportInboxRoute = SupportInboxRouteImport.update({
+  id: '/support-inbox',
+  path: '/support-inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHelpChatRoute = ApiHelpChatRouteImport.update({
   id: '/api/help-chat',
   path: '/api/help-chat',
@@ -143,6 +149,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
+  '/support-inbox': typeof SupportInboxRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/reorder': typeof ApiReorderRoute
 }
@@ -164,6 +171,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
+  '/support-inbox': typeof SupportInboxRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/reorder': typeof ApiReorderRoute
 }
@@ -186,6 +194,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
+  '/support-inbox': typeof SupportInboxRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/reorder': typeof ApiReorderRoute
 }
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/summary'
+    | '/support-inbox'
     | '/api/help-chat'
     | '/api/reorder'
   fileRoutesByTo: FileRoutesByTo
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/summary'
+    | '/support-inbox'
     | '/api/help-chat'
     | '/api/reorder'
   id:
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/signup'
     | '/summary'
+    | '/support-inbox'
     | '/api/help-chat'
     | '/api/reorder'
   fileRoutesById: FileRoutesById
@@ -273,6 +285,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignupRoute: typeof SignupRoute
   SummaryRoute: typeof SummaryRoute
+  SupportInboxRoute: typeof SupportInboxRoute
   ApiHelpChatRoute: typeof ApiHelpChatRoute
   ApiReorderRoute: typeof ApiReorderRoute
 }
@@ -398,6 +411,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support-inbox': {
+      id: '/support-inbox'
+      path: '/support-inbox'
+      fullPath: '/support-inbox'
+      preLoaderRoute: typeof SupportInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/help-chat': {
       id: '/api/help-chat'
       path: '/api/help-chat'
@@ -433,6 +453,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignupRoute: SignupRoute,
   SummaryRoute: SummaryRoute,
+  SupportInboxRoute: SupportInboxRoute,
   ApiHelpChatRoute: ApiHelpChatRoute,
   ApiReorderRoute: ApiReorderRoute,
 }
