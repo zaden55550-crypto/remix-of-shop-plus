@@ -217,7 +217,6 @@ function Dashboard() {
         <Section title={tr("Recent sales")} to="/sales" link={tr("View all")}>
           {s.sales.length === 0 ? <p className="py-4 text-center text-[12px] text-muted-foreground">{tr("No sales yet")}</p> : s.sales.slice(0, 5).map((sale) => {
             const methods = METHODS.filter((m) => sale.pay[m] > 0).sort((a, b) => sale.pay[b] - sale.pay[a]);
-            const cust = sale.customerId ? s.customers.find((c) => c.id === sale.customerId)?.name : undefined;
             const item = sale.items[0]?.name ?? "";
             const more = sale.items.length > 1 ? ` +${sale.items.length - 1}` : "";
             return (
