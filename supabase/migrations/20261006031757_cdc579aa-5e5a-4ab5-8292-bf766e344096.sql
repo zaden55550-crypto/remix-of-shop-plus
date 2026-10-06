@@ -1,0 +1,1 @@
+CREATE TABLE public.ai_access_state (scope text PRIMARY KEY, status integer NOT NULL, message text NOT NULL, blocked boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()); GRANT ALL ON public.ai_access_state TO service_role; ALTER TABLE public.ai_access_state ENABLE ROW LEVEL SECURITY;

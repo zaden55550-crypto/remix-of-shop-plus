@@ -14,3 +14,5 @@
 - Use the shared useLanguage hook for interface language across pre-login and account screens; persist choices separately from accounts to keep selectors synchronized.
 - Keep additional interface translations in interface-translations.ts and existing keyed app translations in i18n.ts; translate plan presentation without changing centralized entitlement data.
 - All business data flows through the transaction engine in `src/lib/erp.ts` (`commit` = validate-then-save atomically); stock only changes via recorded movements, so every app shares one product/stock source of truth with history and audit.
+- Use the shared KpiRow and Kpi components for all summary metrics so every app obeys the global non-wrapping strip rule.
+- Keep reorder AI helpers server-only and require Cloud identity for paid AI requests; recommendations are advisory and never mutate ERP stock or purchase records.
