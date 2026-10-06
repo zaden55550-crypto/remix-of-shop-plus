@@ -1,4 +1,5 @@
 // Read-only business performance over a period, computed from the shared ERP snapshot.
+import { purchaseTotals } from "@/lib/finance";
 import { METHODS, type ErpState, type Method } from "@/lib/erp";
 
 export type Period = "Today" | "Week" | "Month" | "Year" | "All time";
@@ -47,7 +48,7 @@ export function position(s: ErpState) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const lastUp = s.cash.find((e) => e.type === "CASH UP")?.at ?? 0;
   const cashUpPending = s.payments.some((p) => p.method === "cash" && p.at > lastUp && p.at < today.getTime());
-  return { stock: r2(stock), retail: r2(retail), receivables: r2(receivables), customerCredit: r2(customerCredit), payroll: r2(payroll), low, out, cashUpPending };
+  return { payables: purchaseTotals(s).payables, stock: r2(stock), retail: r2(retail), receivables: r2(receivables), customerCredit: r2(customerCredit), payroll: r2(payroll), low, out, cashUpPending };
 }
 
 /** Daily net sales for the last `days` days, oldest first. */

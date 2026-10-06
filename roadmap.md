@@ -24,3 +24,8 @@
 - [x] Phase 2.13 Dashboard: sales breakdown pie, money row, needs attention row
 - [x] Phase 2.14 Settings: collapsible sections for general, business, users, features, numbering, data, subscription (payment/payroll/notification/printing/integration settings pending)
 - [x] Phase 2.15 Backup: download/restore a validated backup file, audit log view (real staff logins, roles, cloud backup and sync need online accounts — pending)
+- [x] Purchases (supplier bills, stock receiving, supplier payments, purchase returns) and Expenses (categories, periods)
+- [x] Contacts (customers, suppliers, statements) and Float (live Cash/M-Pesa/Bank, deposits, withdrawals, transfers)
+- [x] Accounting: automatic journal, profit & loss, balance sheet, trial balance
+- [x] Real camera barcode scanning on all phones, with permission-denied fallback
+- [ ] Online accounts, staff roles and multi-device sync (user chose to wait)

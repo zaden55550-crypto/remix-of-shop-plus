@@ -1,3 +1,4 @@
+import { purchaseTotals } from "@/lib/finance";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useErp } from "@/components/shopbook/product-search";
@@ -21,7 +22,6 @@ export const Route = createFileRoute("/summary")({
 });
 
 const TABS = ["Business performance", "Sales performance", "Inventory", "Financial position", "Trends"];
-const dash = (t: string) => <span title={t}>—</span>;
 
 function Summary() {
   const acct = useAccount("business");
@@ -33,7 +33,6 @@ function Summary() {
   const money = moneyFor(acct.currency || "KSh");
   const p = performance(s, periodStart(period));
   const pos = position(s);
-  const na = tr("Not available yet");
   return (
     <AppShell title="Summary" tabs={TABS} tab={tab} setTab={setTab}>
       {(tab === TABS[0] || tab === TABS[1]) && <div className="mb-3 flex gap-1 overflow-x-auto [scrollbar-width:none]">
@@ -41,7 +40,7 @@ function Summary() {
       </div>}
       {tab === TABS[0] && <>
         <KpiRow>
-          <Kpi label={tr("Sales")} value={money(p.sales)} /><Kpi label={tr("Purchases")} value={dash(na)} /><Kpi label={tr("Expenses")} value={dash(na)} />
+          <Kpi label={tr("Sales")} value={money(p.sales)} /><Kpi label={tr("Purchases")} value={money(purchaseTotals(s, periodStart(period)).purchases)} /><Kpi label={tr("Expenses")} value={money(purchaseTotals(s, periodStart(period)).expenses)} />
           <Kpi label={tr("Gross profit")} value={money(p.grossProfit)} /><Kpi label={tr("Stock")} value={money(pos.stock)} />
         </KpiRow>
         <NeedsAttention pos={pos} money={money} tr={tr} />
@@ -65,7 +64,7 @@ function Summary() {
         <Title>{tr("Retail value")}</Title><Row l={tr("At selling price")} r={money(pos.retail)} />
       </>}
       {tab === TABS[3] && <>
-        <KpiRow><Kpi label={tr("Stock")} value={money(pos.stock)} /><Kpi label={tr("Receivables")} value={money(pos.receivables)} /><Kpi label={tr("Payables")} value={dash(na)} /><Kpi label={tr("Payroll due")} value={money(pos.payroll)} /></KpiRow>
+        <KpiRow><Kpi label={tr("Stock")} value={money(pos.stock)} /><Kpi label={tr("Receivables")} value={money(pos.receivables)} /><Kpi label={tr("Payables")} value={money(pos.payables)} /><Kpi label={tr("Payroll due")} value={money(pos.payroll)} /></KpiRow>
         <Title>{tr("Customer credit")}</Title><Row l={tr("Owed to customers")} r={money(pos.customerCredit)} />
       </>}
       {tab === TABS[4] && <>

@@ -25,6 +25,7 @@ export const Route = createFileRoute("/apps")({
 
 const ROWS = [APPS.slice(0, 4), APPS.slice(4, 8), APPS.slice(8, 12)];
 const CURRENCIES = [["KSh", "Kenyan Shilling"], ["USh", "Ugandan Shilling"], ["TSh", "Tanzanian Shilling"], ["USD", "US Dollar"]] as const;
+const ROUTES: Record<string, "/dashboard" | "/inventory" | "/purchases" | "/sales" | "/pos" | "/expenses" | "/contacts" | "/accounting" | "/float" | "/payroll" | "/reports" | "/summary" | "/settings"> = { dashboard: "/dashboard", inventory: "/inventory", purchases: "/purchases", sales: "/sales", pos: "/pos", expenses: "/expenses", contacts: "/contacts", accounting: "/accounting", float: "/float", payroll: "/payroll", reports: "/reports", summary: "/summary", settings: "/settings" };
 const SETTINGS_APP = APPS.find((a) => a.id === "settings");
 
 function Apps() {
@@ -59,7 +60,7 @@ function Apps() {
   const renderApp = (app: (typeof APPS)[number]) => {
     const ok = canOpen(acct, app.tier);
     return (
-      <ShopButton variant="bare" key={app.id} onClick={() => (ok && app.id === "dashboard" ? nav({ to: "/dashboard" }) : ok && app.id === "payroll" ? nav({ to: "/payroll" }) : ok && app.id === "summary" ? nav({ to: "/summary" }) : ok && app.id === "settings" ? nav({ to: "/settings" }) : ok && app.id === "reports" ? nav({ to: "/reports" }) : ok && app.id === "inventory" ? nav({ to: "/inventory" }) : ok && app.id === "pos" ? nav({ to: "/pos" }) : ok && app.id === "sales" ? nav({ to: "/sales" }) : openApp(ok, appName(app.id)))}
+      <ShopButton variant="bare" key={app.id} onClick={() => (ok && ROUTES[app.id] ? nav({ to: ROUTES[app.id]! }) : openApp(ok, appName(app.id)))}
         className="h-auto w-full min-w-0 flex-col items-center justify-start gap-2 rounded-none p-0">
         <span className="relative flex aspect-square w-full max-w-[90px] items-center justify-center">
           <span className="block h-full w-full">

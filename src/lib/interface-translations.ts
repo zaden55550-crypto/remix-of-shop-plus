@@ -491,6 +491,97 @@ Year|Mwaka|Année|سنة|Año|Ano|Jahr|Anno|年|वर्ष
 Summary|Muhtasari|Résumé|ملخص|Resumen|Resumo|Zusammenfassung|Riepilogo|摘要|सारांश
 Settings|Mipangilio|Paramètres|الإعدادات|Configuración|Configurações|Einstellungen|Impostazioni|设置|सेटिंग्स
 BACKUP RESTORED|NAKALA YA AKIBA IMEREJESHWA|SAUVEGARDE RESTAURÉE|تمت استعادة النسخة الاحتياطية|COPIA DE SEGURIDAD RESTAURADA|BACKUP RESTAURADO|SICHERUNG WIEDERHERGESTELLT|BACKUP RIPRISTINATO|备份已恢复|बैकअप बहाल हो गया
+Accounting|Uhasibu|Comptabilité|المحاسبة|Contabilidad|Contabilidade|Buchhaltung|Contabilità|会计|लेखा
+Add expense|Ongeza gharama|Ajouter une dépense|إضافة مصروف|Añadir gasto|Adicionar despesa|Ausgabe hinzufügen|Aggiungi spesa|添加支出|खर्च जोड़ें
+Airtime|Muda wa maongezi|Crédit téléphonique|رصيد الهاتف|Saldo telefónico|Crédito de celular|Guthaben|Ricarica telefonica|话费|टॉकटाइम
+Amount paid|Kiasi kilicholipwa|Montant payé|المبلغ المدفوع|Importe pagado|Valor pago|Gezahlter Betrag|Importo pagato|已付金额|भुगतान की गई राशि
+Asset|Mali|Actif|أصل|Activo|Ativo|Vermögenswert|Attività|资产|परिसंपत्ति
+Assets|Mali|Actifs|الأصول|Activos|Ativos|Vermögen|Attività|资产|परिसंपत्तियाँ
+Balance sheet|Mizania|Bilan|الميزانية العمومية|Balance general|Balanço patrimonial|Bilanz|Stato patrimoniale|资产负债表|तुलन पत्र
+Balances update automatically from sales, debt payments, purchases, expenses, payroll and returns.|Salio husasishwa kiotomatiki kutoka mauzo, malipo ya madeni, manunuzi, gharama, mishahara na marejesho.|Les soldes se mettent à jour automatiquement avec les ventes, paiements de dettes, achats, dépenses, salaires et retours.|تتحدث الأرصدة تلقائيًا من المبيعات وسداد الديون والمشتريات والمصروفات والرواتب والمرتجعات.|Los saldos se actualizan automáticamente con ventas, cobros de deudas, compras, gastos, nómina y devoluciones.|Os saldos atualizam automaticamente com vendas, pagamentos de dívidas, compras, despesas, folha e devoluções.|Salden aktualisieren sich automatisch aus Verkäufen, Schuldzahlungen, Einkäufen, Ausgaben, Lohn und Retouren.|I saldi si aggiornano automaticamente da vendite, incassi crediti, acquisti, spese, stipendi e resi.|余额会根据销售、收款、采购、支出、工资和退货自动更新。|बिक्री, कर्ज़ भुगतान, खरीद, खर्च, वेतन और वापसी से शेष अपने आप अपडेट होते हैं।
+By category|Kwa aina|Par catégorie|حسب الفئة|Por categoría|Por categoria|Nach Kategorie|Per categoria|按类别|श्रेणी अनुसार
+Choose contact|Chagua mwasiliani|Choisir un contact|اختر جهة اتصال|Elegir contacto|Escolher contato|Kontakt wählen|Scegli contatto|选择联系人|संपर्क चुनें
+Choose purchase|Chagua manunuzi|Choisir un achat|اختر عملية شراء|Elegir compra|Escolher compra|Einkauf wählen|Scegli acquisto|选择采购单|खरीद चुनें
+Confirm purchase|Thibitisha manunuzi|Confirmer l'achat|تأكيد الشراء|Confirmar compra|Confirmar compra|Einkauf bestätigen|Conferma acquisto|确认采购|खरीद की पुष्टि करें
+Contacts|Mawasiliano|Contacts|جهات الاتصال|Contactos|Contatos|Kontakte|Contatti|联系人|संपर्क
+Cost|Gharama|Coût|التكلفة|Costo|Custo|Kosten|Costo|成本|लागत
+Cost of goods sold|Gharama ya bidhaa zilizouzwa|Coût des marchandises vendues|تكلفة البضاعة المباعة|Costo de ventas|Custo das mercadorias vendidas|Wareneinsatz|Costo del venduto|销售成本|बेचे गए माल की लागत
+Debt|Deni|Dette|دين|Deuda|Dívida|Schuld|Debito|欠款|कर्ज़
+Deposit|Weka|Dépôt|إيداع|Depósito|Depósito|Einzahlung|Deposito|存入|जमा
+Deposit or withdraw|Weka au toa|Déposer ou retirer|إيداع أو سحب|Depositar o retirar|Depositar ou sacar|Einzahlen oder abheben|Deposita o preleva|存入或取出|जमा या निकासी
+Electricity|Umeme|Électricité|الكهرباء|Electricidad|Eletricidade|Strom|Elettricità|电费|बिजली
+Entries|Maingizo|Écritures|القيود|Asientos|Lançamentos|Einträge|Registrazioni|条目|प्रविष्टियाँ
+Equity|Mtaji|Capitaux propres|حقوق الملكية|Patrimonio|Patrimônio|Eigenkapital|Patrimonio netto|权益|पूंजी
+Expense|Gharama|Dépense|مصروف|Gasto|Despesa|Ausgabe|Spesa|支出|खर्च
+Expense recorded|Gharama imerekodiwa|Dépense enregistrée|تم تسجيل المصروف|Gasto registrado|Despesa registrada|Ausgabe erfasst|Spesa registrata|支出已记录|खर्च दर्ज हुआ
+Float|Akiba ya fedha|Trésorerie|السيولة|Fondos|Caixa|Kassenbestand|Liquidità|资金|फ़्लोट
+In|Ndani|Entrées|داخل|Entradas|Entradas|Ein|Entrate|收入|आया
+Internet|Intaneti|Internet|الإنترنت|Internet|Internet|Internet|Internet|网络费|इंटरनेट
+Items|Bidhaa|Articles|العناصر|Artículos|Itens|Artikel|Articoli|商品|वस्तुएँ
+Journal|Daftari la kumbukumbu|Journal|دفتر اليومية|Diario|Diário|Journal|Libro giornale|日记账|जर्नल
+Liabilities|Madeni|Passifs|الالتزامات|Pasivos|Passivos|Verbindlichkeiten|Passività|负债|देनदारियाँ
+M-Pesa|M-Pesa|M-Pesa|M-Pesa|M-Pesa|M-Pesa|M-Pesa|M-Pesa|M-Pesa|M-Pesa
+Money in and out|Pesa iliyoingia na kutoka|Entrées et sorties d'argent|الأموال الداخلة والخارجة|Dinero que entra y sale|Dinheiro que entra e sai|Geld rein und raus|Entrate e uscite|资金进出|पैसा आया और गया
+Move money|Hamisha pesa|Déplacer de l'argent|نقل الأموال|Mover dinero|Mover dinheiro|Geld bewegen|Sposta denaro|调拨资金|पैसा ले जाएँ
+Net profit|Faida halisi|Bénéfice net|صافي الربح|Beneficio neto|Lucro líquido|Nettogewinn|Utile netto|净利润|शुद्ध लाभ
+New purchase|Manunuzi mapya|Nouvel achat|شراء جديد|Nueva compra|Nova compra|Neuer Einkauf|Nuovo acquisto|新采购|नई खरीद
+No expenses yet|Hakuna gharama bado|Aucune dépense|لا توجد مصروفات بعد|Aún no hay gastos|Nenhuma despesa ainda|Noch keine Ausgaben|Nessuna spesa|暂无支出|अभी कोई खर्च नहीं
+No purchases yet|Hakuna manunuzi bado|Aucun achat|لا توجد مشتريات بعد|Aún no hay compras|Nenhuma compra ainda|Noch keine Einkäufe|Nessun acquisto|暂无采购|अभी कोई खरीद नहीं
+No records yet|Hakuna rekodi bado|Aucun enregistrement|لا توجد سجلات بعد|Aún no hay registros|Nenhum registro ainda|Noch keine Einträge|Nessun record|暂无记录|अभी कोई रिकॉर्ड नहीं
+No supplier|Hakuna msambazaji|Aucun fournisseur|بدون مورد|Sin proveedor|Sem fornecedor|Kein Lieferant|Nessun fornitore|无供应商|कोई आपूर्तिकर्ता नहीं
+No suppliers yet|Hakuna wasambazaji bado|Aucun fournisseur|لا يوجد موردون بعد|Aún no hay proveedores|Nenhum fornecedor ainda|Noch keine Lieferanten|Nessun fornitore|暂无供应商|अभी कोई आपूर्तिकर्ता नहीं
+Note (optional)|Maelezo (si lazima)|Note (facultatif)|ملاحظة (اختياري)|Nota (opcional)|Nota (opcional)|Notiz (optional)|Nota (facoltativa)|备注（可选）|नोट (वैकल्पिक)
+Orders|Oda|Commandes|الطلبات|Pedidos|Pedidos|Bestellungen|Ordini|订单|ऑर्डर
+Owed to supplier|Deni kwa msambazaji|Dû au fournisseur|مستحق للمورد|Debido al proveedor|Devido ao fornecedor|Lieferant geschuldet|Dovuto al fornitore|欠供应商|आपूर्तिकर्ता का बकाया
+Owner equity|Mtaji wa mmiliki|Capital du propriétaire|حقوق المالك|Capital del propietario|Capital do proprietário|Eigenkapital des Inhabers|Capitale del titolare|所有者权益|मालिक की पूंजी
+Pay supplier|Lipa msambazaji|Payer le fournisseur|الدفع للمورد|Pagar al proveedor|Pagar fornecedor|Lieferant bezahlen|Paga fornitore|支付供应商|आपूर्तिकर्ता को भुगतान
+Payroll payment|Malipo ya mishahara|Paiement des salaires|دفع الرواتب|Pago de nómina|Pagamento da folha|Lohnzahlung|Pagamento stipendi|工资支付|वेतन भुगतान
+Product not found. Add it in Inventory first.|Bidhaa haikupatikana. Iongeze kwanza kwenye Stoo.|Produit introuvable. Ajoutez-le d'abord dans l'inventaire.|المنتج غير موجود. أضفه أولاً في المخزون.|Producto no encontrado. Añádelo primero en Inventario.|Produto não encontrado. Adicione primeiro no Estoque.|Produkt nicht gefunden. Zuerst im Lager anlegen.|Prodotto non trovato. Aggiungilo prima in Inventario.|未找到商品。请先在库存中添加。|उत्पाद नहीं मिला। पहले इन्वेंटरी में जोड़ें।
+Profit & loss|Faida na hasara|Compte de résultat|الأرباح والخسائر|Pérdidas y ganancias|Lucros e perdas|Gewinn und Verlust|Conto economico|损益表|लाभ और हानि
+Purchase recorded|Manunuzi yamerekodiwa|Achat enregistré|تم تسجيل الشراء|Compra registrada|Compra registrada|Einkauf erfasst|Acquisto registrato|采购已记录|खरीद दर्ज हुई
+Receive payment|Pokea malipo|Encaisser|استلام دفعة|Recibir pago|Receber pagamento|Zahlung erhalten|Incassa pagamento|收款|भुगतान लें
+Reduce amount owed|Punguza deni|Réduire le montant dû|تخفيض المبلغ المستحق|Reducir lo adeudado|Reduzir valor devido|Schuld verringern|Riduci il dovuto|减少欠款|बकाया घटाएँ
+Rent|Kodi ya nyumba|Loyer|الإيجار|Alquiler|Aluguel|Miete|Affitto|租金|किराया
+Repairs|Matengenezo|Réparations|الإصلاحات|Reparaciones|Reparos|Reparaturen|Riparazioni|维修|मरम्मत
+Retained profit|Faida iliyobaki|Bénéfices non distribués|الأرباح المحتجزة|Beneficio retenido|Lucro retido|Einbehaltener Gewinn|Utile trattenuto|留存利润|प्रतिधारित लाभ
+Return to supplier|Rudisha kwa msambazaji|Retour au fournisseur|إرجاع إلى المورد|Devolver al proveedor|Devolver ao fornecedor|An Lieferant zurück|Reso al fornitore|退货给供应商|आपूर्तिकर्ता को वापसी
+Supplier payment|Malipo kwa msambazaji|Paiement fournisseur|دفعة للمورد|Pago a proveedor|Pagamento a fornecedor|Lieferantenzahlung|Pagamento fornitore|供应商付款|आपूर्तिकर्ता भुगतान
+Supplier refund|Marejesho kutoka kwa msambazaji|Remboursement fournisseur|استرداد من المورد|Reembolso de proveedor|Reembolso do fornecedor|Lieferantenerstattung|Rimborso fornitore|供应商退款|आपूर्तिकर्ता धनवापसी
+Salaries & commission|Mishahara na kamisheni|Salaires et commissions|الرواتب والعمولات|Salarios y comisiones|Salários e comissões|Löhne und Provisionen|Stipendi e provvigioni|工资和佣金|वेतन और कमीशन
+Salaries payable|Mishahara inayodaiwa|Salaires à payer|رواتب مستحقة|Salarios por pagar|Salários a pagar|Offene Löhne|Stipendi da pagare|应付工资|देय वेतन
+Save expense|Hifadhi gharama|Enregistrer la dépense|حفظ المصروف|Guardar gasto|Salvar despesa|Ausgabe speichern|Salva spesa|保存支出|खर्च सहेजें
+Search or scan products to add|Tafuta au skani bidhaa kuongeza|Recherchez ou scannez des produits|ابحث أو امسح المنتجات لإضافتها|Busca o escanea productos para añadir|Pesquise ou escaneie produtos|Produkte suchen oder scannen|Cerca o scansiona prodotti|搜索或扫描商品添加|जोड़ने के लिए उत्पाद खोजें या स्कैन करें
+Statement|Taarifa ya akaunti|Relevé|كشف الحساب|Estado de cuenta|Extrato|Kontoauszug|Estratto conto|对账单|विवरण
+Statements|Taarifa za akaunti|Relevés|كشوف الحساب|Estados de cuenta|Extratos|Kontoauszüge|Estratti conto|对账单|विवरण
+Stock adjustments|Marekebisho ya stoo|Ajustements de stock|تسويات المخزون|Ajustes de inventario|Ajustes de estoque|Bestandskorrekturen|Rettifiche magazzino|库存调整|स्टॉक समायोजन
+Supplier|Msambazaji|Fournisseur|المورد|Proveedor|Fornecedor|Lieferant|Fornitore|供应商|आपूर्तिकर्ता
+Supplier added|Msambazaji ameongezwa|Fournisseur ajouté|تمت إضافة المورد|Proveedor añadido|Fornecedor adicionado|Lieferant hinzugefügt|Fornitore aggiunto|已添加供应商|आपूर्तिकर्ता जोड़ा गया
+Supplier name|Jina la msambazaji|Nom du fournisseur|اسم المورد|Nombre del proveedor|Nome do fornecedor|Lieferantenname|Nome fornitore|供应商名称|आपूर्तिकर्ता का नाम
+Suppliers|Wasambazaji|Fournisseurs|الموردون|Proveedores|Fornecedores|Lieferanten|Fornitori|供应商|आपूर्तिकर्ता
+Supplies|Vifaa|Fournitures|اللوازم|Suministros|Suprimentos|Verbrauchsmaterial|Forniture|耗材|सामग्री
+Top category|Aina kuu|Catégorie principale|الفئة الأعلى|Categoría principal|Categoria principal|Top-Kategorie|Categoria principale|最大类别|शीर्ष श्रेणी
+Transfer|Hamisho|Virement|تحويل|Transferencia|Transferência|Überweisung|Trasferimento|转账|स्थानांतरण
+Transfer between accounts|Hamisha kati ya akaunti|Virement entre comptes|تحويل بين الحسابات|Transferir entre cuentas|Transferir entre contas|Zwischen Konten übertragen|Trasferisci tra conti|账户间转账|खातों के बीच स्थानांतरण
+Transfer recorded|Hamisho limerekodiwa|Virement enregistré|تم تسجيل التحويل|Transferencia registrada|Transferência registrada|Überweisung erfasst|Trasferimento registrato|转账已记录|स्थानांतरण दर्ज हुआ
+Transport|Usafiri|Transport|النقل|Transporte|Transporte|Transport|Trasporto|交通|परिवहन
+Trial balance|Mizani ya majaribio|Balance de vérification|ميزان المراجعة|Balance de comprobación|Balancete|Saldenbilanz|Bilancio di verifica|试算平衡表|तलपट
+Update product buying price|Sasisha bei ya kununua|Mettre à jour le prix d'achat|تحديث سعر الشراء|Actualizar precio de compra|Atualizar preço de compra|Einkaufspreis aktualisieren|Aggiorna prezzo d'acquisto|更新进货价|खरीद मूल्य अपडेट करें
+Water|Maji|Eau|الماء|Agua|Água|Wasser|Acqua|水费|पानी
+Withdrawal|Toa|Retrait|سحب|Retiro|Saque|Abhebung|Prelievo|取出|निकासी
+Books balance|Hesabu zinalingana|Les comptes sont équilibrés|الدفاتر متوازنة|Los libros cuadran|Os livros fecham|Bücher sind ausgeglichen|I conti quadrano|账目平衡|खाते संतुलित हैं
+Books do not balance|Hesabu hazilingani|Les comptes ne sont pas équilibrés|الدفاتر غير متوازنة|Los libros no cuadran|Os livros não fecham|Bücher nicht ausgeglichen|I conti non quadrano|账目不平衡|खाते संतुलित नहीं हैं
+Camera permission is needed for barcode scanning. Allow camera access in your browser settings, or type the barcode or search instead.|Ruhusa ya kamera inahitajika kuskani msimbopau. Ruhusu kamera kwenye mipangilio ya kivinjari, au andika msimbopau au tafuta.|L'accès à la caméra est nécessaire pour scanner. Autorisez-le dans les réglages du navigateur, ou saisissez le code-barres ou recherchez.|يلزم إذن الكاميرا لمسح الباركود. اسمح بالوصول في إعدادات المتصفح، أو اكتب الباركود أو ابحث.|Se necesita permiso de cámara para escanear. Permítelo en los ajustes del navegador, o escribe el código o busca.|É preciso permissão da câmera para escanear. Permita nas configurações do navegador, ou digite o código ou pesquise.|Für das Scannen ist Kamerazugriff nötig. Erlauben Sie ihn in den Browsereinstellungen oder geben Sie den Barcode ein bzw. suchen Sie.|Serve il permesso della fotocamera per scansionare. Consentilo nelle impostazioni del browser, oppure digita il codice o cerca.|扫码需要相机权限。请在浏览器设置中允许，或手动输入条码或搜索。|बारकोड स्कैन के लिए कैमरा अनुमति चाहिए। ब्राउज़र सेटिंग्स में अनुमति दें, या बारकोड लिखें या खोजें।
+Enter a supplier name|Weka jina la msambazaji|Saisissez un nom de fournisseur|أدخل اسم المورد|Introduce un nombre de proveedor|Informe o nome do fornecedor|Lieferantennamen eingeben|Inserisci il nome del fornitore|请输入供应商名称|आपूर्तिकर्ता का नाम दर्ज करें
+Add products to the purchase|Ongeza bidhaa kwenye manunuzi|Ajoutez des produits à l'achat|أضف منتجات إلى الشراء|Añade productos a la compra|Adicione produtos à compra|Produkte zum Einkauf hinzufügen|Aggiungi prodotti all'acquisto|请向采购单添加商品|खरीद में उत्पाद जोड़ें
+Credit needs a supplier|Mkopo unahitaji msambazaji|Le crédit nécessite un fournisseur|الآجل يتطلب موردًا|El crédito requiere un proveedor|Crédito exige um fornecedor|Kredit erfordert einen Lieferanten|Il credito richiede un fornitore|赊购需要选择供应商|उधार के लिए आपूर्तिकर्ता चाहिए
+Supplier credit needs a supplier|Mkopo wa msambazaji unahitaji msambazaji|Le crédit fournisseur nécessite un fournisseur|رصيد المورد يتطلب موردًا|El crédito del proveedor requiere un proveedor|Crédito do fornecedor exige um fornecedor|Lieferantengutschrift erfordert Lieferanten|Il credito fornitore richiede un fornitore|供应商抵扣需要供应商|आपूर्तिकर्ता क्रेडिट के लिए आपूर्तिकर्ता चाहिए
+Choose a category|Chagua aina|Choisissez une catégorie|اختر فئة|Elige una categoría|Escolha uma categoria|Kategorie wählen|Scegli una categoria|请选择类别|श्रेणी चुनें
+Category already exists|Aina tayari ipo|La catégorie existe déjà|الفئة موجودة بالفعل|La categoría ya existe|A categoria já existe|Kategorie existiert bereits|La categoria esiste già|类别已存在|श्रेणी पहले से है
+Choose two different accounts|Chagua akaunti mbili tofauti|Choisissez deux comptes différents|اختر حسابين مختلفين|Elige dos cuentas distintas|Escolha duas contas diferentes|Zwei verschiedene Konten wählen|Scegli due conti diversi|请选择两个不同账户|दो अलग खाते चुनें
+Not enough money in M-Pesa|Pesa haitoshi kwenye M-Pesa|Fonds insuffisants sur M-Pesa|لا يوجد رصيد كافٍ في M-Pesa|Saldo insuficiente en M-Pesa|Saldo insuficiente no M-Pesa|Nicht genug Geld auf M-Pesa|Fondi insufficienti su M-Pesa|M-Pesa 余额不足|M-Pesa में पर्याप्त पैसा नहीं
+Not enough money in Bank|Pesa haitoshi benki|Fonds insuffisants en banque|لا يوجد رصيد كافٍ في البنك|Saldo insuficiente en el banco|Saldo insuficiente no banco|Nicht genug Geld auf der Bank|Fondi insufficienti in banca|银行余额不足|बैंक में पर्याप्त पैसा नहीं
+Purchase not found|Manunuzi hayakupatikana|Achat introuvable|الشراء غير موجود|Compra no encontrada|Compra não encontrada|Einkauf nicht gefunden|Acquisto non trovato|未找到采购单|खरीद नहीं मिली
+Supplier not found|Msambazaji hakupatikana|Fournisseur introuvable|المورد غير موجود|Proveedor no encontrado|Fornecedor não encontrado|Lieferant nicht gefunden|Fornitore non trovato|未找到供应商|आपूर्तिकर्ता नहीं मिला
 `.trim().split('\n').map(row => row.split('|'));
 
 const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));

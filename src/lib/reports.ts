@@ -19,7 +19,7 @@ export function buildReport(s: ErpState, type: ReportType | "Overview", { from, 
   const stock = s.products.reduce((a, p) => a + p.qty * p.buy, 0);
   const comm = s.commissions.filter((x) => inR(x.at));
   if (type === "Overview") return { title: "Recent sales", money: true,
-    kpis: [{ label: "Sales", value: r2(gross - returned), money: true }, { label: "Gross profit", value: r2(kept - cogs), money: true }, { label: "Returns", value: r2(returned), money: true }, { label: "Stock", value: r2(stock), money: true }, { label: "Expenses", value: null, money: true }],
+    kpis: [{ label: "Sales", value: r2(gross - returned), money: true }, { label: "Gross profit", value: r2(kept - cogs), money: true }, { label: "Returns", value: r2(returned), money: true }, { label: "Stock", value: r2(stock), money: true }, { label: "Expenses", value: r2(s.expenses.filter((x) => inR(x.at)).reduce((a, x) => a + x.amount, 0)), money: true }],
     rows: sales.slice(0, 10).map((x) => ({ label: x.ref, value: x.total, note: returnStatus(x) === "NOT RETURNED" ? undefined : returnStatus(x) })) };
   if (type === "Sales") {
     const byP = new Map<string, number>();
@@ -32,7 +32,7 @@ export function buildReport(s: ErpState, type: ReportType | "Overview", { from, 
     kpis: [{ label: "Products", value: s.products.length, money: false }, { label: "Stock value", value: r2(stock), money: true }, { label: "Low stock", value: s.products.filter((p) => p.qty > 0 && p.qty <= (p.minStock ?? 0)).length, money: false }, { label: "Out of stock", value: s.products.filter((p) => p.qty <= 0).length, money: false }],
     rows: s.products.map((p) => ({ label: `${p.name} × ${p.qty}`, value: r2(p.qty * p.buy) })) };
   if (type === "Returns") return { title: "Returns history", money: true,
-    kpis: [{ label: "Sales returns", value: rets.length, money: false }, { label: "Purchase returns", value: null, money: false }, { label: "Refunded", value: r2(rets.filter((x) => x.refund !== "credit").reduce((a, x) => a + x.amount, 0)), money: true }, { label: "Credit", value: r2(rets.filter((x) => x.refund === "credit").reduce((a, x) => a + x.amount, 0)), money: true }],
+    kpis: [{ label: "Sales returns", value: rets.length, money: false }, { label: "Purchase returns", value: s.purchaseReturns.filter((x) => inR(x.at)).length, money: false }, { label: "Refunded", value: r2(rets.filter((x) => x.refund !== "credit").reduce((a, x) => a + x.amount, 0)), money: true }, { label: "Credit", value: r2(rets.filter((x) => x.refund === "credit").reduce((a, x) => a + x.amount, 0)), money: true }],
     rows: rets.map((x) => ({ label: `${x.ref} • ${x.saleRef}`, value: x.amount, note: x.refund === "credit" ? "Customer credit" : undefined })) };
   const byE = new Map<string, number>();
   comm.forEach((x) => byE.set(x.employeeId, (byE.get(x.employeeId) ?? 0) + x.amount));
