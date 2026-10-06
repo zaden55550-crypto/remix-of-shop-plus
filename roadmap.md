@@ -17,3 +17,6 @@
 - [x] Translate all working ERP screens in ten languages (Inventory, Sales, POS and POS Cash; Purchases/Float are not implemented)
 - [x] Enforce compact one-row KPIs globally with shared components
 - [x] Add and verify AI reorder recommendations from supplied sales/stock data (Inventory → Reports → AI Reorder)
+- [x] Phase 2.9 Returns: return status per sale, returns KPI row, commission adjustment on return (purchase returns and supplier refunds wait for Purchases; mixed refunds pending)
+- [x] Phase 2.10 Payroll: employees, salary/commission rules, seller at checkout, payroll runs, partial payments (product-specific rules, payroll accounting entries and staff permissions pending)
+- [x] Phase 2.11 Reports: overview, sales, inventory, returns, commission, builder with date range, saved reports, CSV export (charts/PDF pending)
