@@ -413,7 +413,7 @@ export function SalesReport({ s, money, tr, onlyChannel }: SCtx & { onlyChannel?
         <Kpi label={tr("Gross profit")} value={money(st.profit)} />
       </KpiRow>
       <Title>{tr("By payment")}</Title>
-      {erp.METHODS.map((m) => <div key={m} className="flex justify-between border-b border-border py-2 text-sm"><span>{tr(erp.METHOD_LABEL[m])}</span><span>{money(st.byMethod[m])}</span></div>)}
+      <KpiRow>{erp.METHODS.map((m) => <Kpi key={m} label={tr(erp.METHOD_LABEL[m])} value={money(st.byMethod[m])} />)}</KpiRow>
       <Title>{tr("Top products")}</Title>
       {st.top.length ? st.top.map(([n, q]) => <div key={n} className="flex justify-between border-b border-border py-2 text-sm"><span>{n}</span><span>{q}</span></div>) : <Empty>{tr("No sales yet")}</Empty>}
     </div>
