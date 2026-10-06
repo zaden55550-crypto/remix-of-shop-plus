@@ -6,6 +6,7 @@ import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { APPS, canOpen, chatIcons, store, trialDaysLeft, type Account } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
+import { HelpChat } from "@/components/shopbook/help-chat";
 import { useLanguage } from "@/hooks/use-language";
 import { getT, LANGS, NATIVE, SUPPORT, type TKey } from "@/lib/i18n";
 
@@ -37,6 +38,7 @@ function Apps() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [panel, setPanel] = useState<null | "profile" | "language" | "currency" | "help">(null);
   const [faq, setFaq] = useState<number | null>(null);
+  const [chat, setChat] = useState(false);
   const pick = (p: Partial<Account>) => { store.update(p); setAcct((a) => (a ? { ...a, ...p } : a)); toast.success(getT(p.language ?? acct?.language).t("saved")); };
 
   useEffect(() => {
@@ -111,7 +113,7 @@ function Apps() {
         {SETTINGS_APP && <div className="mx-auto w-[calc((100%-1.5rem)/4)]">{renderApp(SETTINGS_APP)}</div>}
       </div>
 
-      <ShopButton variant="bare" aria-label={tr("AI assistant")} onClick={() => toast(t("aiSoon"))}
+      <ShopButton variant="bare" aria-label={tr("AI assistant")} onClick={() => setChat(true)}
         className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] flex flex-col items-center">
         <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-14 w-14 rounded-full" />
       </ShopButton>
@@ -187,6 +189,7 @@ function Apps() {
                       ))}
                     </div>
                     <div className="font-bold">{t("contact")}</div>
+                    <ShopButton onClick={() => { setMenuOpen(false); setChat(true); }} className="gap-2"><MessageCircle className="h-4 w-4" />{tr("Chat with support")}</ShopButton>
                     <a href={`mailto:${SUPPORT.email}?subject=${encodeURIComponent(`SHOPBOOK support – ${acct.shopName}`)}`}
                       className="flex items-center gap-3 rounded-xl border border-border px-3 py-2.5 hover:bg-muted">
                       <Mail className="h-4 w-4 text-primary" /><span className="min-w-0"><span className="block font-medium">{t("emailSupport")}</span><span className="block truncate text-xs text-muted-foreground">{SUPPORT.email}</span></span>
@@ -210,6 +213,8 @@ function Apps() {
           </div>
         </div>
       )}
+
+      <HelpChat open={chat} onClose={() => setChat(false)} shopName={acct.shopName} email={acct.email} icon={dark ? chatIcons.dark : chatIcons.light} />
 
       {locked && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 px-6 backdrop-blur-sm" onClick={() => setLocked(null)}>
