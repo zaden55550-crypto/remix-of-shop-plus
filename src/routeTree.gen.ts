@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppsRouteImport } from './routes/apps'
+import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as InventoryRouteImport } from './routes/inventory'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
@@ -26,6 +27,11 @@ const IndexRoute = IndexRouteImport.update({
 const AppsRoute = AppsRouteImport.update({
   id: '/apps',
   path: '/apps',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryRoute = InventoryRouteImport.update({
@@ -62,6 +68,7 @@ const ApiReorderRoute = ApiReorderRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
+  '/dashboard': typeof DashboardRoute
   '/inventory': typeof InventoryRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
@@ -72,6 +79,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
+  '/dashboard': typeof DashboardRoute
   '/inventory': typeof InventoryRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
@@ -83,6 +91,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/apps': typeof AppsRoute
+  '/dashboard': typeof DashboardRoute
   '/inventory': typeof InventoryRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/apps'
+    | '/dashboard'
     | '/inventory'
     | '/plans'
     | '/pos'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/apps'
+    | '/dashboard'
     | '/inventory'
     | '/plans'
     | '/pos'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/apps'
+    | '/dashboard'
     | '/inventory'
     | '/plans'
     | '/pos'
@@ -126,6 +138,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppsRoute: typeof AppsRoute
+  DashboardRoute: typeof DashboardRoute
   InventoryRoute: typeof InventoryRoute
   PlansRoute: typeof PlansRoute
   PosRoute: typeof PosRoute
@@ -148,6 +161,13 @@ declare module '@tanstack/react-router' {
       path: '/apps'
       fullPath: '/apps'
       preLoaderRoute: typeof AppsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inventory': {
@@ -198,6 +218,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppsRoute: AppsRoute,
+  DashboardRoute: DashboardRoute,
   InventoryRoute: InventoryRoute,
   PlansRoute: PlansRoute,
   PosRoute: PosRoute,
