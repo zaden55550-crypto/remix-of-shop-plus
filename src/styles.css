@@ -300,3 +300,35 @@
 .pos-tx-head { font-size: 9px; font-weight: 700; color: var(--muted-foreground); }
 .pos-tx > span:nth-child(5) { text-align: end; }
 .inventory-screen .inventory-tab.pay-on { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+
+/* Accounting and Float retain the reference's tiny, single-line density. */
+.money-screen { font-size: 10px; line-height: 1.35; }
+.money-screen .kpi-row { margin-top: 3px; scrollbar-width: none; }
+.money-screen .kpi-item { padding: 6px 5px; gap: 3px; }
+.money-screen .kpi-icon svg { width: 13px; height: 13px; color: var(--primary); }
+.money-screen .kpi-item p:first-child { font-size: 8px; }
+.money-screen .kpi-item p:last-child { font-size: 9px; margin-top: 2px; }
+.money-heading { margin: 12px 0 4px; font-size: 10px; font-weight: 700; color: var(--primary); }
+.money-line { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 10px; }
+.money-line > :first-child { min-width: 0; }
+.money-line > :last-child { white-space: nowrap; }
+.inventory-screen .money-record { display: flex; justify-content: flex-start; width: 100%; height: 28px; min-height: 28px; border-radius: 0; border-bottom: 1px solid var(--border); padding: 4px 0; gap: 7px; overflow-x: auto; scrollbar-width: none; font-size: 9px; font-weight: 400; white-space: nowrap; }
+.money-record > * { flex-shrink: 0; }
+.money-record .pur-name { flex: 1 1 auto; min-width: 80px; }
+.money-record .pur-muted { font-size: 8px; }
+.money-record svg { margin-inline-start: auto; }
+.money-period { display: flex; justify-content: flex-end; margin-top: 6px; }
+.money-screen .money-period select { width: 90px; height: 25px; font-size: 9px; padding-inline: 5px; }
+.money-balance-strip { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; padding: 5px 0; scrollbar-width: none; }
+.money-balance-strip > div { flex: 1 0 auto; display: grid; gap: 3px; font-size: 8px; white-space: nowrap; }
+.money-balance-strip b { font-size: 9px; font-variant-numeric: tabular-nums; }
+.money-link { display: block; font-size: 10px; padding-block: 9px; color: var(--primary); }
+.money-trial { display: grid; grid-template-columns: minmax(110px,1fr) auto auto; gap: 10px; font-size: 9px; padding: 5px 0; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.money-trial > :not(:first-child) { white-space: nowrap; }
+.money-audit { display: flex; gap: 8px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--border); padding: 6px 0; font-size: 9px; scrollbar-width: none; }
+.money-audit > * { flex-shrink: 0; }
+.money-dialog { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: color-mix(in oklab, var(--background) 88%, transparent); padding: 10px; }
+.money-dialog-body { width: 100%; max-width: 410px; max-height: 90dvh; overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 10px; }
+.inventory-screen .money-small-action { height: 24px; width: auto; padding: 0; font-size: 9px; color: var(--primary); }
+.money-screen .inventory-save { font-size: 10px; height: 29px; }
+.money-screen .inventory-input { font-size: 10px; height: 29px; }
