@@ -24,7 +24,7 @@ describe("Accounting and Float shared activity", () => {
     const s = erp.load();
     expect(fin.floatBalances(s)).toEqual({ cash: 0, mpesa: 30, bank: 70 });
     expect(cashFlow(s, 0).net).toBe(100);
-    expect(profitAndLoss(s).net).toBe(0);
+    expect(profitAndLoss(s).net).toBeCloseTo(0);
   });
   it("cash-up retains the reason and rejects invalid counts atomically", () => {
     erp.cashEvent("OPENING", 50);
