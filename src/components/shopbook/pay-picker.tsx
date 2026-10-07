@@ -23,7 +23,7 @@ export function payRecord(p: PayState, total: number): Record<Method, number> {
 export const paidOf = (pay: Record<Method, number>) => pay.cash + pay.mpesa + pay.bank;
 
 export function PayPicker({ value, onChange, total, money, tr, allowCredit = true, creditNote }: {
-  value: PayState; onChange: (p: PayState) => void; total: number; money: (n: number) => string; tr: (t: string) => string; allowCredit?: boolean; creditNote?: string;
+  value: PayState; onChange: (p: PayState) => void; total: number; money: (n: number) => string; tr: (t: string) => string; allowCredit?: boolean; creditNote?: string | undefined;
 }) {
   const pay = payRecord(value, total);
   const paid = paidOf(pay);
