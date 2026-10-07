@@ -5,6 +5,7 @@ import { ChevronLeft, Menu as MenuIcon, Search as SearchIcon } from "lucide-reac
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { lastBackup } from "@/lib/backup";
+import { BackupStatus } from "@/components/shopbook/backup-status";
 import { cn } from "@/lib/utils";
 
 export type Tr = (t: string) => string;
@@ -35,7 +36,7 @@ export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, childre
             </div>}
           </div>
         </div>
-        {!online ? <p className="inventory-backup" role="status"><span className="h-2 w-2 rounded-full bg-warning" />{tr("Offline • saved locally")}</p> : <p className="inventory-backup"><span className={cn("h-2 w-2 rounded-full", lb ? "bg-success" : "bg-warning")} />{lb ? `✓ ${tr("Backed up")} • ${Date.now() - lb < 60000 ? tr("now") : new Date(lb).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : tr("Saved on this device • not backed up yet")}</p>}
+        <BackupStatus />
         <Tabs items={Object.keys(menus)} value={menu} onChange={onMenu} tr={tr} />
         {subs.length > 0 && <Tabs small items={[...subs]} value={sub} onChange={onSub} tr={tr} />}
       </header>

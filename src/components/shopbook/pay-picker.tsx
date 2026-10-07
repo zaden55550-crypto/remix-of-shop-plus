@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/shopbook/erp-shell";
+import { ShopButton } from "@/components/ui/shop-button";
 import type { Method } from "@/lib/erp";
 
 export type PayMode = Method | "ppay";
@@ -22,8 +23,8 @@ export function payRecord(p: PayState, total: number): Record<Method, number> {
 }
 export const paidOf = (pay: Record<Method, number>) => pay.cash + pay.mpesa + pay.bank;
 
-export function PayPicker({ value, onChange, total, money, tr, allowCredit = true, creditNote }: {
-  value: PayState; onChange: (p: PayState) => void; total: number; money: (n: number) => string; tr: (t: string) => string; allowCredit?: boolean; creditNote?: string | undefined;
+export function PayPicker({ value, onChange, total, money, tr, allowCredit = true, allowPartial = allowCredit, creditNote }: {
+  value: PayState; onChange: (p: PayState) => void; total: number; money: (n: number) => string; tr: (t: string) => string; allowCredit?: boolean; allowPartial?: boolean; creditNote?: string | undefined;
 }) {
   const pay = payRecord(value, total);
   const paid = paidOf(pay);
@@ -33,7 +34,7 @@ export function PayPicker({ value, onChange, total, money, tr, allowCredit = tru
   return <div className="grid gap-1.5">
     <p className="inventory-field">{tr("Payment Method")} <span className="text-destructive">*</span></p>
     <div role="radiogroup" className="inventory-tabs inventory-tabs-sub px-0">
-      {PAY_OPTIONS.filter((o) => allowCredit || (o.id !== "credit" && o.id !== "ppay")).map((o) => <button key={o.id} role="radio" aria-checked={value.mode === o.id} onClick={() => onChange({ ...value, mode: o.id })} className={cn("inventory-tab", value.mode === o.id && "pay-on")}>{o.id === "ppay" ? "P.PAY" : tr(o.label)}</button>)}
+      {PAY_OPTIONS.filter((o) => o.id === "credit" ? allowCredit : o.id === "ppay" ? allowPartial : true).map((o) => <ShopButton variant="bare" key={o.id} role="radio" aria-checked={value.mode === o.id} onClick={() => onChange({ ...value, mode: o.id })} className={cn("inventory-tab", value.mode === o.id && "pay-on")}>{o.id === "ppay" ? "P.PAY" : tr(o.label)}</ShopButton>)}
     </div>
     {value.mode === "cash" && <div className="grid grid-cols-2 items-center gap-1.5"><span className="text-[11px]">{tr("Cash received (optional)")}</span><input className="inventory-input" inputMode="decimal" placeholder={String(total)} value={value.received} onChange={(e) => onChange({ ...value, received: e.target.value })} /></div>}
     {value.mode === "ppay" && <div className="inventory-box mt-0 grid gap-1.5">
