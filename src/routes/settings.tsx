@@ -1,138 +1,91 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronRight, Search, Store } from "lucide-react";
 import { toast } from "sonner";
-import { ShopButton } from "@/components/ui/shop-button";
-import { useErp, inputCls } from "@/components/shopbook/product-search";
 import { AppShell, dt, useAccount } from "@/components/shopbook/selling";
-import { ThemeToggle } from "@/components/shopbook/ui";
+import { BackupStatus } from "@/components/shopbook/backup-status";
+import { ImportCenter } from "@/components/shopbook/import-center";
+import { inputCls, useErp } from "@/components/shopbook/product-search";
+import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
-import { APPS, canOpen, store } from "@/lib/shopbook";
+import { APPS, canOpen, PLANS, store } from "@/lib/shopbook";
 import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
-import { cn } from "@/lib/utils";
-import { UI_SIZES, setTax, setUiSize, usePrefs, type UiSize } from "@/lib/prefs";
-import { lovable } from "@/integrations/lovable";
-import { supabase } from "@/integrations/supabase/client";
+import { setTax, usePrefs } from "@/lib/prefs";
+import { useSettings, type SettingsConfig } from "@/lib/settings-config";
 import { useBackupStatus } from "@/lib/cloud-backup";
 import { listCloudBackups, getCloudBackup } from "@/lib/backup.functions";
+import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/settings")({
-  head: () => ({ meta: [
-    { title: "Settings — SHOPBOOK ERP" },
-    { name: "description", content: "Shop details, appearance, language, currency, numbering, backup, restore and audit log." },
-    { property: "og:title", content: "Settings — SHOPBOOK ERP" },
-    { property: "og:description", content: "Configure your SHOPBOOK shop and keep your records backed up." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
-  component: Settings,
-});
+export const Route = createFileRoute("/settings")({ head: () => ({ meta: [
+  { title: "Settings — SHOPBOOK ERP" }, { name: "description", content: "Central SHOPBOOK business, general, AI, finance, operations, appearance, tax, security, integrations and subscription settings." },
+  { property: "og:title", content: "Settings — SHOPBOOK ERP" }, { property: "og:description", content: "Configure SHOPBOOK and safely import business data." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+] }), component: Settings });
 
-const CURRENCIES = ["KSh", "USh", "TSh", "USD"];
-const PREFIXES: [string, string][] = [["S", "Sales"], ["RET", "Returns"], ["PAY", "Payments"], ["PR", "Payroll"]];
+const CATS = ["Business", "General", "AI Setup", "People & Access", "Finance", "Products & Operations", "Appearance", "Tax & Compliance", "Notifications & Communication", "Security & Activity", "Integrations", "Subscription"] as const;
+type Category = (typeof CATS)[number];
+const SUB: Record<Category, string[]> = {
+  Business: ["Business Profile", "Business Type", "Location", "Contact Information", "Owner", "Logo", "Business Hours"],
+  General: ["Language", "Currency", "Date & Time", "Number Format", "Search", "Printing", "System Preferences", "Autosave & Backup", "Import & Data"],
+  "AI Setup": ["AI Assistant", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions", "AI Gateway"],
+  "People & Access": ["Users", "Roles", "Permissions", "Data Access", "Active Users", "Invitations", "Access History"],
+  Finance: ["Accounts", "Payment Methods", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
+  "Products & Operations": ["Product Settings", "Categories", "Brands", "Units", "Pricing", "Buying", "Selling", "Costing", "Barcodes", "Low Stock", "Stock Behavior", "Transfers", "Custom Fields"],
+  Appearance: ["Interface Size", "Text Size", "Icon Size", "Spacing"],
+  "Tax & Compliance": ["VAT", "Tax Settings", "eTIMS", "Receipts", "Documents", "Audit Trail"],
+  "Notifications & Communication": ["Notifications", "WhatsApp", "SMS", "Email", "Customer Communication", "Supplier Communication", "Payment Reminders", "Low Stock Alerts", "Report Notifications"],
+  "Security & Activity": ["Password", "Login Security", "Active Sessions", "Audit Log", "Device Activity", "Security Events", "Account Recovery"],
+  Integrations: ["M-Pesa", "WhatsApp", "SMS", "Email", "eTIMS", "AI Gateway", "Printers", "Backup / Sync"],
+  Subscription: ["Current Plan", "Trial", "Billing", "Usage", "Upgrade", "Payment History", "Plan Features"],
+};
 
 function Settings() {
-  const acct = useAccount("basic");
-  const { tr, language, setLanguage } = useLanguage();
-  const s = useErp();
-  const nav = useNavigate();
-  const [open, setOpen] = useState<string | null>(null);
-  const [shop, setShop] = useState("");
-  const [email, setEmail] = useState("");
-  const [, force] = useState(0);
-  const file = useRef<HTMLInputElement>(null);
-  const prefs = usePrefs();
-  const backup = useBackupStatus();
-  const [cloudRows, setCloudRows] = useState<{ device_id: string; shop_name: string; updated_at: string }[]>([]);
-  const [cloudError, setCloudError] = useState("");
-  const [cloudSignedIn, setCloudSignedIn] = useState(false);
-  useEffect(() => { const f = () => { supabase.auth.getSession().then(({ data }) => setCloudSignedIn(!!data.session)); }; f(); const a = supabase.auth.onAuthStateChange(f); return () => a.data.subscription.unsubscribe(); }, []);
-  useEffect(() => { if (open !== "Data & System" || !cloudSignedIn) return; listCloudBackups().then(setCloudRows).catch((e) => setCloudError(e instanceof Error ? e.message : "Backup unavailable")); }, [open, cloudSignedIn, backup.at]);
-  useEffect(() => { if (acct) { setShop(acct.shopName); setEmail(acct.email); } }, [acct]);
+  const acct = useAccount("basic"), s = useErp(), { tr } = useLanguage(), [query, setQuery] = useState(""), [cat, setCat] = useState<Category | null>(null);
   if (!acct) return <main className="app-screen" />;
-  const save = (patch: Partial<typeof acct>) => { const a = store.get(); if (a) { store.save({ ...a, ...patch }); toast.success(tr("Saved")); force((n) => n + 1); } };
-  const last = lastBackup();
-  const download = () => {
-    const url = URL.createObjectURL(new Blob([backupJson(acct.shopName)], { type: "application/json" }));
-    const a = document.createElement("a"); a.href = url; a.download = `shopbook-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url);
-    force((n) => n + 1);
-  };
-  const restore = async (f: File) => {
-    if (!window.confirm(tr("Replace all records on this device with this backup?"))) return;
-    try { restoreJson(await f.text()); toast.success(tr("Backup restored")); } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); }
-  };
-  const run = (fn: () => void, ok: string) => { try { fn(); toast.success(tr(ok)); force((n) => n + 1); } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); } };
-  const Sec = ({ id, children }: { id: string; children: ReactNode }) => (
-    <div className="border-b border-border">
-      <button className="flex w-full items-center justify-between py-3.5 text-sm font-bold tracking-wide" onClick={() => setOpen(open === id ? null : id)} aria-expanded={open === id}>
-        {tr(id).toUpperCase()}<ChevronDown className={cn("h-4 w-4 transition", open === id && "rotate-180")} />
-      </button>
-      {open === id && <div className="grid gap-2 pb-4 text-sm">{children}</div>}
-    </div>
-  );
-  const L = ({ l, children }: { l: string; children: ReactNode }) => <label className="grid gap-1"><span className="text-xs text-muted-foreground">{tr(l)}</span>{children}</label>;
-  return (
-    <AppShell title="Settings" tabs={[]} tab="" setTab={() => {}}>
-      <Sec id="General">
-        <div className="flex items-center justify-between"><span>{tr("Appearance")}</span><ThemeToggle /></div>
-        <L l="Language"><select className={inputCls} value={language} onChange={(e) => { const l = LANGS.find((x) => x === e.target.value); if (l) setLanguage(l); }}>{LANGS.map((l) => <option key={l} value={l}>{NATIVE[l]}</option>)}</select></L>
-        <L l="Currency"><select className={inputCls} value={store.get()?.currency ?? "KSh"} onChange={(e) => save({ currency: e.target.value })}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></L>
-      </Sec>
-      <Sec id="Appearance">
-        <L l="Interface size"><div className="flex gap-1">{(Object.keys(UI_SIZES) as UiSize[]).map((k) => <button key={k} onClick={() => setUiSize(k)} className={cn("flex-1 rounded-md border border-border py-2 text-xs font-semibold", prefs.size === k && "bg-primary text-primary-foreground")}>{tr(k)}</button>)}</div></L>
-        <p className="text-xs text-muted-foreground">{tr("Makes all text and boxes smaller or larger. Menus and rows stay on one line.")}</p>
-      </Sec>
-      <Sec id="Tax & Compliance">
-        <label className="flex items-center justify-between"><span>{tr("Charge VAT on sales")}</span><input type="checkbox" checked={prefs.tax.on} onChange={(e) => setTax({ ...prefs.tax, on: e.target.checked })} /></label>
-        <L l="VAT rate (%)"><input className={inputCls} inputMode="decimal" defaultValue={prefs.tax.rate} key={prefs.tax.rate} onBlur={(e) => { const r = +e.target.value; if (r >= 0 && r <= 100) { setTax({ ...prefs.tax, rate: r }); toast.success(tr("Saved")); } else toast.error(tr("Enter a rate between 0 and 100")); }} /></L>
-        <p className="text-xs text-muted-foreground">{tr("When on, VAT is added to every new POS and Sales total and shown on receipts. Past sales are not changed.")}</p>
-      </Sec>
-      <Sec id="Business">
-        <L l="Shop Name"><input className={inputCls} value={shop} onChange={(e) => setShop(e.target.value)} /></L>
-        <L l="Email"><input className={inputCls} type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></L>
-        <ShopButton onClick={() => { if (!shop.trim() || !/^\S+@\S+\.\S+$/.test(email.trim())) { toast.error(tr("Enter a valid shop name and email")); return; } save({ shopName: shop.trim().slice(0, 80), email: email.trim() }); }}>{tr("Save")}</ShopButton>
-      </Sec>
-      <Sec id="Users & Access">
-        <p>{acct.shopName} • <b>{tr("Admin")}</b></p>
-        <p className="text-xs text-muted-foreground">{tr("Staff accounts and roles are not available yet.")}</p>
-      </Sec>
-      <Sec id="Features">
-        {APPS.filter((a) => a.id !== "settings").map((a) => <div key={a.id} className="flex justify-between"><span>{tr(a.name)}</span><span className={canOpen(acct, a.tier) ? "text-primary" : "text-muted-foreground"}>{tr(canOpen(acct, a.tier) ? "Included" : "Upgrade Required")}</span></div>)}
-      </Sec>
-      <Sec id="Transaction numbering">
-        {PREFIXES.map(([p, l]) => <div key={p} className="flex justify-between"><span>{tr(l)}</span><span className="tabular-nums text-muted-foreground">{tr("Next")}: {p}-{String((s.seq[p] ?? 0) + 1).padStart(6, "0")}</span></div>)}
-        <p className="text-xs text-muted-foreground">{tr("Numbers are never reused, so records stay traceable.")}</p>
-      </Sec>
-      <Sec id="Data & System">
-        {!cloudSignedIn && <ShopButton onClick={async () => { const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin }); if (r.error) setCloudError(r.error.message); }}>{tr("Sign in with Google for automatic backup")}</ShopButton>}
-        {cloudError && <p className="text-xs text-destructive">{cloudError}</p>}
-        {backup.phase === "failed" && <p className="text-xs text-warning">{tr("Backup pending • saved locally")}</p>}
-        {cloudRows.map((r) => <div key={r.device_id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0 text-xs">{r.shop_name} • {dt(new Date(r.updated_at).getTime())}</span><ShopButton variant="outline" className="h-7 w-auto px-2 text-xs" onClick={async () => { if (!window.confirm(tr("Replace all records on this device with this backup?"))) return; try { restoreJson(await getCloudBackup({ data: { deviceId: r.device_id } })); toast.success(tr("Backup restored")); } catch (e) { setCloudError(e instanceof Error ? e.message : "Restore failed"); } }}>{tr("Restore")}</ShopButton></div>)}
-        <p className="text-xs text-muted-foreground">✓ {tr("Saved on this device")} • {last ? `${tr("Last backup file")}: ${dt(last)}` : tr("No backup file yet")}</p>
-        <ShopButton onClick={download}>{tr("Download backup")}</ShopButton>
-        <input ref={file} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void restore(f); e.target.value = ""; }} />
-        <ShopButton variant="outline" onClick={() => file.current?.click()}>{tr("Restore backup")}</ShopButton>
-        <p className="mt-2 text-xs font-bold uppercase text-muted-foreground">{tr("Audit log")}</p>
-        {s.audit.length === 0 ? <p className="text-xs text-muted-foreground">{tr("No activity yet")}</p> : s.audit.slice(0, 30).map((a) => (
-          <div key={a.id} className="border-b border-border py-1.5 text-xs"><b>{tr(a.action)}</b> • {a.detail}<span className="block text-muted-foreground">{a.user} • {dt(a.at)}</span></div>
-        ))}
-      </Sec>
-      <Sec id="Demo data">
-        <p className="text-xs text-muted-foreground">{tr("Sample electronics shop for testing every app. Real shops start empty.")}</p>
-        {!isDemo() ? (
-          <ShopButton disabled={!isEmptyShop()} onClick={() => run(() => loadDemoData(), "Demo data loaded")}>{tr("Load demo data")}</ShopButton>
-        ) : (<>
-          <ShopButton onClick={() => { if (window.confirm(tr("Reset demo data? A backup is kept first."))) run(() => resetDemoData(acct.shopName), "Demo data reset"); }}>{tr("Reset demo data")}</ShopButton>
-          <ShopButton variant="outline" onClick={() => { if (window.confirm(tr("Remove demo data and start with an empty shop?"))) run(() => clearDemoData(acct.shopName), "Demo data removed"); }}>{tr("Remove demo data")}</ShopButton>
-        </>)}
-        {!isDemo() && !isEmptyShop() && <p className="text-xs text-muted-foreground">{tr("Demo data can only be loaded into an empty shop")}</p>}
-      </Sec>
-      <Sec id="Subscription">
-        <ShopButton variant="outline" onClick={() => nav({ to: "/plans" })}>{tr("Manage Subscription")}</ShopButton>
-      </Sec>
-    </AppShell>
-  );
+  const shown = CATS.filter((c) => !query.trim() || [c, ...SUB[c]].some((x) => tr(x).toLowerCase().includes(query.trim().toLowerCase())));
+  return <AppShell title="Settings" tabs={[]} tab="" setTab={() => {}}>{cat ? <><ShopButton variant="bare" className="settings-back" onClick={() => setCat(null)}><ArrowLeft className="h-3.5 w-3.5" />{tr("Settings")}</ShopButton><h1 className="settings-title">{tr(cat)}</h1><SettingsCategory category={cat} acct={acct} state={s} /></> : <><BackupStatus className="px-0" /><div className="settings-search"><Search className="h-3.5 w-3.5" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Search settings...")} /></div><div className="settings-list">{shown.map((c, i) => <ShopButton key={c} variant="bare" className="settings-row" onClick={() => setCat(c)}><b>{String(CATS.indexOf(c) + 1).padStart(2, "0")}</b><span>{tr(c).toUpperCase()}</span><ChevronRight className="h-4 w-4" /></ShopButton>)}</div></>}</AppShell>;
 }
+
+function SettingsCategory({ category, acct, state }: { category: Category; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp> }) {
+  const { tr, language, setLanguage } = useLanguage(), nav = useNavigate(), prefs = usePrefs(), [cfg, saveCfg] = useSettings(), [open, setOpen] = useState(SUB[category][0] ?? ""), [, refresh] = useState(0);
+  const saveAccount = (patch: Partial<typeof acct>) => { store.save({ ...acct, ...patch }); toast.success(tr("Saved")); refresh((n) => n + 1); };
+  return <div className="settings-sections">{SUB[category].map((name) => <section key={name} className="settings-section"><ShopButton variant="bare" className="settings-section-button" onClick={() => setOpen(open === name ? "" : name)}><span>{tr(name)}</span><ChevronRight className={open === name ? "rotate-90" : ""} /></ShopButton>{open === name && <div className="settings-section-body"><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></div>}</section>)}</div>;
+}
+function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveCfg, saveAccount, nav }: { name: string; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; tr: (x: string) => string; language: string; setLanguage: (x: never) => void; prefs: ReturnType<typeof usePrefs>; cfg: SettingsConfig; saveCfg: (p: Partial<SettingsConfig>) => void; saveAccount: (p: Partial<typeof acct>) => void; nav: ReturnType<typeof useNavigate> }) {
+  const L = ({ label, children }: { label: string; children: ReactNode }) => <label className="inventory-field"><span>{tr(label)}</span>{children}</label>;
+  const text = (key: keyof SettingsConfig, label: string) => <L label={label}><input className="inventory-input" value={String(cfg[key])} onChange={(e) => saveCfg({ [key]: e.target.value })} /></L>;
+  const toggle = (key: keyof SettingsConfig, label: string) => <label className="settings-toggle"><span>{tr(label)}</span><input type="checkbox" checked={Boolean(cfg[key])} onChange={(e) => saveCfg({ [key]: e.target.checked })} /></label>;
+  if (name === "Business Profile") return <><L label="Business Name"><input className="inventory-input" defaultValue={acct.shopName} onBlur={(e) => e.target.value.trim() && saveAccount({ shopName: e.target.value.trim() })} /></L>{text("owner", "Owner")}{text("phone", "Phone")}<L label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => saveAccount({ email: e.target.value.trim() })} /></L></>;
+  if (name === "Business Type") return text("businessType", "Business Type"); if (name === "Location") return text("location", "Location"); if (name === "Contact Information") return <>{text("phone", "Phone")}<p className="settings-note">{acct.email || tr("Email optional")}</p></>; if (name === "Owner") return text("owner", "Owner"); if (name === "Business Hours") return text("hours", "Business Hours");
+  if (name === "Logo") return <LogoSetting value={acct.logo} onSave={(logo) => saveAccount({ logo })} tr={tr} />;
+  if (name === "Language") return <L label="Language"><select className="inventory-input" value={language} onChange={(e) => { const l = LANGS.find((x) => x === e.target.value); if (l) setLanguage(l as never); }}>{LANGS.map((x) => <option key={x} value={x}>{NATIVE[x]}</option>)}</select></L>;
+  if (name === "Currency") return <L label="Currency"><select className="inventory-input" value={acct.currency} onChange={(e) => saveAccount({ currency: e.target.value })}>{["KSh", "USh", "TSh", "USD"].map((x) => <option key={x}>{x}</option>)}</select></L>;
+  if (name === "Date & Time") return <>{text("timezone", "Timezone")}{text("dateFormat", "Date format")}{text("timeFormat", "Time format")}</>; if (name === "Number Format") return <><p className="settings-note">KSh 100,000 • 0 {tr("decimal places")}</p>{text("numberFormat", "Number format")}</>;
+  if (name === "Search") return toggle("searchBarcodes", "Search SKU and barcodes"); if (name === "Printing") return <>{text("paper", "Paper size")}<L label="Copies"><input className="inventory-input" type="number" min={1} value={cfg.copies} onChange={(e) => saveCfg({ copies: Math.max(1, +e.target.value) })} /></L>{toggle("autoPrint", "Auto-print")}</>;
+  if (name === "System Preferences") return <>{toggle("autosave", "Autosave")}{toggle("offline", "Offline mode")}{toggle("autoSync", "Automatic sync")}{toggle("autoRetry", "Automatic retry")}</>;
+  if (name === "Autosave & Backup") return <BackupPanel tr={tr} acct={acct} />; if (name === "Import & Data") return <ImportCenter tr={tr} />;
+  if (["AI Assistant", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions"].includes(name)) { const keys: Record<string, keyof SettingsConfig> = { "AI Assistant": "aiOn", "Business Questions": "aiBusiness", "Business Summaries": "aiSummaries", "Trend Analysis": "aiTrends", "Guided Instructions": "aiGuidance", Recommendations: "aiRecommendations", "AI Actions": "aiActions" }; return <>{toggle(keys[name] ?? "aiOn", name)}{name === "AI Actions" && <p className="settings-note">{tr("Read-only for safety. Data-changing AI actions are not enabled.")}</p>}</>; }
+  if (name === "AI Gateway") return <Status label="Lovable AI Gateway" state={cfg.aiOn ? "Connected" : "Disabled"} />;
+  if (name === "Users" || name === "Active Users") return <p className="settings-note">{acct.shopName} • <b>{tr("Admin")}</b></p>; if (["Roles", "Permissions", "Data Access", "Invitations"].includes(name)) return <p className="settings-note">{tr("Admin is active. Additional staff access is not available yet.")}</p>; if (name === "Access History") return <Audit rows={state.audit} tr={tr} />;
+  if (name === "Payment Methods") return <p className="settings-note">Cash • M-Pesa • Bank • Credit<br />{tr("P.PAY combines methods and is not an account.")}</p>;
+  if (name === "Accounts") return <Links nav={nav} links={[["Float", "/float"], ["Accounting", "/accounting"]]} tr={tr} />; if (["Transfers", "Receivables", "Payables", "Financial Periods", "Costing"].includes(name)) return <Links nav={nav} links={[[name === "Transfers" ? "Float" : name === "Costing" ? "Accounting" : "Reports", name === "Transfers" ? "/float" : name === "Costing" ? "/accounting" : "/reports"]]} tr={tr} />;
+  if (["Categories", "Brands", "Units", "Pricing", "Buying", "Selling", "Barcodes", "Stock Behavior", "Custom Fields", "Product Settings"].includes(name)) return <Links nav={nav} links={[["Open Inventory", "/inventory"]]} tr={tr} />; if (name === "Low Stock") return <L label="Default low-stock level"><input className="inventory-input" type="number" min={0} value={cfg.lowStock} onChange={(e) => saveCfg({ lowStock: Math.max(0, +e.target.value) })} /></L>;
+  if (["Interface Size", "Text Size", "Icon Size", "Spacing"].includes(name)) { const keys: Record<string, keyof SettingsConfig> = { "Interface Size": "interfaceScale", "Text Size": "textScale", "Icon Size": "iconScale", Spacing: "spacingScale" }; const k = keys[name] ?? "interfaceScale"; return <L label={name}><div className="settings-slider"><span>{tr(name === "Spacing" ? "Tighter" : "Smaller")}</span><input type="range" min={0} max={4} step={1} value={Number(cfg[k])} onChange={(e) => saveCfg({ [k]: +e.target.value })} /><span>{tr(name === "Spacing" ? "More space" : "Larger")}</span></div><p className="settings-note">{tr(name)}: {tr(["Smallest", "Small", "Compact", "Large", "Largest"][Number(cfg[k])] ?? "Compact")}</p></L>; }
+  if (name === "VAT" || name === "Tax Settings") return <><label className="settings-toggle"><span>{tr("Charge VAT on sales")}</span><input type="checkbox" checked={prefs.tax.on} onChange={(e) => setTax({ ...prefs.tax, on: e.target.checked })} /></label><L label="VAT rate (%)"><input className="inventory-input" type="number" min={0} max={100} value={prefs.tax.rate} onChange={(e) => setTax({ ...prefs.tax, rate: Math.min(100, Math.max(0, +e.target.value)) })} /></L></>; if (name === "Audit Trail" || name === "Audit Log") return <Audit rows={state.audit} tr={tr} />;
+  if (["eTIMS", "WhatsApp", "SMS", "Email", "M-Pesa", "Printers"].includes(name)) return <Status label={name} state="Not Connected" />; if (name === "Backup / Sync") return <Status label="Cloud backup" state="Configuration Required" />;
+  if (name === "Notifications") return toggle("notifications", "Notifications"); if (name === "Low Stock Alerts") return toggle("lowStockAlerts", "Low Stock Alerts"); if (["Customer Communication", "Supplier Communication", "Payment Reminders", "Report Notifications"].includes(name)) return <Status label={name} state="Not Connected" />;
+  if (name === "Password") return <p className="settings-note">{tr("Passwords are never shown. Use Forgot Password on the login page for reset guidance.")}</p>; if (["Login Security", "Active Sessions", "Device Activity", "Security Events", "Account Recovery"].includes(name)) return <p className="settings-note">{tr("This device uses the current local shop session. Multi-device staff sessions are not available yet.")}</p>;
+  if (name === "Current Plan" || name === "Trial") return <p className="settings-note">{tr("Current plan")}: <b>{acct.plan ?? "—"}</b></p>; if (name === "Plan Features") return <div>{APPS.map((a) => <div className="settings-inline" key={a.id}><span>{tr(a.name)}</span><b>{tr(canOpen(acct, a.tier) ? "Included" : "Upgrade Required")}</b></div>)}</div>; if (["Billing", "Usage", "Upgrade", "Payment History"].includes(name)) return <ShopButton className="inventory-save" onClick={() => nav({ to: "/plans" })}>{tr("Manage Subscription")}</ShopButton>;
+  if (["Receipts", "Documents"].includes(name)) return <p className="settings-note">{tr("Receipts and documents use the shared white print preview.")}</p>;
+  return <p className="settings-note">{tr("This setting is not connected yet.")}</p>;
+}
+function Status({ label, state }: { label: string; state: string }) { return <div className="settings-inline"><span>{label}</span><b className={state === "Connected" ? "text-primary" : "text-muted-foreground"}>{state === "Connected" ? "●" : "○"} {state}</b></div>; }
+function Audit({ rows, tr }: { rows: ReturnType<typeof useErp>["audit"]; tr: (x: string) => string }) { return <div>{rows.length ? rows.slice(0, 50).map((x) => <div className="settings-audit" key={x.id}><b>{tr(x.action)}</b><span>{x.detail}</span><small>{x.user} • {dt(x.at)}</small></div>) : <p className="settings-note">{tr("No activity yet")}</p>}</div>; }
+function Links({ links, nav, tr }: { links: [string, string][]; nav: ReturnType<typeof useNavigate>; tr: (x: string) => string }) { return <div>{links.map(([label, to]) => <ShopButton key={to} variant="outline" className="inventory-save" onClick={() => nav({ to })}>{tr(label)}</ShopButton>)}</div>; }
+function BackupPanel({ tr, acct }: { tr: (x: string) => string; acct: NonNullable<ReturnType<typeof store.get>> }) { const backup = useBackupStatus(), file = useRef<HTMLInputElement>(null), [signed, setSigned] = useState(false), [rows, setRows] = useState<{ device_id: string; shop_name: string; updated_at: string }[]>([]), [error, setError] = useState(""); useEffect(() => { const f = () => supabase.auth.getSession().then(({ data }) => setSigned(Boolean(data.session))); f(); const a = supabase.auth.onAuthStateChange(f); return () => a.data.subscription.unsubscribe(); }, []); useEffect(() => { if (signed) listCloudBackups().then(setRows).catch((e) => setError(e instanceof Error ? e.message : "Backup unavailable")); }, [signed, backup.at]); const download = () => { const u = URL.createObjectURL(new Blob([backupJson(acct.shopName)], { type: "application/json" })); const a = document.createElement("a"); a.href = u; a.download = `shopbook-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(u); };
+  return <><BackupStatus className="px-0" />{!signed && <ShopButton className="inventory-save" onClick={async () => { const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin }); if (r.error) setError(r.error.message); }}>{tr("Sign in with Google for automatic backup")}</ShopButton>}{rows.map((r) => <div className="settings-inline" key={r.device_id}><span>{r.shop_name} • {dt(new Date(r.updated_at).getTime())}</span><ShopButton variant="outline" className="settings-mini" onClick={async () => { if (!window.confirm(tr("Replace all records on this device with this backup?"))) return; try { restoreJson(await getCloudBackup({ data: { deviceId: r.device_id } })); toast.success(tr("Backup restored")); } catch (e) { setError(e instanceof Error ? e.message : "Restore failed"); } }}>{tr("Restore")}</ShopButton></div>)}<p className="settings-note">{lastBackup() ? `${tr("Last backup file")}: ${dt(lastBackup())}` : tr("No backup file yet")}</p><ShopButton className="inventory-save" onClick={download}>{tr("Download backup")}</ShopButton><input ref={file} hidden type="file" accept=".json,application/json" onChange={async (e) => { const f = e.target.files?.[0]; if (!f || !window.confirm(tr("Replace all records on this device with this backup?"))) return; try { restoreJson(await f.text()); toast.success(tr("Backup restored")); } catch (x) { toast.error(translateCurrent(x instanceof Error ? x.message : "Failed")); } }} /><ShopButton variant="outline" className="inventory-save" onClick={() => file.current?.click()}>{tr("Restore backup")}</ShopButton>{error && <p className="text-destructive">{error}</p>}</>;
+}
+function LogoSetting({ value, onSave, tr }: { value?: string; onSave: (v: string) => void; tr: (x: string) => string }) { const [image, setImage] = useState(value ?? ""), file = useRef<HTMLInputElement>(null); return <><div className="settings-logo">{image ? <img src={image} alt="" /> : <Store className="h-8 w-8" />}</div><input ref={file} hidden type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => setImage(String(r.result)); r.readAsDataURL(f); }} /><ShopButton className="inventory-save" onClick={() => file.current?.click()}>{tr("Choose logo")}</ShopButton>{image && <ShopButton variant="outline" className="inventory-save" onClick={() => onSave(image)}>{tr("Save")}</ShopButton>}</>; }
