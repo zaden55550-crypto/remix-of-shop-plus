@@ -7,7 +7,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { performance, position } from "@/lib/summary";
 import { floatBalances, purchaseTotals } from "@/lib/finance";
 import { profitAndLoss } from "@/lib/accounting";
-import { lastBackup } from "@/lib/backup";
+import { BackupStatus } from "@/components/shopbook/backup-status";
 import { METHODS, METHOD_LABEL, type Method, type Sale } from "@/lib/erp";
 import { cn } from "@/lib/utils";
 
