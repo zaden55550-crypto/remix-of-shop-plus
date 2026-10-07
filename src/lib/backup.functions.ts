@@ -11,6 +11,7 @@ export const saveCloudBackup = createServerFn({ method: "POST" })
     if (JSON.stringify(data.payload).length > 14000000) throw new Error("Backup exceeds the size limit");
     const r = await context.supabase.from("shopbook_device_backups").upsert({ user_id: context.userId, device_id: data.deviceId, revision: data.revision, shop_name: data.shop, payload: data.payload as Json }, { onConflict: "user_id,device_id" }).select("updated_at,revision").single();
     if (r.error) throw new Error(r.error.message);
+    if (r.data.revision !== data.revision) throw new Error("A newer backup already exists; retrying with a newer revision");
     return r.data;
   });
 export const listCloudBackups = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {

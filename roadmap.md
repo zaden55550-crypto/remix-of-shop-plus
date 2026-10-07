@@ -1,8 +1,9 @@
 # SHOPBOOK updates
 
-- [ ] Build compact Contacts: shared profiles, other contacts, audit and payments.
-- [ ] Build compact Payroll: employee profiles, compensation, drafts, payments and reports.
-- [ ] Verify whole-app backup/restore and automatic signed-in Cloud snapshots with truthful status and retries.
+- [x] Build compact Contacts: shared profiles, other contacts, audit and payments.
+- [x] Build compact Payroll: employee profiles, compensation, drafts, payments and reports.
+- [x] Verify whole-app file backup/restore, preferences and drafts; add automatic Cloud snapshots with truthful status and retries.
+- [ ] Verify signed-in Cloud backup and restore end-to-end (blocked: no Cloud auth users; owner must sign in with Google).
 
 - [x] Match Accounting and Float to supplied tiny-writing phone references; verify compact transaction details, shared payment totals, transfers and reasoned cash-up. Cloud sync and staff-authorized corrections remain dependent on the deferred online-account work; purchase VAT remains unavailable.
 
