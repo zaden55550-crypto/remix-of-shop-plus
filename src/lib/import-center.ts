@@ -1,0 +1,87 @@
+import * as XLSX from "xlsx";
+import JSZip from "jszip";
+import { commit, ErpError, uid, type ErpState, type Method } from "@/lib/erp";
+
+export const IMPORT_TYPES = ["Products", "Product Images", "Categories", "Brands", "Customers", "Suppliers", "Other Contacts", "Opening Stock", "Product Prices", "Expenses", "Employees"] as const;
+export type ImportType = (typeof IMPORT_TYPES)[number];
+export type DuplicateAction = "skip" | "update" | "create";
+export type RawRow = Record<string, unknown>;
+export type Mapping = Record<string, string>;
+export type ImportIssue = { row: number; field: string; problem: string; suggestion: string };
+export type PreviewRow = { row: number; values: Record<string, string | number>; status: "NEW" | "EXISTING" | "DUPLICATE" | "POSSIBLE MATCH" | "INVALID"; issues: ImportIssue[]; existingId?: string };
+export type ImportHistory = { id: string; at: number; file: string; type: ImportType; total: number; imported: number; updated: number; skipped: number; failed: number; errors: ImportIssue[]; mapping: Mapping };
+
+export const FIELDS: Record<Exclude<ImportType, "Product Images">, { key: string; label: string; required?: boolean; aliases: string[] }[]> = {
+  Products: [
+    { key: "name", label: "Product Name", required: true, aliases: ["product", "product name", "name", "item"] },
+    { key: "sku", label: "SKU", aliases: ["sku", "item code", "product code"] }, { key: "barcode", label: "Barcode", aliases: ["barcode", "bar code", "qr code"] },
+    { key: "buy", label: "Buying Price", required: true, aliases: ["buy", "buying price", "cost", "cost price"] }, { key: "sell", label: "Selling Price", required: true, aliases: ["sell", "selling price", "retail", "retail price"] },
+    { key: "qty", label: "Quantity", aliases: ["qty", "quantity", "opening stock", "stock"] }, { key: "minStock", label: "Minimum Stock", aliases: ["minimum stock", "min stock", "low stock"] },
+    { key: "category", label: "Category", aliases: ["category"] }, { key: "brand", label: "Brand", aliases: ["brand", "make"] }, { key: "unit", label: "Unit", aliases: ["unit", "uom"] }, { key: "image", label: "Product Image", aliases: ["image", "image url", "photo"] },
+  ],
+  Categories: [{ key: "name", label: "Category", required: true, aliases: ["category", "name"] }],
+  Brands: [{ key: "name", label: "Brand", required: true, aliases: ["brand", "name"] }],
+  Customers: [{ key: "name", label: "Customer Name", required: true, aliases: ["customer", "customer name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }],
+  Suppliers: [{ key: "name", label: "Supplier Name", required: true, aliases: ["supplier", "supplier name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }],
+  "Other Contacts": [{ key: "name", label: "Contact Name", required: true, aliases: ["contact", "contact name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }, { key: "category", label: "Category", aliases: ["category", "type"] }],
+  "Opening Stock": [{ key: "match", label: "SKU / Barcode / Product", required: true, aliases: ["sku", "barcode", "product", "product name", "name"] }, { key: "qty", label: "Opening Stock", required: true, aliases: ["opening stock", "quantity", "qty", "stock"] }],
+  "Product Prices": [{ key: "match", label: "SKU / Barcode / Product", required: true, aliases: ["sku", "barcode", "product", "product name", "name"] }, { key: "buy", label: "Buying Price", aliases: ["buy", "buying price", "cost"] }, { key: "sell", label: "Selling Price", aliases: ["sell", "selling price", "retail"] }],
+  Expenses: [{ key: "category", label: "Category", required: true, aliases: ["category", "expense category"] }, { key: "amount", label: "Amount", required: true, aliases: ["amount", "total"] }, { key: "method", label: "Payment Method", required: true, aliases: ["payment method", "method", "paid via"] }, { key: "description", label: "Description", aliases: ["description", "note", "details"] }, { key: "date", label: "Date", aliases: ["date", "transaction date"] }],
+  Employees: [{ key: "name", label: "Employee Name", required: true, aliases: ["employee", "employee name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "role", label: "Role", required: true, aliases: ["role", "job title"] }, { key: "salary", label: "Salary", required: true, aliases: ["salary", "basic salary"] }],
+};
+
+const norm = (v: unknown) => String(v ?? "").trim();
+const key = (v: unknown) => norm(v).toLowerCase().replace(/[^a-z0-9]/g, "");
+const number = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^0-9.-]/g, "")); return Number.isFinite(n) ? n : NaN; };
+export const history = () => { try { const x = JSON.parse(localStorage.getItem("shopbook.importHistory") || "[]"); return Array.isArray(x) ? x as ImportHistory[] : []; } catch { return []; } };
+export const saveHistory = (x: ImportHistory) => { localStorage.setItem("shopbook.importHistory", JSON.stringify([x, ...history()].slice(0, 50))); window.dispatchEvent(new Event("shopbook-prefs")); };
+export function suggestMapping(columns: string[], type: Exclude<ImportType, "Product Images">): Mapping {
+  const out: Mapping = {}; for (const col of columns) { const n = key(col); const f = FIELDS[type].find((x) => x.aliases.some((a) => key(a) === n)); out[col] = f?.key ?? ""; } return out;
+}
+export async function parseImportFile(file: File): Promise<RawRow[]> {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (ext === "json") { const value: unknown = JSON.parse(await file.text()); const rows = Array.isArray(value) ? value : value && typeof value === "object" && Array.isArray((value as { records?: unknown[] }).records) ? (value as { records: unknown[] }).records : null; if (!rows) throw new Error("JSON must contain an array of records"); return rows.filter((x): x is RawRow => !!x && typeof x === "object" && !Array.isArray(x)); }
+  if (ext !== "csv" && ext !== "xlsx" && ext !== "xls") throw new Error("Choose a CSV, XLSX or JSON file");
+  const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true }); const ws = wb.Sheets[wb.SheetNames[0] ?? ""]; if (!ws) throw new Error("The file has no worksheet");
+  return XLSX.utils.sheet_to_json<RawRow>(ws, { defval: "", raw: false });
+}
+function mapped(row: RawRow, mapping: Mapping, selected: Set<string>) { const v: Record<string, string | number> = {}; for (const [col, dest] of Object.entries(mapping)) if (dest && selected.has(dest)) v[dest] = typeof row[col] === "number" ? row[col] : norm(row[col]); return v; }
+function existingFor(s: ErpState, type: ImportType, v: Record<string, string | number>) {
+  const n = key(v.name), phone = key(v.phone), match = key(v.match);
+  if (type === "Products") return s.products.find((p) => (v.sku && key(p.sku) === key(v.sku)) || (v.barcode && key(p.barcode) === key(v.barcode)) || key(p.name) === n);
+  if (type === "Customers") return s.customers.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
+  if (type === "Suppliers") return s.suppliers.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
+  if (type === "Other Contacts") return s.otherContacts.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
+  if (type === "Categories") return s.categories.find((x) => key(x.name) === n);
+  if (type === "Brands") return s.brands.find((x) => key(x.name) === n);
+  if (type === "Employees") return s.employees.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
+  if (type === "Opening Stock" || type === "Product Prices") return s.products.find((p) => [p.sku, p.barcode, p.name].some((x) => key(x) === match));
+}
+export function previewRows(s: ErpState, rows: RawRow[], type: Exclude<ImportType, "Product Images">, mapping: Mapping, selected: Set<string>): PreviewRow[] {
+  const seen = new Set<string>();
+  return rows.slice(0, 10000).map((r, i) => { const values = mapped(r, mapping, selected), issues: ImportIssue[] = []; const required = FIELDS[type].filter((f) => f.required && selected.has(f.key)); for (const f of required) if (!norm(values[f.key])) issues.push({ row: i + 2, field: f.label, problem: "Required value is missing", suggestion: `Enter ${f.label}` });
+    for (const f of ["buy", "sell", "qty", "minStock", "amount", "salary"]) if (values[f] !== undefined && (!Number.isFinite(number(values[f])) || number(values[f]) < 0)) issues.push({ row: i + 2, field: f, problem: "Invalid number", suggestion: "Use zero or a positive number" });
+    if (values.email && !/^\S+@\S+\.\S+$/.test(String(values.email))) issues.push({ row: i + 2, field: "Email", problem: "Invalid email", suggestion: "Correct or exclude Email" });
+    if (type === "Expenses" && values.method && !["cash", "mpesa", "m-pesa", "bank", "credit"].includes(String(values.method).toLowerCase())) issues.push({ row: i + 2, field: "Payment Method", problem: "Unknown method", suggestion: "Use Cash, M-Pesa, Bank or Credit" });
+    const fingerprint = type === "Products" ? key(values.sku || values.barcode || values.name) : key(values.phone || values.match || values.name); const repeated = fingerprint && seen.has(fingerprint); if (fingerprint) seen.add(fingerprint); const existing = existingFor(s, type, values);
+    return { row: i + 2, values, issues, existingId: existing?.id, status: issues.length ? "INVALID" : repeated ? "DUPLICATE" : existing ? "EXISTING" : "NEW" }; });
+}
+const namedId = (s: ErpState, kind: "categories" | "brands", name: unknown) => { const n = norm(name); if (!n) return undefined; let x = s[kind].find((v) => key(v.name) === key(n)); if (!x) { x = { id: uid(), name: n }; s[kind].push(x); } return x.id; };
+export function applyImport(type: Exclude<ImportType, "Product Images">, file: string, rows: PreviewRow[], mapping: Mapping, action: DuplicateAction): ImportHistory {
+  const valid = rows.filter((x) => x.status !== "INVALID" && x.status !== "DUPLICATE"); let imported = 0, updated = 0, skipped = rows.length - valid.length;
+  commit((s, c) => { for (const row of valid) { const v = row.values; const existing = row.existingId ? existingFor(s, type, v) : undefined; if (existing && action === "skip") { skipped++; continue; }
+      if (type === "Products") { const data = { name: norm(v.name), buy: number(v.buy), sell: number(v.sell), sku: norm(v.sku) || undefined, barcode: norm(v.barcode) || undefined, unit: norm(v.unit) || undefined, image: norm(v.image) || undefined, minStock: Number.isFinite(number(v.minStock)) ? number(v.minStock) : 0, categoryId: namedId(s, "categories", v.category), brandId: namedId(s, "brands", v.brand) }; if (existing && action === "update" && "buy" in existing) { Object.assign(existing, data); const target = Math.max(0, number(v.qty) || 0); if (target !== existing.qty) c.move(existing.id, "ADJUSTMENT", target - existing.qty, "Catalogue import"); updated++; } else { const p = { ...data, id: uid(), qty: 0, createdAt: Date.now() }; s.products.unshift(p); const qty = Math.max(0, number(v.qty) || 0); if (qty) c.move(p.id, "OPENING", qty, "Opening stock import"); imported++; } }
+      else if (type === "Categories" || type === "Brands") { const kind = type === "Categories" ? "categories" : "brands"; if (existing) { if (action === "update") { existing.name = norm(v.name); updated++; } else skipped++; } else { s[kind].push({ id: uid(), name: norm(v.name) }); imported++; } }
+      else if (type === "Opening Stock" && existing && "qty" in existing) { const target = number(v.qty); if (target !== existing.qty) c.move(existing.id, "ADJUSTMENT", target - existing.qty, "Opening stock import"); updated++; }
+      else if (type === "Product Prices" && existing && "buy" in existing) { if (v.buy !== undefined && norm(v.buy) !== "") existing.buy = number(v.buy); if (v.sell !== undefined && norm(v.sell) !== "") existing.sell = number(v.sell); updated++; }
+      else if (type === "Expenses") { const method = String(v.method).toLowerCase().replace("-", "") as Method; const amount = number(v.amount); const ref = c.nextRef("EXP"), at = v.date ? new Date(String(v.date)).getTime() : Date.now(); s.expenses.unshift({ id: uid(), ref, at: Number.isFinite(at) ? at : Date.now(), category: norm(v.category), amount, method, description: norm(v.description) || undefined, user: c.user }); if (method !== "credit") s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Number.isFinite(at) ? at : Date.now(), method, amount: -amount, kind: "EXPENSE", source: ref, user: c.user }); imported++; }
+      else if (type === "Employees") { const data = { name: norm(v.name), phone: norm(v.phone) || undefined, role: norm(v.role), salary: number(v.salary), comp: "salary" as const, rule: { kind: "none" as const, value: 0, paidOnly: false }, active: true }; if (existing && action === "update" && "role" in existing) { Object.assign(existing, data); updated++; } else { s.employees.unshift({ ...data, id: uid(), createdAt: Date.now() }); imported++; } }
+      else { const kind = type === "Customers" ? "customers" : type === "Suppliers" ? "suppliers" : "otherContacts"; const data = { name: norm(v.name), phone: norm(v.phone) || undefined, email: norm(v.email) || undefined, address: norm(v.address) || undefined, active: true }; if (existing && action === "update" && "name" in existing) { Object.assign(existing, data); updated++; } else { const base = { ...data, id: uid(), createdAt: Date.now() }; if (kind === "otherContacts") s.otherContacts.unshift({ ...base, category: norm(v.category) || undefined }); else s[kind].unshift({ ...base, balance: 0 }); imported++; } }
+    } c.audit("DATA IMPORT", `${type} • ${file} • ${imported} new • ${updated} updated • ${skipped} skipped`); });
+  const item: ImportHistory = { id: `IMP-${Date.now().toString().slice(-6)}`, at: Date.now(), file, type, total: rows.length, imported, updated, skipped, failed: rows.filter((x) => x.status === "INVALID").length, errors: rows.flatMap((x) => x.issues), mapping }; saveHistory(item); return item;
+}
+export async function readImageFiles(files: File[]) { const out: { name: string; data: string }[] = []; for (const f of files) { if (f.name.toLowerCase().endsWith(".zip")) { const zip = await JSZip.loadAsync(f); for (const z of Object.values(zip.files)) if (!z.dir && /\.(png|jpe?g|webp)$/i.test(z.name)) { const b = await z.async("base64"); const ext = z.name.split(".").pop()?.toLowerCase(); out.push({ name: z.name.split("/").pop() ?? z.name, data: `data:image/${ext === "jpg" ? "jpeg" : ext};base64,${b}` }); } } else if (/image\/(png|jpeg|webp)/.test(f.type)) out.push({ name: f.name, data: await new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = () => reject(new Error("Image could not be read")); r.readAsDataURL(f); }) }); } return out; }
+export function matchImages(s: ErpState, images: { name: string; data: string }[]) { return images.map((image) => { const n = key(image.name.replace(/\.[^.]+$/, "")); const matches = s.products.filter((p) => [p.sku, p.barcode, p.id, p.name].some((v) => key(v) === n)); return { ...image, productId: matches.length === 1 ? matches[0]?.id ?? "" : "", confident: matches.length === 1 }; }); }
+export function applyImages(rows: { name: string; data: string; productId: string }[], replace: boolean) { let imported = 0, skipped = 0; commit((s, c) => { for (const row of rows) { const p = s.products.find((x) => x.id === row.productId); if (!p || (p.image && !replace)) { skipped++; continue; } p.image = row.data; imported++; } c.audit("IMAGE IMPORT", `${imported} matched • ${skipped} skipped`); }); return { imported, skipped }; }
+export function template(type: ImportType) { if (type === "Product Images") return ""; const headers = FIELDS[type].map((x) => x.label); const examples: Record<string, string> = { "Product Name": "Samsung A16", SKU: "SAM-A16", Barcode: "123456789", "Buying Price": "18500", "Selling Price": "23000", Quantity: "20", "Minimum Stock": "5", Category: "Phones", Brand: "Samsung", Unit: "pcs", "Customer Name": "Amina", "Supplier Name": "Wadani Supplies", "Contact Name": "City Courier", Phone: "0700000000", Email: "", Address: "", "SKU / Barcode / Product": "SAM-A16", "Opening Stock": "20", Amount: "2500", "Payment Method": "Cash", Description: "Transport", Date: "07/10/2026", "Employee Name": "Ali", Role: "Seller", Salary: "25000" }; return [headers, headers.map((h) => examples[h] ?? "")].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n"); }
+export function errorCsv(issues: ImportIssue[]) { return ["Row,Field,Problem,Suggested correction", ...issues.map((x) => [x.row, x.field, x.problem, x.suggestion].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n"); }
