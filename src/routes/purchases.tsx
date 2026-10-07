@@ -7,6 +7,7 @@ import { ProductSearch, useErp } from "@/components/shopbook/product-search";
 import { run, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, Tabs, toneOf, type Tr } from "@/components/shopbook/erp-shell";
+import { PrintPreview } from "@/components/shopbook/print";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
@@ -207,7 +208,7 @@ function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
 }
 
 function PurchaseDoc({ p, s, money, tr, shop }: Pick<Ctx, "s" | "money" | "tr" | "shop"> & { p: erp.Purchase }) {
-  return <div className="print-area receipt-paper rounded-md p-4 text-[11px]">
+  return <div>
     <p className="text-center text-sm font-extrabold uppercase">{shop}</p>
     <p className="mt-2">{tr("Purchase No")}: {p.ref}</p><p>{tr("Date")}: {new Date(p.at).toLocaleString("en-GB")}</p><p>{tr("Supplier")}: {supName(s, p.supplierId)}</p>
     <div className="my-2 border-t border-dashed" />
@@ -230,11 +231,11 @@ function Done(c: Ctx & { id: string }) {
   return <div className="grid gap-2">
     <div className="pur-done"><CheckCircle2 className="h-16 w-16 text-primary" /><p className="text-lg font-bold">{tr("Purchase Completed")}</p><p className="text-[11px] text-muted-foreground">{tr("Purchase")} {p.ref} {tr("has been completed successfully.")}</p></div>
     <A icon={<FileText className="h-4 w-4" />} label={tr("View Purchase")} onClick={() => c.open({ k: "detail", id: p.id })} />
-    <A icon={<Printer className="h-4 w-4" />} label={tr("Print Purchase")} onClick={() => { setPrint(true); setTimeout(() => window.print(), 50); }} />
+    <A icon={<Printer className="h-4 w-4" />} label={tr("Print Purchase")} onClick={() => setPrint(true)} />
     <A icon={<MessageCircle className="h-4 w-4 text-primary" />} label={tr("Send Purchase (WhatsApp)")} onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(docText(p, s, money, shop))}`, "_blank")} />
     <BigButton onClick={() => c.open({ k: "new" })}><Plus className="h-4 w-4" />{tr("New Purchase")}</BigButton>
     <button className="pur-action" onClick={() => c.go("Purchases")}><ArrowLeft className="h-4 w-4" />{tr("Back to Purchases")}</button>
-    {print && <PurchaseDoc p={p} s={s} money={money} tr={tr} shop={shop} />}
+    {print && <PrintPreview title="Print Purchase" onClose={() => setPrint(false)}><PurchaseDoc p={p} s={s} money={money} tr={tr} shop={shop} /></PrintPreview>}
   </div>;
 }
 
