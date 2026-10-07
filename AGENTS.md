@@ -21,7 +21,7 @@
 - Commission is a ledger in the ERP state: returns append negative adjustment rows instead of editing earned rows, so history stays auditable.
 - Record per-product commission amounts when earning commission and reverse returned items from those recorded amounts; historical rows without allocations retain their legacy fallback.
 - Reports (`src/lib/reports.ts`) are read-only builders over the ERP snapshot; sources that don't exist yet return null and render as a dash.
-- Backups are whole-ERP JSON files validated before restore; a failed restore puts the previous records back.
+- Backups are whole-ERP JSON files validated before restore; they include allowlisted Settings/import history and roll back on failure.
 - Purchases, expenses, supplier payments and float moves are signed rows in the shared `payments` ledger (`src/lib/finance.ts`), so Float, POS cash-up and Accounting read one money source.
 - Accounting (`src/lib/accounting.ts`) is a read-only double-entry journal derived from ERP records; never store separate ledger rows that could drift.
 - Demo seed lives in src/lib/demo.ts and only calls public ERP actions; it loads only into an empty shop and reset works only on demo-flagged devices, so real records are never wiped.
@@ -36,3 +36,4 @@
 - Backup snapshots exclude passwords, sessions and subscription entitlements; validate all ERP collections before atomic restore and show cloud success only after acknowledgement.
 - Contacts and Payroll use the shared ERP shell and people actions; contact edits preserve audit values, partial settlements are atomic, and employee records remain separate from contacts.
 - Shared compact analytics charts use read-only chart-data datasets and accounting-derived financial/book-balance series; overview screens and Reports/Summary reuse these without mutating ERP records.
+- Settings keep twelve ordered categories; Import & Data stays in General and uses one atomic ERP commit. Business AI is read-only and session-only, with server-side Gateway calls over validated shop context.
