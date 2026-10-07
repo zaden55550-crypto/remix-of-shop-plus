@@ -27,3 +27,4 @@
 - Support chat lives in Cloud (support_threads/support_messages): owners need Google sign-in, AI replies are written only by the server route, and the support role (user_roles) gates the /support-inbox, so messages can't be forged or read by others.
 - Purchase drafts are device-local unsaved work (not ERP records); only confirmed purchases go through finance.ts so stock, money and supplier balances change once.
 - Part payments (P.PAY) after a sale/purchase are tracked in a separate settled amount on the record; the original pay split stays untouched so accounting never counts money twice. Purchases and Sales share the navy shell in erp-shell.tsx.
+- All printing goes through PrintPreview (src/components/shopbook/print.tsx): white preview, always-working Exit, timeout to a failure state, and no false 'Printed' claim because browsers can't confirm paper output. Expense paid/balance is derived from EXPENSE ledger rows, never stored.
