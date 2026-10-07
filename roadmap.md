@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [ ] Match Accounting and Float to supplied tiny-writing phone references, reuse shared money flows and verify records, payments, transfers and cash-up.
+
 - [x] Match all Inventory screens to the approved navy/green mockup; preserve shared ERP records and verify the main flows.
 
 - [x] Build and verify Dashboard with the shared five-metric horizontal KPI row.
