@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, FileText, MessageCircle, Minus, MinusCircle, Plus, Printer, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -152,10 +152,13 @@ function Payment({ s, money, tr, cart, back, onDone }: Ctx & { cart: erp.CartLin
   const remaining = Math.round((total - paid) * 100) / 100;
   const count = cart.reduce((a, l) => a + l.qty, 0);
   const complete = () => {
-    if (remaining < -0.001) { toast.error(tr("Payments exceed the total")); return; }
+    const cashOnly = rows.every((r) => r.m === "cash");
+    if (remaining < -0.001 && !cashOnly) { toast.error(tr("Payments exceed the total")); return; }
     if (remaining > 0.001 && !cust) { toast.error(tr("Credit needs a registered customer")); return; }
     const pay: Record<erp.Method, number> = { cash: 0, mpesa: 0, bank: 0, credit: Math.max(0, remaining) };
     if (fullOne) pay[rows[0]!.m] = total; else rows.forEach((r) => { pay[r.m] += +r.a || 0; });
+    // Cash handed over beyond the total is change, not income.
+    if (remaining < 0) { pay.cash = total; toast.success(`${tr("Change")}: ${money(-remaining)}`); }
     const sale = run(() => erp.confirmSale({ cart, discount, pay, customerId: cust || undefined, channel: "POS", sellerId: seller || undefined }));
     if (sale) onDone(sale);
   };
@@ -175,7 +178,7 @@ function Payment({ s, money, tr, cart, back, onDone }: Ctx & { cart: erp.CartLin
     {sellers.length > 0 && <label className="inventory-field"><span>{tr("Seller")}</span><select className="inventory-input" value={seller} onChange={(e) => setSeller(e.target.value)}><option value="">{tr("No seller")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>}
     <label className="inventory-field"><span>{tr("Notes (Optional)")}</span><input className="inventory-input" placeholder={tr("Enter notes...")} value={note} onChange={(e) => setNote(e.target.value)} /></label>
     {remaining < -0.001 && rows.some((r) => r.m !== "cash" && +r.a > 0) && <p className="text-[11px] text-destructive">{tr("Payments exceed the total")}</p>}
-    <ShopButton className="inventory-save" onClick={() => { if (remaining < -0.001 && rows.length === 1 && rows[0]!.m === "cash") { setRows([{ m: "cash", a: "" }]); toast.success(`${tr("Change")}: ${money(-remaining)}`); return; } complete(); }}>{tr("Complete Sale")}</ShopButton>
+    <ShopButton className="inventory-save" onClick={complete}>{tr("Complete Sale")}</ShopButton>
   </div>;
 }
 
@@ -184,7 +187,7 @@ const receiptText = (x: erp.Sale, money: (n: number) => string, shop: string, ba
 function Done({ s, money, tr, shop, sale, onNew, openSale }: Ctx & { sale: erp.Sale; onNew: () => void; openSale: (id: string) => void }) {
   const [print, setPrint] = useState(false);
   const live = s.sales.find((x) => x.id === sale.id) ?? sale;
-  const A = ({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) => <button className="pur-action" onClick={onClick}>{icon}<span className="flex-1 text-start">{label}</span><ChevronRight className="h-4 w-4" /></button>;
+  const A = ({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) => <button className="pur-action" onClick={onClick}>{icon}<span className="flex-1 text-start">{label}</span><ChevronRight className="h-4 w-4" /></button>;
   return <div className="grid gap-2">
     <div className="pur-done"><CheckCircle2 className="h-16 w-16 text-primary" /><p className="text-lg font-bold">{tr("Sale Completed")}</p><p className="text-[11px] text-muted-foreground">{tr("Transaction")} {live.ref} {tr("has been completed successfully.")}</p><Badge s={erp.saleStatus(s, live)} /></div>
     <A icon={<FileText className="h-4 w-4" />} label={tr("View Transaction")} onClick={() => openSale(live.id)} />
