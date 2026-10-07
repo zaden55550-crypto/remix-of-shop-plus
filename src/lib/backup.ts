@@ -28,7 +28,7 @@ export function validateBackup(value: unknown): asserts value is ReturnType<type
     if (!Array.isArray(x["items"]) || !object(x["pay"]) || ["cash", "mpesa", "bank", "credit"].some((m) => typeof (x["pay"] as Record<string, unknown>)[m] !== "number")) throw new Error("Backup file is damaged");
     if (x["items"].some((i) => !object(i) || typeof i["productId"] !== "string" || typeof i["qty"] !== "number" || typeof i["returned"] !== "number")) throw new Error("Backup file is damaged");
   }
-  for (const x of (d["employees"] ?? []) as Record<string, unknown>[]) if (!object(x["rule"]) || typeof x["rule"].value !== "number") throw new Error("Backup file is damaged");
+  for (const x of (d["employees"] ?? []) as Record<string, unknown>[]) if (!object(x["rule"]) || typeof x["rule"]["value"] !== "number") throw new Error("Backup file is damaged");
   if (value["settings"] !== undefined && (!object(value["settings"]) || Object.entries(value["settings"]).some(([k, v]) => !BACKUP_KEYS.some((x) => x === k) || (v !== null && typeof v !== "string")))) throw new Error("Backup settings are damaged");
 }
 export function restoreJson(text: string) {

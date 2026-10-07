@@ -14,6 +14,10 @@ import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from 
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import { UI_SIZES, setTax, setUiSize, usePrefs, type UiSize } from "@/lib/prefs";
+import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
+import { useBackupStatus } from "@/lib/cloud-backup";
+import { listCloudBackups, getCloudBackup } from "@/lib/backup.functions";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [
@@ -41,6 +45,12 @@ function Settings() {
   const [, force] = useState(0);
   const file = useRef<HTMLInputElement>(null);
   const prefs = usePrefs();
+  const backup = useBackupStatus();
+  const [cloudRows, setCloudRows] = useState<{ device_id: string; shop_name: string; updated_at: string }[]>([]);
+  const [cloudError, setCloudError] = useState("");
+  const [cloudSignedIn, setCloudSignedIn] = useState(false);
+  useEffect(() => { const f = () => { supabase.auth.getSession().then(({ data }) => setCloudSignedIn(!!data.session)); }; f(); const a = supabase.auth.onAuthStateChange(f); return () => a.data.subscription.unsubscribe(); }, []);
+  useEffect(() => { if (open !== "Data & System" || !cloudSignedIn) return; listCloudBackups().then(setCloudRows).catch((e) => setCloudError(e instanceof Error ? e.message : "Backup unavailable")); }, [open, cloudSignedIn, backup.at]);
   useEffect(() => { if (acct) { setShop(acct.shopName); setEmail(acct.email); } }, [acct]);
   if (!acct) return <main className="app-screen" />;
   const save = (patch: Partial<typeof acct>) => { const a = store.get(); if (a) { store.save({ ...a, ...patch }); toast.success(tr("Saved")); force((n) => n + 1); } };
@@ -97,6 +107,10 @@ function Settings() {
         <p className="text-xs text-muted-foreground">{tr("Numbers are never reused, so records stay traceable.")}</p>
       </Sec>
       <Sec id="Data & System">
+        {!cloudSignedIn && <ShopButton onClick={async () => { const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin }); if (r.error) setCloudError(r.error.message); }}>{tr("Sign in with Google for automatic backup")}</ShopButton>}
+        {cloudError && <p className="text-xs text-destructive">{cloudError}</p>}
+        {backup.phase === "failed" && <p className="text-xs text-warning">{tr("Backup pending • saved locally")}</p>}
+        {cloudRows.map((r) => <div key={r.device_id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2"><span className="min-w-0 text-xs">{r.shop_name} • {dt(new Date(r.updated_at).getTime())}</span><ShopButton variant="outline" className="h-7 w-auto px-2 text-xs" onClick={async () => { if (!window.confirm(tr("Replace all records on this device with this backup?"))) return; try { restoreJson(await getCloudBackup({ data: { deviceId: r.device_id } })); toast.success(tr("Backup restored")); } catch (e) { setCloudError(e instanceof Error ? e.message : "Restore failed"); } }}>{tr("Restore")}</ShopButton></div>)}
         <p className="text-xs text-muted-foreground">✓ {tr("Saved on this device")} • {last ? `${tr("Last backup file")}: ${dt(last)}` : tr("No backup file yet")}</p>
         <ShopButton onClick={download}>{tr("Download backup")}</ShopButton>
         <input ref={file} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void restore(f); e.target.value = ""; }} />
