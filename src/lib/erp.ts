@@ -46,6 +46,8 @@ export type Sale = {
   pay: Record<Method, number>; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
   /** Credit paid off after the sale; `pay` stays as recorded at sale time so accounting never double counts. */
   settled?: number | undefined;
+  /** VAT included in `total` (0 when VAT is off). */
+  vat?: number | undefined;
 };
 export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL"; source: string; customerId?: string | undefined; user: string };
 export type SaleReturn = { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
@@ -231,7 +233,7 @@ function allocateToSales(s: ErpState, customerId: string, amount: number, onlySa
   for (const x of open) { if (left <= 0.001) break; const b = saleBalance(s, x); if (b <= 0) continue; const take = Math.min(b, left); x.settled = r2x((x.settled ?? 0) + take); left -= take; }
 }
 
-export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Record<Method, number>; customerId?: string | undefined; channel: "POS" | "Sales"; sellerId?: string | undefined }) => commit((s, c) => {
+export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Record<Method, number>; customerId?: string | undefined; channel: "POS" | "Sales"; sellerId?: string | undefined; vatRate?: number | undefined }) => commit((s, c) => {
   if (!input.cart.length) throw new ErpError("Cart is empty");
   const items: SaleItem[] = input.cart.map((l) => {
     const p = s.products.find((x) => x.id === l.productId);
@@ -243,7 +245,9 @@ export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Re
   const subtotal = items.reduce((a, i) => a + i.qty * i.price, 0);
   const discount = Math.round(input.discount * 100) / 100;
   if (discount < 0 || discount > subtotal) throw new ErpError("Discount can't exceed the subtotal");
-  const total = subtotal - discount;
+  const rate = Math.min(100, Math.max(0, input.vatRate ?? 0));
+  const vat = Math.round((subtotal - discount) * rate) / 100;
+  const total = Math.round((subtotal - discount + vat) * 100) / 100;
   if (METHODS.some((m) => !(input.pay[m] >= 0))) throw new ErpError("Payment amounts can't be negative");
   const allocated = METHODS.reduce((a, m) => a + input.pay[m], 0);
   if (allocated > total + 0.001) throw new ErpError("Payments exceed the total");
@@ -254,7 +258,7 @@ export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Re
   items.forEach((i) => c.move(i.productId, "SALE", -i.qty, "Sale", ref));
   (["cash", "mpesa", "bank"] as Method[]).forEach((m) => { if (input.pay[m] > 0) s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method: m, amount: input.pay[m], kind: "SALE", source: ref, customerId: cust?.id, user: c.user }); });
   if (cust && input.pay.credit > 0) cust.balance += input.pay.credit;
-  const sale: Sale = { id: uid(), ref, at: Date.now(), items, subtotal, discount, total, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, channel: input.channel, sellerId: undefined };
+  const sale: Sale = { id: uid(), ref, at: Date.now(), items, subtotal, discount, total, vat: vat || undefined, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, channel: input.channel, sellerId: undefined };
   const seller = input.sellerId ? s.employees.find((e) => e.id === input.sellerId && e.active) : undefined;
   if (input.sellerId && !seller) throw new ErpError("Seller not found");
   if (seller) { sale.sellerId = seller.id; const amt = commissionFor(seller, sale); if (amt > 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: seller.id, source: ref, amount: amt, kind: "EARNED", pending: seller.rule.paidOnly && input.pay.credit > 0 }); }
