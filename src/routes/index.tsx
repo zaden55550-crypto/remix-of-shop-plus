@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Lock, Store } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, TopBar } from "@/components/shopbook/ui";
