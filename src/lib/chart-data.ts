@@ -31,7 +31,6 @@ export function chartSeries(s: ErpState, module: ChartModule, range: ChartRange,
   }
   return buckets.map((b) => {
     const inR = (at: number) => at >= b.from && at <= b.to;
-    const sum = (rr: { at: number }[], v: (r: never) => number) => rr.filter((r) => inR(r.at)).reduce((a, r) => a + v(r as never), 0);
     if (module === "financial") { const p = profitAndLoss(s, b.from, b.to); return { label: b.label, value: p.sales - p.returns, secondary: p.expenses + p.salaries + p.stockAdj, third: p.net }; }
     if (module === "inventory") return { label: b.label, value: s.movements.filter((x) => inR(x.at) && x.qty > 0).reduce((a, x) => a + x.qty, 0), secondary: s.movements.filter((x) => inR(x.at) && x.qty < 0).reduce((a, x) => a - x.qty, 0) };
     if (module === "float") return { label: b.label, value: moneyRows.filter((x) => inR(x.at) && x.amount > 0).reduce((a, x) => a + x.amount, 0), secondary: moneyRows.filter((x) => inR(x.at) && x.amount < 0).reduce((a, x) => a - x.amount, 0) };
