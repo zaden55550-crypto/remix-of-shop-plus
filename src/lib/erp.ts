@@ -29,7 +29,7 @@ export type Supplier = { id: string; name: string; phone?: string | undefined; e
 export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
 export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string; settled?: number | undefined };
 export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
-export type Expense = { id: string; ref: string; at: number; category: string; note?: string | undefined; amount: number; method: Method; user: string };
+export type Expense = { id: string; ref: string; at: number; category: string; description?: string | undefined; note?: string | undefined; amount: number; method: Method; user: string };
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean };
 export type Employee = { id: string; name: string; phone?: string | undefined; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
 /** Commission ledger: adjustments are new negative rows, never edits/deletes. */

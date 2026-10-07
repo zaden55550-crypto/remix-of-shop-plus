@@ -128,15 +128,36 @@ export const returnPurchase = (purchaseId: string, lines: { productId: string; q
 
 // ---------- Expenses ----------
 export const DEFAULT_EXPENSE_CATEGORIES = ["Rent", "Electricity", "Water", "Transport", "Internet", "Airtime", "Repairs", "Supplies", "Other"];
-export const addExpense = (input: { category: string; amount: number; method: Method; note?: string | undefined }) => commit((s, c) => {
+/** An expense may be fully paid, part paid (P.PAY) or unpaid (Credit); each money account paid is its own ledger row. */
+export const addExpense = (input: { category: string; amount: number; method: Method; note?: string | undefined; description?: string | undefined; at?: number | undefined; pay?: Partial<Record<Method, number>> | undefined }) => commit((s, c) => {
   const cat = input.category.trim(); if (!cat) throw new ErpError("Choose a category");
   if (!(input.amount > 0)) throw new ErpError("Enter an amount");
-  if (input.method === "credit") throw new ErpError("Choose Cash, M-Pesa or Bank");
-  ensureFunds(s, input.method, input.amount);
+  const pay = input.pay ?? (input.method === "credit" ? {} : { [input.method]: input.amount });
+  const parts = ACCOUNTS.map((m) => [m, r2(pay[m] ?? 0)] as const).filter(([, v]) => v > 0);
+  if (parts.some(([, v]) => v < 0)) throw new ErpError("Payment amounts can't be negative");
+  const paid = parts.reduce((a, [, v]) => a + v, 0);
+  if (paid > input.amount + 0.001) throw new ErpError("Paid amount is more than the total");
+  if (input.method === "credit" && !input.pay) throw new ErpError("Choose Cash, M-Pesa or Bank");
+  parts.forEach(([m, v]) => ensureFunds(s, m, v));
   const ref = c.nextRef("EXP");
-  s.expenses.unshift({ id: uid(), ref, at: Date.now(), category: cat, note: input.note?.trim() || undefined, amount: r2(input.amount), method: input.method, user: c.user });
-  s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: Date.now(), method: input.method, amount: -r2(input.amount), kind: "EXPENSE", source: ref, user: c.user });
+  const at = input.at && input.at <= Date.now() ? input.at : Date.now();
+  s.expenses.unshift({ id: uid(), ref, at, category: cat, description: input.description?.trim() || undefined, note: input.note?.trim() || undefined, amount: r2(input.amount), method: parts[0]?.[0] ?? "credit", user: c.user });
+  parts.forEach(([m, v]) => s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at, method: m, amount: -v, kind: "EXPENSE", source: ref, user: c.user }));
   c.audit("EXPENSE", `${ref} • ${cat} • ${input.amount}`);
+  return s.expenses[0]!;
+});
+export const expensePaid = (s: ErpState, x: { ref: string }) => r2(s.payments.filter((p) => p.kind === "EXPENSE" && p.source === x.ref).reduce((a, p) => a - p.amount, 0));
+export const expenseBalance = (s: ErpState, x: { ref: string; amount: number }) => Math.max(0, r2(x.amount - expensePaid(s, x)));
+export const expenseStatus = (s: ErpState, x: { ref: string; amount: number }) => payStatus(x.amount, expenseBalance(s, x), false);
+/** Pays (part of) what is still owed on an expense. */
+export const payExpense = (expenseId: string, amount: number, method: Method, at?: number) => commit((s, c) => {
+  const x = s.expenses.find((v) => v.id === expenseId); if (!x) throw new ErpError("Expense not found");
+  if (method === "credit") throw new ErpError("Choose Cash, M-Pesa or Bank");
+  if (!(amount > 0)) throw new ErpError("Enter an amount");
+  if (amount > expenseBalance(s, x) + 0.001) throw new ErpError("Amount is more than the outstanding balance");
+  ensureFunds(s, method, amount);
+  s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: at && at <= Date.now() ? at : Date.now(), method, amount: -r2(amount), kind: "EXPENSE", source: x.ref, user: c.user });
+  c.audit("EXPENSE PAYMENT", `${x.ref} • ${amount}`);
 });
 export const addExpenseCategory = (name: string) => commit((s, c) => {
   const n = name.trim(); if (!n) throw new ErpError("Enter a name");

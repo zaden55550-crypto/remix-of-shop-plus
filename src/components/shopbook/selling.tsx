@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { ProductSearch, inputCls } from "@/components/shopbook/product-search";
 import { store, canOpen, type Account, type Tier } from "@/lib/shopbook";
+import { PrintPreview, whatsapp } from "@/components/shopbook/print";
 import { useLanguage } from "@/hooks/use-language";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { translateCurrent } from "@/lib/interface-translations";
@@ -251,16 +252,20 @@ export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children }: { 
   const share = async () => {
     try { if (navigator.share) await navigator.share({ title: sale.ref, text: text() }); else { await navigator.clipboard.writeText(text()); toast.success(tr("Receipt copied")); } } catch { /* cancelled */ }
   };
+  const [print, setPrint] = useState(false);
   return (
+    <>
+    {print && <PrintPreview title="Receipt" onClose={() => setPrint(false)} actions={<ShopButton variant="outline" className="h-9 text-sm" onClick={() => whatsapp(text())}>{tr("Send Receipt (WhatsApp)")}</ShopButton>}><Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} /></PrintPreview>}
     <Sheet title={tr("Receipt")} onClose={onClose}>
       <Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} />
       <div className="mt-3 grid grid-cols-3 gap-2">
         <ShopButton variant="outline" className="h-10 text-sm" onClick={share}><Share2 className="h-4 w-4" />{tr("Share")}</ShopButton>
-        <ShopButton variant="outline" className="h-10 text-sm" onClick={() => window.print()}><Printer className="h-4 w-4" />{tr("Print")}</ShopButton>
-        <ShopButton variant="outline" className="h-10 text-sm" onClick={() => window.print()}>{tr("Reprint")}</ShopButton>
+        <ShopButton variant="outline" className="h-10 text-sm" onClick={() => setPrint(true)}><Printer className="h-4 w-4" />{tr("Print")}</ShopButton>
+        <ShopButton variant="outline" className="h-10 text-sm" onClick={() => setPrint(true)}>{tr("Reprint")}</ShopButton>
       </div>
       {children}
     </Sheet>
+    </>
   );
 }
 
