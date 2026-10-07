@@ -19,6 +19,7 @@
 - Dashboard reads the shared ERP snapshot without mutations; unavailable financial sources stay unset rather than presenting fabricated totals.
 - Keep reorder AI helpers server-only and require Cloud identity for paid AI requests; recommendations are advisory and never mutate ERP stock or purchase records.
 - Commission is a ledger in the ERP state: returns append negative adjustment rows instead of editing earned rows, so history stays auditable.
+- Record per-product commission amounts when earning commission and reverse returned items from those recorded amounts; historical rows without allocations retain their legacy fallback.
 - Reports (`src/lib/reports.ts`) are read-only builders over the ERP snapshot; sources that don't exist yet return null and render as a dash.
 - Backups are whole-ERP JSON files validated before restore; a failed restore puts the previous records back.
 - Purchases, expenses, supplier payments and float moves are signed rows in the shared `payments` ledger (`src/lib/finance.ts`), so Float, POS cash-up and Accounting read one money source.
@@ -31,3 +32,6 @@
 - Every money screen picks payment with the shared PayPicker (Cash, M-Pesa, Bank, Credit, P.PAY last); unpaid remainder always lands on credit. Device prefs (interface size, VAT) live in src/lib/prefs.ts; sale VAT is stored on the sale and posted to VAT payable.
 - Accounting and Float share the ERP shell and money-ui controls; money-activity builds read-only financial documents and actual account movements separately to prevent double-counting.
 - Cash-up notes are saved through the shared ERP cashUp action so POS and Float preserve one reconciliation history.
+- Global cloud-backup mounts once at the root and snapshots ERP plus allowlisted device preferences/drafts; authenticated user/device isolation and revision checks prevent cross-user reads and stale uploads, and restore is explicit, never a merge.
+- Backup snapshots exclude passwords, sessions and subscription entitlements; validate all ERP collections before atomic restore and show cloud success only after acknowledgement.
+- Contacts and Payroll use the shared ERP shell and people actions; contact edits preserve audit values, partial settlements are atomic, and employee records remain separate from contacts.

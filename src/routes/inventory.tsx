@@ -11,6 +11,7 @@ import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
 import { lastBackup } from "@/lib/backup";
+import { BackupStatus } from "@/components/shopbook/backup-status";
 import { useErp } from "@/components/shopbook/product-search";
 
 import { InventorySearch, InventoryField, BarcodeField, InventoryProductPicker, inventoryProducts, inventoryInput } from "@/components/shopbook/inventory-controls";
@@ -82,7 +83,7 @@ function Inventory() {
             </div>}
           </div>
         </div>
-        <p className="inventory-backup"><span className={cn("h-2 w-2 rounded-full", lb ? "bg-success" : "bg-warning")} />{lb ? `${tr("Backed up")} • ${new Date(lb).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : tr("Not backed up yet")}</p>
+        <BackupStatus />
         <Tabs items={Object.keys(MENUS)} value={menu} onChange={(m) => go(m as Menu)} label={(k) => tr(k.charAt(0).toUpperCase() + k.slice(1))} />
         {MENUS[menu].length > 0 && <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />}
       </header>

@@ -13,6 +13,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
+import { BackupStatus } from "@/components/shopbook/backup-status";
 import * as erp from "@/lib/erp";
 
 export type Tr = (t: string) => string;
@@ -49,6 +50,7 @@ export function AppShell({ title, tabs, tab, setTab, children }: { title: string
           <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></ShopButton>
           <h1 className="text-lg font-bold tracking-wide">{tr(title).toUpperCase()}</h1>
         </div>
+        <BackupStatus />
         <div className="flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none]">
           {tabs.map((k) => (
             <button key={k} onClick={() => setTab(k)} className={cn("shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold transition", tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{tr(k).toUpperCase()}</button>
