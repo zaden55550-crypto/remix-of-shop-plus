@@ -1,6 +1,6 @@
 # SHOPBOOK updates
 
-- [ ] Add compact real-data charts to app Overview screens, Reports and Summary; keep tiny writing and one-row controls.
+- [x] Add compact real-data charts to app Overview screens, Reports and Summary; keep tiny writing and one-row controls.
 - [ ] Chart interaction/data verification deferred until general system functionality is finished, at the user's request.
 
 - [x] Build compact Contacts: shared profiles, other contacts, audit and payments.

@@ -57,3 +57,15 @@ export function chartBreakdown(s: ErpState, module: ChartModule, range: ChartRan
   const b = balances(journal(s));
   return { title: "Account balances", points: ["cash", "mpesa", "bank"].map((m) => ({ label: METHOD_LABEL[m as "cash" | "mpesa" | "bank"], value: b[m as "cash" | "mpesa" | "bank"].net })) };
 }
+
+/** Historical book balances from recorded accounting entries, not invented stock-price history. */
+export function balanceTrend(s: ErpState, metric: "Inventory" | "Cash", range: ChartRange): ChartPoint[] {
+  const entries = journal(s), selected = entries.filter((e) => e.at >= range.from && e.at <= range.to);
+  if (!selected.length) return [];
+  const start = range.from || Math.min(...selected.map((e) => e.at));
+  const span = range.to - start, count = Math.min(24, Math.max(1, Math.ceil(span / 864e5)));
+  return Array.from({ length: count }, (_, i) => {
+    const end = start + (span * (i + 1) / count), b = balances(entries, 0, end);
+    return { label: new Date(end).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }), value: metric === "Inventory" ? b.inventory.net : b.cash.net + b.mpesa.net + b.bank.net };
+  });
+}

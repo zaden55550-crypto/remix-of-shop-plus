@@ -35,3 +35,4 @@
 - Global cloud-backup mounts once at the root and snapshots ERP plus allowlisted device preferences/drafts; authenticated user/device isolation and revision checks prevent cross-user reads and stale uploads, and restore is explicit, never a merge.
 - Backup snapshots exclude passwords, sessions and subscription entitlements; validate all ERP collections before atomic restore and show cloud success only after acknowledgement.
 - Contacts and Payroll use the shared ERP shell and people actions; contact edits preserve audit values, partial settlements are atomic, and employee records remain separate from contacts.
+- Shared compact analytics charts use read-only chart-data datasets and accounting-derived financial/book-balance series; overview screens and Reports/Summary reuse these without mutating ERP records.
