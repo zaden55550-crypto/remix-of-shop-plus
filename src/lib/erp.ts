@@ -24,14 +24,18 @@ export type ErpState = {
   customers: Customer[]; sales: Sale[]; payments: Payment[]; returns: SaleReturn[]; cash: CashEvent[];
   employees: Employee[]; commissions: Commission[]; payrolls: PayrollRun[]; payrollPayments: PayrollPayment[];
   suppliers: Supplier[]; purchases: Purchase[]; purchaseReturns: PurchaseReturn[]; expenses: Expense[]; expenseCategories: Named[];
+  otherContacts: OtherContact[]; contactCategories: Named[]; payrollDrafts: PayrollDraft[];
 };
+export type ContactDetails = { email?: string; address?: string; notes?: string; active?: boolean };
+export type OtherContact = ContactDetails & { id: string; name: string; phone?: string; category?: string; createdAt: number };
+export type PayrollDraft = { id: string; employeeId: string; from: number; to: number; deductions: number; notes?: string; at: number };
 export type Supplier = { id: string; name: string; phone?: string | undefined; email?: string | undefined; address?: string | undefined; info?: string | undefined; notes?: string | undefined; balance: number; createdAt: number };
 export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
 export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string; settled?: number | undefined };
 export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
 export type Expense = { id: string; ref: string; at: number; category: string; description?: string | undefined; note?: string | undefined; amount: number; method: Method; user: string };
-export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean };
-export type Employee = { id: string; name: string; phone?: string | undefined; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
+export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean; products?: { productId: string; kind: "percent" | "fixed" | "profit"; value: number }[] };
+export type Employee = { id: string; name: string; phone?: string | undefined; notes?: string; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
 /** Commission ledger: adjustments are new negative rows, never edits/deletes. */
 export type Commission = { id: string; at: number; employeeId: string; source: string; amount: number; kind: "EARNED" | "RETURN ADJUSTMENT"; pending: boolean; payrollId?: string | undefined };
 export type PayrollRun = { id: string; ref: string; at: number; employeeId: string; from: number; to: number; salary: number; commission: number; deductions: number; net: number; paid: number; user: string };
@@ -39,7 +43,7 @@ export type PayrollPayment = { id: string; ref: string; at: number; payrollId: s
 export type Method = "cash" | "mpesa" | "bank" | "credit";
 export const METHODS: Method[] = ["cash", "mpesa", "bank", "credit"];
 export const METHOD_LABEL: Record<Method, string> = { cash: "Cash", mpesa: "M-Pesa", bank: "Bank", credit: "Credit" };
-export type Customer = { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number };
+export type Customer = ContactDetails & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number };
 export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number };
 export type Sale = {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
@@ -55,7 +59,7 @@ export type CashEvent = { id: string; at: number; type: "OPENING" | "CASH IN" | 
 
 const KEY = "shopbook.erp";
 const EVT = "shopbook-erp";
-const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [], suppliers: [], purchases: [], purchaseReturns: [], expenses: [], expenseCategories: [] });
+export const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [], suppliers: [], purchases: [], purchaseReturns: [], expenses: [], expenseCategories: [], otherContacts: [], contactCategories: [], payrollDrafts: [] });
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
 export function load(): ErpState {
@@ -358,6 +362,15 @@ export const cashUp = (counted: number, note?: string) => commit((s, c) => {
 export function commissionFor(e: Employee, sale: Pick<Sale, "items" | "total" | "subtotal">) {
   if (e.comp === "salary" || e.rule.kind === "none" || !(e.rule.value > 0)) return 0;
   const ratio = sale.subtotal ? sale.total / sale.subtotal : 1;
+  if (e.rule.products?.length) {
+    const v = sale.items.reduce((sum, i) => {
+      const override = e.rule.products?.find((r) => r.productId === i.productId);
+      const rule = override ?? e.rule;
+      const revenue = i.qty * i.price * ratio;
+      return sum + (rule.kind === "fixed" ? rule.value * i.qty : rule.kind === "profit" ? Math.max(0, revenue - i.qty * i.cost) * rule.value / 100 : revenue * rule.value / 100);
+    }, 0);
+    return Math.round(v * 100) / 100;
+  }
   const profit = sale.items.reduce((a, i) => a + i.qty * (i.price * ratio - i.cost), 0);
   const v = e.rule.kind === "percent" ? sale.total * e.rule.value / 100 : e.rule.kind === "profit" ? Math.max(0, profit) * e.rule.value / 100 : e.rule.value;
   return Math.round(v * 100) / 100;
@@ -390,7 +403,7 @@ export function eligibleCommission(s: ErpState, employeeId: string) {
 }
 function isPaid(s: ErpState, saleRef: string) {
   const sale = s.sales.find((x) => x.ref === saleRef); if (!sale?.customerId) return true;
-  return (s.customers.find((c) => c.id === sale.customerId)?.balance ?? 0) <= 0.001;
+  return saleBalance(s, sale) <= 0.001;
 }
 export function payrollPreview(s: ErpState, employeeId: string, deductions: number) {
   const e = s.employees.find((x) => x.id === employeeId); if (!e) throw new ErpError("Employee not found");
