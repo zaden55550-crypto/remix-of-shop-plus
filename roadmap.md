@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [x] Match Accounting and Float to supplied tiny-writing phone references; verify compact transaction details, shared payment totals, transfers and reasoned cash-up. Cloud sync and staff-authorized corrections remain dependent on the deferred online-account work; purchase VAT remains unavailable.
+
 - [x] Match all Inventory screens to the approved navy/green mockup; preserve shared ERP records and verify the main flows.
 
 - [x] Build and verify Dashboard with the shared five-metric horizontal KPI row.

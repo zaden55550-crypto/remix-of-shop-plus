@@ -347,11 +347,11 @@ export const cashEvent = (type: "OPENING" | "CASH IN" | "CASH OUT", amount: numb
   s.cash.unshift({ id: uid(), at: Date.now(), type, amount, note: note?.trim() || undefined, user: c.user });
   c.audit(type, String(amount));
 });
-export const cashUp = (counted: number) => commit((s, c) => {
-  if (!(counted >= 0)) throw new ErpError("Enter the counted cash");
+export const cashUp = (counted: number, note?: string) => commit((s, c) => {
+  if (!(counted >= 0) || !Number.isFinite(counted)) throw new ErpError("Enter the counted cash");
   const expected = cashSession(s).expected;
-  s.cash.unshift({ id: uid(), at: Date.now(), type: "CASH UP", amount: counted - expected, expected, counted, user: c.user });
-  c.audit("CASH UP", `Expected ${expected} • Counted ${counted}`);
+  s.cash.unshift({ id: uid(), at: Date.now(), type: "CASH UP", amount: counted - expected, expected, counted, note: note?.trim() || undefined, user: c.user });
+  c.audit("CASH UP", `Expected ${expected} • Counted ${counted}${note?.trim() ? ` • ${note.trim()}` : ""}`);
 });
 
 /** Commission earned on a sale per the employee's rule (immediate by default). */
