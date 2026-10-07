@@ -41,6 +41,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shopbook_device_backups: {
+        Row: {
+          device_id: string
+          payload: Json
+          revision: number
+          shop_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          device_id: string
+          payload: Json
+          revision?: number
+          shop_name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          device_id?: string
+          payload?: Json
+          revision?: number
+          shop_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_messages: {
         Row: {
           body: string
