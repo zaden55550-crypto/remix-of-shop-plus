@@ -8,6 +8,7 @@ import { run, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, Tabs, toneOf, type Tr } from "@/components/shopbook/erp-shell";
 import { PrintPreview } from "@/components/shopbook/print";
+import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/components/shopbook/pay-picker";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
@@ -152,7 +153,7 @@ function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
   const [q, setQ] = useState("");
   const [lines, setLines] = useState<DraftLine[]>(draft?.lines ?? []);
   const [sup, setSup] = useState(draft?.supplierId ?? "");
-  const [rows, setRows] = useState<{ m: erp.Method; a: string }[]>([{ m: "cash", a: "" }]);
+  const [pay, setPay] = useState<PayState>(emptyPay());
   const [note, setNote] = useState("");
   const addLine = (p: erp.Product) => setLines((l) => (l.some((x) => x.productId === p.id) ? l : [...l, { productId: p.id, qty: "1", cost: String(p.buy), disc: "0" }]));
   const results = q.trim() ? erp.searchProducts(s, q).slice(0, 6) : [];
@@ -160,18 +161,15 @@ function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
   const subtotal = lines.reduce((a, l) => a + (+l.qty || 0) * (+l.cost || 0), 0);
   const discount = lines.reduce((a, l) => a + Math.min(+l.disc || 0, (+l.qty || 0) * (+l.cost || 0)), 0);
   const total = Math.round((subtotal - discount) * 100) / 100;
-  const paidN = sumRows(rows);
-  const credit = Math.max(0, Math.round((total - paidN) * 100) / 100);
+  const rec = payRecord(pay, total);
   const set = (i: number, k: keyof DraftLine, v: string) => setLines(lines.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   const confirm = () => {
     if (!sup) { toast.error(tr("Choose a supplier")); return; }
-    if (paidN > total + 0.001) { toast.error(tr("Paid amount is more than the total")); return; }
-    const pay: Record<erp.Method, number> = { cash: 0, mpesa: 0, bank: 0, credit };
-    rows.forEach((r) => { pay[r.m] += +r.a || 0; });
+    if (payInvalid(pay, total)) { toast.error(tr("Check the payment amounts")); return; }
     const r = run(() => fin.confirmPurchase({
       // Line discounts are folded into the unit buying price so stock value and profit use the real cost.
       lines: lines.map((l) => ({ productId: l.productId, qty: +l.qty, cost: +l.qty > 0 ? Math.round((lt(l) / +l.qty) * 100) / 100 : 0 })),
-      pay, supplierId: sup, updateCost: true,
+      pay: rec, supplierId: sup, updateCost: true,
     }));
     if (r) { if (draft) saveDrafts(loadDrafts().filter((d) => d.id !== draft.id)); c.open({ k: "done", id: r.id }); }
   };
@@ -198,9 +196,7 @@ function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
         <button aria-label={tr("Remove")} onClick={() => setLines(lines.filter((_, j) => j !== i))}><MinusCircle className="h-4 w-4 text-destructive" /></button></div>)}</div>}
     {lines.length > 0 && <>
       <div className="pur-totals"><span>{tr("Items")}</span><b>{lines.length}</b><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("Discount")}</span><b>{money(discount)}</b><span>{tr("Total")}</span><b className="text-primary">{money(total)}</b></div>
-      <p className="inventory-form-title">{tr("Payment Method")}</p>
-      <PayRows rows={rows} setRows={setRows} tr={tr} />
-      <div className="pur-totals"><span>{tr("Total Payment")}</span><b>{money(paidN)}</b><span>{tr("Remaining Balance")}</span><b className={cn(credit > 0 && "text-warning")}>{money(credit)}</b>{credit > 0 && <><span>{tr("Status")}</span><span className="justify-self-end"><Badge s={paidN > 0 ? "P.PAY" : "Credit"} /></span></>}</div>
+      <PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote="The unpaid balance is added to what you owe this supplier" />
       <label className="inventory-field"><span>{tr("Notes (Optional)")}</span><input className="inventory-input" placeholder={tr("Enter notes...")} value={note} onChange={(e) => setNote(e.target.value)} /></label>
       <div className="grid grid-cols-[1fr_2fr] gap-1.5"><ShopButton variant="outline" className="inventory-save" onClick={saveDraft}>{tr("Save draft")}</ShopButton><ShopButton className="inventory-save" onClick={confirm}>{tr("Complete Purchase")}</ShopButton></div>
     </>}
