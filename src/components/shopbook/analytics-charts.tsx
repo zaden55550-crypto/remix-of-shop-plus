@@ -6,7 +6,7 @@ import type { ErpState } from "@/lib/erp";
 
 const COLORS = ["var(--success)", "var(--primary)", "var(--warning)", "var(--destructive)", "var(--muted-foreground)"];
 const short = (n: number) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
-type Props = { points: ChartPoint[]; money: (n: number) => string; tr: (s: string) => string; title: string; labels?: string[]; kind?: "line" | "bar" | "donut" | "ranking"; count?: boolean };
+type Props = { points: ChartPoint[]; money: (n: number) => string; tr: (s: string) => string; title: string; labels?: string[] | undefined; kind?: "line" | "bar" | "donut" | "ranking"; count?: boolean };
 
 export function CompactGraph({ points, money, tr, title, labels = [title], kind = "line", count }: Props) {
   const id = useId().replace(/:/g, "");
@@ -56,5 +56,5 @@ export function analyticsRange(period: AnalyticsPeriod, custom: [string, string]
   return { from: start.getTime(), to: now.getTime() };
 }
 export function PeriodFilter({ period, setPeriod, custom, setCustom, tr, dropdown = false }: { period: AnalyticsPeriod; setPeriod: (p: AnalyticsPeriod) => void; custom: [string, string]; setCustom: (p: [string, string]) => void; tr: (s: string) => string; dropdown?: boolean }) {
-  return <div className="shop-chart-filters">{dropdown ? <select className="inventory-input" aria-label={tr("Period")} value={period} onChange={(e) => setPeriod(e.target.value as AnalyticsPeriod)}>{ANALYTICS_PERIODS.map((p) => <option key={p}>{tr(p)}</option>)}</select> : ANALYTICS_PERIODS.map((p) => <ShopButton key={p} variant="bare" className="inventory-tab" aria-pressed={p === period} onClick={() => setPeriod(p)}>{tr(p)}</ShopButton>)}{period === "Custom" && <><input type="date" className="inventory-input" aria-label={tr("From")} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} /><input type="date" className="inventory-input" aria-label={tr("To")} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} /></>}</div>;
+  return <div className="shop-chart-filters">{dropdown ? <select className="inventory-input" aria-label={tr("Period")} value={period} onChange={(e) => setPeriod(e.target.value as AnalyticsPeriod)}>{ANALYTICS_PERIODS.map((p) => <option key={p} value={p}>{tr(p)}</option>)}</select> : ANALYTICS_PERIODS.map((p) => <ShopButton key={p} variant="bare" className="inventory-tab" aria-pressed={p === period} onClick={() => setPeriod(p)}>{tr(p)}</ShopButton>)}{period === "Custom" && <><input type="date" className="inventory-input" aria-label={tr("From")} value={custom[0]} onChange={(e) => setCustom([e.target.value, custom[1]])} /><input type="date" className="inventory-input" aria-label={tr("To")} value={custom[1]} onChange={(e) => setCustom([custom[0], e.target.value])} /></>}</div>;
 }
