@@ -1,9 +1,9 @@
 # SHOPBOOK updates
 
-- [ ] Rebuild Settings around the locked 12-category order, with Import & Data inside General.
-- [ ] Build the real CSV/XLSX/JSON Import Center with mapping, validation, duplicate review, atomic ERP commit, history, templates and error export.
-- [ ] Build the one-conversation, session-only Business AI Assistant grounded in the current authorized ERP snapshot.
-- [ ] Complete the specified compact login/create-account flow, including optional mobile logo crop controls and no login image.
+- [x] Rebuild Settings around the locked 12-category order, with Import & Data inside General.
+- [x] Build supported CSV/XLSX/JSON and image imports with mapping, validation, duplicate review, atomic ERP commit, history, templates and error export.
+- [x] Build the one-conversation, session-only Business AI Assistant grounded in the current authorized ERP snapshot.
+- [x] Complete the specified compact login/create-account flow, including optional mobile logo crop controls and no login image.
 - [ ] Defer broad visual and interaction verification until general system functionality is complete, as requested.
 
 - [x] Add compact real-data charts to app Overview screens, Reports and Summary; keep tiny writing and one-row controls.
