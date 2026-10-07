@@ -107,8 +107,6 @@ function Dashboard() {
   const { perf, t, pos, profit, bal } = data;
   const byTotal = METHODS.reduce((a, m) => a + perf.byMethod[m], 0);
   const lastChange = s.audit[0]?.at ?? 0;
-  const lb = lastBackup();
-  const backed = lb && lb >= lastChange;
   const cashVariance = s.cash.find((e) => e.type === "CASH UP");
   const cashUp = pos.cashUpPending ? "Pending" : cashVariance && cashVariance.counted !== undefined && cashVariance.expected !== undefined && cashVariance.counted !== cashVariance.expected ? "Variance" : "Done";
 
@@ -150,9 +148,7 @@ function Dashboard() {
       </header>
 
       <div className="flex flex-col gap-3 px-3 pt-2">
-        <p className={cn("text-[10px]", backed ? "text-success" : "text-muted-foreground")}>
-          {backed ? `✓ ${tr("Backed up")} • ${ago(lb, tr)}` : `⚠ ${tr("Backup pending")}`}
-        </p>
+        <BackupStatus className="px-0 text-[10px]" />
 
         <section className="relative rounded-xl border border-border bg-card p-2 shadow-sm">
           <div className="flex items-center justify-between gap-2">
