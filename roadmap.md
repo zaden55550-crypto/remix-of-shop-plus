@@ -1,5 +1,9 @@
 # SHOPBOOK updates
 
+- [ ] Build compact Contacts: shared profiles, other contacts, audit and payments.
+- [ ] Build compact Payroll: employee profiles, compensation, drafts, payments and reports.
+- [ ] Verify whole-app backup/restore and automatic signed-in Cloud snapshots with truthful status and retries.
+
 - [x] Match Accounting and Float to supplied tiny-writing phone references; verify compact transaction details, shared payment totals, transfers and reasoned cash-up. Cloud sync and staff-authorized corrections remain dependent on the deferred online-account work; purchase VAT remains unavailable.
 
 - [x] Match all Inventory screens to the approved navy/green mockup; preserve shared ERP records and verify the main flows.
