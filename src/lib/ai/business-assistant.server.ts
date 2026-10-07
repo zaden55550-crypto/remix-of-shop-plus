@@ -20,7 +20,7 @@ export async function handleBusinessAssistant(request: Request) {
   let input; try { input = assistantRequestSchema.parse(await request.json()); } catch { return Response.json({ error: "The assistant request was invalid" }, { status: 400 }); }
   const apiKey = process.env["LOVABLE_API_KEY"]; if (!apiKey) return Response.json({ error: "AI configuration missing" }, { status: 401 });
   const messages = await convertToModelMessages(input.messages as never[]);
-  const call = createResponsesCall(request, { baseURL: "https://ai.gateway.lovable.dev/v1", apiKey, model: "openai/gpt-6-astra" }, [...messages, { role: "user", content: `Current page: ${input.page}\nAuthorized SHOPBOOK context:\n${JSON.stringify(input.context)}` }], `${GUIDE}\nReply in ${input.language}.`);
+  const call = createResponsesCall(request, { baseURL: "https://ai.gateway.lovable.dev/v1", apiKey, model: "openai/gpt-6-astra" }, [{ role: "user", content: `Authorized SHOPBOOK context for this request only. Current page: ${input.page}\n${JSON.stringify(input.context)}` }, ...messages], `${GUIDE}\nReply in ${input.language}.`);
   try { const response = await call.response(); return new Response(response.body, { status: response.status, headers: getLovableAiGatewayResponseHeaders(response.headers, { "Cache-Control": "no-store" }) }); }
   catch (e) { if (request.signal.aborted) return Response.json({ error: "Stopped" }, { status: 499 }); const status = typeof e === "object" && e && "statusCode" in e ? Number((e as { statusCode: number }).statusCode) : 500; const message = e instanceof Error ? e.message : "AI request failed"; return Response.json({ error: message }, { status }); }
 }

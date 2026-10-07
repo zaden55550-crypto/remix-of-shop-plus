@@ -7,6 +7,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { APPS, canOpen, chatIcons, store, trialDaysLeft, type Account } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
 import { HelpChat } from "@/components/shopbook/help-chat";
+import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { useLanguage } from "@/hooks/use-language";
 import { getT, LANGS, NATIVE, SUPPORT, type TKey } from "@/lib/i18n";
 
@@ -39,6 +40,7 @@ function Apps() {
   const [panel, setPanel] = useState<null | "profile" | "language" | "currency" | "help">(null);
   const [faq, setFaq] = useState<number | null>(null);
   const [chat, setChat] = useState(false);
+  const [businessAi, setBusinessAi] = useState(false);
   const pick = (p: Partial<Account>) => { store.update(p); setAcct((a) => (a ? { ...a, ...p } : a)); toast.success(getT(p.language ?? acct?.language).t("saved")); };
 
   useEffect(() => {
@@ -113,7 +115,7 @@ function Apps() {
         {SETTINGS_APP && <div className="mx-auto w-[calc((100%-1.5rem)/4)]">{renderApp(SETTINGS_APP)}</div>}
       </div>
 
-      <ShopButton variant="bare" aria-label={tr("AI assistant")} onClick={() => setChat(true)}
+      <ShopButton variant="bare" aria-label={tr("AI assistant")} onClick={() => setBusinessAi(true)}
         className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] flex flex-col items-center">
         <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-14 w-14 rounded-full" />
       </ShopButton>
@@ -215,6 +217,7 @@ function Apps() {
       )}
 
       <HelpChat open={chat} onClose={() => setChat(false)} shopName={acct.shopName} email={acct.email} icon={dark ? chatIcons.dark : chatIcons.light} />
+      <BusinessAssistant open={businessAi} onClose={() => setBusinessAi(false)} shop={acct.shopName} currency={acct.currency} icon={dark ? chatIcons.dark : chatIcons.light} />
 
       {locked && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-background/70 px-6 backdrop-blur-sm" onClick={() => setLocked(null)}>

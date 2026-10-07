@@ -15,11 +15,11 @@ const addDays = (at: number, n: number) => at + n * 864e5;
 const month = (y: number, m: number) => new Date(y, m, 1).getTime();
 export function buildAssistantContext(s: ErpState, shop: string, currency: string): AssistantContext {
   const now = new Date(), today = dayStart(now), week = today - ((now.getDay() + 6) % 7) * 864e5;
-  const ranges = [
+  const ranges: [string, number, number][] = [
     ["Today", today, Date.now()], ["Yesterday", today - 864e5, today - 1], ["This week", week, Date.now()], ["Last week", week - 7 * 864e5, week - 1],
     ["This month", month(now.getFullYear(), now.getMonth()), Date.now()], ["Last month", month(now.getFullYear(), now.getMonth() - 1), month(now.getFullYear(), now.getMonth()) - 1],
     ["This year", new Date(now.getFullYear(), 0, 1).getTime(), Date.now()], ["Last year", new Date(now.getFullYear() - 1, 0, 1).getTime(), new Date(now.getFullYear(), 0, 1).getTime() - 1], ["All time", 0, Date.now()],
-  ] as const;
+  ];
   for (let i = 0; i < 6; i++) { const from = month(now.getFullYear(), now.getMonth() - i), to = month(now.getFullYear(), now.getMonth() - i + 1) - 1; ranges.push([new Date(from).toLocaleDateString("en", { month: "long", year: "numeric" }), from, Math.min(to, Date.now())]); }
   const periods = ranges.map(([label, from, to]) => { const p = performance(s, from, to), pl = profitAndLoss(s, from, to), pt = purchaseTotals(s, from, to); const cats = new Map<string, number>(); s.expenses.filter((x) => x.at >= from && x.at <= to).forEach((x) => cats.set(x.category, (cats.get(x.category) ?? 0) + x.amount)); return { label, from, to, sales: p.sales, purchases: pt.purchases, expenses: pt.expenses, profit: pl.net, grossProfit: pl.gross, cogs: pl.cogs, returns: p.returned, transactions: p.transactions, cash: p.byMethod.cash, mpesa: p.byMethod.mpesa, bank: p.byMethod.bank, credit: p.byMethod.credit, topProducts: p.top.map((x) => ({ label: x.name, value: x.value, secondary: x.qty })), expenseCategories: [...cats].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([label, value]) => ({ label, value })) }; });
   const pos = position(s), accounts = floatBalances(s);

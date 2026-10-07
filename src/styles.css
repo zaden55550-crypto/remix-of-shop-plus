@@ -130,6 +130,49 @@
   html, body { background-color: var(--color-background); color: var(--color-foreground); font-family: var(--font-sans); }
 }
 
+/* Central Settings and import surfaces retain SHOPBOOK's compact, single-row rules. */
+.settings-title { margin: 4px 0 8px; font-size: 13px; font-weight: 800; }
+.settings-back { width: auto; height: 24px; padding: 0; gap: 4px; font-size: 9px; color: var(--muted-foreground); }
+.settings-search { display: flex; align-items: center; gap: 6px; height: 30px; margin: 2px 0 8px; padding: 0 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); }
+.settings-search input { min-width: 0; flex: 1; background: transparent; outline: none; font-size: 10px; }
+.settings-list { display: grid; gap: 5px; }
+.inventory-screen .settings-row { display: grid; grid-template-columns: 22px minmax(0,1fr) 14px; height: 34px; padding: 0 8px; border: 1px solid var(--border); border-radius: 5px; background: var(--card); text-align: start; font-size: 9px; white-space: nowrap; }
+.settings-row b { color: var(--primary); font-variant-numeric: tabular-nums; }
+.settings-sections { display: grid; gap: 4px; }
+.settings-section { border: 1px solid var(--border); border-radius: 5px; background: var(--card); overflow: hidden; }
+.inventory-screen .settings-section-button { display: grid; grid-template-columns: minmax(0,1fr) 14px; height: 31px; padding: 0 8px; text-align: start; font-size: 9px; white-space: nowrap; }
+.settings-section-button svg { height: 12px; width: 12px; transition: transform .15s; }
+.settings-section-body { display: grid; gap: 7px; border-top: 1px solid var(--border); padding: 8px; font-size: 9px; }
+.settings-toggle, .settings-inline { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 25px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow-x: auto; }
+.settings-note { font-size: 9px; color: var(--muted-foreground); line-height: 1.45; }
+.settings-mini { width: auto; height: 23px; padding: 0 6px; border-radius: 3px; font-size: 8px; }
+.settings-slider { display: grid; grid-template-columns: auto minmax(130px,1fr) auto; align-items: center; gap: 6px; white-space: nowrap; overflow-x: auto; font-size: 8px; }
+.settings-slider input { min-width: 130px; accent-color: var(--primary); }
+.settings-audit { display: grid; grid-template-columns: auto minmax(90px,1fr) auto; gap: 5px; border-bottom: 1px solid var(--border); padding: 5px 0; white-space: nowrap; overflow-x: auto; font-size: 8px; }
+.settings-logo { margin: auto; display: grid; place-items: center; width: 72px; height: 72px; border: 1px solid var(--border); border-radius: 50%; overflow: hidden; }
+.settings-logo img { width: 100%; height: 100%; object-fit: cover; }
+.import-center { display: grid; gap: 8px; }
+.import-center h3 { font-size: 11px; font-weight: 700; }
+.import-note { font-size: 8px; line-height: 1.45; color: var(--muted-foreground); }
+.import-map { display: grid; grid-template-columns: minmax(80px,1fr) minmax(110px,1fr); gap: 4px 7px; align-items: center; font-size: 8px; }
+.import-map .inventory-input { height: 26px; font-size: 8px; }
+.import-checks { display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.import-checks label { display: flex; align-items: center; gap: 3px; flex: 0 0 auto; white-space: nowrap; font-size: 8px; }
+.import-summary { display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; }
+.import-summary span { min-width: 58px; display: grid; gap: 2px; border: 1px solid var(--border); border-radius: 4px; padding: 5px; font-size: 7px; white-space: nowrap; }
+.import-summary b { font-size: 10px; }
+.import-preview { max-height: 245px; overflow: auto; border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+.import-preview > div { display: grid; grid-template-columns: minmax(110px,1fr) auto; gap: 4px; border-bottom: 1px solid var(--border); padding: 4px 0; font-size: 8px; }
+.import-preview small { grid-column: 1 / -1; color: var(--destructive); }
+.import-new { color: var(--primary); } .import-existing, .import-possible-match { color: var(--warning); } .import-duplicate, .import-invalid { color: var(--destructive); }
+.import-progress { height: 5px; overflow: hidden; border-radius: 3px; background: var(--muted); }.import-progress span { display: block; height: 100%; background: var(--primary); transition: width .2s; }
+.import-done { display: grid; justify-items: center; gap: 5px; padding: 12px 0; font-size: 9px; }
+.import-history { border-bottom: 1px solid var(--border); padding: 4px 0; font-size: 8px; }.import-history summary { white-space: nowrap; overflow-x: auto; }.import-history p { margin-top: 3px; color: var(--muted-foreground); }
+.import-images { display: grid; gap: 5px; max-height: 300px; overflow-y: auto; }.import-images > div { display: grid; grid-template-columns: 34px minmax(75px,1fr) minmax(100px,1fr); align-items: center; gap: 5px; font-size: 8px; }.import-images img { width: 34px; height: 34px; object-fit: cover; border-radius: 3px; }.import-images .inventory-input { height: 25px; font-size: 8px; }
+.assistant-shell { width: 100%; max-width: 440px; height: 100%; margin: auto; display: flex; flex-direction: column; border-inline: 1px solid var(--border); background: var(--card); }
+.assistant-shell > header { display: grid; grid-template-columns: 34px minmax(0,1fr) 25px; align-items: center; gap: 7px; border-bottom: 1px solid var(--border); padding: 8px 10px; }.assistant-shell header img { width: 32px; height: 32px; border-radius: 50%; }.assistant-shell header b { display: block; font-size: 10px; }.assistant-shell header small { display: block; margin-top: 2px; font-size: 8px; color: var(--muted-foreground); }.assistant-composer { border-top: 1px solid var(--border); padding: 7px; }.assistant-composer textarea { min-height: 36px; font-size: 10px; }
+.logo-crop { display: grid; justify-items: center; gap: 7px; }.logo-crop-pick { display: grid; justify-items: center; gap: 4px; color: var(--primary); font-size: 10px; }.logo-crop-frame { width: 88px; height: 88px; display: grid; place-items: center; overflow: hidden; border: 2px solid var(--primary); border-radius: 50%; background: var(--card); }.logo-crop-frame img { width: 100%; height: 100%; object-fit: cover; transform-origin: center; }.logo-crop-controls { display: grid; grid-template-columns: 12px 140px 12px; align-items: center; gap: 4px; }.logo-crop-controls input { accent-color: var(--primary); }.logo-crop-actions { display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; }.logo-crop-actions button { width: auto; height: 27px; padding: 0 7px; border-radius: 4px; font-size: 8px; }
+
 @utility app-screen {
   min-height: 100dvh;
   width: 100%;

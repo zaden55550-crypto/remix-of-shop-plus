@@ -82,6 +82,7 @@ const RANK: Record<Tier, number> = { basic: 1, plus: 2, business: 3 };
 export type Account = {
   shopName: string;
   email: string;
+  phone?: string;
   language?: string;
   currency: string;
   logo?: string | undefined;

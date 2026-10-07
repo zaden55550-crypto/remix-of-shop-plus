@@ -1,5 +1,5 @@
 import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { Camera, Eye, EyeOff, Globe, Moon, Sun } from "lucide-react";
+import { Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
 import { RING_ICONS } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
@@ -100,6 +100,19 @@ export function LogoPicker({ value, onChange }: { value?: string | undefined; on
       )}
     </label>
   );
+}
+
+export function LogoCropPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
+  const { tr } = useLanguage();
+  const [source, setSource] = useState(value ?? ""), [zoom, setZoom] = useState(1), [x, setX] = useState(0), [y, setY] = useState(0);
+  const save = async () => {
+    if (!source) return;
+    const img = new Image(); img.src = source; await img.decode();
+    const canvas = document.createElement("canvas"); canvas.width = 320; canvas.height = 320; const ctx = canvas.getContext("2d"); if (!ctx) return;
+    const base = Math.max(320 / img.width, 320 / img.height) * zoom, w = img.width * base, h = img.height * base;
+    ctx.drawImage(img, (320 - w) / 2 + x, (320 - h) / 2 + y, w, h); onChange(canvas.toDataURL("image/jpeg", .88));
+  };
+  return <div className="logo-crop"><label className="logo-crop-pick"><span className="logo-crop-frame">{source ? <img src={source} alt={tr("Shop logo")} style={{ transform: `translate(${x}px,${y}px) scale(${zoom})` }} /> : <Camera className="h-7 w-7 text-primary" />}</span><span>{tr(source ? "Change logo" : "Upload shop logo")}</span><input hidden type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => { setSource(String(r.result)); setZoom(1); setX(0); setY(0); }; r.readAsDataURL(f); }} /></label>{source && <><div className="logo-crop-controls"><Minus className="h-3 w-3" /><input aria-label={tr("Zoom")} type="range" min={1} max={4} step={.05} value={zoom} onChange={(e) => setZoom(+e.target.value)} /><Plus className="h-3 w-3" /></div><div className="logo-crop-actions"><ShopButton type="button" variant="outline" onClick={() => setX(x - 10)} aria-label={tr("Move left")}><Move className="h-3 w-3" />←</ShopButton><ShopButton type="button" variant="outline" onClick={() => setY(y - 10)} aria-label={tr("Move up")}>↑</ShopButton><ShopButton type="button" variant="outline" onClick={() => { setX(0); setY(0); }} aria-label={tr("Center")}>{tr("Center")}</ShopButton><ShopButton type="button" onClick={() => void save()} aria-label={tr("Save")}><Save className="h-3 w-3" /></ShopButton></div></>}</div>;
 }
 
 export function Field({ icon, password, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; password?: boolean }) {
