@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { MinusCircle, Plus, Printer, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -141,7 +141,6 @@ function AddExpense(c: Ctx) {
     const x = run(() => fin.addExpense({ category: f.category, amount, method: credit ? "credit" : rows[0]!.m, description: f.description, note: f.note, at, pay }), tr("Expense recorded"));
     if (x) c.open({ k: "detail", id: x.id });
   };
-  const L = ({ t, req, children }: { t: string; req?: boolean; children: React.ReactNode }) => <label className="inventory-field"><span>{tr(t)}{req && <span className="text-destructive"> *</span>}</span>{children}</label>;
   return <div className="inventory-form">
     <p className="inventory-form-title">{tr("Add Expense")}</p>
     <L t="Category" req><select className="inventory-input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}><option value="">{tr("Select category")}</option>{fin.expenseCategories(s).map((k) => <option key={k} value={k}>{tr(k)}</option>)}</select></L>
@@ -156,6 +155,11 @@ function AddExpense(c: Ctx) {
     <L t="Notes (Optional)"><input className="inventory-input" maxLength={200} placeholder={tr("Enter notes...")} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></L>
     <ShopButton className="inventory-save" onClick={save}>{tr("Save Expense")}</ShopButton>
   </div>;
+}
+
+function L({ t, req, children }: { t: string; req?: boolean; children: ReactNode }) {
+  const { tr } = useLanguage();
+  return <label className="inventory-field"><span>{tr(t)}{req && <span className="text-destructive"> *</span>}</span>{children}</label>;
 }
 
 function ExpenseDoc({ x, s, money, tr, shop }: Pick<Ctx, "s" | "money" | "tr" | "shop"> & { x: erp.Expense }) {
