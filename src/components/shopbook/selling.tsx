@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { ProductSearch, inputCls } from "@/components/shopbook/product-search";
 import { store, canOpen, type Account, type Tier } from "@/lib/shopbook";
+import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/components/shopbook/pay-picker";
+import { vatRate } from "@/lib/prefs";
 import { PrintPreview, whatsapp } from "@/components/shopbook/print";
 import { useLanguage } from "@/hooks/use-language";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
@@ -149,15 +151,13 @@ function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.Erp
   const [newCust, setNewCust] = useState<string | null>(null);
   const [dMode, setDMode] = useState<"fixed" | "percent">("fixed");
   const [dVal, setDVal] = useState("");
-  const [pay, setPay] = useState<Record<erp.Method, string>>({ cash: "", mpesa: "", bank: "", credit: "" });
+  const [pay, setPay] = useState<PayState>(emptyPay());
+  const vr = vatRate();
   const subtotal = erp.lineTotal(s, cart);
   const discount = Math.min(subtotal, Math.max(0, dMode === "percent" ? (subtotal * (+dVal || 0)) / 100 : +dVal || 0));
-  const total = subtotal - discount;
-  const nums = Object.fromEntries(erp.METHODS.map((m) => [m, Math.max(0, +pay[m] || 0)])) as Record<erp.Method, number>;
-  const allocated = erp.METHODS.reduce((a, m) => a + nums[m], 0);
-  const remaining = total - allocated;
-  const fill = (m: erp.Method) => setPay((p) => ({ ...p, [m]: String(Math.max(0, (+p[m] || 0) + remaining)) }));
-  const over = allocated > total + 0.001;
+  const vat = Math.round((subtotal - discount) * vr) / 100;
+  const total = Math.round((subtotal - discount + vat) * 100) / 100;
+  const nums = payRecord(pay, total);
 
   return (
     <Sheet title={tr("Payment")} onClose={onClose}>
@@ -187,28 +187,14 @@ function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.Erp
         <div className="rounded-xl bg-muted/50 p-3 text-sm">
           <div className="flex justify-between"><span>{tr("Subtotal")}</span><span>{money(subtotal)}</span></div>
           <div className="flex justify-between"><span>{tr("Discount")}</span><span>{discount ? `− ${money(discount)}` : "—"}</span></div>
-          <div className="mt-1 flex justify-between text-base font-bold"><span>{tr("TOTAL")}</span><span>{money(total)}</span></div>
+          {vr > 0 && <div className="flex justify-between"><span>{tr("VAT")} ({vr}%)</span><span>{money(vat)}</span></div>}
+          <div className="mt-1 flex justify-between text-sm font-bold"><span>{tr("TOTAL")}</span><span>{money(total)}</span></div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          {erp.METHODS.map((m) => (
-            <Label key={m} t={tr(erp.METHOD_LABEL[m])}>
-              <div className="relative">
-                <input type="number" min="0" inputMode="decimal" value={pay[m]} onChange={(e) => setPay({ ...pay, [m]: e.target.value })} className={inputCls} />
-                {remaining > 0.001 && <button type="button" onClick={() => fill(m)} className="absolute right-2 top-1/2 -translate-y-1/2 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">{tr("Rest")}</button>}
-              </div>
-            </Label>
-          ))}
-        </div>
-        <div className="text-sm">
-          <div className="flex justify-between"><span>{tr("Allocated")}</span><span className={cn(over && "text-destructive")}>{money(allocated)}</span></div>
-          <div className="flex justify-between"><span>{tr(remaining >= 0 ? "Remaining" : "Over by")}</span><span className={cn(remaining !== 0 && "font-bold", over && "text-destructive")}>{money(Math.abs(remaining))}</span></div>
-          {nums.credit > 0 && <div className="flex justify-between"><span>{tr("Outstanding")}</span><span className="font-bold">{money(nums.credit)}</span></div>}
-          {nums.credit > 0 && !customerId && <p className="mt-1 text-xs text-destructive">{tr("Credit needs a registered customer")}</p>}
-        </div>
-        {sellers.length > 0 && <label className="block text-sm"><span className="text-xs text-muted-foreground">{tr("Seller")}</span>
-          <select className={inputCls} value={sellerId} onChange={(e) => setSeller(e.target.value)}><option value="">{tr("No seller")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>}
-        <ShopButton disabled={over || Math.abs(remaining) > 0.001 || (nums.credit > 0 && !customerId)}
-          onClick={() => { const sale = run(() => erp.confirmSale({ cart, discount, pay: nums, customerId: customerId || undefined, channel, sellerId: sellerId || undefined })); if (sale) { toast.success(`${tr("Sale completed")} • ${sale.ref}`); onDone(sale); } }}>
+        <PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote={customerId ? undefined : "Credit needs a registered customer"} />
+        <label className="block text-sm"><span className="text-xs text-muted-foreground">{tr("Seller")}</span>
+          <select className={inputCls} value={sellerId} onChange={(e) => setSeller(e.target.value)}><option value="">{tr("Admin")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
+        <ShopButton disabled={payInvalid(pay, total) || (nums.credit > 0 && !customerId)}
+          onClick={() => { const sale = run(() => erp.confirmSale({ cart, discount, pay: nums, customerId: customerId || undefined, channel, sellerId: sellerId || undefined, vatRate: vr })); if (sale) { toast.success(`${tr("Sale completed")} • ${sale.ref}`); onDone(sale); } }}>
           {tr("Confirm Sale")}
         </ShopButton>
       </div>
@@ -227,6 +213,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       <div className="mt-2 border-t border-dashed border-current pt-2">
         <p>{sale.ref} • {tr("Till")}: {sale.channel === "POS" ? "01" : "—"}</p>
         <p>{tr("Cashier")}: {sale.cashier}</p>
+        <p>{tr("Seller")}: {s.employees.find((e) => e.id === sale.sellerId)?.name ?? tr("Admin")}</p>
         <p>{dt(sale.at)}</p>
         {cust && <p>{tr("Customer")}: {cust.name}</p>}
       </div>
@@ -238,8 +225,10 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       <div className="mt-2 border-t border-dashed border-current pt-2">
         <div className="flex justify-between"><span>{tr("Subtotal")}</span><span>{money(sale.subtotal)}</span></div>
         {sale.discount > 0 && <div className="flex justify-between"><span>{tr("Discount")}</span><span>− {money(sale.discount)}</span></div>}
+        {!!sale.vat && <div className="flex justify-between"><span>{tr("VAT")}</span><span>{money(sale.vat)}</span></div>}
         <div className="flex justify-between font-bold"><span>{tr("TOTAL")}</span><span>{money(sale.total)}</span></div>
         {erp.METHODS.filter((m) => sale.pay[m] > 0).map((m) => <div key={m} className="flex justify-between"><span>{tr(erp.METHOD_LABEL[m])}</span><span>{money(sale.pay[m])}</span></div>)}
+        {erp.saleBalance(s, sale) > 0.001 && <div className="flex justify-between font-bold"><span>{tr("Balance")} (P.PAY)</span><span>{money(erp.saleBalance(s, sale))}</span></div>}
         {rets.map((r) => <div key={r.id} className="flex justify-between"><span>{tr("Returned")} {r.ref}</span><span>− {money(r.amount)}</span></div>)}
       </div>
       <p className="mt-3 text-center">{tr("Thank you!")}</p>

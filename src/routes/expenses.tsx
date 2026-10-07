@@ -8,6 +8,7 @@ import { moneyFor, run, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, toneOf, type Tr } from "@/components/shopbook/erp-shell";
 import { DocHead, DocLine, DocRule, PrintPreview, shareText, whatsapp } from "@/components/shopbook/print";
+import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/components/shopbook/pay-picker";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
@@ -126,19 +127,15 @@ const sumRows = (rows: PayRow[]) => rows.reduce((a, r) => a + (+r.a || 0), 0);
 function AddExpense(c: Ctx) {
   const { s, money, tr } = c;
   const [f, setF] = useState({ category: "", description: "", amount: "", date: isoDay(Date.now()), note: "" });
-  const [credit, setCredit] = useState(false);
-  const [rows, setRows] = useState<PayRow[]>([{ m: "cash", a: "" }]);
+  const [pay, setPay] = useState<PayState>(emptyPay());
   const amount = +f.amount || 0;
-  // A single row left empty means "paid in full" with that method.
-  const paid = credit ? 0 : rows.length === 1 && rows[0]!.a === "" ? amount : sumRows(rows);
-  const bal = Math.max(0, amount - paid);
+  const rec = payRecord(pay, amount);
   const save = () => {
     if (!f.category) { toast.error(tr("Choose a category")); return; }
     if (!f.description.trim()) { toast.error(tr("Enter a description")); return; }
-    const pay: Partial<Record<erp.Method, number>> = {};
-    if (!credit) { if (rows.length === 1 && rows[0]!.a === "") pay[rows[0]!.m] = amount; else rows.forEach((r) => { pay[r.m] = (pay[r.m] ?? 0) + (+r.a || 0); }); }
+    if (payInvalid(pay, amount)) { toast.error(tr("Check the payment amounts")); return; }
     const at = new Date(f.date).getTime() + (Date.now() - today0());
-    const x = run(() => fin.addExpense({ category: f.category, amount, method: credit ? "credit" : rows[0]!.m, description: f.description, note: f.note, at, pay }), tr("Expense recorded"));
+    const x = run(() => fin.addExpense({ category: f.category, amount, method: pay.mode === "ppay" ? "cash" : pay.mode, description: f.description, note: f.note, at, pay: { cash: rec.cash, mpesa: rec.mpesa, bank: rec.bank } }), tr("Expense recorded"));
     if (x) c.open({ k: "detail", id: x.id });
   };
   return <div className="inventory-form">
@@ -149,9 +146,7 @@ function AddExpense(c: Ctx) {
       <L t="Amount" req><input className="inventory-input" inputMode="decimal" placeholder="0" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></L>
       <L t="Date" req><input type="date" className="inventory-input" max={isoDay(Date.now())} value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></L>
     </div>
-    <L t="Payment Method" req><select className="inventory-input" value={credit ? "credit" : "pay"} onChange={(e) => setCredit(e.target.value === "credit")}><option value="pay">{tr("Pay now (Cash / M-Pesa / Bank)")}</option><option value="credit">{tr("Credit (pay later)")}</option></select></L>
-    {!credit && <><p className="text-[10px] text-muted-foreground">{tr("Leave the amount empty to pay the full total.")}</p><PayRows rows={rows} setRows={setRows} tr={tr} /></>}
-    <div className="pur-totals"><span>{tr("Amount Paid")}</span><b>{money(paid)}</b><span>{tr("Remaining Balance")}</span><b className={cn(bal > 0 && "text-warning")}>{money(bal)}</b>{amount > 0 && <><span>{tr("Status")}</span><span className="justify-self-end"><Badge s={erp.payStatus(amount, bal, false)} /></span></>}</div>
+    <PayPicker value={pay} onChange={setPay} total={amount} money={money} tr={tr} />
     <L t="Notes (Optional)"><input className="inventory-input" maxLength={200} placeholder={tr("Enter notes...")} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></L>
     <ShopButton className="inventory-save" onClick={save}>{tr("Save Expense")}</ShopButton>
   </div>;

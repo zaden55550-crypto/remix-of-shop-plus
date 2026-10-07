@@ -2,11 +2,11 @@
 // every sale, return, purchase, expense, payroll and float move produces balanced lines.
 import type { ErpState, Method } from "@/lib/erp";
 
-export type AccountId = "cash" | "mpesa" | "bank" | "receivables" | "inventory" | "payables" | "salariesPayable" | "equity" | "sales" | "salesReturns" | "cogs" | "expenses" | "salaries" | "stockAdj";
+export type AccountId = "cash" | "mpesa" | "bank" | "receivables" | "inventory" | "payables" | "salariesPayable" | "equity" | "sales" | "salesReturns" | "cogs" | "expenses" | "salaries" | "stockAdj" | "vatPayable";
 export const ACCOUNT_INFO: Record<AccountId, { name: string; type: "Asset" | "Liability" | "Equity" | "Income" | "Expense" }> = {
   cash: { name: "Cash", type: "Asset" }, mpesa: { name: "M-Pesa", type: "Asset" }, bank: { name: "Bank", type: "Asset" },
   receivables: { name: "Receivables", type: "Asset" }, inventory: { name: "Inventory", type: "Asset" },
-  payables: { name: "Payables", type: "Liability" }, salariesPayable: { name: "Salaries payable", type: "Liability" },
+  payables: { name: "Payables", type: "Liability" }, vatPayable: { name: "VAT payable", type: "Liability" }, salariesPayable: { name: "Salaries payable", type: "Liability" },
   equity: { name: "Owner equity", type: "Equity" },
   sales: { name: "Sales", type: "Income" }, salesReturns: { name: "Sales returns", type: "Expense" },
   cogs: { name: "Cost of goods sold", type: "Expense" }, expenses: { name: "Expenses", type: "Expense" },
@@ -24,12 +24,13 @@ export function journal(s: ErpState): Entry[] {
   const push = (at: number, ref: string, memo: string, lines: Line[]) => { const l = lines.filter((x) => x.debit || x.credit); if (l.length) E.push({ at, ref, memo, lines: l }); };
   s.sales.forEach((x) => {
     const cogs = x.items.reduce((a, i) => a + i.qty * i.cost, 0);
-    push(x.at, x.ref, "Sale", [...(["cash", "mpesa", "bank", "credit"] as Method[]).map((m) => dr(acc(m), x.pay[m])), cr("sales", x.total), dr("cogs", cogs), cr("inventory", cogs)]);
+    push(x.at, x.ref, "Sale", [...(["cash", "mpesa", "bank", "credit"] as Method[]).map((m) => dr(acc(m), x.pay[m])), cr("sales", x.total - (x.vat ?? 0)), cr("vatPayable", x.vat ?? 0), dr("cogs", cogs), cr("inventory", cogs)]);
   });
   s.returns.forEach((r) => {
     const sale = s.sales.find((x) => x.id === r.saleId);
     const cost = r.items.reduce((a, i) => a + i.qty * (sale?.items.find((y) => y.productId === i.productId)?.cost ?? 0), 0);
-    push(r.at, r.ref, `Return ${r.saleRef}`, [dr("salesReturns", r.amount), cr(acc(r.refund), r.amount), dr("inventory", cost), cr("cogs", cost)]);
+    const rv = sale?.vat && sale.total ? r.amount * (sale.vat / sale.total) : 0;
+    push(r.at, r.ref, `Return ${r.saleRef}`, [dr("salesReturns", r.amount - rv), dr("vatPayable", rv), cr(acc(r.refund), r.amount), dr("inventory", cost), cr("cogs", cost)]);
   });
   s.purchases.forEach((p) => push(p.at, p.ref, "Purchase", [dr("inventory", p.total), ...(["cash", "mpesa", "bank"] as const).map((m) => cr(m, p.pay[m])), cr("payables", p.pay.credit)]));
   s.purchaseReturns.forEach((r) => push(r.at, r.ref, `Return ${r.purchaseRef}`, [dr(acc(r.refund) === "receivables" ? "payables" : acc(r.refund), r.amount), cr("inventory", r.amount)]));
@@ -75,7 +76,7 @@ export function profitAndLoss(s: ErpState, from = 0, to = Infinity) {
 export function balanceSheet(s: ErpState) {
   const b = balances(journal(s));
   const assets = (["cash", "mpesa", "bank", "receivables", "inventory"] as AccountId[]).map((k) => ({ id: k, value: b[k].net }));
-  const liabilities = (["payables", "salariesPayable"] as AccountId[]).map((k) => ({ id: k, value: r2(-b[k].net) }));
+  const liabilities = (["payables", "salariesPayable", "vatPayable"] as AccountId[]).map((k) => ({ id: k, value: r2(-b[k].net) }));
   const equity = r2(-b.equity.net);
   const profit = profitAndLoss(s).net;
   const totalAssets = r2(assets.reduce((a, x) => a + x.value, 0));

@@ -13,6 +13,7 @@ import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
+import { UI_SIZES, setTax, setUiSize, usePrefs, type UiSize } from "@/lib/prefs";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [
@@ -39,6 +40,7 @@ function Settings() {
   const [email, setEmail] = useState("");
   const [, force] = useState(0);
   const file = useRef<HTMLInputElement>(null);
+  const prefs = usePrefs();
   useEffect(() => { if (acct) { setShop(acct.shopName); setEmail(acct.email); } }, [acct]);
   if (!acct) return <main className="app-screen" />;
   const save = (patch: Partial<typeof acct>) => { const a = store.get(); if (a) { store.save({ ...a, ...patch }); toast.success(tr("Saved")); force((n) => n + 1); } };
@@ -68,6 +70,15 @@ function Settings() {
         <div className="flex items-center justify-between"><span>{tr("Appearance")}</span><ThemeToggle /></div>
         <L l="Language"><select className={inputCls} value={language} onChange={(e) => { const l = LANGS.find((x) => x === e.target.value); if (l) setLanguage(l); }}>{LANGS.map((l) => <option key={l} value={l}>{NATIVE[l]}</option>)}</select></L>
         <L l="Currency"><select className={inputCls} value={store.get()?.currency ?? "KSh"} onChange={(e) => save({ currency: e.target.value })}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></L>
+      </Sec>
+      <Sec id="Appearance">
+        <L l="Interface size"><div className="flex gap-1">{(Object.keys(UI_SIZES) as UiSize[]).map((k) => <button key={k} onClick={() => setUiSize(k)} className={cn("flex-1 rounded-md border border-border py-2 text-xs font-semibold", prefs.size === k && "bg-primary text-primary-foreground")}>{tr(k)}</button>)}</div></L>
+        <p className="text-xs text-muted-foreground">{tr("Makes all text and boxes smaller or larger. Menus and rows stay on one line.")}</p>
+      </Sec>
+      <Sec id="Tax & Compliance">
+        <label className="flex items-center justify-between"><span>{tr("Charge VAT on sales")}</span><input type="checkbox" checked={prefs.tax.on} onChange={(e) => setTax({ ...prefs.tax, on: e.target.checked })} /></label>
+        <L l="VAT rate (%)"><input className={inputCls} inputMode="decimal" defaultValue={prefs.tax.rate} key={prefs.tax.rate} onBlur={(e) => { const r = +e.target.value; if (r >= 0 && r <= 100) { setTax({ ...prefs.tax, rate: r }); toast.success(tr("Saved")); } else toast.error(tr("Enter a rate between 0 and 100")); }} /></L>
+        <p className="text-xs text-muted-foreground">{tr("When on, VAT is added to every new POS and Sales total and shown on receipts. Past sales are not changed.")}</p>
       </Sec>
       <Sec id="Business">
         <L l="Shop Name"><input className={inputCls} value={shop} onChange={(e) => setShop(e.target.value)} /></L>

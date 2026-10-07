@@ -28,7 +28,7 @@ export function performance(s: ErpState, from: number, to = Date.now()) {
   const products = new Map<string, { qty: number; value: number }>();
   sales.forEach((x) => x.items.forEach((i) => { const p = products.get(i.name) ?? { qty: 0, value: 0 }; p.qty += i.qty - i.returned; p.value += (i.qty - i.returned) * i.price; products.set(i.name, p); }));
   const sellers = new Map<string, number>();
-  sales.forEach((x) => { const n = s.employees.find((e) => e.id === x.sellerId)?.name ?? "No seller"; sellers.set(n, (sellers.get(n) ?? 0) + x.total); });
+  sales.forEach((x) => { const n = s.employees.find((e) => e.id === x.sellerId)?.name ?? "Admin"; sellers.set(n, (sellers.get(n) ?? 0) + x.total); });
   return {
     sales: r2(total - returned), total: r2(total), paid: r2(total - credit), credit: r2(credit), returned: r2(returned),
     grossProfit: r2(kept - cogs), transactions: sales.length, byMethod,

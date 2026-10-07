@@ -17,7 +17,9 @@ export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, childre
   const { tr, dir } = useLanguage();
   const [open, setOpen] = useState(false);
   const [lb, setLb] = useState(0);
+  const [online, setOnline] = useState(true);
   useEffect(() => { setLb(lastBackup()); }, [deps]);
+  useEffect(() => { const f = () => setOnline(navigator.onLine); f(); window.addEventListener("online", f); window.addEventListener("offline", f); return () => { window.removeEventListener("online", f); window.removeEventListener("offline", f); }; }, []);
   const subs = menus[menu] ?? [];
   return (
     <main dir={dir} className="inventory-screen flex w-full flex-col">
@@ -33,7 +35,7 @@ export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, childre
             </div>}
           </div>
         </div>
-        <p className="inventory-backup"><span className={cn("h-2 w-2 rounded-full", lb ? "bg-success" : "bg-warning")} />{lb ? `✓ ${tr("Backed up")} • ${Date.now() - lb < 60000 ? tr("now") : new Date(lb).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : tr("Not backed up yet")}</p>
+        {!online ? <p className="inventory-backup" role="status"><span className="h-2 w-2 rounded-full bg-warning" />{tr("Offline • saved locally")}</p> : <p className="inventory-backup"><span className={cn("h-2 w-2 rounded-full", lb ? "bg-success" : "bg-warning")} />{lb ? `✓ ${tr("Backed up")} • ${Date.now() - lb < 60000 ? tr("now") : new Date(lb).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}` : tr("Saved on this device • not backed up yet")}</p>}
         <Tabs items={Object.keys(menus)} value={menu} onChange={onMenu} tr={tr} />
         {subs.length > 0 && <Tabs small items={[...subs]} value={sub} onChange={onSub} tr={tr} />}
       </header>

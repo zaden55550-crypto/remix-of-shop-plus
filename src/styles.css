@@ -299,3 +299,4 @@
 .pos-tx { display: grid; grid-template-columns: 10px 64px 38px 30px minmax(0,1fr) auto; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px; white-space: nowrap; }
 .pos-tx-head { font-size: 9px; font-weight: 700; color: var(--muted-foreground); }
 .pos-tx > span:nth-child(5) { text-align: end; }
+.inventory-screen .inventory-tab.pay-on { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
