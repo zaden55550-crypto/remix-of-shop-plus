@@ -37,7 +37,7 @@ export type Expense = { id: string; ref: string; at: number; category: string; d
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean; products?: { productId: string; kind: "percent" | "fixed" | "profit"; value: number }[] | undefined };
 export type Employee = { id: string; name: string; phone?: string | undefined; notes?: string; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
 /** Commission ledger: adjustments are new negative rows, never edits/deletes. */
-export type Commission = { id: string; at: number; employeeId: string; source: string; amount: number; kind: "EARNED" | "RETURN ADJUSTMENT"; pending: boolean; payrollId?: string | undefined };
+export type Commission = { id: string; at: number; employeeId: string; source: string; amount: number; kind: "EARNED" | "RETURN ADJUSTMENT"; pending: boolean; payrollId?: string | undefined; productAmounts?: Record<string, number> };
 export type PayrollRun = { id: string; ref: string; at: number; employeeId: string; from: number; to: number; salary: number; commission: number; deductions: number; net: number; paid: number; user: string };
 export type PayrollPayment = { id: string; ref: string; at: number; payrollId: string; employeeId: string; method: Method; amount: number; user: string };
 export type Method = "cash" | "mpesa" | "bank" | "credit";
@@ -265,7 +265,7 @@ export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Re
   const sale: Sale = { id: uid(), ref, at: Date.now(), items, subtotal, discount, total, vat: vat || undefined, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, channel: input.channel, sellerId: undefined };
   const seller = input.sellerId ? s.employees.find((e) => e.id === input.sellerId && e.active) : undefined;
   if (input.sellerId && !seller) throw new ErpError("Seller not found");
-  if (seller) { sale.sellerId = seller.id; const amt = commissionFor(seller, sale); if (amt > 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: seller.id, source: ref, amount: amt, kind: "EARNED", pending: seller.rule.paidOnly && input.pay.credit > 0 }); }
+  if (seller) { sale.sellerId = seller.id; const amt = commissionFor(seller, sale); if (amt > 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: seller.id, source: ref, amount: amt, kind: "EARNED", pending: seller.rule.paidOnly && input.pay.credit > 0, productAmounts: commissionProducts(seller, sale) }); }
   s.sales.unshift(sale);
   c.audit("SALE", `${ref} • ${total}${cust ? ` • ${cust.name}` : ""}`);
   return sale;
@@ -326,8 +326,10 @@ export const returnSale = (saleId: string, lines: { productId: string; qty: numb
   s.returns.unshift({ id: uid(), ref, at: Date.now(), saleId, saleRef: sale.ref, items, amount, refund, user: c.user });
   const earned = s.commissions.filter((x) => x.source === sale.ref).reduce((a, x) => a + x.amount, 0);
   if (sale.sellerId && earned > 0 && sale.total > 0) {
-    const adj = -Math.min(earned, Math.round(earned * (amount / sale.total) * 100) / 100);
-    if (adj < 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: sale.sellerId, source: sale.ref, amount: adj, kind: "RETURN ADJUSTMENT", pending: false });
+    const original = s.commissions.find((x) => x.source === sale.ref && x.kind === "EARNED");
+    const productAmounts = original?.productAmounts ? Object.fromEntries(items.map((i) => [i.productId, -Math.round((original.productAmounts?.[i.productId] ?? 0) * i.qty / (sale.items.find((x) => x.productId === i.productId)?.qty ?? 1) * 100) / 100])) : undefined;
+    const adj = productAmounts ? -Math.min(earned, -Object.values(productAmounts).reduce((a, x) => a + x, 0)) : -Math.min(earned, Math.round(earned * (amount / sale.total) * 100) / 100);
+    if (adj < 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: sale.sellerId, source: sale.ref, amount: adj, kind: "RETURN ADJUSTMENT", pending: false, ...(productAmounts ? { productAmounts } : {}) });
   }
   c.audit("SALES RETURN", `${ref} for ${sale.ref} • ${amount}`);
 });
@@ -359,6 +361,18 @@ export const cashUp = (counted: number, note?: string) => commit((s, c) => {
 });
 
 /** Commission earned on a sale per the employee's rule (immediate by default). */
+export function commissionProducts(e: Employee, sale: Pick<Sale, "items" | "total" | "subtotal">) {
+  const total = commissionFor(e, sale), weights = sale.items.reduce((a, i) => a + i.qty * i.price, 0);
+  const ratio = sale.subtotal ? sale.total / sale.subtotal : 1;
+  let left = total;
+  return Object.fromEntries(sale.items.map((i, index) => {
+    const rule = e.rule.products?.find((x) => x.productId === i.productId) ?? e.rule;
+    const revenue = i.qty * i.price * ratio;
+    const raw = e.rule.products?.length ? rule.kind === "fixed" ? rule.value * i.qty : rule.kind === "profit" ? Math.max(0, revenue - i.qty * i.cost) * rule.value / 100 : revenue * rule.value / 100 : weights ? total * i.qty * i.price / weights : 0;
+    const v = index === sale.items.length - 1 ? left : Math.round(raw * 100) / 100; left = Math.round((left - v) * 100) / 100;
+    return [i.productId, v];
+  }));
+}
 export function commissionFor(e: Employee, sale: Pick<Sale, "items" | "total" | "subtotal">) {
   if (e.comp === "salary" || e.rule.kind === "none" || !(e.rule.value > 0)) return 0;
   const ratio = sale.subtotal ? sale.total / sale.subtotal : 1;
