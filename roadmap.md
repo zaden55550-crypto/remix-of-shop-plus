@@ -5,7 +5,7 @@
 - [x] Build the one-conversation, session-only Business AI Assistant grounded in the current authorized ERP snapshot.
 - [x] Complete the specified compact login/create-account flow, including optional mobile logo crop controls and no login image.
 - [ ] Defer broad visual and interaction verification until general system functionality is complete, as requested.
-- [ ] Add dedicated, safely backdated import engines for Sales, Purchases, Payments, Payroll, Accounting and Historical Transactions; these stay unavailable until their stock and money side effects can be reconciled without duplication.
+- [x] Historical financial imports go to the Reconciliation app (staged, matched to real records, never double-counted).
 
 - [x] Add compact real-data charts to app Overview screens, Reports and Summary; keep tiny writing and one-row controls.
 - [ ] Chart interaction/data verification deferred until general system functionality is finished, at the user's request.

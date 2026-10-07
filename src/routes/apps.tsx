@@ -27,7 +27,7 @@ export const Route = createFileRoute("/apps")({
 
 const ROWS = [APPS.slice(0, 4), APPS.slice(4, 8), APPS.slice(8, 12)];
 const CURRENCIES = [["KSh", "Kenyan Shilling"], ["USh", "Ugandan Shilling"], ["TSh", "Tanzanian Shilling"], ["USD", "US Dollar"]] as const;
-const ROUTES: Record<string, "/dashboard" | "/inventory" | "/purchases" | "/sales" | "/pos" | "/expenses" | "/contacts" | "/accounting" | "/float" | "/payroll" | "/reports" | "/summary" | "/settings"> = { dashboard: "/dashboard", inventory: "/inventory", purchases: "/purchases", sales: "/sales", pos: "/pos", expenses: "/expenses", contacts: "/contacts", accounting: "/accounting", float: "/float", payroll: "/payroll", reports: "/reports", summary: "/summary", settings: "/settings" };
+const ROUTES: Record<string, "/dashboard" | "/inventory" | "/purchases" | "/sales" | "/pos" | "/expenses" | "/contacts" | "/accounting" | "/float" | "/payroll" | "/reports" | "/summary" | "/settings" | "/reconciliation"> = { dashboard: "/dashboard", inventory: "/inventory", purchases: "/purchases", sales: "/sales", pos: "/pos", expenses: "/expenses", contacts: "/contacts", accounting: "/accounting", float: "/float", payroll: "/payroll", reports: "/reports", summary: "/summary", reconciliation: "/reconciliation", settings: "/settings" };
 const SETTINGS_APP = APPS.find((a) => a.id === "settings");
 
 function Apps() {

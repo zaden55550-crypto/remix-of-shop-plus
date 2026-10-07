@@ -21,6 +21,7 @@ import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
 import { Route as PurchasesRouteImport } from './routes/purchases'
+import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -91,6 +92,11 @@ const PurchasesRoute = PurchasesRouteImport.update({
   path: '/purchases',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReconciliationRoute = ReconciliationRouteImport.update({
+  id: '/reconciliation',
+  path: '/reconciliation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -150,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
   '/purchases': typeof PurchasesRoute
+  '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
@@ -173,6 +180,7 @@ export interface FileRoutesByTo {
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
   '/purchases': typeof PurchasesRoute
+  '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
@@ -197,6 +205,7 @@ export interface FileRoutesById {
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
   '/purchases': typeof PurchasesRoute
+  '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
     | '/plans'
     | '/pos'
     | '/purchases'
+    | '/reconciliation'
     | '/reports'
     | '/sales'
     | '/settings'
@@ -245,6 +255,7 @@ export interface FileRouteTypes {
     | '/plans'
     | '/pos'
     | '/purchases'
+    | '/reconciliation'
     | '/reports'
     | '/sales'
     | '/settings'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
     | '/plans'
     | '/pos'
     | '/purchases'
+    | '/reconciliation'
     | '/reports'
     | '/sales'
     | '/settings'
@@ -292,6 +304,7 @@ export interface RootRouteChildren {
   PlansRoute: typeof PlansRoute
   PosRoute: typeof PosRoute
   PurchasesRoute: typeof PurchasesRoute
+  ReconciliationRoute: typeof ReconciliationRoute
   ReportsRoute: typeof ReportsRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
@@ -389,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PurchasesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reconciliation': {
+      id: '/reconciliation'
+      path: '/reconciliation'
+      fullPath: '/reconciliation'
+      preLoaderRoute: typeof ReconciliationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -468,6 +488,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlansRoute: PlansRoute,
   PosRoute: PosRoute,
   PurchasesRoute: PurchasesRoute,
+  ReconciliationRoute: ReconciliationRoute,
   ReportsRoute: ReportsRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
