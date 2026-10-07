@@ -1,7 +1,7 @@
 import { commit, uid, ErpError, type ContactDetails, type NewEmployee, type PayrollDraft, type Method } from "@/lib/erp";
 import { floatBalances } from "@/lib/finance";
 
-export type ContactInput = ContactDetails & { name: string; phone?: string; category?: string; info?: string };
+export type ContactInput = ContactDetails & { name: string; phone?: string | undefined; category?: string | undefined; info?: string | undefined };
 export function saveContact(kind: "customers" | "suppliers" | "otherContacts", input: ContactInput, id?: string) {
   return commit((s, c) => {
     if (!input.name.trim()) throw new ErpError("Enter a name");

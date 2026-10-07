@@ -11,25 +11,25 @@ export function backupJson(shop: string) { return JSON.stringify(snapshot(shop))
 export const lastBackup = () => Number(localStorage.getItem(LAST) || 0);
 const object = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
 export function validateBackup(value: unknown): asserts value is ReturnType<typeof snapshot> {
-  if (!object(value) || value.app !== "SHOPBOOK" || !object(value.data)) throw new Error("This is not a SHOPBOOK backup file");
-  const d = value.data;
+  if (!object(value) || value["app"] !== "SHOPBOOK" || !object(value["data"])) throw new Error("This is not a SHOPBOOK backup file");
+  const d = value["data"];
   for (const key of Object.keys(empty())) {
     const rows = d[key];
     if (key === "seq") { if (rows !== undefined && (!object(rows) || Object.values(rows).some((n) => typeof n !== "number" || !Number.isInteger(n) || n < 0))) throw new Error("Backup file is damaged"); continue; }
     if (rows === undefined && key !== "products") continue;
-    if (!Array.isArray(rows) || rows.some((x) => !object(x) || typeof x.id !== "string")) throw new Error("Backup file is damaged");
-    const ids = rows.map((x) => x.id); if (new Set(ids).size !== ids.length) throw new Error("Backup file has duplicate records");
+    if (!Array.isArray(rows) || rows.some((x) => !object(x) || typeof x["id"] !== "string")) throw new Error("Backup file is damaged");
+    const ids = rows.map((x) => x["id"]); if (new Set(ids).size !== ids.length) throw new Error("Backup file has duplicate records");
   }
   const check = (x: unknown) => { if (typeof x === "number" && !Number.isFinite(x)) throw new Error("Backup file is damaged"); if (Array.isArray(x)) x.forEach(check); else if (object(x)) Object.values(x).forEach(check); };
   check(d);
   const required: Record<string, string[]> = { products: ["qty", "buy", "sell"], customers: ["balance"], suppliers: ["balance"], sales: ["total", "subtotal", "discount"], purchases: ["total"], expenses: ["amount"], payments: ["amount"], cash: ["amount"], payrolls: ["net", "paid", "salary", "commission", "deductions"], payrollPayments: ["amount"], commissions: ["amount"], movements: ["qty", "prev", "next"], employees: ["salary"] };
   for (const [key, fields] of Object.entries(required)) for (const x of (d[key] ?? []) as Record<string, unknown>[]) if (fields.some((f) => typeof x[f] !== "number")) throw new Error("Backup file is damaged");
   for (const key of ["sales", "purchases"]) for (const x of (d[key] ?? []) as Record<string, unknown>[]) {
-    if (!Array.isArray(x.items) || !object(x.pay) || ["cash", "mpesa", "bank", "credit"].some((m) => typeof (x.pay as Record<string, unknown>)[m] !== "number")) throw new Error("Backup file is damaged");
-    if (x.items.some((i) => !object(i) || typeof i.productId !== "string" || typeof i.qty !== "number" || typeof i.returned !== "number")) throw new Error("Backup file is damaged");
+    if (!Array.isArray(x["items"]) || !object(x["pay"]) || ["cash", "mpesa", "bank", "credit"].some((m) => typeof (x["pay"] as Record<string, unknown>)[m] !== "number")) throw new Error("Backup file is damaged");
+    if (x["items"].some((i) => !object(i) || typeof i["productId"] !== "string" || typeof i["qty"] !== "number" || typeof i["returned"] !== "number")) throw new Error("Backup file is damaged");
   }
-  for (const x of (d.employees ?? []) as Record<string, unknown>[]) if (!object(x.rule) || typeof x.rule.value !== "number") throw new Error("Backup file is damaged");
-  if (value.settings !== undefined && (!object(value.settings) || Object.entries(value.settings).some(([k, v]) => !BACKUP_KEYS.some((x) => x === k) || (v !== null && typeof v !== "string")))) throw new Error("Backup settings are damaged");
+  for (const x of (d["employees"] ?? []) as Record<string, unknown>[]) if (!object(x["rule"]) || typeof x["rule"].value !== "number") throw new Error("Backup file is damaged");
+  if (value["settings"] !== undefined && (!object(value["settings"]) || Object.entries(value["settings"]).some(([k, v]) => !BACKUP_KEYS.some((x) => x === k) || (v !== null && typeof v !== "string")))) throw new Error("Backup settings are damaged");
 }
 export function restoreJson(text: string) {
   let f: unknown; try { f = JSON.parse(text); } catch { throw new Error("This is not a SHOPBOOK backup file"); }

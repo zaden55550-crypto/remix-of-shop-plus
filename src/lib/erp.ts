@@ -26,15 +26,15 @@ export type ErpState = {
   suppliers: Supplier[]; purchases: Purchase[]; purchaseReturns: PurchaseReturn[]; expenses: Expense[]; expenseCategories: Named[];
   otherContacts: OtherContact[]; contactCategories: Named[]; payrollDrafts: PayrollDraft[];
 };
-export type ContactDetails = { email?: string; address?: string; notes?: string; active?: boolean };
-export type OtherContact = ContactDetails & { id: string; name: string; phone?: string; category?: string; createdAt: number };
+export type ContactDetails = { email?: string | undefined; address?: string | undefined; notes?: string | undefined; active?: boolean | undefined };
+export type OtherContact = ContactDetails & { id: string; name: string; phone?: string | undefined; category?: string | undefined; createdAt: number };
 export type PayrollDraft = { id: string; employeeId: string; from: number; to: number; deductions: number; notes?: string; at: number };
 export type Supplier = { id: string; name: string; phone?: string | undefined; email?: string | undefined; address?: string | undefined; info?: string | undefined; notes?: string | undefined; balance: number; createdAt: number };
 export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
 export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string; settled?: number | undefined };
 export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
 export type Expense = { id: string; ref: string; at: number; category: string; description?: string | undefined; note?: string | undefined; amount: number; method: Method; user: string };
-export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean; products?: { productId: string; kind: "percent" | "fixed" | "profit"; value: number }[] };
+export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean; products?: { productId: string; kind: "percent" | "fixed" | "profit"; value: number }[] | undefined };
 export type Employee = { id: string; name: string; phone?: string | undefined; notes?: string; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number };
 /** Commission ledger: adjustments are new negative rows, never edits/deletes. */
 export type Commission = { id: string; at: number; employeeId: string; source: string; amount: number; kind: "EARNED" | "RETURN ADJUSTMENT"; pending: boolean; payrollId?: string | undefined };
