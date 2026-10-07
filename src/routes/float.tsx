@@ -1,80 +1,64 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { Banknote, Smartphone, Landmark, Wallet, ArrowRightLeft } from "lucide-react";
 import { ShopButton } from "@/components/ui/shop-button";
-import { useErp, inputCls } from "@/components/shopbook/product-search";
-import { AppShell, Empty, Title, dt, moneyFor, run, useAccount } from "@/components/shopbook/selling";
+import { useErp } from "@/components/shopbook/product-search";
+import { dt, moneyFor, run, useAccount } from "@/components/shopbook/selling";
+import { ErpShell, Empty } from "@/components/shopbook/erp-shell";
+import { ActivityList, AmountRow, MoneyDetail } from "@/components/shopbook/money-ui";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { useLanguage } from "@/hooks/use-language";
+import { PayPicker, emptyPay } from "@/components/shopbook/pay-picker";
+import { moneyActivity, type MoneyActivity } from "@/lib/money-activity";
 import * as erp from "@/lib/erp";
 import * as fin from "@/lib/finance";
 
-export const Route = createFileRoute("/float")({
-  head: () => ({ meta: [
-    { title: "Float — SHOPBOOK ERP" },
-    { name: "description", content: "Live Cash, M-Pesa and Bank balances from every sale, purchase and expense." },
-    { property: "og:title", content: "Float — SHOPBOOK ERP" },
-    { property: "og:description", content: "See where your money is and move it between accounts." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary" },
-  ] }),
-  component: Float,
-});
-
-const TABS = ["Overview", "Move money", "History"];
-
+export const Route = createFileRoute("/float")({ head: () => ({ meta: [
+  { title: "Float — SHOPBOOK ERP" }, { name: "description", content: "Compact Cash, M-Pesa and Bank activity, internal transfers, owner capital and daily cash-up." },
+  { property: "og:title", content: "Float — SHOPBOOK ERP" }, { property: "og:description", content: "Track your real business money and reconcile the cash drawer." },
+  { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+] }), component: Float });
+const MENUS: Record<string, readonly string[]> = {
+  Overview: [], Cash: ["Balance", "Cash in", "Cash out", "History"], "M-Pesa": ["Balance", "Money in", "Money out", "History"], Bank: ["Balance", "Money in", "Money out", "History"],
+  Transfers: ["New transfer", "History"], "Business Money": ["Owner withdrawal", "Capital in", "History"],
+  "Daily Cash-up": ["Opening cash", "Cash count", "Expected cash", "Actual cash", "Variance", "Cash removal", "History"],
+};
 function Float() {
-  const acct = useAccount("plus");
-  const { tr } = useLanguage();
-  const s = useErp();
-  const [tab, setTab] = useState(TABS[0]!);
-  const [dep, setDep] = useState({ kind: "DEPOSIT" as "DEPOSIT" | "WITHDRAWAL", method: "mpesa" as erp.Method, amount: "", note: "" });
-  const [tf, setTf] = useState({ from: "cash" as erp.Method, to: "bank" as erp.Method, amount: "" });
+  const acct = useAccount("plus"), s = useErp(); const { tr } = useLanguage();
+  const [menu, setMenu] = useState("Overview"), [sub, setSub] = useState("");
+  const [amount, setAmount] = useState(""), [note, setNote] = useState(""), [counted, setCounted] = useState("");
+  const [pay, setPay] = useState(emptyPay()), [from, setFrom] = useState<erp.Method>("cash"), [to, setTo] = useState<erp.Method>("bank");
+  const [detail, setDetail] = useState<MoneyActivity | null>(null);
   if (!acct) return <main className="app-screen" />;
-  const money = moneyFor(acct.currency || "KSh");
-  const b = fin.floatBalances(s);
-  const moves = s.payments.filter((p) => p.method !== "credit");
-  return (
-    <AppShell title="Float" tabs={TABS} tab={tab} setTab={setTab}>
-      <KpiRow>
-        <Kpi label={tr("Cash")} value={money(b.cash)} tone={b.cash < 0 ? "bad" : undefined} />
-        <Kpi label={tr("M-Pesa")} value={money(b.mpesa)} tone={b.mpesa < 0 ? "bad" : undefined} />
-        <Kpi label={tr("Bank")} value={money(b.bank)} tone={b.bank < 0 ? "bad" : undefined} />
-        <Kpi label={tr("Total")} value={money(b.cash + b.mpesa + b.bank)} />
-      </KpiRow>
-      <div className="mt-4">
-        {tab === "Overview" && <>
-          <Title>{tr("Money in and out")}</Title>
-          {fin.ACCOUNTS.map((m) => {
-            const rows = moves.filter((p) => p.method === m);
-            const inn = rows.filter((p) => p.amount > 0).reduce((a, p) => a + p.amount, 0);
-            const out = -rows.filter((p) => p.amount < 0).reduce((a, p) => a + p.amount, 0) + s.payrollPayments.filter((p) => p.method === m).reduce((a, p) => a + p.amount, 0);
-            return <div key={m} className="flex justify-between border-b border-border py-2 text-sm"><b>{tr(erp.METHOD_LABEL[m])}</b><span className="text-[12px] text-muted-foreground">{tr("In")} {money(inn)} • {tr("Out")} {money(out)}</span></div>;
-          })}
-          <p className="mt-3 text-[11px] text-muted-foreground">{tr("Balances update automatically from sales, debt payments, purchases, expenses, payroll and returns.")}</p>
-        </>}
-        {tab === "Move money" && <div className="grid gap-2">
-          <Title>{tr("Deposit or withdraw")}</Title>
-          <div className="grid grid-cols-2 gap-2">
-            <select className={inputCls} value={dep.kind} onChange={(e) => setDep({ ...dep, kind: e.target.value as "DEPOSIT" })}><option value="DEPOSIT">{tr("Deposit")}</option><option value="WITHDRAWAL">{tr("Withdrawal")}</option></select>
-            <select className={inputCls} value={dep.method} onChange={(e) => setDep({ ...dep, method: e.target.value as erp.Method })}>{fin.ACCOUNTS.map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input className={inputCls} inputMode="decimal" placeholder={tr("Amount")} value={dep.amount} onChange={(e) => setDep({ ...dep, amount: e.target.value })} />
-            <input className={inputCls} placeholder={tr("Note (optional)")} maxLength={120} value={dep.note} onChange={(e) => setDep({ ...dep, note: e.target.value })} />
-          </div>
-          <ShopButton onClick={() => run(() => fin.floatDeposit(dep.method, +dep.amount, dep.kind, dep.note), tr("Saved")) !== undefined && setDep({ ...dep, amount: "", note: "" })}>{tr("Save")}</ShopButton>
-          <Title>{tr("Transfer between accounts")}</Title>
-          <div className="grid grid-cols-3 gap-2">
-            <select className={inputCls} value={tf.from} onChange={(e) => setTf({ ...tf, from: e.target.value as erp.Method })}>{fin.ACCOUNTS.map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
-            <select className={inputCls} value={tf.to} onChange={(e) => setTf({ ...tf, to: e.target.value as erp.Method })}>{fin.ACCOUNTS.map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
-            <input className={inputCls} inputMode="decimal" placeholder={tr("Amount")} value={tf.amount} onChange={(e) => setTf({ ...tf, amount: e.target.value })} />
-          </div>
-          <ShopButton onClick={() => run(() => fin.floatTransfer(tf.from, tf.to, +tf.amount), tr("Transfer recorded")) !== undefined && setTf({ ...tf, amount: "" })}>{tr("Transfer")}</ShopButton>
-        </div>}
-        {tab === "History" && (moves.length === 0 ? <Empty>{tr("No records yet")}</Empty> : moves.slice(0, 100).map((p) => (
-          <div key={p.id} className="flex justify-between border-b border-border py-2 text-sm"><span><b>{tr(p.kind)}</b><span className="block text-[11px] text-muted-foreground">{p.ref} • {p.source} • {dt(p.at)}</span></span><span className={p.amount < 0 ? "text-destructive tabular-nums" : "tabular-nums"}>{tr(erp.METHOD_LABEL[p.method])} {money(p.amount)}</span></div>
-        )))}
-      </div>
-    </AppShell>
-  );
+  const money = moneyFor(acct.currency || "KSh"), b = fin.floatBalances(s), cs = erp.cashSession(s);
+  const rows = moneyActivity(s), account = menu === "M-Pesa" ? "mpesa" : menu === "Bank" ? "bank" : "cash";
+  const last = s.cash.find((x) => x.type === "CASH UP");
+  const go = (m: string) => { setMenu(m); setSub(MENUS[m]?.[0] ?? ""); setAmount(""); setNote(""); };
+  const heading = (t: string) => <h2 className="money-heading">{tr(t)}</h2>;
+  const list = (rr: MoneyActivity[]) => <ActivityList rows={rr.slice(0, 150)} money={money} tr={tr} onOpen={setDetail} />;
+  const amountField = <label className="inventory-field"><span>{tr("Amount")}</span><input aria-label={tr("Amount")} className="inventory-input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" /></label>;
+  const noteField = <label className="inventory-field"><span>{tr("Reason")}</span><input aria-label={tr("Reason")} className="inventory-input" value={note} maxLength={120} onChange={(e) => setNote(e.target.value)} /></label>;
+  const save = (fn: () => void) => run(() => { fn(); setAmount(""); setNote(""); return true; }, tr("Saved"));
+  const transfer = <div className="inventory-form">{heading("Transfer between accounts")}<div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2"><select aria-label={tr("From account")} className="inventory-input" value={from} onChange={(e) => setFrom(e.target.value as erp.Method)}>{fin.ACCOUNTS.map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select><ArrowRightLeft className="h-3 w-3 text-primary" /><select aria-label={tr("To account")} className="inventory-input" value={to} onChange={(e) => setTo(e.target.value as erp.Method)}>{fin.ACCOUNTS.map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select></div>{amountField}<ShopButton className="inventory-save" disabled={!amount || from === to} onClick={() => save(() => fin.floatTransfer(from, to, +amount))}>{tr("Transfer")}</ShopButton></div>;
+  const movement = (method: erp.Method, withdrawal: boolean, choose: boolean) => <div className="inventory-form">{heading(sub)}{choose && <PayPicker value={pay} onChange={setPay} total={+amount || 0} money={money} tr={tr} allowCredit={false} />}{amountField}{noteField}<ShopButton className="inventory-save" disabled={!amount || !note.trim()} onClick={() => save(() => fin.floatDeposit(choose && pay.mode !== "ppay" ? pay.mode : method, +amount, withdrawal ? "WITHDRAWAL" : "DEPOSIT", note))}>{tr("Save")}</ShopButton></div>;
+  return <ErpShell title="Float" shop={acct.shopName} menus={MENUS} menu={menu} sub={sub} onMenu={go} onSub={(v) => { setSub(v); setAmount(""); setNote(""); }} deps={s}><div className="money-screen">
+    <KpiRow><Kpi label={tr("Cash")} value={money(b.cash)} tone={b.cash < 0 ? "bad" : undefined} icon={<Banknote />} /><Kpi label={tr("M-Pesa")} value={money(b.mpesa)} tone={b.mpesa < 0 ? "bad" : undefined} icon={<Smartphone />} /><Kpi label={tr("Bank")} value={money(b.bank)} tone={b.bank < 0 ? "bad" : undefined} icon={<Landmark />} /><Kpi label={tr("Total")} value={money(b.cash + b.mpesa + b.bank)} icon={<Wallet />} /></KpiRow>
+    {menu === "Overview" && <>{heading("Money Position")}{fin.ACCOUNTS.map((m) => <ShopButton variant="bare" key={m} className="money-record" onClick={() => go(erp.METHOD_LABEL[m])}><span className="pur-name">{tr(erp.METHOD_LABEL[m])}</span><b>{money(b[m as "cash" | "mpesa" | "bank"])}</b><span>›</span></ShopButton>)}{heading("Recent Money Activity")}{list(rows.slice(0, 10))}</>}
+    {["Cash", "M-Pesa", "Bank"].includes(menu) && <>
+      {sub === "Balance" && <>{heading(`${menu} balance`)}<AmountRow label={tr("Current balance")} value={money(b[account])} bold />{heading("Recent Money Activity")}{list(rows.filter((x) => x.method === menu).slice(0, 8))}</>}
+      {sub === "History" && list(rows.filter((x) => x.method === menu))}
+      {["Cash in", "Money in", "Cash out", "Money out"].includes(sub) && movement(account, sub.endsWith("out"), false)}
+    </>}
+    {menu === "Transfers" && (sub === "History" ? list(rows.filter((x) => x.kind === "TRANSFER")) : transfer)}
+    {menu === "Business Money" && (sub === "History" ? list(rows.filter((x) => x.kind === "DEPOSIT" || x.kind === "WITHDRAWAL")) : movement("cash", sub === "Owner withdrawal", true))}
+    {menu === "Daily Cash-up" && <>
+      {sub === "Opening cash" && <div className="inventory-form">{heading(sub)}<AmountRow label={tr("Opening cash")} value={money(cs.opening)} />{amountField}<ShopButton className="inventory-save" disabled={!amount || cs.opening > 0} onClick={() => save(() => erp.cashEvent("OPENING", +amount, "Opening cash"))}>{tr("Save")}</ShopButton></div>}
+      {sub === "Expected cash" && <>{heading(sub)}{([["Opening cash", cs.opening], ["Money in", cs.sales + cs.cin], ["Money out", cs.cout + cs.refunds], ["Expected cash", cs.expected]] as [string, number][]).map(([k, v]) => <AmountRow key={k} label={tr(k)} value={money(v)} bold={k === "Expected cash"} />)}</>}
+      {sub === "Cash count" && <div className="inventory-form">{heading(sub)}<AmountRow label={tr("Expected cash")} value={money(cs.expected)} /><label className="inventory-field"><span>{tr("Actual cash")}</span><input aria-label={tr("Actual cash")} className="inventory-input" inputMode="decimal" value={counted} onChange={(e) => setCounted(e.target.value)} placeholder="0" /></label>{counted !== "" && <AmountRow label={tr("Variance")} value={money(+counted - cs.expected)} bad={+counted !== cs.expected} />}{noteField}<ShopButton className="inventory-save" disabled={counted === "" || (+counted !== cs.expected && !note.trim())} onClick={() => run(() => { erp.commit((draft, c) => { if (!(+counted >= 0) || !Number.isFinite(+counted)) throw new erp.ErpError("Enter the counted cash"); const expected = erp.cashSession(draft).expected; draft.cash.unshift({ id: erp.uid(), at: Date.now(), type: "CASH UP", amount: +counted - expected, expected, counted: +counted, note: note.trim() || undefined, user: c.user }); c.audit("CASH UP", `Expected ${expected} • Counted ${counted} • ${note}`); }); setCounted(""); setNote(""); setSub("Actual cash"); return true; }, tr("Saved"))}>{tr("Confirm cash-up")}</ShopButton></div>}
+      {(sub === "Actual cash" || sub === "Variance") && <>{heading(sub)}{last ? <><AmountRow label={tr("Expected cash")} value={money(last.expected ?? 0)} /><AmountRow label={tr("Actual cash")} value={money(last.counted ?? 0)} /><AmountRow label={tr("Variance")} value={money(last.amount)} bad={last.amount !== 0} /><AmountRow label={tr("Date")} value={dt(last.at)} /><AmountRow label={tr("User")} value={last.user} /><p className="py-2">{last.note}</p></> : <Empty>{tr("No records yet")}</Empty>}</>}
+      {sub === "Cash removal" && transfer}
+      {sub === "History" && <>{heading("Cash-up history")}{s.cash.filter((x) => x.type === "CASH UP").map((x) => <div key={x.id} className="money-audit"><span>{dt(x.at)}</span><span>{tr("Expected cash")} {money(x.expected ?? 0)}</span><span>{tr("Actual cash")} {money(x.counted ?? 0)}</span><b className={x.amount ? "text-warning" : "text-primary"}>{money(x.amount)}</b><span>{x.user}</span><span>{x.note}</span></div>)}</>}
+    </>}
+    {detail && <MoneyDetail row={detail} shop={acct.shopName} money={money} tr={tr} onClose={() => setDetail(null)} />}
+  </div></ErpShell>;
 }
