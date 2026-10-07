@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { applyUiSize } from "@/lib/prefs";
+import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
 
 import appCss from "../styles.css?url";
@@ -121,7 +122,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => { applyUiSize(); }, []);
+  useEffect(() => { applyUiSize(); applySettings(); }, []);
   useEffect(() => startCloudBackup(), []);
 
   return (

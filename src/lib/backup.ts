@@ -2,7 +2,7 @@
 import { commit, empty, load, type ErpState } from "@/lib/erp";
 const KEY = "shopbook.erp";
 const LAST = "shopbook.lastBackup";
-export const BACKUP_KEYS = ["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.uiSize", "shopbook.tax", "shopbook.theme", "shopbook.language"] as const;
+export const BACKUP_KEYS = ["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.uiSize", "shopbook.tax", "shopbook.theme", "shopbook.language", "shopbook.settings", "shopbook.importHistory"] as const;
 export function snapshot(shop: string) {
   const a = JSON.parse(localStorage.getItem("shopbook.account") || "null");
   return { app: "SHOPBOOK", version: 2, shop, at: Date.now(), data: load(), settings: Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])), business: a ? { shopName: a.shopName, currency: a.currency, logo: a.logo } : null };
@@ -35,9 +35,9 @@ export function validateBackup(value: unknown): asserts value is ReturnType<type
   if (object(value["settings"])) for (const [key, raw] of Object.entries(value["settings"])) {
     if (raw === null) continue;
     if (typeof raw !== "string") throw new Error("Backup settings are damaged");
-    if (["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.tax"].includes(key)) {
+    if (["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.tax", "shopbook.settings", "shopbook.importHistory"].includes(key)) {
       let parsed: unknown; try { parsed = JSON.parse(raw); } catch { throw new Error("Backup settings are damaged"); }
-      if (key === "shopbook.tax" ? !object(parsed) || typeof parsed["rate"] !== "number" || typeof parsed["on"] !== "boolean" : !Array.isArray(parsed)) throw new Error("Backup settings are damaged");
+      if (key === "shopbook.tax" ? !object(parsed) || typeof parsed["rate"] !== "number" || typeof parsed["on"] !== "boolean" : key === "shopbook.settings" ? !object(parsed) : !Array.isArray(parsed)) throw new Error("Backup settings are damaged");
     }
   }
 }
