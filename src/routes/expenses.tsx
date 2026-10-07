@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import { MinusCircle, Plus, Printer, Share2 } from "lucide-react";
@@ -88,6 +89,7 @@ function Overview(c: Ctx) {
       <Kpi label={tr("Cash")} value={money(paidBy("cash"))} />
       <Kpi label={tr("M-Pesa")} value={money(paidBy("mpesa"))} />
     </KpiRow>
+    <ModuleCharts s={s} module="expenses" money={money} tr={tr} single />
     <Box title={tr("Recent Expenses")} action={() => go("Expenses")}>{s.expenses.length ? s.expenses.slice(0, 5).map((x) => <ExpRow key={x.id} x={x} c={c} />) : <Empty>{tr("No expenses yet")}</Empty>}</Box>
     <Box title={tr("Expenses by Category")} action={() => go("Reports", "By Category")}><CatBars s={s} money={money} tr={tr} byCat={byCat} total={total} limit={5} /></Box>
     <Box title={tr("Outstanding Expenses")} action={() => go("Payments", "P.PAY")}>{open.length ? open.slice(0, 5).map((x) => <ExpRow key={x.id} x={x} c={c} balance />) : <Empty>{tr("Nothing owed on expenses")}</Empty>}</Box>

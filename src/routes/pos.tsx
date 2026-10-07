@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, FileText, MessageCircle, Minus, MinusCircle, Plus, Printer, ShoppingCart, Trash2, X } from "lucide-react";
@@ -279,6 +280,7 @@ function Reports({ s, money, tr, view }: Ctx & { view: string }) {
   return <>
     <div className="mb-1.5"><Tabs small items={["Today", "7 days", "All"]} value={range} onChange={(v) => setRange(v as typeof range)} tr={tr} /></div>
     <KpiRow><Kpi label={tr("Sales")} value={money(gross - returned)} /><Kpi label={tr("Transactions")} value={sales.length} /><Kpi label={tr("Returns")} value={money(returned)} /><Kpi label="P.PAY" value={sales.filter((x) => erp.saleStatus(s, x) === "P.PAY").length} /></KpiRow>
+    <ModuleCharts s={{ ...s, sales: posSales(s), returns: s.returns.filter((r) => posSales(s).some((x) => x.id === r.saleId)) }} module="sales" from={since} money={money} tr={tr} single={view !== "Payment Methods"} />
     {view === "Daily Sales" && <Box title={tr("Daily Sales")}>{byDay.size ? [...byDay].map(([k, v]) => <Row key={k}><span className="pur-name">{k}</span><span className="pur-amt">{money(v)}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>}
     {(view === "Sales by Product" || view === "Best Selling Products") && <Box title={tr(view)}>{byProd.size ? [...byProd].sort((a, b) => (view === "Best Selling Products" ? b[1].q - a[1].q : b[1].v - a[1].v)).slice(0, view === "Best Selling Products" ? 10 : 99).map(([k, o]) => <Row key={k}><span className="pur-name">{k}</span><span className="pur-muted">× {o.q}</span><span className="pur-amt">{money(o.v)}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>}
     {view === "Payment Methods" && <Box title={tr("Payment Methods")}>{erp.METHODS.map((m) => <Row key={m}><span className="pur-name">{tr(erp.METHOD_LABEL[m])}</span><span className="pur-amt">{money(sales.reduce((a, x) => a + x.pay[m], 0))}</span></Row>)}</Box>}

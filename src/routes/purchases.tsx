@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowLeft, Banknote, CheckCircle2, ChevronRight, CircleDollarSign, CreditCard, FileText, MessageCircle, MinusCircle, Plus, Printer, Receipt, ShoppingCart } from "lucide-react";
@@ -118,6 +119,7 @@ function Overview(c: Ctx) {
   const top = s.suppliers.map((x) => ({ x, n: s.purchases.filter((p) => p.supplierId === x.id).length })).filter((t) => t.n > 0).sort((a, b) => b.n - a.n).slice(0, 5);
   return (<>
     <Kpis {...c} />
+    <ModuleCharts s={s} module="purchases" money={money} tr={tr} />
     <Box title={tr("Recent Purchases")} action={() => go("Purchases")}>{s.purchases.length ? s.purchases.slice(0, 5).map((p) => <PurRow key={p.id} p={p} c={c} />) : <Empty>{tr("No purchases yet")}</Empty>}</Box>
     <Box title={tr("Top Suppliers")} action={() => go("Suppliers")}>{top.length ? top.map(({ x, n }) => <Row key={x.id}><Dot tone={x.balance > 0 ? "warn" : "ok"} /><span className="pur-name">{x.name}</span><span className="pur-amt">{n}</span></Row>) : <Empty>{tr("No suppliers yet")}</Empty>}</Box>
     <Box title={tr("Outstanding Supplier Payments")} action={() => go("Payments", "P.PAY")}>{owed.length ? owed.slice(0, 5).map((p) => <PurRow key={p.id} p={p} c={c} balance />) : <Empty>{tr("Nothing owed to suppliers")}</Empty>}</Box>

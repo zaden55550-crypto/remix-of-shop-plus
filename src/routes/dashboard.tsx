@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AlertTriangle, Banknote, Building2, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Landmark, Menu, Package, Receipt, ShoppingCart, Smartphone, TrendingDown, TrendingUp, Users, Wallet, type LucideIcon } from "lucide-react";
@@ -180,6 +181,7 @@ function Dashboard() {
           ))}
         </div>
 
+        <ModuleCharts s={s} module="financial" from={from} to={to} money={money} tr={tr} single />
         <Section title={tr("Sales by payment method")} to="/reports" link={tr("View details")}>
           <div className="flex items-center gap-4">
             <div className="relative h-20 w-20 shrink-0 rounded-full" style={{ background: byTotal ? `conic-gradient(${(() => { let acc = 0; return METHODS.map((m) => { const a = acc; acc += (perf.byMethod[m] / byTotal) * 360; return `${COLORS[m]} ${a}deg ${acc}deg`; }).join(", "); })()})` : "var(--muted)" }}>

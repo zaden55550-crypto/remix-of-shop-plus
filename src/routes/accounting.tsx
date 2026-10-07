@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { TrendingUp, Receipt, Wallet, Users, Landmark } from "lucide-react";
@@ -58,7 +59,7 @@ function Accounting() {
     <div className="money-screen">
       <KpiRow><Kpi label={tr("Revenue")} value={money(pl.sales - pl.returns)} icon={<TrendingUp />} /><Kpi label={tr("Expenses")} value={money(pl.expenses + pl.salaries + pl.stockAdj)} icon={<Receipt />} /><Kpi label={tr("Profit")} value={money(pl.net)} tone={pl.net < 0 ? "bad" : undefined} icon={<Wallet />} /><Kpi label={tr("Receivables")} value={money(rec)} icon={<Users />} /><Kpi label={tr("Payables")} value={money(payable)} icon={<Landmark />} /></KpiRow>
       {(menu === "Overview" || menu === "Financial Reports") && <div className="money-period"><select aria-label={tr("Period")} className="inventory-input" value={period} onChange={(e) => setPeriod(e.target.value as Period)}>{PERIODS.map((p) => <option key={p} value={p}>{tr(p)}</option>)}</select></div>}
-      {menu === "Overview" && <>{section("Recent Financial Transactions")}<ActivityList rows={records.filter((x) => x.at >= from).slice(0, 8)} money={money} tr={tr} onOpen={setDetail} />{section("Account Balances")}<div className="money-balance-strip">{([["Cash", fb.cash], ["M-Pesa", fb.mpesa], ["Bank", fb.bank], ["Receivables", rec], ["Payables", payable]] as [string, number][]).map(([k, v]) => <div key={k}><span>{tr(k)}</span><b>{money(v)}</b></div>)}</div></>}
+      {menu === "Overview" && <><ModuleCharts s={s} module="financial" from={from} money={money} tr={tr} single />{section("Recent Financial Transactions")}<ActivityList rows={records.filter((x) => x.at >= from).slice(0, 8)} money={money} tr={tr} onOpen={setDetail} />{section("Account Balances")}<div className="money-balance-strip">{([["Cash", fb.cash], ["M-Pesa", fb.mpesa], ["Bank", fb.bank], ["Receivables", rec], ["Payables", payable]] as [string, number][]).map(([k, v]) => <div key={k}><span>{tr(k)}</span><b>{money(v)}</b></div>)}</div></>}
       {menu === "Accounts" && <>{section("Accounts")}{(Object.keys(ACCOUNT_INFO) as AccountId[]).map((id) => <AmountRow key={id} label={`${tr(ACCOUNT_INFO[id].name)} · ${tr(ACCOUNT_INFO[id].type)}`} value={money(["Income", "Liability", "Equity"].includes(ACCOUNT_INFO[id].type) ? -tb[id].net : tb[id].net)} />)}</>}
       {menu === "Transactions" && transactions}
       {menu === "Receivables & Payables" && parties(sub === "Payables")}
