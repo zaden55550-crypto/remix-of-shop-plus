@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Lock, Store } from "lucide-react";
 import { toast } from "sonner";
-import { BrandRing, Field, LogoPicker, TopBar } from "@/components/shopbook/ui";
+import { BrandRing, Field, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
@@ -27,15 +27,13 @@ function Login() {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [remember, setRemember] = useState(true);
-  const [logo, setLogo] = useState<string | undefined>();
-  useEffect(() => setLogo(store.get()?.logo), []);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const a = store.get();
     const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
-    if (!a || (norm(a.shopName) !== norm(id) && norm(a.email || "") !== norm(id)) || a.password !== pw) {
-      toast.error(tr("Shop name, email or password is incorrect"));
+    if (!a || (norm(a.shopName) !== norm(id) && norm(a.phone || "") !== norm(id)) || a.password !== pw) {
+      toast.error(tr("Shop name, phone number or password is incorrect"));
       return;
     }
     store.signIn();
@@ -46,11 +44,10 @@ function Login() {
     <main dir={dir} className="app-screen pb-8">
       <TopBar />
       <div className="mt-4"><BrandRing /></div>
-      <div className="mt-4"><LogoPicker value={logo} /></div>
       <h1 className="mt-3 text-center text-3xl font-bold">{tr("Log In")}</h1>
       <p className="text-center text-sm text-muted-foreground">{tr("Sign in to your shop account")}</p>
       <form onSubmit={submit} className="mt-5 space-y-3 px-5">
-        <Field icon={<Store className="h-5 w-5" />} placeholder={tr("Shop Name or Email")} value={id} onChange={(e) => setId(e.target.value)} required />
+        <Field icon={<Store className="h-5 w-5" />} placeholder={tr("Shop Name / Business Name / Phone Number")} value={id} onChange={(e) => setId(e.target.value)} required />
         <Field icon={<Lock className="h-5 w-5" />} password placeholder={tr("Password")} value={pw} onChange={(e) => setPw(e.target.value)} required />
         <div className="flex items-start justify-between gap-2 text-sm">
           <label className="flex items-center gap-2">

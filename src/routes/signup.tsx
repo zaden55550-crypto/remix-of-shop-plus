@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Mail, Store } from "lucide-react";
+import { Lock, Phone, Store } from "lucide-react";
 import { toast } from "sonner";
-import { BrandRing, Field, LogoPicker, TopBar } from "@/components/shopbook/ui";
+import { BrandRing, Field, LogoCropPicker, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/signup")({
 function Signup() {
   const nav = useNavigate();
   const { tr, t, dir, language } = useLanguage();
-  const [f, setF] = useState({ shopName: "", email: "", password: "", confirm: "", currency: "KSh", logo: "" });
+  const [f, setF] = useState({ shopName: "", phone: "", password: "", confirm: "", currency: "KSh", logo: "" });
   const [agree, setAgree] = useState(false);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
@@ -33,7 +33,7 @@ function Signup() {
     if (f.password.length < 6) { toast.error(tr("Password must be at least 6 characters")); return; }
     if (f.password !== f.confirm) { toast.error(tr("Passwords do not match")); return; }
     if (!agree) { toast.error(tr("Please accept the Terms & Privacy Policy")); return; }
-    store.save({ language, shopName: f.shopName.trim(), email: f.email.trim(), password: f.password, currency: f.currency, logo: f.logo || undefined });
+    store.save({ language, shopName: f.shopName.trim(), phone: f.phone.trim(), email: "", password: f.password, currency: f.currency, logo: f.logo || undefined });
     store.signIn();
     nav({ to: "/plans" });
   };
@@ -42,11 +42,11 @@ function Signup() {
     <main dir={dir} className="app-screen pb-8">
       <TopBar />
       <div className="mt-3"><BrandRing size={180} /></div>
-      <div className="mt-3"><LogoPicker value={f.logo} onChange={(logo) => setF({ ...f, logo })} /></div>
+      <div className="mt-3"><LogoCropPicker value={f.logo} onChange={(logo) => setF({ ...f, logo })} /></div>
       <h1 className="mt-2 text-center text-2xl font-bold">{tr("Create Your Account")}</h1>
       <form onSubmit={submit} className="mt-4 space-y-2.5 px-5">
         <Field icon={<Store className="h-5 w-5" />} placeholder={tr("Shop Name")} value={f.shopName} onChange={set("shopName")} required />
-        <Field icon={<Mail className="h-5 w-5" />} type="email" placeholder={tr("Email")} value={f.email} onChange={set("email")} required />
+        <Field icon={<Phone className="h-5 w-5" />} inputMode="tel" placeholder={tr("Phone Number")} value={f.phone} onChange={set("phone")} required />
         <Field icon={<Lock className="h-5 w-5" />} password placeholder={tr("Password")} value={f.password} onChange={set("password")} required />
         <Field icon={<Lock className="h-5 w-5" />} password placeholder={tr("Confirm Password")} value={f.confirm} onChange={set("confirm")} required />
         <select value={f.currency} onChange={set("currency")}
