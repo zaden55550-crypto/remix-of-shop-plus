@@ -21,7 +21,7 @@ export const saveRecon = (rows: ReconRow[]) => { localStorage.setItem(RECON_KEY,
 
 export function stageRows(raw: Record<string, unknown>[], file: string, fallback: ReconKind) {
   const cols = Object.keys(raw[0] ?? {}), pick = (f: string) => cols.find((c) => ALIASES[f]!.some((a) => k(a) === k(c)));
-  const col = Object.fromEntries(Object.keys(ALIASES).map((f) => [f, pick(f)]));
+  const col = { kind: pick("kind"), at: pick("at"), ref: pick("ref"), party: pick("party"), amount: pick("amount"), method: pick("method") };
   const rows: ReconRow[] = [], errors: string[] = [];
   raw.forEach((r, i) => { const amount = num(col.amount ? r[col.amount] : undefined), at = dateOf(col.at ? r[col.at] : undefined);
     if (!Number.isFinite(amount) || amount === 0) return void errors.push(`Row ${i + 2}: amount missing`);
