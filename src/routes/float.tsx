@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Banknote, Smartphone, Landmark, Wallet, ArrowRightLeft } from "lucide-react";
@@ -43,7 +44,7 @@ function Float() {
   const movement = (method: erp.Method, withdrawal: boolean, choose: boolean) => <div className="inventory-form">{heading(sub)}{choose && <PayPicker value={pay} onChange={setPay} total={+amount || 0} money={money} tr={tr} allowCredit={false} />}{amountField}{noteField}<ShopButton className="inventory-save" disabled={!amount || !note.trim()} onClick={() => save(() => fin.floatDeposit(choose && pay.mode !== "ppay" ? pay.mode : method, +amount, withdrawal ? "WITHDRAWAL" : "DEPOSIT", note))}>{tr("Save")}</ShopButton></div>;
   return <ErpShell title="Float" shop={acct.shopName} menus={MENUS} menu={menu} sub={sub} onMenu={go} onSub={(v) => { setSub(v); setAmount(""); setNote(""); }} deps={s}><div className="money-screen">
     <KpiRow><Kpi label={tr("Cash")} value={money(b.cash)} tone={b.cash < 0 ? "bad" : undefined} icon={<Banknote />} /><Kpi label={tr("M-Pesa")} value={money(b.mpesa)} tone={b.mpesa < 0 ? "bad" : undefined} icon={<Smartphone />} /><Kpi label={tr("Bank")} value={money(b.bank)} tone={b.bank < 0 ? "bad" : undefined} icon={<Landmark />} /><Kpi label={tr("Total")} value={money(b.cash + b.mpesa + b.bank)} icon={<Wallet />} /></KpiRow>
-    {menu === "Overview" && <>{heading("Money Position")}{fin.ACCOUNTS.map((m) => <ShopButton variant="bare" key={m} className="money-record" onClick={() => go(erp.METHOD_LABEL[m])}><span className="pur-name">{tr(erp.METHOD_LABEL[m])}</span><b>{money(b[m as "cash" | "mpesa" | "bank"])}</b><span>›</span></ShopButton>)}{heading("Recent Money Activity")}{list(rows.slice(0, 10))}</>}
+    {menu === "Overview" && <><ModuleCharts s={s} module="float" money={money} tr={tr} />{heading("Money Position")}{fin.ACCOUNTS.map((m) => <ShopButton variant="bare" key={m} className="money-record" onClick={() => go(erp.METHOD_LABEL[m])}><span className="pur-name">{tr(erp.METHOD_LABEL[m])}</span><b>{money(b[m as "cash" | "mpesa" | "bank"])}</b><span>›</span></ShopButton>)}{heading("Recent Money Activity")}{list(rows.slice(0, 10))}</>}
     {["Cash", "M-Pesa", "Bank"].includes(menu) && <>
       {sub === "Balance" && <>{heading(`${menu} balance`)}<AmountRow label={tr("Current balance")} value={money(b[account])} bold />{heading("Recent Money Activity")}{list(rows.filter((x) => x.method === menu).slice(0, 8))}</>}
       {sub === "History" && list(rows.filter((x) => x.method === menu))}

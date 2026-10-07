@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Banknote, CircleDollarSign, CreditCard, MinusCircle, Plus, Receipt, ShoppingCart } from "lucide-react";
@@ -87,6 +88,7 @@ function Overview(c: Ctx) {
   const owed = s.customers.filter((x) => x.balance > 0.001);
   return <>
     <Kpis {...c} />
+    <ModuleCharts s={s} module="sales" money={money} tr={tr} />
     <Box title={tr("Recent Sales")} action={() => go("Sales")}>{s.sales.length ? s.sales.slice(0, 5).map((x) => <SaleRow key={x.id} x={x} c={c} />) : <Empty>{tr("No sales yet")}</Empty>}</Box>
     <Box title={tr("Top Products")} action={() => go("Reports")}>{st.top.length ? st.top.map(([n, q]) => <Row key={n}><Dot tone="ok" /><span className="pur-name">{n}</span><span className="pur-amt">{q}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>
     <Box title={tr("Outstanding Balances")} action={() => go("Payments", "P.PAY")}>{owed.length ? owed.slice(0, 5).map((x) => <Row key={x.id}><Dot tone="warn" /><span className="pur-name">{x.name}</span><span className="pur-amt">{money(x.balance)}</span><Badge s="Due" /></Row>) : <Empty>{tr("No customer balances")}</Empty>}</Box>

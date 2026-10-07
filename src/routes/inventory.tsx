@@ -1,3 +1,4 @@
+import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Menu as MenuIcon, MoreVertical, Package, Coins, TriangleAlert, ArchiveX, Layers, Plus, Trash2, X } from "lucide-react";
@@ -174,6 +175,7 @@ function Overview({ s, money, tr, go }: Ctx) {
   };
   const movement = (m: erp.Movement) => { const p = s.products.find(p => p.id === m.productId); return <div className="inventory-move-row" key={m.id}><StockDot p={p} /><span className="truncate">{p?.name ?? tr("Deleted product")}</span><b className={cn("text-end", m.qty > 0 ? "text-primary" : "text-destructive")}>{m.qty > 0 ? "+" : ""}{m.qty}</b><span className="text-end text-[10px] text-muted-foreground">{shortDate(m.at)}</span></div>; };
   return <div><KpiRow><Kpi label={tr("Products")} value={s.products.length} icon={<Package className="text-primary" />} /><Kpi label={tr("Stock value")} value={money(value)} icon={<Coins className="text-warning" />} /><Kpi label={tr("Low stock")} value={low.length} icon={<TriangleAlert className="text-warning" />} /><Kpi label={tr("Out of stock")} value={out.length} icon={<ArchiveX className="text-destructive" />} /></KpiRow>
+    <ModuleCharts s={s} module="inventory" money={money} tr={tr} />
     <Box title={tr("Recent Stock In")} tr={tr} onView={() => go("stock","History")}>{ins.length ? ins.map(movement) : <Empty>{tr("No movements yet")}</Empty>}</Box>
     <Box title={tr("Recent Stock Out")} tr={tr} onView={() => go("stock","History")}>{outs.length ? outs.map(movement) : <Empty>{tr("No movements yet")}</Empty>}</Box>
     <Box title={tr("Low / Out of Stock")} tr={tr} onView={() => go("stock","Stock Levels")}>{[...out,...low].length ? [...out,...low].slice(0,5).map(p => <div className="flex items-start gap-2 border-b border-border py-1.5 last:border-0" key={p.id}><span className="mt-1"><StockDot p={p} /></span><div className="min-w-0"><p className="truncate">{p.name}</p><p className="text-[10px] text-muted-foreground">{tr("Stock")}: {p.qty} • {tr("Reorder")}: {p.minStock ?? 5}</p></div></div>) : <Empty>{s.products.length ? tr("Nothing here yet") : tr("No products yet")}</Empty>}</Box>
