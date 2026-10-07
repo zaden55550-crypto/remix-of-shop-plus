@@ -314,7 +314,7 @@
 .money-line > :last-child { white-space: nowrap; }
 .inventory-screen .money-record { display: flex; justify-content: flex-start; width: 100%; height: 28px; min-height: 28px; border-radius: 0; border-bottom: 1px solid var(--border); padding: 4px 0; gap: 7px; overflow-x: auto; scrollbar-width: none; font-size: 9px; font-weight: 400; white-space: nowrap; }
 .money-record > * { flex-shrink: 0; }
-.money-record .pur-name { flex: 1 1 auto; min-width: 80px; }
+.money-record .pur-name { flex: 1 1 auto; min-width: 80px; text-align: start; }
 .money-record .pur-muted { font-size: 8px; }
 .money-record svg { margin-inline-start: auto; }
 .money-period { display: flex; justify-content: flex-end; margin-top: 6px; }
