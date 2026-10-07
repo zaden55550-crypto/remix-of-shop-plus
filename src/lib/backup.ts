@@ -2,7 +2,7 @@
 import { commit, empty, load, type ErpState } from "@/lib/erp";
 const KEY = "shopbook.erp";
 const LAST = "shopbook.lastBackup";
-export const BACKUP_KEYS = ["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.uiSize", "shopbook.tax", "shopbook.theme", "shopbook.language", "shopbook.settings", "shopbook.importHistory"] as const;
+export const BACKUP_KEYS = ["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.uiSize", "shopbook.tax", "shopbook.theme", "shopbook.language", "shopbook.settings", "shopbook.importHistory", "shopbook.reconcile"] as const;
 export function snapshot(shop: string) {
   const a = JSON.parse(localStorage.getItem("shopbook.account") || "null");
   return { app: "SHOPBOOK", version: 2, shop, at: Date.now(), data: load(), settings: Object.fromEntries(BACKUP_KEYS.map((k) => [k, localStorage.getItem(k)])), business: a ? { shopName: a.shopName, currency: a.currency, logo: a.logo } : null };
