@@ -7,3 +7,4 @@ import { profitAndLoss } from "../lib/accounting";
 import { purchaseTotals } from "../lib/finance";
 it("dump", () => { localStorage.clear(); loadDemoData(); const s = load(); const c = buildAssistantContext(s, "TechPoint", "KSh"); const now = new Date(); const from = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
 writeFileSync("/tmp/ai/ctx.json", JSON.stringify(c)); writeFileSync("/tmp/ai/truth.json", JSON.stringify({ profitMonth: profitAndLoss(s, from, Date.now()).net, payables: purchaseTotals(s).payables, receivables: c.position.receivables, salesMonth: c.periods[4]!.sales })); });
+it("pl", () => { localStorage.clear(); loadDemoData(); const s = load(); console.log(JSON.stringify(profitAndLoss(s))); });
