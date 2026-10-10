@@ -1,6 +1,6 @@
 // Local-only store for the screens-first phase (no backend yet).
 import Dashboard from "@/assets/icons-final/Dashboard.png.asset.json";
-import Inventory from "@/assets/Inventory-Purple.png.asset.json";
+import Inventory from "@/assets/Inventory.png.asset.json";
 import Purchases from "@/assets/icons-final/Purchases.png.asset.json";
 import Sales from "@/assets/icons-final/Sales.png.asset.json";
 import POS from "@/assets/icons-final/POS.png.asset.json";
@@ -13,7 +13,7 @@ import Reports from "@/assets/icons-final/Reports.png.asset.json";
 import Summary from "@/assets/icons-final/Summary.png.asset.json";
 import Settings from "@/assets/icons-final/Settings.png.asset.json";
 import DashboardD from "@/assets/icons-final/Dashboard.png.asset.json";
-import InventoryD from "@/assets/Inventory-Purple.png.asset.json";
+import InventoryD from "@/assets/Inventory.png.asset.json";
 import PurchasesD from "@/assets/icons-final/Purchases.png.asset.json";
 import SalesD from "@/assets/icons-final/Sales.png.asset.json";
 import POSD from "@/assets/icons-final/POS.png.asset.json";
@@ -25,15 +25,15 @@ import PayrollD from "@/assets/icons-final/Payroll.png.asset.json";
 import ReportsD from "@/assets/icons-final/Reports.png.asset.json";
 import SummaryD from "@/assets/icons-final/Summary.png.asset.json";
 import SettingsD from "@/assets/icons-final/Settings.png.asset.json";
-import ChatLight from "@/assets/icons/AI_Chatbot_Light_Mode.png.asset.json";
-import ChatLightV2 from "@/assets/Chatbot_Dark_v2.png.asset.json";
+import ShopbotLight from "@/assets/Shopbot_Light.png.asset.json";
+import ShopbotDark from "@/assets/Shopbot_Dark.png.asset.json";
 
 export type PlanId = "basic" | "plus" | "business";
 export type Tier = PlanId;
 
 // Per the supplied assets: the dark chatbot art is for light mode, the light art for dark mode.
-// Light mode uses only the supplied black "chatbot" art (Chatbot_Dark_v2).
-export const chatIcons = { dark: ChatLight.url, light: ChatLightV2.url };
+// ShopBot: light mode shows the black logo (Shopbot_Dark), dark mode the white logo (Shopbot_Light).
+export const chatIcons = { dark: ShopbotLight.url, light: ShopbotDark.url };
 
 export const APPS: { id: string; name: string; icon: string; iconDark: string; tier: Tier }[] = [
   { id: "dashboard", name: "Dashboard", icon: Dashboard.url, iconDark: DashboardD.url, tier: "basic" },
