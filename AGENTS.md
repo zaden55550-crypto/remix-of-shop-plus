@@ -33,8 +33,8 @@
 - Accounting and Float share the ERP shell and money-ui controls; money-activity builds read-only financial documents and actual account movements separately to prevent double-counting.
 - Cash-up notes are saved through the shared ERP cashUp action so POS and Float preserve one reconciliation history.
 - Global cloud-backup mounts once at the root and snapshots ERP plus allowlisted device preferences/drafts; authenticated user/device isolation and revision checks prevent cross-user reads and stale uploads, and restore is explicit, never a merge.
-- Backup snapshots exclude passwords, sessions and subscription entitlements; validate all ERP collections before atomic restore and show cloud success only after acknowledgement.
-- Contacts and Payroll use the shared ERP shell and people actions; contact edits preserve audit values, partial settlements are atomic, and employee records remain separate from contacts.
-- Shared compact analytics charts use read-only chart-data datasets and accounting-derived financial/book-balance series; overview screens and Reports/Summary reuse these without mutating ERP records.
+- Backups exclude passwords, sessions, entitlements; restore validates all collections atomically.
+- Contacts/Payroll share ERP shell and people actions; settlements atomic; employees separate from contacts.
+- Charts use read-only chart-data/accounting series shared by overviews, Reports and Summary.
 - Settings keep twelve ordered categories; Import & Data stays in General and uses one atomic ERP commit. Business AI is read-only and session-only, with server-side Gateway calls over validated shop context.
-- Live phone sync (src/lib/shop-sync.ts): one shopbook_shop_sync row per owner; phones merge ERP collections by record id with revision-checked writes, so concurrent saves never overwrite each other.
+- Phone sync: one row per owner; ERP merged by record id with revision-checked writes so concurrent saves never overwrite.
