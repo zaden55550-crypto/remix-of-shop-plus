@@ -55,3 +55,4 @@
 - [ ] Reconciliation walk-through — waiting on a transaction-level CSV (the uploaded file is a dashboard summary).
 - [x] Live online sync of the whole shop between phones signed in with the same Google account, with live status.
 - [x] One 30-day trial per shop (reopening plans no longer restarts it).
+- [x] Login/signup tested end-to-end: create account -> plans -> free trial -> apps; login by shop name or phone -> apps; wrong password rejected; signed-out /apps redirects to login. No loop found.
