@@ -58,7 +58,10 @@ function Plans() {
 
   const price = yearly ? plan.yearly : plan.monthly;
   const startTrial = () => {
-    store.update({ plan: "trial", trialStart: Date.now() });
+    const a = store.get();
+    // One 30-day trial per shop: reopening plans never restarts the clock.
+    if (a?.trialStart && Date.now() - a.trialStart >= 30 * 864e5) { toast.error(tr("Your 30-day free trial has ended. Choose a plan to continue.")); return; }
+    store.update({ plan: "trial", trialStart: a?.trialStart ?? Date.now() });
     nav({ to: "/apps" });
   };
   const requestPayment = () => {

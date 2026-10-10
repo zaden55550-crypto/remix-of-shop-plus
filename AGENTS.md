@@ -37,3 +37,4 @@
 - Contacts and Payroll use the shared ERP shell and people actions; contact edits preserve audit values, partial settlements are atomic, and employee records remain separate from contacts.
 - Shared compact analytics charts use read-only chart-data datasets and accounting-derived financial/book-balance series; overview screens and Reports/Summary reuse these without mutating ERP records.
 - Settings keep twelve ordered categories; Import & Data stays in General and uses one atomic ERP commit. Business AI is read-only and session-only, with server-side Gateway calls over validated shop context.
+- Live phone sync (src/lib/shop-sync.ts): one shopbook_shop_sync row per owner; phones merge ERP collections by record id with revision-checked writes, so concurrent saves never overwrite each other.

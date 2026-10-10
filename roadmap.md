@@ -51,5 +51,7 @@
 
 - [x] ShopBot name + supplied ShopBot/Inventory icons; bigger Inventory icon; Somali language; one-column card-boxed Settings; Delete & Reset in Settings → General.
 - [ ] Staff logins (sellers see only sales, customers, payments; no buying prices/purchases) — needs owner decision on how staff sign in.
-- [ ] Live online sync of sales/purchases/expenses between phones — needs staff/owner accounts first.
+
 - [ ] Reconciliation walk-through — waiting on a transaction-level CSV (the uploaded file is a dashboard summary).
+- [x] Live online sync of the whole shop between phones signed in with the same Google account, with live status.
+- [x] One 30-day trial per shop (reopening plans no longer restarts it).
