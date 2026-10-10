@@ -97,5 +97,5 @@ function ResetPanel({ tr }: { tr: (x: string) => string }) {
     {Object.keys(RESET_GROUPS).map((g) => <label key={g} className="settings-toggle"><span>{tr(g)}</span><input type="checkbox" disabled={all} checked={all || pick.includes(g)} onChange={(e) => setPick(e.target.checked ? [...pick, g] : pick.filter((x) => x !== g))} /></label>)}
     <label className="settings-toggle"><span><b>{tr("Delete everything (start as a new user)")}</b></span><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /></label>
     <input className={inputCls} value={word} onChange={(e) => setWord(e.target.value)} placeholder={tr("Type DELETE to confirm")} />
-    <ShopButton variant="destructive" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></>;
+    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></>;
 }
