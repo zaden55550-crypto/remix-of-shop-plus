@@ -8,6 +8,13 @@
       "when": 1791377529409,
       "tag": "0000_shopbook_device_backups",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791657659659,
+      "tag": "0001_shop_sync",
+      "breakpoints": true
     }
   ]
 }

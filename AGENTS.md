@@ -31,9 +31,10 @@
 - All printing goes through PrintPreview (src/components/shopbook/print.tsx): white preview, always-working Exit, timeout to a failure state, and no false 'Printed' claim because browsers can't confirm paper output. Expense paid/balance is derived from EXPENSE ledger rows, never stored.
 - Every money screen picks payment with the shared PayPicker (Cash, M-Pesa, Bank, Credit, P.PAY last); unpaid remainder always lands on credit. Device prefs (interface size, VAT) live in src/lib/prefs.ts; sale VAT is stored on the sale and posted to VAT payable.
 - Accounting and Float share the ERP shell and money-ui controls; money-activity builds read-only financial documents and actual account movements separately to prevent double-counting.
-- Cash-up notes are saved through the shared ERP cashUp action so POS and Float preserve one reconciliation history.
-- Global cloud-backup mounts once at the root and snapshots ERP plus allowlisted device preferences/drafts; authenticated user/device isolation and revision checks prevent cross-user reads and stale uploads, and restore is explicit, never a merge.
-- Backup snapshots exclude passwords, sessions and subscription entitlements; validate all ERP collections before atomic restore and show cloud success only after acknowledgement.
-- Contacts and Payroll use the shared ERP shell and people actions; contact edits preserve audit values, partial settlements are atomic, and employee records remain separate from contacts.
-- Shared compact analytics charts use read-only chart-data datasets and accounting-derived financial/book-balance series; overview screens and Reports/Summary reuse these without mutating ERP records.
-- Settings keep twelve ordered categories; Import & Data stays in General and uses one atomic ERP commit. Business AI is read-only and session-only, with server-side Gateway calls over validated shop context.
+- Cash-up goes through the shared ERP cashUp action (one history for POS and Float).
+- Cloud backup mounts once at root; per user/device with revision checks; restore is explicit.
+- Backups exclude passwords, sessions, entitlements; restore validates all collections atomically.
+- Contacts/Payroll share ERP shell and people actions; settlements atomic; employees separate from contacts.
+- Charts use read-only chart-data/accounting series shared by overviews, Reports and Summary.
+- Settings: 12 ordered categories; imports use one atomic commit. Business AI is read-only, session-only, server-side.
+- Phone sync: one row per owner; ERP merged by record id with revision-checked writes so concurrent saves never overwrite.
