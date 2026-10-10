@@ -393,3 +393,8 @@
 .inventory-screen .money-small-action { height: 24px; width: auto; padding: 0; font-size: 9px; color: var(--primary); }
 .money-screen .inventory-save { font-size: 10px; height: 29px; }
 .money-screen .inventory-input { font-size: 10px; height: 29px; }
+/* Settings: everything card-boxed in one column */
+.settings-list, .settings-sections { grid-template-columns: minmax(0,1fr); }
+.settings-section-body { grid-template-columns: minmax(0,1fr); }
+.settings-section-body > * { border: 1px solid var(--border); border-radius: 6px; background: var(--background); padding: 7px 8px; min-width: 0; }
+.settings-section-body > .import-center, .settings-section-body > div:has(> .settings-section-body) { padding: 8px; }

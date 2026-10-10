@@ -28,7 +28,7 @@ export function useLanguage() {
   };
   const { t, dir } = getT(language);
   useEffect(() => {
-    document.documentElement.lang = ({ English: 'en', Swahili: 'sw', French: 'fr', Arabic: 'ar', Spanish: 'es', Portuguese: 'pt', German: 'de', Italian: 'it', Chinese: 'zh', Hindi: 'hi' })[language];
+    document.documentElement.lang = ({ English: 'en', Swahili: 'sw', French: 'fr', Arabic: 'ar', Spanish: 'es', Portuguese: 'pt', German: 'de', Italian: 'it', Chinese: 'zh', Hindi: 'hi', Somali: 'so' })[language];
     document.documentElement.dir = dir;
   }, [language, dir]);
   return { language, setLanguage, t, dir, tr: (text: string, x?: string | number) => translateText(language, text, x) };

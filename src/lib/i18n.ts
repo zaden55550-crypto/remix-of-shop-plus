@@ -1,9 +1,9 @@
 // Interface translations for the languages offered in the Language menu.
-export const LANGS = ["English", "Swahili", "French", "Arabic", "Spanish", "Portuguese", "German", "Italian", "Chinese", "Hindi"] as const;
+export const LANGS = ["English", "Swahili", "French", "Arabic", "Spanish", "Portuguese", "German", "Italian", "Chinese", "Hindi", "Somali"] as const;
 export type Lang = (typeof LANGS)[number];
 export const NATIVE: Record<Lang, string> = {
   English: "English", Swahili: "Kiswahili", French: "Français", Arabic: "العربية", Spanish: "Español",
-  Portuguese: "Português", German: "Deutsch", Italian: "Italiano", Chinese: "中文", Hindi: "हिन्दी",
+  Portuguese: "Português", German: "Deutsch", Italian: "Italiano", Chinese: "中文", Hindi: "हिन्दी", Somali: "Soomaali",
 };
 
 // Support phone supplied by the shop owner; email awaits confirmation.
@@ -20,6 +20,7 @@ const KEYS = [
 type Key = (typeof KEYS)[number];
 
 const T: Record<Lang, string[]> = {
+  Somali: ["Tijaabada bilaashka ah ee harsan", "Waxaad isticmaalaysaa {x}", "{x} maalmood ayaa haray", "Boggaaga iyo ganacsiga", "Luqad", "Lacagta", "Caawimo iyo taageero", "Dib", "Boggaaga", "Iimayl", "Doorka", "Maamule", "Ganacsi", "Magaca dukaanka", "Qorshe", "Maamul rukunka", "Ka bax", "Qorshe sare ayaa loo baahan yahay", "{x} kuma jiro qorshahaaga hadda.", "Kor u qaad qorshaha", "{x} wuxuu imanayaa tallaabada xigta.", "Waa la kaydiyey", "Tijaabada ERP oo dhammaystiran", "Qorshaha {x}", "Hoos ka hel jawaabo degdeg ah ama la xiriir kooxdayada taageerada.", "Su'aalaha caadiga ah", "La xiriir taageerada", "Taageero iimayl", "Ku sheekayso WhatsApp", "Isn–Sab, 8 subaxnimo–8 fiidnimo EAT", "Kaaliyaha AI dhawaan ayuu imanayaa.", "Sideen u dallacsiiyaa qorshahayga?", "Fur liiska, taabo Xogtaada iyo Ganacsiga, kadib Maamul Rukunka oo dooro qorshe.", "Maxaa abka u xiran yahay?", "Ababka xiran kuma jiraan qorshahaaga hadda. Dallacsii si aad u furto.", "Maxaa dhacaya marka tijaabadaydu dhammaato?", "Dooro qorshe lacag leh si aad u sii isticmaasho SHOPBOOK. Xogtaadu way kuu kaydsan tahay.", "Sideen u beddelaa luqadda ama lacagta?", "Fur liiska oo taabo Luqadda ama Lacagta.", "Dulmar", "Kaydka", "Wax iibsiga", "Iibinta", "POS", "Kharashaadka", "Xiriirrada", "Xisaabaadka", "Lacagta wareegta", "Mushaharka", "Warbixinnada", "Soo koobid", "Dejinta"],
   English: ["Free Trial Remaining", "You are using the {x}", "{x} Days Left", "Profile & Business", "Language", "Currency", "Help & Support", "Back",
     "Profile", "Email", "Role", "Admin", "Business", "Shop name", "Plan", "Manage Subscription", "Sign Out",
     "Upgrade Required", "{x} is not included in your current plan.", "Upgrade Plan", "{x} is coming in the next step.", "Saved", "Full ERP Trial", "{x} plan",

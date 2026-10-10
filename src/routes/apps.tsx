@@ -68,7 +68,7 @@ function Apps() {
         className="h-auto w-full min-w-0 flex-col items-center justify-start gap-2 rounded-none p-0">
         <span className="relative flex aspect-square w-full max-w-[90px] items-center justify-center">
           <span className="block h-full w-full">
-            <img src={dark ? app.iconDark : app.icon} alt="" className={cn("h-full w-full object-contain", !ok && "opacity-50 grayscale")} />
+            <img src={dark ? app.iconDark : app.icon} alt="" className={cn("h-full w-full object-contain", app.id === "inventory" && "scale-[1.18]", !ok && "opacity-50 grayscale")} />
           </span>
           {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
         </span>
@@ -115,7 +115,7 @@ function Apps() {
         {SETTINGS_APP && <div className="mx-auto w-[calc((100%-1.5rem)/4)]">{renderApp(SETTINGS_APP)}</div>}
       </div>
 
-      <ShopButton variant="bare" aria-label={tr("AI assistant")} onClick={() => setBusinessAi(true)}
+      <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
         className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] flex flex-col items-center">
         <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-14 w-14 rounded-full" />
       </ShopButton>
