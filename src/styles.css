@@ -398,3 +398,20 @@
 .settings-section-body { grid-template-columns: minmax(0,1fr); }
 .settings-section-body > * { border: 1px solid var(--border); border-radius: 6px; background: var(--background); padding: 7px 8px; min-width: 0; }
 .settings-section-body > .import-center, .settings-section-body > div:has(> .settings-section-body) { padding: 8px; }
+
+/* Settings: category column + navy panel (approved reference) */
+.settings-split { display: grid; grid-template-columns: 31% minmax(0,1fr); gap: 7px; align-items: start; }
+.settings-nav { display: grid; gap: 5px; }
+.inventory-screen .settings-nav-item, .settings-nav-item { display: block; width: 100%; height: auto; min-height: 28px; padding: 5px 6px; border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: 6px; background: var(--card); text-align: start; font-size: 8.5px; line-height: 1.25; white-space: normal; color: var(--foreground); }
+.settings-nav-item.is-active { background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 60%, var(--background))); color: var(--primary-foreground); border-color: var(--primary); }
+.settings-panel { min-width: 0; border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border)); border-radius: 10px; background: var(--card); padding: 8px; }
+.settings-panel-head { display: flex; gap: 6px; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+.settings-panel-head h2 { font-size: 11px; font-weight: 800; }
+.settings-panel-head p { font-size: 8.5px; color: var(--muted-foreground); line-height: 1.4; }
+.inventory-screen .settings-apply, .settings-apply { flex-shrink: 0; width: 52px; height: auto; padding: 5px 4px; border-radius: 7px; background: var(--primary); color: var(--primary-foreground); font-size: 8px; font-weight: 800; line-height: 1.2; white-space: normal; text-align: center; }
+.settings-panel .settings-section { border: 0; background: transparent; overflow: visible; }
+.settings-panel .settings-section h3 { font-size: 9.5px; font-weight: 800; margin: 6px 0 4px; }
+.settings-panel .settings-section-body { border-top: 0; padding: 0; }
+.settings-panel .settings-section-body > * { border-color: color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: 7px; }
+.settings-panel .settings-toggle input[type=checkbox] { accent-color: var(--primary); width: 14px; height: 14px; }
+.settings-status { margin-top: 8px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; width: fit-content; max-width: 100%; }

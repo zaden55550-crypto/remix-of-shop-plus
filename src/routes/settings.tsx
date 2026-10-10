@@ -13,8 +13,8 @@ import { APPS, canOpen, PLANS, store } from "@/lib/shopbook";
 import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
-import { setTax, usePrefs } from "@/lib/prefs";
-import { useSettings, type SettingsConfig } from "@/lib/settings-config";
+import { applyUiSize, setTax, usePrefs } from "@/lib/prefs";
+import { applySettings, useSettings, type SettingsConfig } from "@/lib/settings-config";
 import { useBackupStatus } from "@/lib/cloud-backup";
 import { listCloudBackups, getCloudBackup } from "@/lib/backup.functions";
 import { lovable } from "@/integrations/lovable";
@@ -43,17 +43,46 @@ const SUB: Record<Category, string[]> = {
   Subscription: ["Current Plan", "Trial", "Billing", "Usage", "Upgrade", "Payment History", "Plan Features"],
 };
 
+const BLURB: Record<Category, string> = {
+  Business: "Your shop's name, owner, contacts, logo and hours.",
+  General: "Set things once for the whole shop. They are copied to every app that uses them.",
+  "AI Setup": "Choose what ShopBot can help with. ShopBot only reads your records.",
+  "People & Access": "Who uses this shop and what they can see.",
+  Finance: "Accounts, payment methods and money periods.",
+  "Products & Operations": "Defaults for products, stock and pricing.",
+  Appearance: "Sizes of the interface, text, icons and spacing.",
+  "Tax & Compliance": "VAT, receipts and the audit trail.",
+  "Notifications & Communication": "Alerts and messages to customers and suppliers.",
+  "Security & Activity": "Password, sessions, activity and data reset.",
+  Integrations: "Connected services such as M-Pesa, eTIMS and backup.",
+  Subscription: "Your plan, trial and included apps.",
+};
+
 function Settings() {
-  const acct = useAccount("basic"), s = useErp(), { tr } = useLanguage(), [query, setQuery] = useState(""), [cat, setCat] = useState<Category | null>(null);
+  const acct = useAccount("basic"), s = useErp(), { tr } = useLanguage(), nav = useNavigate(), [query, setQuery] = useState(""), [cat, setCat] = useState<Category>("General");
   if (!acct) return <main className="app-screen" />;
-  const shown = CATS.filter((c) => !query.trim() || [c, ...SUB[c]].some((x) => tr(x).toLowerCase().includes(query.trim().toLowerCase())));
-  return <AppShell title="Settings" tabs={[]} tab="" setTab={() => {}}>{cat ? <><ShopButton variant="bare" className="settings-back" onClick={() => setCat(null)}><ArrowLeft className="h-3.5 w-3.5" />{tr("Settings")}</ShopButton><h1 className="settings-title">{tr(cat)}</h1><SettingsCategory category={cat} acct={acct} state={s} /></> : <><BackupStatus className="px-0" /><div className="settings-search"><Search className="h-3.5 w-3.5" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Search settings...")} /></div><div className="settings-list">{shown.map((c, i) => <ShopButton key={c} variant="bare" className="settings-row" onClick={() => setCat(c)}><b>{String(CATS.indexOf(c) + 1).padStart(2, "0")}</b><span>{tr(c).toUpperCase()}</span><ChevronRight className="h-4 w-4" /></ShopButton>)}</div></>}</AppShell>;
+  const q = query.trim().toLowerCase(), shown = CATS.filter((c) => !q || [c, ...SUB[c]].some((x) => tr(x).toLowerCase().includes(q)));
+  const apply = () => { applyUiSize(); applySettings(); window.dispatchEvent(new Event("shopbook-settings")); window.dispatchEvent(new Event("shopbook-prefs")); toast.success(tr("Applied to all apps")); };
+  return <AppShell title="Settings" tabs={[]} tab="" setTab={() => {}}>
+    <ShopButton variant="bare" className="settings-back" onClick={() => nav({ to: "/apps" })}><ArrowLeft className="h-3.5 w-3.5" />{tr("Home")}</ShopButton>
+    <h1 className="settings-title">⚙️ {tr("Settings")}</h1><p className="settings-note -mt-1 mb-2">{tr("Business configuration")}</p>
+    <div className="settings-search"><Search className="h-3.5 w-3.5" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Search settings...")} /></div>
+    <div className="settings-split">
+      <nav className="settings-nav">{shown.map((c) => <ShopButton key={c} variant="bare" className={`settings-nav-item${c === cat ? " is-active" : ""}`} onClick={() => setCat(c)}>{tr(c)}</ShopButton>)}</nav>
+      <div className="settings-panel">
+        <div className="settings-panel-head"><div><h2>{tr(cat)} {tr("Settings")}</h2><p>{tr(BLURB[cat])}</p></div><ShopButton variant="bare" className="settings-apply" onClick={apply}>{tr("Apply to All Apps")}</ShopButton></div>
+        <SettingsCategory key={cat} category={cat} acct={acct} state={s} query={q} />
+      </div>
+    </div>
+    <BackupStatus className="settings-status" />
+  </AppShell>;
 }
 
-function SettingsCategory({ category, acct, state }: { category: Category; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp> }) {
-  const { tr, language, setLanguage } = useLanguage(), nav = useNavigate(), prefs = usePrefs(), [cfg, saveCfg] = useSettings(), [open, setOpen] = useState(SUB[category][0] ?? ""), [, refresh] = useState(0);
+function SettingsCategory({ category, acct, state, query }: { category: Category; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; query: string }) {
+  const { tr, language, setLanguage } = useLanguage(), nav = useNavigate(), prefs = usePrefs(), [cfg, saveCfg] = useSettings(), [, refresh] = useState(0);
   const saveAccount = (patch: Partial<typeof acct>) => { store.save({ ...acct, ...patch }); toast.success(tr("Saved")); refresh((n) => n + 1); };
-  return <div className="settings-sections">{SUB[category].map((name) => <section key={name} className="settings-section"><ShopButton variant="bare" className="settings-section-button" onClick={() => setOpen(open === name ? "" : name)}><span>{tr(name)}</span><ChevronRight className={open === name ? "rotate-90" : ""} /></ShopButton>{open === name && <div className="settings-section-body"><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></div>}</section>)}</div>;
+  const names = SUB[category].filter((n) => !query || tr(n).toLowerCase().includes(query) || tr(category).toLowerCase().includes(query));
+  return <div className="settings-sections">{names.map((name) => <section key={name} className="settings-section"><h3>{tr(name)}</h3><div className="settings-section-body"><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></div></section>)}</div>;
 }
 function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveCfg, saveAccount, nav }: { name: string; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; tr: (x: string) => string; language: string; setLanguage: (x: never) => void; prefs: ReturnType<typeof usePrefs>; cfg: SettingsConfig; saveCfg: (p: Partial<SettingsConfig>) => void; saveAccount: (p: Partial<typeof acct>) => void; nav: ReturnType<typeof useNavigate> }) {
   const L = ({ label, children }: { label: string; children: ReactNode }) => <label className="inventory-field"><span>{tr(label)}</span>{children}</label>;
