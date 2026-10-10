@@ -14,13 +14,17 @@ export function useSyncStatus() { const [s, set] = useState(state); useEffect(()
 export function mergeErp(mine: ErpState, theirs: ErpState): ErpState {
   const out = empty() as Record<string, unknown>;
   for (const key of Object.keys(out) as (keyof ErpState)[]) {
-    if (key === "seq") { const seq: Record<string, number> = { ...theirs.seq }; for (const [k, v] of Object.entries(mine.seq ?? {})) seq[k] = Math.max(v, seq[k] ?? 0); out.seq = seq; continue; }
+    if (key === "seq") { const seq: Record<string, number> = { ...theirs.seq }; for (const [k, v] of Object.entries(mine.seq ?? {})) seq[k] = Math.max(v, seq[k] ?? 0); out["seq"] = seq; continue; }
     const a = (mine[key] ?? []) as { id: string; at?: number }[], b = (theirs[key] ?? []) as { id: string; at?: number }[];
     const seen = new Set(a.map((x) => x.id)), merged = [...a, ...b.filter((x) => !seen.has(x.id))];
     if (merged.some((x) => typeof x.at === "number")) merged.sort((x, y) => (y.at ?? 0) - (x.at ?? 0));
     out[key] = merged;
   }
-  return out as ErpState;
+  const s = out as ErpState;
+  // Stock follows the newest recorded movement so both phones agree on quantity.
+  const latest = new Map<string, number>(); for (const m of s.movements) if (!latest.has(m.productId)) latest.set(m.productId, m.next);
+  s.products = s.products.map((p) => latest.has(p.id) ? { ...p, qty: latest.get(p.id)! } : p);
+  return s;
 }
 const KEY = "shopbook.erp", BASE = "shopbook.syncRevision";
 const write = (s: ErpState) => { localStorage.setItem(KEY, JSON.stringify(s)); window.dispatchEvent(new Event("shopbook-erp-remote")); window.dispatchEvent(new Event("storage")); };
