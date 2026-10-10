@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import { applyUiSize } from "@/lib/prefs";
 import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
+import { startShopSync } from "@/lib/shop-sync";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -124,6 +125,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => { applyUiSize(); applySettings(); }, []);
   useEffect(() => startCloudBackup(), []);
+  useEffect(() => startShopSync(), []);
 
   return (
     <QueryClientProvider client={queryClient}>
