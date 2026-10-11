@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Search, Store } from "lucide-react";
+import { ArrowLeft, Download, Search, Store, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, dt, useAccount } from "@/components/shopbook/selling";
 import { BackupStatus } from "@/components/shopbook/backup-status";
@@ -30,7 +30,7 @@ const CATS = ["Business", "General", "AI Setup", "People & Access", "Finance", "
 type Category = (typeof CATS)[number];
 const SUB: Record<Category, string[]> = {
   Business: ["Business Profile", "Business Type", "Location", "Contact Information", "Owner", "Logo", "Business Hours"],
-  General: ["Language", "Currency", "Date & Time", "Number Format", "Search", "Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Delete & Reset"],
+  General: ["Language", "Currency", "Date & Time", "Number Format", "Search", "Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Export & Restore", "Delete & Reset"],
   "AI Setup": ["AI Assistant", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions", "AI Gateway"],
   "People & Access": ["Users", "Roles", "Permissions", "Data Access", "Active Users", "Invitations", "Access History"],
   Finance: ["Accounts", "Payment Methods", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
@@ -96,7 +96,7 @@ function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveC
   if (name === "Date & Time") return <>{text("timezone", "Timezone")}{text("dateFormat", "Date format")}{text("timeFormat", "Time format")}</>; if (name === "Number Format") return <><p className="settings-note">KSh 100,000 • 0 {tr("decimal places")}</p>{text("numberFormat", "Number format")}</>;
   if (name === "Search") return toggle("searchBarcodes", "Search SKU and barcodes"); if (name === "Printing") return <>{text("paper", "Paper size")}<L label="Copies"><input className="inventory-input" type="number" min={1} value={cfg.copies} onChange={(e) => saveCfg({ copies: Math.max(1, +e.target.value) })} /></L>{toggle("autoPrint", "Auto-print")}</>;
   if (name === "System Preferences") return <>{toggle("autosave", "Autosave")}{toggle("offline", "Offline mode")}{toggle("autoSync", "Automatic sync")}{toggle("autoRetry", "Automatic retry")}</>;
-  if (name === "Autosave & Backup") return <BackupPanel tr={tr} acct={acct} />; if (name === "Import & Data") return <ImportCenter tr={tr} />; if (name === "Delete & Reset") return <ResetPanel tr={tr} />;
+  if (name === "Autosave & Backup") return <BackupPanel tr={tr} acct={acct} />; if (name === "Import & Data") return <ImportCenter tr={tr} />; if (name === "Export & Restore") return <ExportPanel tr={tr} acct={acct} />; if (name === "Delete & Reset") return <ResetPanel tr={tr} />;
   if (["AI Assistant", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions"].includes(name)) { const keys: Record<string, keyof SettingsConfig> = { "AI Assistant": "aiOn", "Business Questions": "aiBusiness", "Business Summaries": "aiSummaries", "Trend Analysis": "aiTrends", "Guided Instructions": "aiGuidance", Recommendations: "aiRecommendations", "AI Actions": "aiActions" }; return <>{toggle(keys[name] ?? "aiOn", name)}{name === "AI Actions" && <p className="settings-note">{tr("Read-only for safety. Data-changing AI actions are not enabled.")}</p>}</>; }
   if (name === "AI Gateway") return <Status label="Lovable AI Gateway" state={cfg.aiOn ? "Connected" : "Disabled"} />;
   if (name === "Users" || name === "Active Users") return <p className="settings-note">{acct.shopName} • <b>{tr("Admin")}</b></p>; if (["Roles", "Permissions", "Data Access", "Invitations"].includes(name)) return <p className="settings-note">{tr("Admin is active. Additional staff access is not available yet.")}</p>; if (name === "Access History") return <Audit rows={state.audit} tr={tr} />;
@@ -122,9 +122,35 @@ function LogoSetting({ value, onSave, tr }: { value?: string | undefined; onSave
 function ResetPanel({ tr }: { tr: (x: string) => string }) {
   const [pick, setPick] = useState<string[]>([]), [all, setAll] = useState(false), [word, setWord] = useState("");
   const go = () => { if (word.trim().toUpperCase() !== "DELETE") return void toast.error(tr("Type DELETE to confirm")); try { resetData(pick, all); toast.success(tr(all ? "Shop reset like a new user" : "Selected data deleted")); setPick([]); setAll(false); setWord(""); } catch (e) { toast.error(e instanceof Error ? tr(e.message) : tr("Delete failed")); } };
-  return <><p className="settings-note">{tr("Download a backup first. Deleted records cannot be recovered.")}</p>
-    {Object.keys(RESET_GROUPS).map((g) => <label key={g} className="settings-toggle"><span>{tr(g)}</span><input type="checkbox" disabled={all} checked={all || pick.includes(g)} onChange={(e) => setPick(e.target.checked ? [...pick, g] : pick.filter((x) => x !== g))} /></label>)}
-    <label className="settings-toggle"><span><b>{tr("Delete everything (start as a new user)")}</b></span><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /></label>
+  return <div className="import-center"><p className="settings-note">{tr("Download a backup first. Deleted records cannot be recovered.")}</p>
+    <div>{Object.keys(RESET_GROUPS).map((g) => <label key={g} className="settings-toggle"><span>{tr(g)}</span><input type="checkbox" disabled={all} checked={all || pick.includes(g)} onChange={(e) => setPick(e.target.checked ? [...pick, g] : pick.filter((x) => x !== g))} /></label>)}
+    <label className="settings-toggle"><span><b>{tr("Delete everything (start as a new user)")}</b></span><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /></label></div>
     <input className={inputCls} value={word} onChange={(e) => setWord(e.target.value)} placeholder={tr("Type DELETE to confirm")} />
-    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></>;
+    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></div>;
+}
+const csvCell = (v: unknown) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+const csvDownload = (name: string, head: string[], rows: unknown[][]) => { const text = [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n"); const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+function ExportPanel({ tr, acct }: { tr: (x: string) => string; acct: NonNullable<ReturnType<typeof store.get>> }) {
+  const s = useErp(), file = useRef<HTMLInputElement>(null), day = new Date().toISOString().slice(0, 10);
+  const money = (n: number) => n.toFixed(2);
+  const catName = (id?: string) => s.categories.find((c) => c.id === id)?.name ?? "", brandName = (id?: string) => s.brands.find((b) => b.id === id)?.name ?? "";
+  const custName = (id?: string) => s.customers.find((c) => c.id === id)?.name ?? "", suppName = (id?: string) => s.suppliers.find((x) => x.id === id)?.name ?? "";
+  const exports: [string, () => void][] = [
+    ["Products", () => csvDownload(`shopbook-products-${day}.csv`, ["ID", "Name", "SKU", "Barcode", "Category", "Brand", "Qty", "Buying price", "Selling price"], s.products.map((p) => [p.id, p.name, p.sku ?? "", p.barcode ?? "", catName(p.categoryId), brandName(p.brandId), p.qty, money(p.buy), money(p.sell)]))],
+    ["Sales", () => csvDownload(`shopbook-sales-${day}.csv`, ["ID", "Date", "Customer", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.sales.map((x) => [x.ref, new Date(x.at).toISOString(), custName(x.customerId), money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
+    ["Purchases", () => csvDownload(`shopbook-purchases-${day}.csv`, ["ID", "Date", "Supplier", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.purchases.map((x) => [x.ref, new Date(x.at).toISOString(), suppName(x.supplierId), money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
+    ["Expenses", () => csvDownload(`shopbook-expenses-${day}.csv`, ["ID", "Date", "Category", "Note", "Amount"], s.expenses.map((x) => [x.ref, new Date(x.at).toISOString(), x.category, x.description ?? x.note ?? "", money(x.amount)]))],
+    ["Customers", () => csvDownload(`shopbook-customers-${day}.csv`, ["ID", "Name", "Phone", "Balance"], s.customers.map((x) => [x.id, x.name, x.phone ?? "", money(x.balance)]))],
+    ["Suppliers", () => csvDownload(`shopbook-suppliers-${day}.csv`, ["ID", "Name", "Phone", "Balance"], s.suppliers.map((x) => [x.id, x.name, x.phone ?? "", money(x.balance)]))],
+  ];
+  const downloadBackup = () => { const u = URL.createObjectURL(new Blob([backupJson(acct.shopName)], { type: "application/json" })); const a = document.createElement("a"); a.href = u; a.download = `shopbook-backup-${day}.json`; a.click(); URL.revokeObjectURL(u); };
+  return <div className="import-center">
+    <p className="settings-note">{tr("Download your records as CSV files, or save and restore a whole-shop backup file.")}</p>
+    <p className="money-heading">{tr("Export records (CSV)")}</p>
+    <div className="export-grid">{exports.map(([label, run]) => <ShopButton key={label} variant="outline" className="inventory-save" onClick={run}><Download className="h-4 w-4" />{tr(label)}</ShopButton>)}</div>
+    <p className="money-heading">{tr("Whole-shop backup")}</p>
+    <ShopButton className="inventory-save" onClick={downloadBackup}><Download className="h-4 w-4" />{tr("Download backup")}</ShopButton>
+    <input ref={file} hidden type="file" accept=".json,application/json" onChange={async (e) => { const f = e.target.files?.[0]; if (!f || !window.confirm(tr("Replace all records on this device with this backup?"))) return; try { restoreJson(await f.text()); toast.success(tr("Backup restored")); } catch (x) { toast.error(translateCurrent(x instanceof Error ? x.message : "Failed")); } }} />
+    <ShopButton variant="outline" className="inventory-save" onClick={() => file.current?.click()}><Upload className="h-4 w-4" />{tr("Restore backup")}</ShopButton>
+  </div>;
 }
