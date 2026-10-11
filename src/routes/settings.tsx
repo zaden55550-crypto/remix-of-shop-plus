@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Search, Store } from "lucide-react";
+import { ArrowLeft, Download, Search, Store, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, dt, useAccount } from "@/components/shopbook/selling";
 import { BackupStatus } from "@/components/shopbook/backup-status";
@@ -133,11 +133,13 @@ const csvDownload = (name: string, head: string[], rows: unknown[][]) => { const
 function ExportPanel({ tr, acct }: { tr: (x: string) => string; acct: NonNullable<ReturnType<typeof store.get>> }) {
   const s = useErp(), file = useRef<HTMLInputElement>(null), day = new Date().toISOString().slice(0, 10);
   const money = (n: number) => n.toFixed(2);
+  const catName = (id?: string) => s.categories.find((c) => c.id === id)?.name ?? "", brandName = (id?: string) => s.brands.find((b) => b.id === id)?.name ?? "";
+  const custName = (id?: string) => s.customers.find((c) => c.id === id)?.name ?? "", suppName = (id?: string) => s.suppliers.find((x) => x.id === id)?.name ?? "";
   const exports: [string, () => void][] = [
-    ["Products", () => csvDownload(`shopbook-products-${day}.csv`, ["ID", "Name", "SKU", "Barcode", "Category", "Brand", "Qty", "Buying price", "Selling price"], s.products.map((p) => [p.id, p.name, p.sku, p.barcode, p.category, p.brand, p.qty, money(p.buy), money(p.sell)]))],
-    ["Sales", () => csvDownload(`shopbook-sales-${day}.csv`, ["ID", "Date", "Customer", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.sales.map((x) => [x.id, new Date(x.at).toISOString(), x.customerName ?? "", money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
-    ["Purchases", () => csvDownload(`shopbook-purchases-${day}.csv`, ["ID", "Date", "Supplier", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.purchases.map((x) => [x.id, new Date(x.at).toISOString(), x.supplierName ?? "", money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
-    ["Expenses", () => csvDownload(`shopbook-expenses-${day}.csv`, ["ID", "Date", "Category", "Note", "Amount"], s.expenses.map((x) => [x.id, new Date(x.at).toISOString(), x.category, x.note ?? "", money(x.amount)]))],
+    ["Products", () => csvDownload(`shopbook-products-${day}.csv`, ["ID", "Name", "SKU", "Barcode", "Category", "Brand", "Qty", "Buying price", "Selling price"], s.products.map((p) => [p.id, p.name, p.sku ?? "", p.barcode ?? "", catName(p.categoryId), brandName(p.brandId), p.qty, money(p.buy), money(p.sell)]))],
+    ["Sales", () => csvDownload(`shopbook-sales-${day}.csv`, ["ID", "Date", "Customer", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.sales.map((x) => [x.ref, new Date(x.at).toISOString(), custName(x.customerId), money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
+    ["Purchases", () => csvDownload(`shopbook-purchases-${day}.csv`, ["ID", "Date", "Supplier", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.purchases.map((x) => [x.ref, new Date(x.at).toISOString(), suppName(x.supplierId), money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
+    ["Expenses", () => csvDownload(`shopbook-expenses-${day}.csv`, ["ID", "Date", "Category", "Note", "Amount"], s.expenses.map((x) => [x.ref, new Date(x.at).toISOString(), x.category, x.description ?? x.note ?? "", money(x.amount)]))],
     ["Customers", () => csvDownload(`shopbook-customers-${day}.csv`, ["ID", "Name", "Phone", "Balance"], s.customers.map((x) => [x.id, x.name, x.phone ?? "", money(x.balance)]))],
     ["Suppliers", () => csvDownload(`shopbook-suppliers-${day}.csv`, ["ID", "Name", "Phone", "Balance"], s.suppliers.map((x) => [x.id, x.name, x.phone ?? "", money(x.balance)]))],
   ];
