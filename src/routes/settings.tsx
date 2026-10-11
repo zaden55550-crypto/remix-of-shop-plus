@@ -122,9 +122,33 @@ function LogoSetting({ value, onSave, tr }: { value?: string | undefined; onSave
 function ResetPanel({ tr }: { tr: (x: string) => string }) {
   const [pick, setPick] = useState<string[]>([]), [all, setAll] = useState(false), [word, setWord] = useState("");
   const go = () => { if (word.trim().toUpperCase() !== "DELETE") return void toast.error(tr("Type DELETE to confirm")); try { resetData(pick, all); toast.success(tr(all ? "Shop reset like a new user" : "Selected data deleted")); setPick([]); setAll(false); setWord(""); } catch (e) { toast.error(e instanceof Error ? tr(e.message) : tr("Delete failed")); } };
-  return <><p className="settings-note">{tr("Download a backup first. Deleted records cannot be recovered.")}</p>
-    {Object.keys(RESET_GROUPS).map((g) => <label key={g} className="settings-toggle"><span>{tr(g)}</span><input type="checkbox" disabled={all} checked={all || pick.includes(g)} onChange={(e) => setPick(e.target.checked ? [...pick, g] : pick.filter((x) => x !== g))} /></label>)}
-    <label className="settings-toggle"><span><b>{tr("Delete everything (start as a new user)")}</b></span><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /></label>
+  return <div className="import-center"><p className="settings-note">{tr("Download a backup first. Deleted records cannot be recovered.")}</p>
+    <div>{Object.keys(RESET_GROUPS).map((g) => <label key={g} className="settings-toggle"><span>{tr(g)}</span><input type="checkbox" disabled={all} checked={all || pick.includes(g)} onChange={(e) => setPick(e.target.checked ? [...pick, g] : pick.filter((x) => x !== g))} /></label>)}
+    <label className="settings-toggle"><span><b>{tr("Delete everything (start as a new user)")}</b></span><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /></label></div>
     <input className={inputCls} value={word} onChange={(e) => setWord(e.target.value)} placeholder={tr("Type DELETE to confirm")} />
-    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></>;
+    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></div>;
+}
+const csvCell = (v: unknown) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+const csvDownload = (name: string, head: string[], rows: unknown[][]) => { const text = [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n"); const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+function ExportPanel({ tr, acct }: { tr: (x: string) => string; acct: NonNullable<ReturnType<typeof store.get>> }) {
+  const s = useErp(), file = useRef<HTMLInputElement>(null), day = new Date().toISOString().slice(0, 10);
+  const money = (n: number) => n.toFixed(2);
+  const exports: [string, () => void][] = [
+    ["Products", () => csvDownload(`shopbook-products-${day}.csv`, ["ID", "Name", "SKU", "Barcode", "Category", "Brand", "Qty", "Buying price", "Selling price"], s.products.map((p) => [p.id, p.name, p.sku, p.barcode, p.category, p.brand, p.qty, money(p.buy), money(p.sell)]))],
+    ["Sales", () => csvDownload(`shopbook-sales-${day}.csv`, ["ID", "Date", "Customer", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.sales.map((x) => [x.id, new Date(x.at).toISOString(), x.customerName ?? "", money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
+    ["Purchases", () => csvDownload(`shopbook-purchases-${day}.csv`, ["ID", "Date", "Supplier", "Total", "Cash", "M-Pesa", "Bank", "Credit", "Settled"], s.purchases.map((x) => [x.id, new Date(x.at).toISOString(), x.supplierName ?? "", money(x.total), money(x.pay.cash), money(x.pay.mpesa), money(x.pay.bank), money(x.pay.credit), money(x.settled ?? 0)]))],
+    ["Expenses", () => csvDownload(`shopbook-expenses-${day}.csv`, ["ID", "Date", "Category", "Note", "Amount"], s.expenses.map((x) => [x.id, new Date(x.at).toISOString(), x.category, x.note ?? "", money(x.amount)]))],
+    ["Customers", () => csvDownload(`shopbook-customers-${day}.csv`, ["ID", "Name", "Phone", "Balance"], s.customers.map((x) => [x.id, x.name, x.phone ?? "", money(x.balance)]))],
+    ["Suppliers", () => csvDownload(`shopbook-suppliers-${day}.csv`, ["ID", "Name", "Phone", "Balance"], s.suppliers.map((x) => [x.id, x.name, x.phone ?? "", money(x.balance)]))],
+  ];
+  const downloadBackup = () => { const u = URL.createObjectURL(new Blob([backupJson(acct.shopName)], { type: "application/json" })); const a = document.createElement("a"); a.href = u; a.download = `shopbook-backup-${day}.json`; a.click(); URL.revokeObjectURL(u); };
+  return <div className="import-center">
+    <p className="settings-note">{tr("Download your records as CSV files, or save and restore a whole-shop backup file.")}</p>
+    <p className="money-heading">{tr("Export records (CSV)")}</p>
+    <div className="export-grid">{exports.map(([label, run]) => <ShopButton key={label} variant="outline" className="inventory-save" onClick={run}><Download className="h-4 w-4" />{tr(label)}</ShopButton>)}</div>
+    <p className="money-heading">{tr("Whole-shop backup")}</p>
+    <ShopButton className="inventory-save" onClick={downloadBackup}><Download className="h-4 w-4" />{tr("Download backup")}</ShopButton>
+    <input ref={file} hidden type="file" accept=".json,application/json" onChange={async (e) => { const f = e.target.files?.[0]; if (!f || !window.confirm(tr("Replace all records on this device with this backup?"))) return; try { restoreJson(await f.text()); toast.success(tr("Backup restored")); } catch (x) { toast.error(translateCurrent(x instanceof Error ? x.message : "Failed")); } }} />
+    <ShopButton variant="outline" className="inventory-save" onClick={() => file.current?.click()}><Upload className="h-4 w-4" />{tr("Restore backup")}</ShopButton>
+  </div>;
 }
