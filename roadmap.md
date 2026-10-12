@@ -58,3 +58,5 @@
 - [x] Live online sync of the whole shop between phones signed in with the same Google account, with live status.
 - [x] One 30-day trial per shop (reopening plans no longer restarts it).
 - [x] Login/signup tested end-to-end: create account -> plans -> free trial -> apps; login by shop name or phone -> apps; wrong password rejected; signed-out /apps redirects to login. No loop found.
+
+- [x] Rename the assistant to ShopBot everywhere (AI Setup row, header, button label); colours and icons unchanged.
