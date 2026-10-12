@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [x] Regroup General settings and verify a persistent whole-app size slider (left larger, right smaller) without changing business records.
+
 - [x] Rebuild Settings around the locked 12-category order, with Import & Data inside General.
 - [x] Build supported CSV/XLSX/JSON and image imports with mapping, validation, duplicate review, atomic ERP commit, history, templates and error export.
 - [x] Build the one-conversation, session-only Business AI Assistant grounded in the current authorized ERP snapshot.
