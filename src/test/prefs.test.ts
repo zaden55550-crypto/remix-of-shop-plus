@@ -1,18 +1,21 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyUiSize, getUiSize, setUiSize, UI_SIZES, type UiSize } from "@/lib/prefs";
 
 describe("whole-interface size", () => {
   beforeEach(() => localStorage.clear());
 
   it("persists each supported size and scales the interface uniformly", () => {
+    // JSDOM does not implement CSS zoom; verify the DOM write here,
+    // while the live-browser check verifies its rendered effect.
+    const write = vi.spyOn(document.documentElement.style, "setProperty");
     for (const size of Object.keys(UI_SIZES) as UiSize[]) {
       setUiSize(size);
       expect(getUiSize()).toBe(size);
-      expect(document.documentElement.style.getPropertyValue("zoom")).toBe(String(UI_SIZES[size]));
-      document.documentElement.style.removeProperty("zoom");
+      expect(write).toHaveBeenLastCalledWith("zoom", String(UI_SIZES[size]));
       applyUiSize();
-      expect(document.documentElement.style.getPropertyValue("zoom")).toBe(String(UI_SIZES[size]));
+      expect(write).toHaveBeenLastCalledWith("zoom", String(UI_SIZES[size]));
     }
+    write.mockRestore();
   });
 
   it("does not change account or business records", () => {
