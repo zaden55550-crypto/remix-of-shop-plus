@@ -14,7 +14,7 @@ import { APPS, canOpen, PLANS, store } from "@/lib/shopbook";
 import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
-import { applyUiSize, setTax, usePrefs } from "@/lib/prefs";
+import { applyUiSize, setTax, setUiSize, UI_SIZES, usePrefs, type UiSize } from "@/lib/prefs";
 import { applySettings, useSettings, type SettingsConfig } from "@/lib/settings-config";
 import { useBackupStatus } from "@/lib/cloud-backup";
 import { listCloudBackups, getCloudBackup } from "@/lib/backup.functions";
@@ -31,7 +31,7 @@ const CATS = ["Business", "General", "AI Setup", "People & Access", "Finance", "
 type Category = (typeof CATS)[number];
 const SUB: Record<Category, string[]> = {
   Business: ["Business Profile", "Business Type", "Location", "Contact Information", "Owner", "Logo", "Business Hours"],
-  General: ["Language", "Currency", "Date & Time", "Number Format", "Search", "Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Export & Restore", "Delete & Reset"],
+  General: ["Language & Currency", "Date & Time", "Number Format", "Interface Size", "Search & Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Export & Restore", "Delete & Reset"],
   "AI Setup": ["AI Assistant", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions", "AI Gateway"],
   "People & Access": ["Users", "Roles", "Permissions", "Data Access", "Active Users", "Invitations", "Access History"],
   Finance: ["Accounts", "Payment Methods", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
@@ -59,6 +59,19 @@ const BLURB: Record<Category, string> = {
   Subscription: "Your plan, trial and included apps.",
 };
 
+const GENERAL_DETAILS: Record<string, string> = {
+  "Language & Currency": "Language • Currency",
+  "Date & Time": "Timezone • Date format • Time format",
+  "Number Format": "Number format",
+  "Interface Size": "Text • Icons • Controls",
+  "Search & Printing": "Barcodes • Paper size • Copies",
+  "System Preferences": "Autosave • Offline mode • Automatic sync",
+  "Autosave & Backup": "Local save • Cloud backup",
+  "Import & Data": "CSV • XLSX • JSON",
+  "Export & Restore": "Export records • Whole-shop backup",
+  "Delete & Reset": "Selected records • All data",
+};
+
 function Settings() {
   const acct = useAccount("basic"), s = useErp(), { tr } = useLanguage(), nav = useNavigate(), [query, setQuery] = useState(""), [cat, setCat] = useState<Category>("General");
   if (!acct) return <main className="app-screen" />;
@@ -81,16 +94,21 @@ function Settings() {
 
 function SettingsCategory({ category, acct, state, query }: { category: Category; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; query: string }) {
   const { tr, language, setLanguage } = useLanguage(), nav = useNavigate(), prefs = usePrefs(), [cfg, saveCfg] = useSettings(), [, refresh] = useState(0);
-  const saveAccount = (patch: Partial<typeof acct>) => { store.save({ ...acct, ...patch }); toast.success(tr("Saved")); refresh((n) => n + 1); };
+  const saveAccount = (patch: Partial<typeof acct>) => { store.update(patch); toast.success(tr("Saved")); refresh((n) => n + 1); };
   const names = SUB[category].filter((n) => !query || tr(n).toLowerCase().includes(query) || tr(category).toLowerCase().includes(query));
-  return <div className="settings-sections">{names.map((name) => <SettingsAccordion key={name} title={tr(name)} forceOpen={!!query.trim()}><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></SettingsAccordion>)}</div>;
+  return <div className="settings-sections">{names.map((name) => <SettingsAccordion key={name} title={tr(name)} description={category === "General" ? GENERAL_DETAILS[name]?.split(" • ").map(tr).join(" • ") : undefined} forceOpen={!!query.trim()}><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></SettingsAccordion>)}</div>;
 }
 
-function SettingsAccordion({ title, forceOpen, children }: { title: string; forceOpen?: boolean; children: React.ReactNode }) {
+function SettingsAccordion({ title, description, forceOpen, children }: { title: string; description?: string; forceOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const id = React.useId();
   const shown = open || !!forceOpen;
-  return <section className={`settings-section settings-acc${shown ? " is-open" : ""}`}><button type="button" className="settings-acc-head" aria-expanded={shown} aria-controls={id} onClick={() => setOpen(!open)}><span>{title}</span>{shown ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button><div id={id} className="settings-acc-wrap" role="region" aria-label={title}><div className="settings-acc-inner"><div className="settings-section-body">{children}</div></div></div></section>;
+  return <section className={`settings-section settings-acc${shown ? " is-open" : ""}`}><ShopButton variant="bare" type="button" className="settings-acc-head" aria-expanded={shown} aria-controls={id} onClick={() => setOpen(!open)}><span className="settings-acc-label"><span>{title}</span>{description && <small>{description}</small>}</span>{shown ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</ShopButton><div id={id} className="settings-acc-wrap" role="region" aria-label={title} inert={!shown} aria-hidden={!shown}><div className="settings-acc-inner"><div className="settings-section-body">{children}</div></div></div></section>;
+}
+
+const SIZE_ORDER: UiSize[] = ["Larger", "Default", "Compact", "Smaller"];
+function InterfaceSize({ size, tr }: { size: UiSize; tr: (x: string) => string }) {
+  return <div className="settings-size-control"><div className="settings-slider" dir="ltr"><span>{tr("Larger")}</span><input aria-label={tr("Interface Size")} aria-valuetext={`${tr(size)} (${Math.round(UI_SIZES[size] * 100)}%)`} type="range" min={0} max={SIZE_ORDER.length - 1} step={1} value={SIZE_ORDER.indexOf(size)} onChange={(e) => { const next = SIZE_ORDER[Number(e.target.value)]; if (next) setUiSize(next); }} /><span>{tr("Smaller")}</span></div><div className="settings-inline"><output aria-live="polite">{tr(size)} · {Math.round(UI_SIZES[size] * 100)}%</output><ShopButton variant="outline" className="settings-mini" onClick={() => setUiSize("Default")}>{tr("Reset to default")}</ShopButton></div></div>;
 }
 function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveCfg, saveAccount, nav }: { name: string; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; tr: (x: string) => string; language: string; setLanguage: (x: never) => void; prefs: ReturnType<typeof usePrefs>; cfg: SettingsConfig; saveCfg: (p: Partial<SettingsConfig>) => void; saveAccount: (p: Partial<typeof acct>) => void; nav: ReturnType<typeof useNavigate> }) {
   const L = ({ label, children }: { label: string; children: ReactNode }) => <label className="inventory-field"><span>{tr(label)}</span>{children}</label>;
@@ -99,6 +117,8 @@ function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveC
   if (name === "Business Profile") return <><L label="Business Name"><input className="inventory-input" defaultValue={acct.shopName} onBlur={(e) => e.target.value.trim() && saveAccount({ shopName: e.target.value.trim() })} /></L>{text("owner", "Owner")}{text("phone", "Phone")}<L label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => saveAccount({ email: e.target.value.trim() })} /></L></>;
   if (name === "Business Type") return text("businessType", "Business Type"); if (name === "Location") return text("location", "Location"); if (name === "Contact Information") return <>{text("phone", "Phone")}<p className="settings-note">{acct.email || tr("Email optional")}</p></>; if (name === "Owner") return text("owner", "Owner"); if (name === "Business Hours") return text("hours", "Business Hours");
   if (name === "Logo") return <LogoSetting value={acct.logo} onSave={(logo) => saveAccount({ logo })} tr={tr} />;
+  if (name === "Language & Currency" || name === "Search & Printing") { const fields = name === "Language & Currency" ? ["Language", "Currency"] : ["Search", "Printing"]; return <>{fields.map((field) => <Panel key={field} name={field} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} />)}</>; }
+  if (name === "Interface Size") return <InterfaceSize size={prefs.size} tr={tr} />;
   if (name === "Language") return <L label="Language"><select className="inventory-input" value={language} onChange={(e) => { const l = LANGS.find((x) => x === e.target.value); if (l) setLanguage(l as never); }}>{LANGS.map((x) => <option key={x} value={x}>{NATIVE[x]}</option>)}</select></L>;
   if (name === "Currency") return <L label="Currency"><select className="inventory-input" value={acct.currency} onChange={(e) => saveAccount({ currency: e.target.value })}>{["KSh", "USh", "TSh", "USD"].map((x) => <option key={x}>{x}</option>)}</select></L>;
   if (name === "Date & Time") return <>{text("timezone", "Timezone")}{text("dateFormat", "Date format")}{text("timeFormat", "Time format")}</>; if (name === "Number Format") return <><p className="settings-note">KSh 100,000 • 0 {tr("decimal places")}</p>{text("numberFormat", "Number format")}</>;
