@@ -60,3 +60,4 @@
 - [x] Login/signup tested end-to-end: create account -> plans -> free trial -> apps; login by shop name or phone -> apps; wrong password rejected; signed-out /apps redirects to login. No loop found.
 
 - [x] Rename the assistant to ShopBot everywhere (AI Setup row, header, button label); colours and icons unchanged.
+- [x] Renamed the chatbot icon files to Shopbot (green artwork re-saved as Shopbot_Dark_Green); duplicates removed, Apps screen icons verified loading.
