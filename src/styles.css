@@ -315,6 +315,7 @@
 .inventory-screen .inventory-sheet { max-width: 430px; border-radius: 8px 8px 0 0; }
 @media (prefers-reduced-motion: reduce) { .inventory-screen * { transition: none; animation: none; } }
 @media print {
+  html { zoom: 1 !important; }
   body * { visibility: hidden; }
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; inset: 0; margin: 0 auto; }
