@@ -99,7 +99,7 @@ function SettingsCategory({ category, acct, state, query }: { category: Category
   return <div className="settings-sections">{names.map((name) => <SettingsAccordion key={name} title={tr(name)} description={category === "General" ? GENERAL_DETAILS[name]?.split(" • ").map(tr).join(" • ") : undefined} forceOpen={!!query.trim()}><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></SettingsAccordion>)}</div>;
 }
 
-function SettingsAccordion({ title, description, forceOpen, children }: { title: string; description?: string; forceOpen?: boolean; children: React.ReactNode }) {
+function SettingsAccordion({ title, description, forceOpen, children }: { title: string; description?: string | undefined; forceOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const id = React.useId();
   const shown = open || !!forceOpen;
