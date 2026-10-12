@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "b80962b3-7a9d-45eb-98db-3c7069912334",
-  "project_id": "f46cac1c-d22d-4594-b78e-0bda0783d3d7",
-  "url": "/__l5e/assets-v1/b80962b3-7a9d-45eb-98db-3c7069912334/Inventory.png",
-  "r2_key": "a/v1/f46cac1c-d22d-4594-b78e-0bda0783d3d7/b80962b3-7a9d-45eb-98db-3c7069912334/Inventory.png",
-  "original_filename": "Inventory.png",
-  "size": 653546,
   "content_type": "image/png",
-  "created_at": "2026-10-10T18:29:31Z"
+  "created_at": "2026-10-10T18:29:31Z",
+  "original_filename": "Inventory.png",
+  "project_id": "0d4ec31f-b1fe-45c6-ac3e-a3ba84efd12e",
+  "r2_key": "a/v1/0d4ec31f-b1fe-45c6-ac3e-a3ba84efd12e/b80962b3-7a9d-45eb-98db-3c7069912334/Inventory.png",
+  "size": 653546,
+  "url": "/__l5e/assets-v1/b80962b3-7a9d-45eb-98db-3c7069912334/Inventory.png",
+  "version": 1
 }
