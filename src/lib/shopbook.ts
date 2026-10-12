@@ -31,7 +31,7 @@ import ShopbotDark from "@/assets/Shopbot_Dark.png.asset.json";
 export type PlanId = "basic" | "plus" | "business";
 export type Tier = PlanId;
 
-// Per the supplied assets: the dark chatbot art is for light mode, the light art for dark mode.
+// Per the supplied assets: the dark ShopBot art is for light mode, the light art for dark mode.
 // ShopBot: light mode shows the black logo (Shopbot_Dark), dark mode the white logo (Shopbot_Light).
 export const chatIcons = { dark: ShopbotLight.url, light: ShopbotDark.url };
 
