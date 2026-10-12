@@ -417,3 +417,11 @@
 .settings-panel .settings-section-body > * { border-color: color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: 7px; }
 .settings-panel .settings-toggle input[type=checkbox] { accent-color: var(--primary); width: 14px; height: 14px; }
 .settings-status { margin-top: 8px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; width: fit-content; max-width: 100%; }
+.settings-panel .settings-acc { border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border)); border-radius: 7px; background: var(--card); overflow: hidden; }
+.settings-acc-head { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 6px; min-height: 30px; padding: 0 9px; font-size: 9.5px; font-weight: 800; text-align: start; white-space: nowrap; }
+.settings-acc-head:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+.settings-acc-head svg { height: 13px; width: 13px; color: var(--primary); flex: none; }
+.settings-acc-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .22s ease; }
+.settings-acc.is-open .settings-acc-wrap { grid-template-rows: 1fr; }
+.settings-acc-inner { overflow: hidden; min-height: 0; }
+.settings-panel .settings-acc .settings-section-body { padding: 0 8px 8px; }

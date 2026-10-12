@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Download, Search, Store, Upload } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Download, Search, Store, Upload } from "lucide-react";
+import * as React from "react";
 import { toast } from "sonner";
 import { AppShell, dt, useAccount } from "@/components/shopbook/selling";
 import { BackupStatus } from "@/components/shopbook/backup-status";
@@ -82,7 +83,14 @@ function SettingsCategory({ category, acct, state, query }: { category: Category
   const { tr, language, setLanguage } = useLanguage(), nav = useNavigate(), prefs = usePrefs(), [cfg, saveCfg] = useSettings(), [, refresh] = useState(0);
   const saveAccount = (patch: Partial<typeof acct>) => { store.save({ ...acct, ...patch }); toast.success(tr("Saved")); refresh((n) => n + 1); };
   const names = SUB[category].filter((n) => !query || tr(n).toLowerCase().includes(query) || tr(category).toLowerCase().includes(query));
-  return <div className="settings-sections">{names.map((name) => <section key={name} className="settings-section"><h3>{tr(name)}</h3><div className="settings-section-body"><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></div></section>)}</div>;
+  return <div className="settings-sections">{names.map((name) => <SettingsAccordion key={name} title={tr(name)} forceOpen={!!query.trim()}><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></SettingsAccordion>)}</div>;
+}
+
+function SettingsAccordion({ title, forceOpen, children }: { title: string; forceOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = React.useState(false);
+  const id = React.useId();
+  const shown = open || !!forceOpen;
+  return <section className={`settings-section settings-acc${shown ? " is-open" : ""}`}><button type="button" className="settings-acc-head" aria-expanded={shown} aria-controls={id} onClick={() => setOpen(!open)}><span>{title}</span>{shown ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button><div id={id} className="settings-acc-wrap" role="region" aria-label={title}><div className="settings-acc-inner"><div className="settings-section-body">{children}</div></div></div></section>;
 }
 function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveCfg, saveAccount, nav }: { name: string; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; tr: (x: string) => string; language: string; setLanguage: (x: never) => void; prefs: ReturnType<typeof usePrefs>; cfg: SettingsConfig; saveCfg: (p: Partial<SettingsConfig>) => void; saveAccount: (p: Partial<typeof acct>) => void; nav: ReturnType<typeof useNavigate> }) {
   const L = ({ label, children }: { label: string; children: ReactNode }) => <label className="inventory-field"><span>{tr(label)}</span>{children}</label>;
