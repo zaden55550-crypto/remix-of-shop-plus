@@ -61,3 +61,4 @@
 
 - [x] Rename the assistant to ShopBot everywhere (AI Setup row, header, button label); colours and icons unchanged.
 - [x] Renamed the chatbot icon files to Shopbot (green artwork re-saved as Shopbot_Dark_Green); duplicates removed, Apps screen icons verified loading.
+- [x] Re-drew both ShopBot icon artworks so the word baked into the artwork reads "ShopBot" instead of "chatbot" (same black speech bubble, same green seven-petal emblem, same colours); Apps screen re-checked in the preview.
