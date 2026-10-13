@@ -1,11 +1,11 @@
 {
-  "asset_id": "b14a25b7-dbad-4932-8d22-96754839bd44",
-  "content_type": "image/png",
-  "created_at": "2026-10-10T18:29:26Z",
-  "original_filename": "Shopbot_Light.png",
+  "version": 1,
+  "asset_id": "b1863330-ee24-4347-ae05-f7b261f8eee8",
   "project_id": "0d4ec31f-b1fe-45c6-ac3e-a3ba84efd12e",
-  "r2_key": "a/v1/0d4ec31f-b1fe-45c6-ac3e-a3ba84efd12e/b14a25b7-dbad-4932-8d22-96754839bd44/Shopbot_Light.png",
-  "size": 233354,
-  "url": "/__l5e/assets-v1/b14a25b7-dbad-4932-8d22-96754839bd44/Shopbot_Light.png",
-  "version": 1
+  "url": "/__l5e/assets-v1/b1863330-ee24-4347-ae05-f7b261f8eee8/Shopbot_Light.png",
+  "r2_key": "a/v1/0d4ec31f-b1fe-45c6-ac3e-a3ba84efd12e/b1863330-ee24-4347-ae05-f7b261f8eee8/Shopbot_Light.png",
+  "original_filename": "Shopbot_Light.png",
+  "size": 939116,
+  "content_type": "image/png",
+  "created_at": "2026-10-13T02:32:01Z"
 }
