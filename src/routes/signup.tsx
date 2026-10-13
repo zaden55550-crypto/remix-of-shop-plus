@@ -26,13 +26,18 @@ function Signup() {
   const { tr, t, dir, language } = useLanguage();
   const [f, setF] = useState({ shopName: "", phone: "", password: "", confirm: "", currency: "KSh", logo: "" });
   const [agree, setAgree] = useState(false);
+  const [err, setErr] = useState<{ password?: string; confirm?: string; agree?: string }>({});
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (f.password.length < 6) { toast.error(tr("Password must be at least 6 characters")); return; }
-    if (f.password !== f.confirm) { toast.error(tr("Passwords do not match")); return; }
-    if (!agree) { toast.error(tr("Please accept the Terms & Privacy Policy")); return; }
+    const next: typeof err = {};
+    if (f.password.length < 6) next.password = tr("Password must be at least 6 characters");
+    else if (f.password !== f.confirm) next.confirm = tr("Passwords do not match");
+    if (!agree) next.agree = tr("Please accept the Terms & Privacy Policy");
+    setErr(next);
+    const first = next.password || next.confirm || next.agree;
+    if (first) { toast.error(first); return; }
     store.save({ language, shopName: f.shopName.trim(), phone: f.phone.trim(), email: "", password: f.password, currency: f.currency, logo: f.logo || undefined });
     store.signIn();
     nav({ to: "/plans" });
@@ -45,21 +50,25 @@ function Signup() {
       <div className="mt-3"><LogoCropPicker value={f.logo} onChange={(logo) => setF({ ...f, logo })} /></div>
       <h1 className="mt-2 text-center text-2xl font-bold">{tr("Create Your Account")}</h1>
       <form onSubmit={submit} className="mt-4 space-y-2.5 px-5">
-        <Field icon={<Store className="h-5 w-5" />} placeholder={tr("Shop Name")} value={f.shopName} onChange={set("shopName")} required />
-        <Field icon={<Phone className="h-5 w-5" />} inputMode="tel" placeholder={tr("Phone Number")} value={f.phone} onChange={set("phone")} required />
-        <Field icon={<Lock className="h-5 w-5" />} password placeholder={tr("Password")} value={f.password} onChange={set("password")} required />
-        <Field icon={<Lock className="h-5 w-5" />} password placeholder={tr("Confirm Password")} value={f.confirm} onChange={set("confirm")} required />
-        <select value={f.currency} onChange={set("currency")}
+        <Field icon={<Store className="h-5 w-5" />} label={tr("Shop Name")} placeholder={tr("Enter your shop name")} value={f.shopName} onChange={set("shopName")} required />
+        <Field icon={<Phone className="h-5 w-5" />} inputMode="tel" label={tr("Phone Number")} placeholder={tr("Enter your phone number")} type="tel" autoComplete="tel" value={f.phone} onChange={set("phone")} required />
+        <Field icon={<Lock className="h-5 w-5" />} password label={tr("Password")} placeholder={tr("Create a password")} autoComplete="new-password" error={err.password} value={f.password} onChange={set("password")} required />
+        <Field icon={<Lock className="h-5 w-5" />} password label={tr("Confirm Password")} placeholder={tr("Re-enter your password")} autoComplete="new-password" error={err.confirm} value={f.confirm} onChange={set("confirm")} required />
+        <div className="space-y-1">
+        <label htmlFor="signup-currency" className="block text-[13px] font-semibold text-foreground">{tr("Currency")}</label>
+        <select id="signup-currency" value={f.currency} onChange={set("currency")}
           className="h-12 w-full rounded-xl border border-input bg-card px-3.5 font-medium outline-none focus:border-primary">
           <option value="KSh">KSh – {tr("Kenyan Shilling")}</option>
           <option value="USh">USh – {tr("Ugandan Shilling")}</option>
           <option value="TSh">TSh – {tr("Tanzanian Shilling")}</option>
           <option value="USD">USD – {tr("US Dollar")}</option>
         </select>
+        </div>
         <label className="flex items-start gap-2 pt-1 text-sm">
           <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
           {tr("I agree to the Terms & Conditions and Privacy Policy")}
         </label>
+        {err.agree && <p role="alert" className="text-xs font-medium text-destructive">{err.agree}</p>}
         <ShopButton type="submit">{tr("Create Account")} →</ShopButton>
         <p className="pt-1 text-center text-sm">{tr("Already have an account?")} <Link to="/" className="font-semibold text-primary">{tr("Log In")}</Link></p>
       </form>

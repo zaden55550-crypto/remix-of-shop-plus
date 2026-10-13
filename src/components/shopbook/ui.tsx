@@ -1,4 +1,4 @@
-import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { useEffect, useState, type InputHTMLAttributes, type ReactNode , useId } from "react";
 import { Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
 import { RING_ICONS } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
@@ -115,19 +115,30 @@ export function LogoCropPicker({ value, onChange }: { value?: string; onChange: 
   return <div className="logo-crop"><label className="logo-crop-pick"><span className="logo-crop-frame">{source ? <img src={source} alt={tr("Shop logo")} style={{ transform: `translate(${x}px,${y}px) scale(${zoom})` }} /> : <Camera className="h-7 w-7 text-primary" />}</span><span>{tr(source ? "Change logo" : "Upload shop logo")}</span><input hidden type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => { setSource(String(r.result)); setZoom(1); setX(0); setY(0); }; r.readAsDataURL(f); }} /></label>{source && <><div className="logo-crop-controls"><Minus className="h-3 w-3" /><input aria-label={tr("Zoom")} type="range" min={1} max={4} step={.05} value={zoom} onChange={(e) => setZoom(+e.target.value)} /><Plus className="h-3 w-3" /></div><div className="logo-crop-actions"><ShopButton type="button" variant="outline" onClick={() => setX(x - 10)} aria-label={tr("Move left")}><Move className="h-3 w-3" />←</ShopButton><ShopButton type="button" variant="outline" onClick={() => setY(y - 10)} aria-label={tr("Move up")}>↑</ShopButton><ShopButton type="button" variant="outline" onClick={() => { setX(0); setY(0); }} aria-label={tr("Center")}>{tr("Center")}</ShopButton><ShopButton type="button" onClick={() => void save()} aria-label={tr("Save")}><Save className="h-3 w-3" /></ShopButton></div></>}</div>;
 }
 
-export function Field({ icon, password, className, ...props }: InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; password?: boolean }) {
+export function Field({ icon, password, className, label, error, id, ...props }: InputHTMLAttributes<HTMLInputElement> & { icon?: ReactNode; password?: boolean; label?: string | undefined; error?: string | undefined }) {
   const [show, setShow] = useState(false);
   const { tr } = useLanguage();
-  return (
-    <div className={cn("flex h-12 items-center gap-3 rounded-xl border border-input bg-card/40 px-3.5 focus-within:border-primary focus-within:glow", className)}>
-      {icon && <span className="text-primary">{icon}</span>}
-      <input aria-label={props.placeholder} {...props} type={password ? (show ? "text" : "password") : props.type}
+  const auto = useId();
+  const fid = id ?? auto;
+  const box = (
+    <div className={cn("flex h-12 items-center gap-3 rounded-xl border border-input bg-card/40 px-3.5 focus-within:border-primary focus-within:glow", error && "border-destructive", !label && className)}>
+      {icon && <span className="text-primary" aria-hidden>{icon}</span>}
+      <input id={fid} aria-label={label ? undefined : props.placeholder} aria-invalid={error ? true : undefined} aria-describedby={error ? `${fid}-err` : undefined} {...props} type={password ? (show ? "text" : "password") : props.type}
+        onFocus={(e) => { props.onFocus?.(e); const el = e.currentTarget; setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300); }}
         className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground" />
       {password && (
-        <ShopButton variant="bare" type="button" aria-label={tr(show ? "Hide password" : "Show password")} onClick={() => setShow(!show)} className="h-auto w-auto p-0 text-muted-foreground">
+        <ShopButton variant="bare" type="button" aria-label={tr(show ? "Hide password" : "Show password")} aria-controls={fid} onClick={() => setShow(!show)} className="h-auto w-auto p-0 text-muted-foreground">
           {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
         </ShopButton>
       )}
+    </div>
+  );
+  if (!label) return box;
+  return (
+    <div className={cn("space-y-1", className)}>
+      <label htmlFor={fid} className="block truncate text-[13px] font-semibold text-foreground">{label}</label>
+      {box}
+      {error && <p id={`${fid}-err`} role="alert" className="text-xs font-medium text-destructive">{error}</p>}
     </div>
   );
 }
