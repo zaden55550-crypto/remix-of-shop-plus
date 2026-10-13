@@ -1,3 +1,4 @@
+import { SECURITY_RULES } from "./guard.server";
 import { createClient } from "@supabase/supabase-js";
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
@@ -43,7 +44,7 @@ export async function handleHelpChat(request: Request) {
     return r;
   } });
   const messages = (history ?? []).map((m) => ({ role: m.sender === "user" ? "user" as const : "assistant" as const, content: m.sender === "support" ? `[Support team] ${m.body}` : m.body }));
-  const result = streamText({ model: provider.responses("openai/gpt-6-astra"), instructions: `${GUIDE}\nReply in ${body.language}. Keep answers under 150 words.`, messages, abortSignal: request.signal, maxRetries: 0, providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] } } });
+  const result = streamText({ model: provider.responses("openai/gpt-6-astra"), instructions: `${GUIDE}\n${SECURITY_RULES}\nReply in ${body.language}. Keep answers under 150 words.`, messages, abortSignal: request.signal, maxRetries: 0, providerOptions: { openai: { forceReasoning: true, reasoningEffort: "low", reasoningSummary: "auto", store: false, include: ["reasoning.encrypted_content"] } } });
   const text = Promise.resolve(result.text); text.catch(() => {});
   await correlation.waitForRunId();
   if (upstreamStatus !== 200) return Response.json({ error: safeError }, { status: upstreamStatus, headers: getLovableAiGatewayResponseHeaders(responseHeaders) });
