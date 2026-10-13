@@ -47,7 +47,7 @@ function Login() {
       <h1 className="mt-3 text-center text-3xl font-bold">{tr("Log In")}</h1>
       <p className="text-center text-sm text-muted-foreground">{tr("Sign in to your shop account")}</p>
       <form onSubmit={submit} className="mt-5 space-y-3 px-5">
-        <Field icon={<Store className="h-5 w-5" />} label={tr("Shop Name / Business Name / Phone Number")} placeholder={tr("Enter shop name or phone number")} autoComplete="username" value={id} onChange={(e) => setId(e.target.value)} required />
+        <Field icon={<Store className="h-5 w-5" />} label={tr("Shop Name or Phone Number")} placeholder={tr("Enter shop name or phone number")} autoComplete="username" value={id} onChange={(e) => setId(e.target.value)} required />
         <Field icon={<Lock className="h-5 w-5" />} password label={tr("Password")} placeholder={tr("Enter your password")} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
         <div className="flex items-start justify-between gap-2 text-sm">
           <label className="flex items-center gap-2">
