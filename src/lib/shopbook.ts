@@ -47,7 +47,6 @@ export const APPS: { id: string; name: string; icon: string; iconDark: string; t
   { id: "float", name: "Float", icon: Float.url, iconDark: FloatD.url, tier: "plus" },
   { id: "payroll", name: "Payroll", icon: Payroll.url, iconDark: PayrollD.url, tier: "business" },
   { id: "reports", name: "Reports", icon: Reports.url, iconDark: ReportsD.url, tier: "plus" },
-  { id: "reconciliation", name: "Reconciliation", icon: Accounting.url, iconDark: AccountingD.url, tier: "plus" },
   { id: "summary", name: "Summary", icon: Summary.url, iconDark: SummaryD.url, tier: "business" },
   { id: "settings", name: "Settings", icon: Settings.url, iconDark: SettingsD.url, tier: "basic" },
 ];

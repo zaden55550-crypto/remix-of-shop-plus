@@ -36,8 +36,19 @@ const key = (v: unknown) => norm(v).toLowerCase().replace(/[^a-z0-9]/g, "");
 const number = (v: unknown) => { const n = Number(String(v ?? "").replace(/[^0-9.-]/g, "")); return Number.isFinite(n) ? n : NaN; };
 export const history = () => { try { const x = JSON.parse(localStorage.getItem("shopbook.importHistory") || "[]"); return Array.isArray(x) ? x as ImportHistory[] : []; } catch { return []; } };
 export const saveHistory = (x: ImportHistory) => { localStorage.setItem("shopbook.importHistory", JSON.stringify([x, ...history()].slice(0, 50))); window.dispatchEvent(new Event("shopbook-prefs")); };
+function score(col: string, f: { key: string; label: string; aliases: string[] }) { const n = key(col); if (!n) return 0; const names = [f.label, f.key, ...f.aliases].map(key).filter(Boolean); if (names.includes(n)) return 3; if (names.some((a) => a.length > 2 && (n.includes(a) || a.includes(n)))) return 1; return 0; }
 export function suggestMapping(columns: string[], type: Exclude<ImportType, "Product Images">): Mapping {
-  const out: Mapping = {}; for (const col of columns) { const n = key(col); const f = FIELDS[type].find((x) => x.aliases.some((a) => key(a) === n)); out[col] = f?.key ?? ""; } return out;
+  const out: Mapping = {}, used = new Set<string>();
+  const pairs = columns.flatMap((col) => FIELDS[type].map((f) => ({ col, f: f.key, s: score(col, f) }))).filter((x) => x.s > 0).sort((a, b) => b.s - a.s);
+  for (const col of columns) out[col] = "";
+  for (const x of pairs) if (!out[x.col] && !used.has(x.f)) { out[x.col] = x.f; used.add(x.f); }
+  return out;
+}
+/** Picks the import type whose fields best match the file's columns (required fields weigh more). */
+export function detectType(columns: string[]): Exclude<ImportType, "Product Images"> | null {
+  let best: Exclude<ImportType, "Product Images"> | null = null, top = 0;
+  for (const t of Object.keys(FIELDS) as Exclude<ImportType, "Product Images">[]) { const m = suggestMapping(columns, t); const hit = FIELDS[t].reduce((a, f) => a + (Object.values(m).includes(f.key) ? (f.required ? 2 : 1) : 0), 0); const missing = FIELDS[t].filter((f) => f.required && !Object.values(m).includes(f.key)).length; const v = hit - missing * 2; if (v > top) { top = v; best = t; } }
+  return best;
 }
 export async function parseImportFile(file: File): Promise<RawRow[]> {
   const ext = file.name.split(".").pop()?.toLowerCase();
