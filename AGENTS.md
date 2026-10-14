@@ -41,3 +41,4 @@
 - Phone sync: one row per owner; ERP merged by record id with revision-checked writes so concurrent saves never overwrite.
 - Resets stamp `seq['__reset:<collection>']`; sync merge drops older records so a stale phone can't restore deleted data.
 - Opening balances import as OPENING rows in the payments ledger with an importKey (src/lib/opening-import.ts), so they never count as sales/expenses and re-imports never double-post.
+- Full Business Import (src/lib/full-import.ts) only orchestrates the existing category importers in dependency order; preview runs them for real then restores a snapshot, and confirm rolls back everything on any failure, so rules live in one place.
