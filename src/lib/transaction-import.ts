@@ -70,7 +70,7 @@ export const findProduct = (list: Product[], x: string) => { const v = k(x); ret
 const findParty = <T extends { id: string; name: string; phone?: string | undefined }>(list: T[], name: string, phone: string) => (phone && list.find((x) => k(x.phone) === k(phone))) || (name && list.find((x) => k(x.name) === k(name))) || undefined;
 
 export function previewTX(s: ErpState, sheets: { sheet: Sheet; mapping: TXMapping }[], o: TXOptions): TXGroup[] {
-  const groups = new Map<string, TXGroup>(); const stray: TXGroup[] = [];
+  const groups = new Map<string, TXGroup>(); const stray: TXGroup[] = []; const paidSeen = new Map<TXGroup, Set<string>>();
   for (const { sheet, mapping } of sheets) sheet.rows.forEach((r, i) => {
     const g = (f: TXField) => (mapping[f] ? r[mapping[f]!] : ""); const row = i + 2;
     const kind = kindOf(n(g("type")), sheet.sheet), ref = n(g("ref"));
@@ -90,7 +90,12 @@ export function previewTX(s: ErpState, sheets: { sheet: Sheet; mapping: TXMappin
     const head = (f: "discount" | "total" | "cash" | "mpesa" | "bank", set: (v: number) => void, cur: number) => { const raw = n(g(f)); if (!raw) return; const v = num(raw); if (!Number.isFinite(v) || v < 0) { issue(grp!, f, `“${raw}” is not a valid amount`, "Enter a positive number"); return; } if (cur && Math.abs(cur - v) > 0.001) { issue(grp!, f, `Different ${f} values in one transaction (${cur} vs ${v})`, "Repeat the same value or fill it on one row only"); return; } set(v); };
     head("discount", (v) => (grp!.discount = v), grp.discount); head("total", (v) => (grp!.total = v), grp.total);
     (["cash", "mpesa", "bank"] as const).forEach((m) => head(m, (v) => (grp!.pay[m] = v), grp!.pay[m]));
-    if (mapping.paid) { const raw = n(g("paid")); if (raw) { const v = num(raw), m = methodOf(g("method")); if (!Number.isFinite(v) || v < 0) issue(grp, "Amount paid", `“${raw}” is not a valid amount`, "Enter a positive number"); else if (!m) issue(grp, "Payment method", `“${n(g("method")) || "blank"}” is not Cash, M-Pesa, Bank or Credit`, "Use Cash, M-Pesa, Bank or Credit"); else if (m !== "credit") grp.pay[m] = r2(grp.pay[m] + v); } }
+    if (mapping.paid) { const raw = n(g("paid")); if (raw) { const v = num(raw), mraw = n(g("method")), m = methodOf(mraw); const seen = paidSeen.get(grp) ?? new Set<string>(); paidSeen.set(grp, seen);
+      if (!Number.isFinite(v) || v < 0) issue(grp, "Amount paid", `“${raw}” is not a valid amount`, "Enter a positive number");
+      else if (/mix|split|multiple/i.test(mraw)) issue(grp, "Payment method", "“Mixed” is not a payment method", "Put each part on its own row (Cash, M-Pesa, Bank) or use the Paid cash / Paid M-Pesa / Paid bank columns");
+      else if (!m) issue(grp, "Payment method", `“${mraw || "blank"}” is not Cash, M-Pesa, Bank or Credit`, "Use Cash, M-Pesa, Bank or Credit");
+      // The same method + amount repeated on every item line of one receipt is one payment, not one per line.
+      else if (m !== "credit" && !seen.has(`${m}:${v}`)) { seen.add(`${m}:${v}`); grp.pay[m] = r2(grp.pay[m] + v); } } }
     if (!grp.party) grp.party = n(g("party")); if (!grp.phone) grp.phone = n(g("phone"));
     const product = n(g("product")), qty = num(g("qty")), price = num(g("price"));
     if (!product) issue(grp, "Product", "Missing product", "Enter the product name, SKU or barcode");

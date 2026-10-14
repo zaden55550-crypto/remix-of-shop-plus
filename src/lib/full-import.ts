@@ -18,7 +18,7 @@ export const fieldsFor = (c: FullCat): readonly Field[] => c === "Skip" ? [] : c
 export type FieldMap = Record<string, string | undefined>;
 export type Plan = { id: string; sheet: Sheet; cat: FullCat; map: FieldMap; reason: string };
 export type StageResult = { cat: Exclude<FullCat, "Skip">; sheets: string[]; total: number; created: number; updated: number; skipped: number; rejected: number; issues: OBIssue[]; error?: string };
-export type FullOptions = { dateFmt: DateFmt; stock: TXOptions["stock"] };
+export type FullOptions = { dateFmt: DateFmt; stock: TXOptions["stock"]; existing?: "skip" | "update" };
 
 const NAME_HINTS: [RegExp, FullCat][] = [[/opening|balance/, "Opening Balances"], [/return|refund|credit ?note/, "Returns"], [/sale|purchase|invoice|receipt|transaction/, "Sales & Purchases"], [/product|item|inventory|stock ?list/, "Products"], [/customer|client|debtor/, "Customers"], [/supplier|vendor|creditor/, "Suppliers"], [/employee|staff|payroll/, "Employees"], [/expense/, "Expenses"], [/categor/, "Categories"], [/brand/, "Brands"], [/price/, "Product Prices"]];
 
@@ -75,7 +75,8 @@ function runStage(cat: Exclude<FullCat, "Skip">, plans: Plan[], o: FullOptions):
   for (const p of plans) {
     const colMap: Record<string, string> = {}; for (const [f, c] of Object.entries(p.map)) if (c) colMap[c] = f;
     const rows = previewRows(load(), p.sheet.rows, cat, colMap, new Set(Object.keys(p.map).filter((f) => p.map[f])));
-    const h = applyImport(cat, p.sheet.file, rows, colMap, "skip");
+    // Opening Stock and Product Prices exist to change existing products, so they always update; others follow the chosen mode.
+    const h = applyImport(cat, p.sheet.file, rows, colMap, cat === "Opening Stock" || cat === "Product Prices" ? "updateOnly" : o.existing ?? "skip");
     base.total += h.total; base.created += h.imported; base.updated += h.updated; base.skipped += h.skipped; base.rejected += h.failed;
     base.issues.push(...h.errors.map((e) => ({ ...e, file: p.sheet.file, sheet: p.sheet.sheet })));
   }
