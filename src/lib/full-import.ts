@@ -113,7 +113,7 @@ export function importFull(plans: Plan[], o: FullOptions): { results: StageResul
 }
 
 /** Blank Full Business Import workbook: one sheet per category, headers = field labels (* = required). Empty sheets are ignored on upload. */
-export async function fullTemplate(): Promise<Blob> {
+export async function fullTemplateBytes(): Promise<ArrayBuffer> {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
   const help = [["SHOPBOOK Full Business Import template"], ["Fill one row per record in each sheet. Required columns are listed below each sheet name in the app mapping step. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Sales & Purchases / Returns: one item per row; rows sharing a receipt number become one transaction."], ["Import order is automatic: " + FULL_ORDER.join(" → ")]];
@@ -124,6 +124,6 @@ export async function fullTemplate(): Promise<Blob> {
     ws["!cols"] = heads.map((h) => ({ wch: Math.max(12, h.length + 2) }));
     XLSX.utils.book_append_sheet(wb, ws, c.replace(/[\\/?*[\]:&]/g, "-").slice(0, 31));
   }
-  const out = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  return new Blob([out], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
+export const fullTemplate = async () => new Blob([await fullTemplateBytes()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
