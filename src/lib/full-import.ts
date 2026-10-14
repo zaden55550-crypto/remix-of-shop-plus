@@ -38,6 +38,8 @@ export function detect(sheet: Sheet): { cat: FullCat; reason: string } {
   const cols = sheet.columns, name = `${sheet.sheet} ${sheet.file}`.toLowerCase();
   const rt = suggestRT(cols), hinted = NAME_HINTS.find(([r]) => r.test(name))?.[1];
   const ok = (c: FullCat) => missing({ id: "", sheet, cat: c, map: suggestFor(c, cols), reason: "" }).length === 0;
+  const exact = FULL_ORDER.find((c) => c.replace(/[\\/?*[\]:&]/g, "-").toLowerCase() === sheet.sheet.trim().toLowerCase());
+  if (exact && ok(exact)) return { cat: exact, reason: `Template sheet “${sheet.sheet}”` };
   if (hinted && ok(hinted)) return { cat: hinted, reason: `Sheet name “${sheet.sheet}”` };
   if (rt.ref && rt.original && cols.some((c) => /return/i.test(c)) && ok("Returns")) return { cat: "Returns", reason: "Return columns" };
   if (looksLikeOpening(cols)) return { cat: "Opening Balances", reason: "Opening balance columns" };
