@@ -31,7 +31,7 @@ export type OtherContact = ContactDetails & { id: string; name: string; phone?: 
 export type PayrollDraft = { id: string; employeeId: string; from: number; to: number; deductions: number; notes?: string; at: number };
 export type Supplier = { id: string; name: string; phone?: string | undefined; email?: string | undefined; address?: string | undefined; info?: string | undefined; notes?: string | undefined; balance: number; createdAt: number };
 export type PurchaseItem = { productId: string; name: string; qty: number; cost: number; returned: number };
-export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string; settled?: number | undefined };
+export type Purchase = { id: string; ref: string; at: number; supplierId?: string | undefined; items: PurchaseItem[]; total: number; pay: Record<Method, number>; user: string; settled?: number | undefined; importKey?: string | undefined };
 export type PurchaseReturn = { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
 export type Expense = { id: string; ref: string; at: number; category: string; description?: string | undefined; note?: string | undefined; amount: number; method: Method; user: string };
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean; products?: { productId: string; kind: "percent" | "fixed" | "profit"; value: number }[] | undefined };
@@ -52,6 +52,8 @@ export type Sale = {
   settled?: number | undefined;
   /** VAT included in `total` (0 when VAT is off). */
   vat?: number | undefined;
+  /** Set when the sale came from the Universal Import Center; blocks re-import. */
+  importKey?: string | undefined;
 };
 export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL" | "OPENING"; source: string; customerId?: string | undefined; supplierId?: string | undefined; importKey?: string | undefined; user: string };
 export type SaleReturn = { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };

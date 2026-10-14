@@ -30,7 +30,7 @@ const n = (x: unknown) => String(x ?? "").trim();
 const k = (x: unknown) => n(x).toLowerCase().replace(/[^a-z0-9]/g, "");
 const HISTORY = "shopbook.importBatches";
 export const batches = (): ImportBatch[] => { try { const x = JSON.parse(localStorage.getItem(HISTORY) || "[]"); return Array.isArray(x) ? x : []; } catch { return []; } };
-const saveBatch = (b: ImportBatch) => { localStorage.setItem(HISTORY, JSON.stringify([b, ...batches()].slice(0, 50))); window.dispatchEvent(new Event("shopbook-prefs")); };
+export const saveBatch = (b: ImportBatch) => { localStorage.setItem(HISTORY, JSON.stringify([b, ...batches()].slice(0, 50))); window.dispatchEvent(new Event("shopbook-prefs")); };
 
 /** Reads every worksheet of every file (CSV/XLSX), finding the heading row in each. */
 export async function readSheets(files: File[]): Promise<Sheet[]> {

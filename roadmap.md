@@ -67,5 +67,5 @@
 
 ## Universal Import Center
 - [x] Phase 1: Opening balances (cash, M-Pesa, bank, receivables, payables) — multi-file/sheet, mapping, validation, duplicate-safe, history, export/re-import
-- [ ] Phase 2: Grouped sales & purchases with line items and payments
+- [x] Phase 2: Grouped sales & purchases with line items and payments
 - [ ] Phase 3: Returns, stock movements, payroll, float history; retire legacy importer
