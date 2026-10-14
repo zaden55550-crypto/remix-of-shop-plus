@@ -12,6 +12,18 @@ function setup() {
   return { setLine, saveDraft, close };
 }
 describe("shared reference cart", () => {
+  it("allows a manual amount without changing quantity or the product price", () => {
+    const { setLine } = setup();
+    fireEvent.change(screen.getByRole("textbox", { name: "Amount Ajab Flour" }), { target: { value: "85.50" } });
+    expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 0.5, price: 171, priceReason: "wholesale" });
+  });
+  it("blocks saving and checkout while a manual amount is invalid", () => {
+    const { setLine } = setup();
+    fireEvent.change(screen.getByRole("textbox", { name: "Amount Ajab Flour" }), { target: { value: "-1" } });
+    expect(setLine).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Proceed to Checkout" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Cart" })).toBeDisabled();
+  });
   it("opens the quantity keypad and preserves the line price override", () => {
     const { setLine } = setup();
     expect(screen.getByText("Subtotal (1 items)")).toBeInTheDocument();
