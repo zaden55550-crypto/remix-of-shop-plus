@@ -176,7 +176,7 @@ export function applyTX(groups: TXGroup[], o: TXOptions) {
   return { sales, purchases, skipped: groups.filter((g) => g.status === "DUPLICATE" || g.excluded).length, rejected: groups.filter((g) => g.status === "INVALID").length };
 }
 
-export const TX_TEMPLATE = "Type,Receipt No,Date,Customer/Supplier,Phone,Product,Qty,Unit Price,Discount,Total,Cash,M-Pesa,Bank\nSale,R-1001,05/01/2026,,,Sugar 1kg,2,150,0,300,300,,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Rice 2kg,1,320,20,500,,200,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Sugar 1kg,1,200,20,500,,200,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Sugar 1kg,20,110,0,2200,1000,,\n";
+export const TX_TEMPLATE = "Type,Receipt No,Date,Customer/Supplier,Phone,Product,Qty,Unit Price,Discount,Total,Cash,M-Pesa,Bank\nSale,R-1001,05/01/2026,,,Sugar 1kg,2,150,0,300,300,,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Rice 2kg,1,320,20,500,,200,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Sugar 1kg,1,200,20,500,,200,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Sugar 1kg,20,110,0,3450,1000,,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Rice 2kg,5,250,0,3450,1000,,\n";
 
 /** Export sales & purchases in the import format (one row per line item) so they can be re-imported. */
 export function exportTX(s: ErpState) {
