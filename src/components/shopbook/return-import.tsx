@@ -6,7 +6,7 @@ import { useErp } from "@/components/shopbook/product-search";
 import { issuesCsv, readSheets, saveBatch, type ImportBatch, type Sheet } from "@/lib/opening-import";
 import { applyRT, exportRT, previewRT, RT_FIELDS, RT_TEMPLATE, rtMappingProblems, suggestRT, type RTGroup, type RTMapping } from "@/lib/return-import";
 
-const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+import { download, downloadBlob } from "@/lib/download";
 
 /** Historical returns: rows sharing a return number become one return against its original sale or purchase. */
 export function ReturnImport({ tr }: { tr: (x: string) => string }) {

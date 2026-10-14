@@ -6,7 +6,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { FULL_ORDER, fieldsFor, fullTemplate, importFull, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
 import { issuesCsv, readSheets, type DateFmt, type ImportBatch } from "@/lib/opening-import";
 
-const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+import { download, downloadBlob } from "@/lib/download";
 type Stage = "upload" | "map" | "preview" | "done";
 const STEPS = ["Upload", "Detect", "Map", "Validate", "Preview", "Confirm Import", "Reconcile"];
 

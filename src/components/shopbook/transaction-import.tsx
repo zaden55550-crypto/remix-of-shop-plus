@@ -6,7 +6,7 @@ import { useErp } from "@/components/shopbook/product-search";
 import { issuesCsv, readSheets, saveBatch, type ImportBatch, type Sheet } from "@/lib/opening-import";
 import { applyTX, exportTX, looksLikeTransactions, previewTX, suggestTX, TX_FIELDS, TX_TEMPLATE, txMappingProblems, type TXGroup, type TXMapping, type TXOptions } from "@/lib/transaction-import";
 
-const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+import { download, downloadBlob } from "@/lib/download";
 
 /** Historical Sales & Purchases: many line rows → one transaction per receipt/invoice number. */
 export function TransactionImport({ tr, onDone }: { tr: (x: string) => string; onDone?: () => void }) {
