@@ -14,7 +14,7 @@ import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import { BackupStatus } from "@/components/shopbook/backup-status";
-import { LineEditor } from "@/components/shopbook/line-editor";
+import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
 import * as erp from "@/lib/erp";
 
 export type Tr = (t: string) => string;
@@ -81,11 +81,11 @@ function Sheet({ onClose, children, title }: { onClose: () => void; children: Re
 // ---------------- SELL ----------------
 export function Sell({ s, money, tr, shop, channel }: SCtx) {
   const [q, setQ] = useState("");
-  const [cart, setCart] = useState<erp.CartLine[]>([]);
+  const { cart, setCart, saveDraft, clearDraft } = useCartDraft(channel);
   const [step, setStep] = useState<null | "cart" | "pay">(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
   const list = useMemo(() => erp.searchProducts(s, q), [s, q]);
-  const count = cart.reduce((a, l) => a + l.qty, 0);
+  const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
 
   const add = (id: string) => {
@@ -94,7 +94,6 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
     if (inCart + 1 > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
     setCart((c) => (c.some((l) => l.productId === id) ? c.map((l) => (l.productId === id ? { ...l, qty: l.qty + 1 } : l)) : [...c, { productId: id, qty: 1 }]));
   };
-  const [edit, setEdit] = useState<erp.CartLine | null>(null);
   const setQty = (id: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.productId !== id) : c.map((l) => (l.productId === id ? { ...l, qty } : l))));
   const onScan = (code: string) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); };
 
@@ -122,27 +121,14 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
         </button>
       )}
 
-      {step === "cart" && (
-        <Sheet title={tr("Cart")} onClose={() => setStep(null)}>
-          {cart.map((l) => { const p = prod(l.productId); if (!p) return null; return (
-            <div key={l.productId} className="flex items-center gap-2 border-b border-border py-2.5">
-              <button className="min-w-0 flex-1 text-start" onClick={() => setEdit(l)}><p className="truncate text-sm font-semibold underline decoration-dotted">{p.name}</p><p className="text-[11px] text-muted-foreground">{l.qty} {p.unit || ""} × {money(erp.linePrice(s, l))}{l.price !== undefined && ` (${tr("was")} ${money(p.sell)})`}</p></button>
-              <button aria-label="-" onClick={() => setQty(l.productId, l.qty - 1)} className="grid h-8 w-8 place-items-center rounded-lg border border-border"><Minus className="h-3.5 w-3.5" /></button>
-              <input type="number" min="1" value={l.qty} step="any" onChange={(e) => setQty(l.productId, erp.roundQty(+e.target.value) || 0)} className="h-8 w-12 rounded-lg border border-border bg-card text-center text-sm" />
-              <button aria-label="+" onClick={() => add(l.productId)} className="grid h-8 w-8 place-items-center rounded-lg border border-border"><Plus className="h-3.5 w-3.5" /></button>
-              <span className="w-20 text-end text-sm font-semibold">{money(erp.lineAmount(s, l))}</span>
-              <button aria-label={tr("Remove")} onClick={() => setQty(l.productId, 0)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button>
-            </div>
-          ); })}
-          {edit && <LineEditor s={s} line={edit} money={money} tr={tr} onSave={(nl) => setCart((c) => c.map((v) => v.productId === nl.productId ? nl : v))} onClose={() => setEdit(null)} />}
-          <div className="mt-3 flex justify-between text-base font-bold"><span>{tr("TOTAL")}</span><span>{money(erp.lineTotal(s, cart))}</span></div>
-          <ShopButton className="mt-3" disabled={!cart.length} onClick={() => setStep("pay")}>{tr("Continue")} →</ShopButton>
-        </Sheet>
-      )}
+      {step === "cart" && <CartSheet s={s} cart={cart} money={money} tr={tr}
+        setLine={(line) => setCart((c) => c.map((v) => v.productId === line.productId ? line : v))}
+        remove={(id) => setQty(id, 0)} clear={() => { setCart([]); clearDraft(); setStep(null); }}
+        close={() => setStep(null)} next={() => setStep("pay")} saveDraft={saveDraft} />}
 
       {step === "pay" && (
         <Checkout s={s} money={money} tr={tr} cart={cart} onClose={() => setStep("cart")}
-          onDone={(sale) => { setCart([]); setStep(null); setReceipt(sale); }} channel={channel} />
+          onDone={(sale) => { setCart([]); clearDraft(); setStep(null); setReceipt(sale); }} channel={channel} />
       )}
       {receipt && <ReceiptSheet sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />}
     </div>

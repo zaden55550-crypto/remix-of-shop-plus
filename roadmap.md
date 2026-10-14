@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [x] Match Sales/POS carts to the supplied quantity-keypad reference; 7 tests pass; verify decimal edits, line totals, saved draft reload, completed sales, receipt and exact stock deductions on a 390px phone in isolated browser storage; preserve amount/price editing and existing ERP records. Unit alternatives await configured conversion rules (only each product's saved unit is available).
+
 - [x] Regroup General settings and verify a persistent whole-app size slider (left larger, right smaller) without changing business records.
 
 - [x] Rebuild Settings around the locked 12-category order, with Import & Data inside General.
