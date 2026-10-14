@@ -38,6 +38,8 @@ export function detect(sheet: Sheet): { cat: FullCat; reason: string } {
   const cols = sheet.columns, name = `${sheet.sheet} ${sheet.file}`.toLowerCase();
   const rt = suggestRT(cols), hinted = NAME_HINTS.find(([r]) => r.test(name))?.[1];
   const ok = (c: FullCat) => missing({ id: "", sheet, cat: c, map: suggestFor(c, cols), reason: "" }).length === 0;
+  const exact = FULL_ORDER.find((c) => c.replace(/[\\/?*[\]:&]/g, "-").toLowerCase() === sheet.sheet.trim().toLowerCase());
+  if (exact && ok(exact)) return { cat: exact, reason: `Template sheet “${sheet.sheet}”` };
   if (hinted && ok(hinted)) return { cat: hinted, reason: `Sheet name “${sheet.sheet}”` };
   if (rt.ref && rt.original && cols.some((c) => /return/i.test(c)) && ok("Returns")) return { cat: "Returns", reason: "Return columns" };
   if (looksLikeOpening(cols)) return { cat: "Opening Balances", reason: "Opening balance columns" };
@@ -111,3 +113,19 @@ export function importFull(plans: Plan[], o: FullOptions): { results: StageResul
   saveBatch(batch);
   return { results, batch };
 }
+
+/** Blank Full Business Import workbook: one sheet per category, headers = field labels (* = required). Empty sheets are ignored on upload. */
+export async function fullTemplateBytes(): Promise<ArrayBuffer> {
+  const XLSX = await import("xlsx");
+  const wb = XLSX.utils.book_new();
+  const help = [["SHOPBOOK Full Business Import template"], ["Fill one row per record in each sheet. Required columns are listed below each sheet name in the app mapping step. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Sales & Purchases / Returns: one item per row; rows sharing a receipt number become one transaction."], ["Import order is automatic: " + FULL_ORDER.join(" → ")]];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(help), "Instructions");
+  for (const c of FULL_ORDER) {
+    const heads = fieldsFor(c).map((f) => { const a = (f as Field & { aliases?: string[] }).aliases?.find((x) => x.includes(" ")); return a ? a.replace(/\b\w/g, (m) => m.toUpperCase()) : f.label; });
+    const ws = XLSX.utils.aoa_to_sheet([heads]);
+    ws["!cols"] = heads.map((h) => ({ wch: Math.max(12, h.length + 2) }));
+    XLSX.utils.book_append_sheet(wb, ws, c.replace(/[\\/?*[\]:&]/g, "-").slice(0, 31));
+  }
+  return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+}
+export const fullTemplate = async () => new Blob([await fullTemplateBytes()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
