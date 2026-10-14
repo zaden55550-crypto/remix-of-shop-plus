@@ -64,3 +64,8 @@
 - [x] Rename the assistant to ShopBot everywhere (AI Setup row, header, button label); colours and icons unchanged.
 - [x] Renamed the chatbot icon files to Shopbot (green artwork re-saved as Shopbot_Dark_Green); duplicates removed, Apps screen icons verified loading.
 - [x] Re-drew both ShopBot icon artworks so the word baked into the artwork reads "ShopBot" instead of "chatbot" (same black speech bubble, same green seven-petal emblem, same colours); Apps screen re-checked in the preview.
+
+## Universal Import Center
+- [x] Phase 1: Opening balances (cash, M-Pesa, bank, receivables, payables) — multi-file/sheet, mapping, validation, duplicate-safe, history, export/re-import
+- [ ] Phase 2: Grouped sales & purchases with line items and payments
+- [ ] Phase 3: Returns, stock movements, payroll, float history; retire legacy importer

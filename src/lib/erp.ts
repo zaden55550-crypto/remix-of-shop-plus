@@ -53,7 +53,7 @@ export type Sale = {
   /** VAT included in `total` (0 when VAT is off). */
   vat?: number | undefined;
 };
-export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL"; source: string; customerId?: string | undefined; user: string };
+export type Payment = { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL" | "OPENING"; source: string; customerId?: string | undefined; supplierId?: string | undefined; importKey?: string | undefined; user: string };
 export type SaleReturn = { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
 export type CashEvent = { id: string; at: number; type: "OPENING" | "CASH IN" | "CASH OUT" | "CASH UP"; amount: number; note?: string | undefined; expected?: number | undefined; counted?: number | undefined; user: string };
 

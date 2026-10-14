@@ -35,6 +35,13 @@ export function journal(s: ErpState): Entry[] {
   s.purchases.forEach((p) => push(p.at, p.ref, "Purchase", [dr("inventory", p.total), ...(["cash", "mpesa", "bank"] as const).map((m) => cr(m, p.pay[m])), cr("payables", p.pay.credit)]));
   s.purchaseReturns.forEach((r) => push(r.at, r.ref, `Return ${r.purchaseRef}`, [dr(acc(r.refund) === "receivables" ? "payables" : acc(r.refund), r.amount), cr("inventory", r.amount)]));
   s.payments.forEach((p) => {
+    if (p.kind === "OPENING") {
+      const v = Math.abs(p.amount);
+      if (p.customerId) push(p.at, p.ref, `Opening receivable • ${p.source}`, [dr("receivables", v), cr("equity", v)]);
+      else if (p.supplierId) push(p.at, p.ref, `Opening payable • ${p.source}`, [dr("equity", v), cr("payables", v)]);
+      else if (p.method !== "credit") push(p.at, p.ref, `Opening balance • ${p.source}`, p.amount >= 0 ? [dr(p.method, v), cr("equity", v)] : [dr("equity", v), cr(p.method, v)]);
+      return;
+    }
     if (p.method === "credit") return;
     const v = Math.abs(p.amount);
     if (p.kind === "DEBT") push(p.at, p.ref, `Debt • ${p.source}`, [dr(p.method, v), cr("receivables", v)]);
