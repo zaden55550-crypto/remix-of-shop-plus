@@ -105,12 +105,12 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
         {list.map((p) => {
           const n = cart.find((l) => l.productId === p.id)?.qty ?? 0;
           return (
-            <button key={p.id} onClick={() => add(p.id)} disabled={p.qty <= 0} className="flex w-full items-center gap-3 border-b border-border py-2.5 text-start disabled:opacity-50">
+            <ShopButton variant="bare" key={p.id} aria-label={`${tr("Add")} ${p.name}`} onClick={() => add(p.id)} disabled={p.qty <= 0} className="pos-product-button sales-product-row">
               {p.image && <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover" />}
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{p.name}</p><p className="text-[11px] text-muted-foreground">{p.sku} • {p.qty > 0 ? `${p.qty} ${p.unit || tr("pcs")}` : tr("Out of stock")}</p></div>
-              <span className="shrink-0 text-sm font-bold">{money(p.sell)}</span>
+              <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-medium">{p.name}</p><p className="text-[11px] text-muted-foreground">{p.sku} • {p.qty > 0 ? `${p.qty} ${p.unit || tr("pcs")}` : tr("Out of stock")}</p></div>
+              <span className="shrink-0 text-[11px] font-semibold">{money(p.sell)}</span>
               {n > 0 && <span className="grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">{n}</span>}
-            </button>
+            </ShopButton>
           );
         })}
       </div>
@@ -135,7 +135,7 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
   );
 }
 
-function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.ErpState; money: SCtx["money"]; tr: Tr; cart: erp.CartLine[]; onClose: () => void; onDone: (s: erp.Sale) => void; channel: SCtx["channel"] }) {
+export function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.ErpState; money: SCtx["money"]; tr: Tr; cart: erp.CartLine[]; onClose: () => void; onDone: (s: erp.Sale) => void; channel: SCtx["channel"] }) {
   const [customerId, setCustomer] = useState("");
   const [sellerId, setSeller] = useState("");
   const sellers = s.employees.filter((e) => e.active);

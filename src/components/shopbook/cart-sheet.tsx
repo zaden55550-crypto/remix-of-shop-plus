@@ -25,6 +25,8 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
 }) {
   const [edit, setEdit] = useState<erp.CartLine | null>(null);
   const [quantity, setQuantity] = useState<erp.CartLine | null>(null);
+  const [invalidAmounts, setInvalidAmounts] = useState<Record<string, boolean>>({});
+  const invalid = cart.some((l) => invalidAmounts[l.productId]);
   const total = erp.lineTotal(s, cart);
   const change = (line: erp.CartLine, raw: number) => {
     const p = s.products.find((p) => p.id === line.productId);
@@ -48,17 +50,35 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
           <ShopButton variant="bare" className="cart-product" onClick={() => setEdit(l)} title={tr("Edit price and amount")}><b>{p.name}</b><small>{money(erp.linePrice(s, l))} / {unit}</small></ShopButton>
           <div className="cart-stepper"><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Decrease")} ${p.name}`} disabled={l.qty <= 0.001} onClick={() => change(l, Math.max(0.001, l.qty - (l.qty <= 1 ? 0.25 : 1)))}><Minus className="h-3.5 w-3.5" /></ShopButton><ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Increase")} ${p.name}`} onClick={() => change(l, l.qty + 1)}><Plus className="h-3.5 w-3.5" /></ShopButton></div>
           <select className="cart-unit" aria-label={`${tr("Selling unit")} ${p.name}`} value={unit} onChange={() => {}}><option value={unit}>{unit}</option></select>
-          <b className="cart-amount">{money(erp.lineAmount(s, l))}</b>
+          <LineAmount s={s} line={l} tr={tr} setLine={setLine} onInvalid={(bad) => setInvalidAmounts((current) => current[p.id] === bad ? current : { ...current, [p.id]: bad })} />
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></ShopButton>
         </div>;
       })}</div>
       <ShopButton variant="bare" className="cart-add-more" onClick={close}><Plus className="h-5 w-5 text-primary" /><span className="flex-1 text-start">{tr("Add More Items")}</span><ChevronRight className="h-4 w-4" /></ShopButton>
       <div className="cart-totals"><span>{tr("Subtotal")} ({cart.length} {tr("items")})</span><b>{money(total)}</b><span>{tr("Discount")}</span><b>{money(0)}</b><strong>{tr("Total")}</strong><strong className="text-primary">{money(total)}</strong></div>
-      <footer className="cart-actions"><ShopButton variant="outline" onClick={() => { try { saveDraft(); toast.success(tr("Cart saved locally")); close(); } catch { toast.error(tr("Unable to save cart")); } }}><Save className="h-4 w-4" />{tr("Save Cart")}</ShopButton><ShopButton disabled={!cart.length} onClick={next}>{tr("Proceed to Checkout")}<ArrowRight className="h-4 w-4" /></ShopButton></footer>
+      <footer className="cart-actions"><ShopButton variant="outline" disabled={invalid} onClick={() => { try { saveDraft(); toast.success(tr("Cart saved locally")); close(); } catch { toast.error(tr("Unable to save cart")); } }}><Save className="h-4 w-4" />{tr("Save Cart")}</ShopButton><ShopButton disabled={!cart.length || invalid} onClick={next}>{tr("Proceed to Checkout")}<ArrowRight className="h-4 w-4" /></ShopButton></footer>
       {edit && <LineEditor s={s} line={edit} money={money} tr={tr} onSave={setLine} onClose={() => setEdit(null)} />}
       {quantity && <QuantityPad key={quantity.productId} s={s} line={quantity} tr={tr} onClose={() => setQuantity(null)} onSave={(qty) => { change(quantity, qty); setQuantity(null); }} />}
     </section>
   </div>;
+}
+
+function LineAmount({ s, line, tr, setLine, onInvalid }: { s: erp.ErpState; line: erp.CartLine; tr: (x: string) => string; setLine: (l: erp.CartLine) => void; onInvalid: (bad: boolean) => void }) {
+  const amount = erp.lineAmount(s, line);
+  const [value, setValue] = useState(String(amount));
+  const [invalid, setInvalid] = useState(false);
+  useEffect(() => { setValue(String(amount)); setInvalid(false); onInvalid(false); }, [amount, line.qty]);
+  const p = s.products.find((p) => p.id === line.productId);
+  if (!p) return null;
+  return <input className="cart-amount cart-amount-input" aria-label={`${tr("Amount")} ${p.name}`} aria-invalid={invalid} title={tr("Edit price and amount")} inputMode="decimal" value={value} onFocus={(e) => e.currentTarget.select()} onChange={(e) => {
+    const raw = e.target.value;
+    setValue(raw);
+    const bad = !/^\d+(\.\d{0,2})?$/.test(raw) || !Number.isFinite(Number(raw)) || line.qty <= 0 || !Number.isFinite(Number(raw) / line.qty);
+    setInvalid(bad); onInvalid(bad);
+    if (bad) return;
+    const price = Number(raw) / line.qty;
+    setLine({ ...line, price: price === p.sell ? undefined : price, priceReason: price === p.sell ? undefined : line.priceReason || tr("Manual amount") });
+  }} />;
 }
 
 function QuantityPad({ s, line, tr, onSave, onClose }: { s: erp.ErpState; line: erp.CartLine; tr: (x: string) => string; onSave: (q: number) => void; onClose: () => void }) {

@@ -95,12 +95,12 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
     <div className="pos-head"><span>{tr("Product")}</span><span>{tr("Stock")}</span><span>{tr("Price")}</span><span /></div>
     {list.length === 0 && <Empty>{s.products.length ? tr("No matching products") : tr("No products yet. Add products in Inventory.")}</Empty>}
     {list.map((p) => { const inCart = cart.find((l) => l.productId === p.id)?.qty ?? 0; return (
-      <div key={p.id} className={cn("pos-row", inCart > 0 && "pos-row-on")}>
+      <ShopButton variant="bare" key={p.id} aria-label={`${tr("Add")} ${p.name}`} disabled={p.qty <= 0} onClick={(e) => add(p.id, e.currentTarget)} className={cn("pos-row pos-product-button", inCart > 0 && "pos-row-on")}>
         <span className="flex min-w-0 items-center gap-1.5"><Dot tone={p.qty <= 0 ? "bad" : p.qty <= (p.minStock ?? 5) ? "warn" : "ok"} /><span className="truncate">{p.name}</span>{inCart > 0 && <span className="pos-chip">×{inCart}</span>}</span>
         <span className="text-center tabular-nums">{p.qty}</span>
         <span className="text-end tabular-nums">{n(p.sell)}</span>
-        <button aria-label={`${tr("Add")} ${p.name}`} disabled={p.qty <= 0} onClick={(e) => add(p.id, e.currentTarget)} className="pos-add"><Plus className="h-3.5 w-3.5" /></button>
-      </div>); })}
+        <span className="pos-add" aria-hidden="true"><Plus className="h-3.5 w-3.5" /></span>
+      </ShopButton>); })}
     <button ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</button>
     {step === "cart" && <CartSheet s={s} money={money} tr={tr} cart={cart}
       setLine={(l) => setCart((x) => x.map((v) => v.productId === l.productId ? l : v))}

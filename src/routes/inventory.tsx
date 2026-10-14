@@ -1,7 +1,7 @@
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Menu as MenuIcon, MoreVertical, Package, Coins, TriangleAlert, ArchiveX, Layers, Plus, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu as MenuIcon, MoreVertical, Package, Coins, TriangleAlert, ArchiveX, Layers, ShoppingCart, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { store, canOpen, type Account } from "@/lib/shopbook";
@@ -14,6 +14,8 @@ import * as erp from "@/lib/erp";
 import { lastBackup } from "@/lib/backup";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { useErp } from "@/components/shopbook/product-search";
+import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { Checkout, ReceiptSheet } from "@/components/shopbook/selling";
 
 import { InventorySearch, InventoryField, BarcodeField, InventoryProductPicker, inventoryProducts, inventoryInput } from "@/components/shopbook/inventory-controls";
 
@@ -182,13 +184,27 @@ function Overview({ s, money, tr, go }: Ctx) {
   </div>;
 }
 
-function ProductList({ s, money, tr, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
+function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const { cart, setCart, saveDraft, clearDraft } = useCartDraft("Sales");
+  const [step, setStep] = useState<null | "cart" | "pay">(null);
+  const [receipt, setReceipt] = useState<erp.Sale | null>(null);
+  const add = (p: erp.Product) => {
+    const existing = cart.find((l) => l.productId === p.id);
+    const qty = erp.roundQty((existing?.qty ?? 0) + 1);
+    if (qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
+    setCart((current) => existing ? current.map((l) => l.productId === p.id ? { ...l, qty } : l) : [...current, { productId: p.id, qty }]);
+  };
   const list = useMemo(() => inventoryProducts(s,q), [s,q]);
   const onScan = (code: string) => { const p = erp.findByCode(s,code); if (p) { setQ(p.name); setOpen(p.id); } else onUnknown(code); };
   const openP = s.products.find(p => p.id === open);
-  return <div><InventorySearch q={q} setQ={setQ} onScan={onScan} tr={tr} /><div className="inventory-list-panel">{list.length === 0 && <Empty>{q ? tr("No matching products") : tr("No products yet")}</Empty>}{list.map(p => <div className="inventory-product-row" key={p.id}><ShopButton variant="bare" className="inventory-product-open" onClick={() => setOpen(p.id)}><p>{p.name}</p><p>{tr("Buy")} {Math.round(p.buy).toLocaleString("en-KE")} • {tr("Sell")} {Math.round(p.sell).toLocaleString("en-KE")}</p></ShopButton><div className="text-center"><p className="text-[9px] text-muted-foreground">{tr("Stock")}</p><b className={cn("text-sm", erp.stockStatus(p) === "OK" ? "text-primary" : erp.stockStatus(p) === "LOW" ? "text-warning" : "text-destructive")}>{p.qty}</b></div><ShopButton variant="bare" className="inventory-icon-button" aria-label={`${tr("Product")} ${p.name}`} title={tr("More details")} onClick={() => setOpen(p.id)}><MoreVertical className="h-4 w-4" /></ShopButton></div>)}</div>{openP && <ProductSheet p={openP} s={s} money={money} tr={tr} onClose={() => setOpen(null)} />}</div>;
+  return <div><InventorySearch q={q} setQ={setQ} onScan={onScan} tr={tr} /><div className="inventory-list-panel">{list.length === 0 && <Empty>{q ? tr("No matching products") : tr("No products yet")}</Empty>}{list.map(p => <div className="inventory-product-row" key={p.id}><ShopButton variant="bare" className="inventory-product-open" aria-label={`${tr("Add")} ${p.name}`} disabled={p.qty <= 0} onClick={() => add(p)}><p>{p.name}</p><p>{tr("Buy")} {Math.round(p.buy).toLocaleString("en-KE")} • {tr("Sell")} {Math.round(p.sell).toLocaleString("en-KE")}</p></ShopButton><div className="text-center"><p className="text-[9px] text-muted-foreground">{tr("Stock")}</p><b className={cn("text-[11px]", erp.stockStatus(p) === "OK" ? "text-primary" : erp.stockStatus(p) === "LOW" ? "text-warning" : "text-destructive")}>{p.qty}</b></div><ShopButton variant="bare" className="inventory-icon-button" aria-label={`${tr("Product")} ${p.name}`} title={tr("More details")} onClick={() => setOpen(p.id)}><MoreVertical className="h-4 w-4" /></ShopButton></div>)}</div>{openP && <ProductSheet p={openP} s={s} money={money} tr={tr} onClose={() => setOpen(null)} />}
+    {cart.length > 0 && <ShopButton variant="bare" className="pos-fab" aria-label={`${tr("Cart")} (${cart.length})`} onClick={() => setStep("cart")}><ShoppingCart className="h-6 w-6" /><span className="pos-fab-count">{cart.length}</span></ShopButton>}
+    {step === "cart" && <CartSheet s={s} cart={cart} money={money} tr={tr} setLine={(line) => setCart((current) => current.map((l) => l.productId === line.productId ? line : l))} remove={(id) => setCart((current) => current.filter((l) => l.productId !== id))} clear={() => { setCart([]); clearDraft(); setStep(null); }} close={() => setStep(null)} next={() => setStep("pay")} saveDraft={saveDraft} />}
+    {step === "pay" && <Checkout s={s} cart={cart} money={money} tr={tr} channel="Sales" onClose={() => setStep("cart")} onDone={(sale) => { setCart([]); clearDraft(); setStep(null); setReceipt(sale); }} />}
+    {receipt && <ReceiptSheet sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />}
+  </div>;
 }
 
 function ProductSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: erp.ErpState; money: Ctx["money"]; tr: Ctx["tr"]; onClose: () => void }) {

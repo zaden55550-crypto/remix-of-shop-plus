@@ -468,3 +468,21 @@
 @media (prefers-reduced-motion: reduce) {
   .settings-acc-wrap { transition: none; }
 }
+
+/* Shared POS typography: stable across device sizes and independent of interface zoom. */
+:root { --erp-text: 11px; --erp-caption: 9px; --erp-heading: 12px; }
+:is(.inventory-screen, .app-screen) { font-family: var(--font-sans); font-size: var(--erp-text); line-height: 1.35; letter-spacing: 0; }
+:is(.inventory-screen, .app-screen) :is(.text-base, .text-sm, .text-xs, .text-\[13px\]) { font-size: var(--erp-text); }
+:is(.inventory-screen, .app-screen) :is(.text-lg, .text-xl, .text-2xl) { font-size: var(--erp-heading); }
+.inventory-screen .inventory-product-open, .inventory-screen .inventory-named-open,
+.money-screen .money-line, .inventory-screen .money-record,
+.inventory-screen .inventory-save, .money-screen .inventory-input { font-size: var(--erp-text); }
+.inventory-product-open p:last-child, .settings-note, .settings-panel-head p { font-size: var(--erp-caption); }
+.inventory-header h1, .inventory-box-heading h2 { font-size: var(--erp-heading); }
+.inventory-screen .pos-product-button { width: 100%; height: auto; text-align: start; font-size: var(--erp-text); font-weight: 400; border-radius: 3px; }
+.sales-product-row { display: flex; gap: 8px; min-height: 32px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.inventory-screen .inventory-product-open { font-size: var(--erp-text); }
+.cart-amount-input { width: 76px; min-width: 0; height: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; outline: none; }
+.cart-amount-input:focus { border-color: var(--primary); }
+.cart-amount-input[aria-invalid=true] { border-color: var(--destructive); }
+@media (max-width: 360px) { .cart-amount-input { width: 58px; } }
