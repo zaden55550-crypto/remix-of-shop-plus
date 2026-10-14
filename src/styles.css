@@ -360,6 +360,38 @@
 .pos-cart-row { padding: 5px 0; border-bottom: 1px solid var(--border); }
 .pos-q { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; background: var(--destructive); color: var(--foreground); }
 .pos-q-plus { background: var(--primary); color: var(--primary-foreground); }
+/* Shared reference cart: stable compact controls, no mixed-unit quantity counts. */
+.cart-overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: color-mix(in oklab, var(--background) 72%, transparent); }
+.inventory-screen.cart-sheet { min-height: 0; width: 100%; max-width: 540px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px 8px 0 0; max-height: 90dvh; overflow-y: auto; }
+.cart-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.inventory-screen .cart-icon { height: 28px; width: 24px; padding: 0; border-radius: 4px; flex-shrink: 0; }
+.inventory-screen .cart-clear { width: auto; height: 28px; padding: 0; font-size: 10px; color: var(--destructive); }
+.cart-lines { max-height: 43dvh; overflow-y: auto; }
+.cart-line { display: grid; grid-template-columns: minmax(0,1fr) 100px 42px minmax(55px,auto) 24px; align-items: center; gap: 5px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.inventory-screen .cart-product { width: 100%; height: auto; display: block; min-width: 0; padding: 0; text-align: start; font-size: 11px; border-radius: 0; }
+.cart-product b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cart-product small { display: block; font-size: 9px; font-weight: 400; color: var(--muted-foreground); margin-top: 3px; }
+.cart-stepper { display: grid; grid-template-columns: 24px minmax(0,1fr) 24px; align-items: center; border: 1px solid var(--border); border-radius: 4px; height: 28px; }
+.inventory-screen .cart-step { width: 24px; height: 26px; padding: 0; border-radius: 3px; }
+.inventory-screen .cart-quantity { height: 26px; width: 100%; padding: 0; font-size: 11px; font-variant-numeric: tabular-nums; border-radius: 0; }
+.cart-unit { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 10px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--foreground); padding: 0 2px; }
+.cart-amount { text-align: end; color: var(--primary); font-size: 11px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.inventory-screen .cart-add-more { width: 100%; height: 42px; padding: 0; border-bottom: 1px solid var(--border); border-radius: 0; font-size: 11px; }
+.cart-totals { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px; padding: 12px 0; font-size: 11px; }
+.cart-totals > :nth-child(even) { text-align: end; font-variant-numeric: tabular-nums; }
+.cart-totals strong { font-size: 14px; border-top: 1px solid var(--border); padding-top: 9px; }
+.cart-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); gap: 8px; }
+.inventory-screen .cart-actions button { width: 100%; height: auto; min-height: 38px; padding: 8px 6px; border-radius: 4px; font-size: 11px; line-height: 1.2; }
+.quantity-overlay { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 12px; background: color-mix(in oklab, var(--background) 80%, transparent); }
+.quantity-pad { width: 100%; max-width: 300px; max-height: 90dvh; overflow-y: auto; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+.quantity-pad h2 { font-size: 15px; font-weight: 700; }
+.quantity-pad p { font-size: 11px; margin-top: 4px; }
+.quantity-input { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; border: 1px solid var(--primary); border-radius: 4px; margin: 12px 0; padding: 5px 8px; }
+.quantity-input input { width: 100%; min-width: 0; height: 36px; background: transparent; outline: none; font-size: 22px; font-variant-numeric: tabular-nums; }
+.quantity-keys { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+.inventory-screen .quantity-keys button { height: 44px; width: 100%; border: 1px solid var(--border); background: var(--muted); border-radius: 4px; font-size: 21px; font-weight: 500; }
+.inventory-screen .quantity-done { height: 38px; margin-top: 12px; border-radius: 4px; font-size: 13px; }
+@media (max-width: 360px) { .cart-line { grid-template-columns: minmax(0,1fr) 88px 34px minmax(48px,auto) 20px; gap: 3px; } .cart-amount { font-size: 10px; } }
 .pos-tx { display: grid; grid-template-columns: 10px 64px 38px 30px minmax(0,1fr) auto; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px; white-space: nowrap; }
 .pos-tx-head { font-size: 9px; font-weight: 700; color: var(--muted-foreground); }
 .pos-tx > span:nth-child(5) { text-align: end; }
