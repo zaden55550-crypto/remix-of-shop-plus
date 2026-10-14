@@ -12,3 +12,22 @@ describe("import persistence", () => {
     const c = run("update"); expect(c.updated).toBe(2); expect(load().products.length).toBe(2);
   });
 });
+import { mergeErp } from "@/lib/shop-sync";
+import { resetData } from "@/lib/reset-data";
+describe("duplicate details & reset", () => {
+  beforeEach(() => localStorage.clear());
+  it("explains changed vs identical duplicates and never blanks values", () => {
+    run("skip");
+    const changed = [{ Name: "Soap", "Buying Price": "50", "Selling Price": "95", Quantity: "", SKU: "S1" }, { ...raw[1]! }];
+    const m = suggestMapping(Object.keys(changed[0]!), "Products");
+    const rows = previewRows(load(), changed, "Products", m, new Set(Object.values(m).filter(Boolean)));
+    expect(rows[0]!.matchField).toBe("SKU"); expect(rows[0]!.diffs?.find((d) => d.field === "Selling price")).toEqual({ field: "Selling price", existing: "80", uploaded: "95" });
+    expect(rows[1]!.identical).toBe(true);
+    const r = applyImport("Products", "t.csv", rows, m, "updateOnly"); expect(r.updated).toBe(2);
+    const soap = load().products.find((p) => p.sku === "S1")!; expect(soap.sell).toBe(95); expect(soap.qty).toBe(10);
+  });
+  it("reset is not undone by an old phone's sync data", () => {
+    run("skip"); const old = load(); resetData([], true);
+    const merged = mergeErp(load(), old); expect(merged.products.length).toBe(0);
+  });
+});
