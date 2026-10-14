@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -6,7 +6,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { FULL_ORDER, fieldsFor, fullTemplate, importFull, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
 import { issuesCsv, readSheets, type DateFmt, type ImportBatch } from "@/lib/opening-import";
 
-const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+import { download, downloadBlob } from "@/lib/download";
 type Stage = "upload" | "map" | "preview" | "done";
 const STEPS = ["Upload", "Detect", "Map", "Validate", "Preview", "Confirm Import", "Reconcile"];
 
@@ -21,6 +21,9 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   const [batch, setBatch] = useState<ImportBatch | null>(null);
   const [busy, setBusy] = useState(false);
   const [existing, setExisting] = useState<"skip" | "update">("skip");
+  const [tpl, setTpl] = useState<Blob | null>(null);
+  // Build the template ahead of time so the tap saves it immediately (iPhone/iPad drop slow taps).
+  useEffect(() => { void fullTemplate().then(setTpl).catch(() => setTpl(null)); }, []);
   const opts: FullOptions = { dateFmt: fmt, stock, existing };
   const step = stage === "upload" ? 0 : stage === "map" ? 2 : stage === "preview" ? 4 : 6;
   const reset = () => { setStage("upload"); setPlans([]); setResults([]); setBatch(null); };
@@ -51,10 +54,10 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   return <div className="grid gap-2">
     <ol className="flex flex-wrap gap-1 text-[9px]">{STEPS.map((x, i) => <li key={x} className={`rounded px-1.5 py-0.5 ${i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}. {tr(x)}</li>)}</ol>
     {stage === "upload" && <>
-      <p className="import-note">{tr("Upload one Excel workbook with many sheets, or several files together. Each sheet is detected automatically: products, stock, prices, customers, suppliers, contacts, employees, opening balances (Cash, M-Pesa, Bank, credit), sales, purchases with payments, returns and expenses. Accounting, float and commission totals are calculated from these records.")}</p>
+      <p className="import-note">{tr("Upload one Excel workbook with many sheets, or several files together. Each sheet is detected automatically: products, stock, prices, customers, suppliers, contacts, employees, opening balances (Cash, M-Pesa, Bank, credit), sales, purchases with payments, returns, expenses, stock adjustments, stock transfers, float movements and payroll history. Accounting, float and commission totals are calculated from these records.")}</p>
       <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
       <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose workbook or files")}</ShopButton>
-      <ShopButton variant="outline" className="inventory-save" onClick={async () => { const b = await fullTemplate(); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "shopbook-full-business-template.xlsx"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 30000); }}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
+      <ShopButton variant="outline" className="inventory-save" disabled={!tpl} onClick={() => { if (tpl) { downloadBlob(tpl, "shopbook-full-business-template.xlsx"); toast.success(tr("Template downloaded")); } }}><Download className="h-4 w-4" />{tpl ? tr("Download template") : tr("Preparing template…")}</ShopButton>
     </>}
     {stage === "map" && <>
       {plans.map((p) => { const miss = missing(p); return <div key={p.id} className="import-history" style={{ padding: 8 }}>

@@ -5,7 +5,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { useErp } from "@/components/shopbook/product-search";
 import { applyImages, applyImport, reportCsv, errorCsv, FIELDS, history, IMPORT_TYPES, matchImages, parseImportFile, previewRows, readImageFiles, suggestMapping, detectType, template, type DuplicateAction, type ImportHistory, type ImportType, type Mapping, type PreviewRow } from "@/lib/import-center";
 
-const download = (name: string, text: string, type = "text/csv") => { const u = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
+import { download } from "@/lib/download";
 export function ImportCenter({ tr }: { tr: (x: string) => string }) {
   const s = useErp(), fileRef = useRef<HTMLInputElement>(null), imageRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<ImportType>("Products"), [file, setFile] = useState<File | null>(null), [raw, setRaw] = useState<Record<string, unknown>[]>([]), [mapping, setMapping] = useState<Mapping>({}), [selected, setSelected] = useState<Set<string>>(new Set()), [rows, setRows] = useState<PreviewRow[]>([]), [action, setAction] = useState<DuplicateAction>("skip"), [phase, setPhase] = useState<"choose" | "map" | "preview" | "done">("choose"), [result, setResult] = useState<ImportHistory | null>(null), [progress, setProgress] = useState(0), [images, setImages] = useState<ReturnType<typeof matchImages>>([]), [replace, setReplace] = useState(false);

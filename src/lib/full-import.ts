@@ -6,28 +6,30 @@ import { load } from "@/lib/erp";
 import { applyImport, detectType, FIELDS, previewRows, suggestMapping, type ImportType } from "@/lib/import-center";
 import { applyOB, looksLikeOpening, OB_FIELDS, previewOB, saveBatch, suggestOB, type DateFmt, type ImportBatch, type OBIssue, type OBMapping, type Sheet } from "@/lib/opening-import";
 import { applyTX, looksLikeTransactions, previewTX, suggestTX, TX_FIELDS, type TXMapping, type TXOptions } from "@/lib/transaction-import";
+import { applyHistory, HISTORY_CATS, HISTORY_FIELDS, suggestHistory, type HistoryCat } from "@/lib/history-import";
 import { applyRT, previewRT, RT_FIELDS, suggestRT, type RTMapping } from "@/lib/return-import";
 
 type RecordCat = Exclude<ImportType, "Product Images">;
-export type FullCat = RecordCat | "Opening Balances" | "Sales & Purchases" | "Returns" | "Skip";
+export type FullCat = RecordCat | "Opening Balances" | "Sales & Purchases" | "Returns" | HistoryCat | "Skip";
 /** Import order: masters first so later sheets can link to them. */
-export const FULL_ORDER: Exclude<FullCat, "Skip">[] = ["Categories", "Brands", "Products", "Customers", "Suppliers", "Other Contacts", "Employees", "Opening Stock", "Product Prices", "Opening Balances", "Sales & Purchases", "Returns", "Expenses"];
+export const FULL_ORDER: Exclude<FullCat, "Skip">[] = ["Categories", "Brands", "Products", "Customers", "Suppliers", "Other Contacts", "Employees", "Opening Stock", "Product Prices", "Opening Balances", "Sales & Purchases", "Returns", "Expenses", ...HISTORY_CATS];
 export type Field = { key: string; label: string; required?: boolean };
-export const fieldsFor = (c: FullCat): readonly Field[] => c === "Skip" ? [] : c === "Opening Balances" ? OB_FIELDS : c === "Sales & Purchases" ? TX_FIELDS : c === "Returns" ? RT_FIELDS : FIELDS[c];
+export const fieldsFor = (c: FullCat): readonly Field[] => c === "Skip" ? [] : c === "Opening Balances" ? OB_FIELDS : c === "Sales & Purchases" ? TX_FIELDS : c === "Returns" ? RT_FIELDS : (HISTORY_CATS as FullCat[]).includes(c) ? HISTORY_FIELDS[c as HistoryCat] : FIELDS[c as RecordCat];
 /** field key → column name */
 export type FieldMap = Record<string, string | undefined>;
 export type Plan = { id: string; sheet: Sheet; cat: FullCat; map: FieldMap; reason: string };
 export type StageResult = { cat: Exclude<FullCat, "Skip">; sheets: string[]; total: number; created: number; updated: number; skipped: number; rejected: number; issues: OBIssue[]; error?: string };
 export type FullOptions = { dateFmt: DateFmt; stock: TXOptions["stock"]; existing?: "skip" | "update" };
 
-const NAME_HINTS: [RegExp, FullCat][] = [[/opening|balance/, "Opening Balances"], [/return|refund|credit ?note/, "Returns"], [/sale|purchase|invoice|receipt|transaction/, "Sales & Purchases"], [/product|item|inventory|stock ?list/, "Products"], [/customer|client|debtor/, "Customers"], [/supplier|vendor|creditor/, "Suppliers"], [/employee|staff|payroll/, "Employees"], [/expense/, "Expenses"], [/categor/, "Categories"], [/brand/, "Brands"], [/price/, "Product Prices"]];
+const NAME_HINTS: [RegExp, FullCat][] = [[/payroll|salar|wage/, "Payroll History"], [/float|cash ?book|deposit|withdraw/, "Float Movements"], [/transfer/, "Stock Transfers"], [/adjust|stock ?take|stock ?count/, "Stock Adjustments"], [/opening|balance/, "Opening Balances"], [/return|refund|credit ?note/, "Returns"], [/sale|purchase|invoice|receipt|transaction/, "Sales & Purchases"], [/product|item|inventory|stock ?list/, "Products"], [/customer|client|debtor/, "Customers"], [/supplier|vendor|creditor/, "Suppliers"], [/employee|staff|payroll/, "Employees"], [/expense/, "Expenses"], [/categor/, "Categories"], [/brand/, "Brands"], [/price/, "Product Prices"]];
 
 export function suggestFor(cat: FullCat, cols: string[]): FieldMap {
   if (cat === "Skip") return {};
   if (cat === "Opening Balances") return suggestOB(cols);
   if (cat === "Sales & Purchases") return suggestTX(cols);
   if (cat === "Returns") return suggestRT(cols);
-  const m = suggestMapping(cols, cat), out: FieldMap = {};
+  if ((HISTORY_CATS as FullCat[]).includes(cat)) return suggestHistory(cat as HistoryCat, cols);
+  const m = suggestMapping(cols, cat as RecordCat), out: FieldMap = {};
   for (const [col, f] of Object.entries(m)) if (f) out[f] = col;
   return out;
 }
@@ -72,11 +74,16 @@ function runStage(cat: Exclude<FullCat, "Skip">, plans: Plan[], o: FullOptions):
     const r = applyRT(groups);
     return { ...base, total: groups.length, created: r.sales + r.purchases, skipped: r.skipped, rejected: r.rejected, issues: groups.flatMap((g) => g.issues) };
   }
+  if ((HISTORY_CATS as FullCat[]).includes(cat)) {
+    const h = applyHistory(cat as HistoryCat, plans.map((p) => ({ sheet: p.sheet, map: p.map })), { dateFmt: o.dateFmt, stock: o.stock });
+    return { ...base, ...h };
+  }
+  const rc = cat as RecordCat;
   for (const p of plans) {
     const colMap: Record<string, string> = {}; for (const [f, c] of Object.entries(p.map)) if (c) colMap[c] = f;
-    const rows = previewRows(load(), p.sheet.rows, cat, colMap, new Set(Object.keys(p.map).filter((f) => p.map[f])));
+    const rows = previewRows(load(), p.sheet.rows, rc, colMap, new Set(Object.keys(p.map).filter((f) => p.map[f])));
     // Opening Stock and Product Prices exist to change existing products, so they always update; others follow the chosen mode.
-    const h = applyImport(cat, p.sheet.file, rows, colMap, cat === "Opening Stock" || cat === "Product Prices" ? "updateOnly" : o.existing ?? "skip");
+    const h = applyImport(rc, p.sheet.file, rows, colMap, cat === "Opening Stock" || cat === "Product Prices" ? "updateOnly" : o.existing ?? "skip");
     base.total += h.total; base.created += h.imported; base.updated += h.updated; base.skipped += h.skipped; base.rejected += h.failed;
     base.issues.push(...h.errors.map((e) => ({ ...e, file: p.sheet.file, sheet: p.sheet.sheet })));
   }
