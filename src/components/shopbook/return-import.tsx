@@ -6,7 +6,7 @@ import { useErp } from "@/components/shopbook/product-search";
 import { issuesCsv, readSheets, saveBatch, type ImportBatch, type Sheet } from "@/lib/opening-import";
 import { applyRT, exportRT, previewRT, RT_FIELDS, RT_TEMPLATE, rtMappingProblems, suggestRT, type RTGroup, type RTMapping } from "@/lib/return-import";
 
-import { download, downloadBlob } from "@/lib/download";
+import { download } from "@/lib/download";
 
 /** Historical returns: rows sharing a return number become one return against its original sale or purchase. */
 export function ReturnImport({ tr }: { tr: (x: string) => string }) {

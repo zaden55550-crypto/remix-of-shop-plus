@@ -9,7 +9,7 @@ import { ReturnImport } from "@/components/shopbook/return-import";
 import { FullImport } from "@/components/shopbook/full-import";
 import { applyOB, batches, exportOB, issuesCsv, looksLikeOpening, mappingProblems, OB_FIELDS, OB_TEMPLATE, obLabel, previewOB, readSheets, suggestOB, type DateFmt, type ImportBatch, type OBMapping, type OBRow, type Sheet } from "@/lib/opening-import";
 
-import { download, downloadBlob } from "@/lib/download";
+import { download } from "@/lib/download";
 type Cat = "Opening Balances" | "Sales & Purchases" | "Returns" | "Products, contacts & other records";
 type Stage = "upload" | "map" | "preview" | "done";
 
