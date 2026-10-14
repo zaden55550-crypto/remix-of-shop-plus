@@ -122,7 +122,7 @@ export function previewOB(s: ErpState, sheets: { sheet: Sheet; mapping: OBMappin
     if (issues.length) x.status = "INVALID";
     else if (posted.has(key)) { x.status = "DUPLICATE"; iss("Source ID", "Already imported in an earlier batch", "Nothing to do — it will be skipped"); }
     else if (seen.has(key)) { x.status = "DUPLICATE"; iss("Source ID", "Repeated in the uploaded files", "Keep one row per account"); }
-    if (x.status === "VALID") { seen.add(key); x.conflict = conflictFor(s, x); }
+    if (x.status === "VALID") { seen.add(key); const cf = conflictFor(s, x); if (cf) x.conflict = cf; }
     out.push(x);
   });
   return out;
