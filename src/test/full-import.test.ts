@@ -14,7 +14,7 @@ const book = () => {
   add("Sales", [["Type", "Receipt No", "Date", "Customer", "Product", "Qty", "Unit Price", "Cash"], ["Sale", "R-1", "02/01/2026", "Amina Hassan", "Sugar 1kg", 2, 150, 300], ["Sale", "R-2", "03/01/2026", "", "Rice 2kg", 1, 260, 260]]);
   add("Returns", [["Type", "Return No", "Original Receipt", "Date", "Product", "Qty", "Refund"], ["Sale Return", "RET-1", "R-1", "04/01/2026", "Sugar 1kg", 1, "Cash"]]);
   const buf = XLSX.write(wb, { type: "array", bookType: "xlsx" });
-  return new File([buf], "business.xlsx");
+  const f = new File([buf], "business.xlsx"); Object.defineProperty(f, "arrayBuffer", { value: async () => buf }); return f;
 };
 const o = { dateFmt: "DMY" as const, stock: "update" as const };
 
