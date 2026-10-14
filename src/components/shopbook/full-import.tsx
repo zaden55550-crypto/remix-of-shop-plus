@@ -31,7 +31,7 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
       const sheets = await readSheets([...list]), next = planSheets(sheets);
       setPlans(next); setStage("map");
       // Products listed with their current stock already count it, so past sales should not reduce it again.
-      setStock(next.some((p) => (p.cat === "Products" && p.map.qty) || p.cat === "Opening Stock") ? "record" : "update");
+      setStock(next.some((p) => (p.cat === "Products" && p.map["qty"]) || p.cat === "Opening Stock") ? "record" : "update");
       toast.success(`${sheets.length} ${tr("worksheets detected")}`);
     } catch (e) { toast.error(e instanceof Error ? e.message : tr("Files could not be read")); }
     if (ref.current) ref.current.value = "";
