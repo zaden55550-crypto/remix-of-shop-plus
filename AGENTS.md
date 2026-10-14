@@ -41,3 +41,4 @@
 - Settings: 12 ordered categories; imports use one atomic commit. Business AI is read-only, session-only, server-side.
 - Phone sync: one row per owner; ERP merged by record id with revision-checked writes so concurrent saves never overwrite.
 - Resets stamp `seq['__reset:<collection>']`; sync merge drops older records so a stale phone can't restore deleted data.
+- Opening balances import as OPENING rows in the payments ledger with an importKey (src/lib/opening-import.ts), so they never count as sales/expenses and re-imports never double-post.
