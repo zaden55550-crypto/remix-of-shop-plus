@@ -6,6 +6,7 @@ import { useErp } from "@/components/shopbook/product-search";
 import { ImportCenter } from "@/components/shopbook/import-center";
 import { TransactionImport } from "@/components/shopbook/transaction-import";
 import { ReturnImport } from "@/components/shopbook/return-import";
+import { FullImport } from "@/components/shopbook/full-import";
 import { applyOB, batches, exportOB, issuesCsv, looksLikeOpening, mappingProblems, OB_FIELDS, OB_TEMPLATE, obLabel, previewOB, readSheets, suggestOB, type DateFmt, type ImportBatch, type OBMapping, type OBRow, type Sheet } from "@/lib/opening-import";
 
 const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
@@ -15,6 +16,7 @@ type Stage = "upload" | "map" | "preview" | "done";
 /** Universal Import Center: one workspace, multi-file, multi-sheet, staged and atomic. */
 export function UniversalImport({ tr }: { tr: (x: string) => string }) {
   const s = useErp(), ref = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<"full" | "category">("full");
   const [cat, setCat] = useState<Cat>("Opening Balances");
   const [stage, setStage] = useState<Stage>("upload");
   const [sheets, setSheets] = useState<Sheet[]>([]);
@@ -48,7 +50,9 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
   };
 
   return <div className="import-center">
-    <div className="flex items-center justify-between"><h3>{tr("Universal Import Center")}</h3>{stage !== "upload" && <ShopButton variant="bare" className="inventory-icon-button" aria-label={tr("Cancel")} onClick={reset}><X className="h-4 w-4" /></ShopButton>}</div>
+    <div className="flex items-center justify-between"><h3>{tr("Universal Import Center")}</h3>{mode === "category" && stage !== "upload" && <ShopButton variant="bare" className="inventory-icon-button" aria-label={tr("Cancel")} onClick={reset}><X className="h-4 w-4" /></ShopButton>}</div>
+    <div className="grid grid-cols-2 gap-1" role="tablist">{(["full", "category"] as const).map((m) => <ShopButton key={m} role="tab" aria-selected={mode === m} variant={mode === m ? "default" : "outline"} className="h-8 text-[11px]" onClick={() => setMode(m)}>{tr(m === "full" ? "Full Business Import" : "Import by Category")}</ShopButton>)}</div>
+    {mode === "full" ? <FullImport tr={tr} /> : <>
     {stage === "upload" && <label className="inventory-field"><span>{tr("Data category")}</span><select className="inventory-input" value={cat} onChange={(e) => setCat(e.target.value as Cat)}><option value="Opening Balances">{tr("Opening Balances")}</option><option value="Sales & Purchases">{tr("Sales & Purchases")}</option><option value="Returns">{tr("Returns")}</option><option value="Products, contacts & other records">{tr("Products, contacts & other records")}</option></select></label>}
     {cat === "Sales & Purchases" ? <TransactionImport tr={tr} /> : cat === "Returns" ? <ReturnImport tr={tr} /> : cat !== "Opening Balances" ? <ImportCenter tr={tr} /> : <>
       {stage === "upload" && <>
@@ -84,6 +88,7 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
         <ShopButton className="inventory-save" disabled={!live.length || busy || (conflicts.length > 0 && !ack)} onClick={run}>{busy ? tr("Processing…") : `${tr("Import")} ${live.length} ${tr("opening balances")}`}</ShopButton>
       </>}
       {stage === "done" && result && <div className="import-done"><FileSpreadsheet className="h-8 w-8 text-primary" /><b>{tr(result.status)}</b><span>✓ {tr("Created")}: {result.created}</span><span>⚠ {tr("Skipped")}: {result.skipped}</span><span>✕ {tr("Rejected")}: {result.rejected}</span>{result.reconciliation.map((x) => <span key={x}>{x}</span>)}{result.errors.length > 0 && <ShopButton variant="outline" className="inventory-save" onClick={() => download("shopbook-import-errors.csv", issuesCsv(result.errors))}>{tr("Download error report")}</ShopButton>}<ShopButton className="inventory-save" onClick={reset}>{tr("New import")}</ShopButton></div>}
+    </>}
     </>}
   </div>;
 }

@@ -20,7 +20,6 @@ export type Plan = { id: string; sheet: Sheet; cat: FullCat; map: FieldMap; reas
 export type StageResult = { cat: Exclude<FullCat, "Skip">; sheets: string[]; total: number; created: number; updated: number; skipped: number; rejected: number; issues: OBIssue[]; error?: string };
 export type FullOptions = { dateFmt: DateFmt; stock: TXOptions["stock"] };
 
-const k = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
 const NAME_HINTS: [RegExp, FullCat][] = [[/opening|balance/, "Opening Balances"], [/return|refund|credit ?note/, "Returns"], [/sale|purchase|invoice|receipt|transaction/, "Sales & Purchases"], [/product|item|inventory|stock ?list/, "Products"], [/customer|client|debtor/, "Customers"], [/supplier|vendor|creditor/, "Suppliers"], [/employee|staff|payroll/, "Employees"], [/expense/, "Expenses"], [/categor/, "Categories"], [/brand/, "Brands"], [/price/, "Product Prices"]];
 
 export function suggestFor(cat: FullCat, cols: string[]): FieldMap {
