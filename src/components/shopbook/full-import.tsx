@@ -20,7 +20,8 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   const [results, setResults] = useState<StageResult[]>([]);
   const [batch, setBatch] = useState<ImportBatch | null>(null);
   const [busy, setBusy] = useState(false);
-  const opts: FullOptions = { dateFmt: fmt, stock };
+  const [existing, setExisting] = useState<"skip" | "update">("skip");
+  const opts: FullOptions = { dateFmt: fmt, stock, existing };
   const step = stage === "upload" ? 0 : stage === "map" ? 2 : stage === "preview" ? 4 : 6;
   const reset = () => { setStage("upload"); setPlans([]); setResults([]); setBatch(null); };
   const blocked = plans.filter((p) => p.cat !== "Skip" && missing(p).length);
@@ -65,6 +66,8 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
       </div>; })}
       <label className="inventory-field"><span>{tr("Date format in file")}</span><select className="inventory-input" value={fmt} onChange={(e) => setFmt(e.target.value as DateFmt)}><option value="auto">{tr("Detect automatically")}</option><option value="DMY">DD/MM/YYYY</option><option value="MDY">MM/DD/YYYY</option><option value="YMD">YYYY-MM-DD</option></select></label>
       <label className="inventory-field"><span>{tr("Past sales & purchases")}</span><select className="inventory-input" value={stock} onChange={(e) => setStock(e.target.value as FullOptions["stock"])}><option value="update">{tr("Update stock quantities")}</option><option value="record">{tr("Record history only (stock already counted)")}</option></select></label>
+      <label className="inventory-field"><span>{tr("Records already in the shop")}</span><select className="inventory-input" value={existing} onChange={(e) => setExisting(e.target.value as "skip" | "update")}><option value="skip">{tr("Skip them")}</option><option value="update">{tr("Update their details and prices")}</option></select></label>
+      <p className="import-note">{tr("Opening Stock and Product Prices sheets always update matching products; repeating the same file sets the same values, never adds stock twice.")}</p>
       <ShopButton variant="outline" className="inventory-save" onClick={reset}>{tr("Cancel")}</ShopButton>
       <ShopButton className="inventory-save" disabled={!active.length || blocked.length > 0 || busy} onClick={validate}>{busy ? tr("Processing…") : tr("Validate & preview")}</ShopButton>
     </>}
