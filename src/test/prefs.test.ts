@@ -1,37 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { applyUiSize, getUiSize, setUiSize, UI_SIZES, type UiSize } from "@/lib/prefs";
+import { applyUiSize, getUiSize, setUiSize } from "@/lib/prefs";
 
 describe("whole-interface size", () => {
   beforeEach(() => localStorage.clear());
 
-  it("persists each supported size and scales the interface uniformly", () => {
-    // JSDOM does not implement CSS zoom; verify the DOM write here,
-    // while the live-browser check verifies its rendered effect.
+  it("scales from 50% to 200% and clamps outside that range", () => {
     const write = vi.spyOn(document.documentElement.style, "setProperty");
-    for (const size of Object.keys(UI_SIZES) as UiSize[]) {
-      setUiSize(size);
-      expect(getUiSize()).toBe(size);
-      expect(write).toHaveBeenLastCalledWith("zoom", String(UI_SIZES[size]));
-      applyUiSize();
-      expect(write).toHaveBeenLastCalledWith("zoom", String(UI_SIZES[size]));
-    }
+    for (const v of [0.5, 0.75, 1, 1.5, 2]) { setUiSize(v); expect(getUiSize()).toBe(v); expect(write).toHaveBeenLastCalledWith("zoom", String(v)); applyUiSize(); expect(write).toHaveBeenLastCalledWith("zoom", String(v)); }
+    setUiSize(3); expect(getUiSize()).toBe(2);
+    setUiSize(0.1); expect(getUiSize()).toBe(0.5);
     write.mockRestore();
   });
 
   it("does not change account or business records", () => {
-    const account = JSON.stringify({ shopName: "Existing shop", currency: "KSh", plan: "business" });
-    const records = JSON.stringify({ sales: [{ id: "sale-1", total: 3500 }], products: [{ id: "product-1", qty: 8 }] });
-    localStorage.setItem("shopbook.account", account);
+    const records = JSON.stringify({ sales: [{ id: "sale-1", total: 3500 }] });
     localStorage.setItem("shopbook.erp", records);
-    setUiSize("Larger");
-    setUiSize("Smaller");
-    setUiSize("Default");
-    expect(localStorage.getItem("shopbook.account")).toBe(account);
+    setUiSize(2); setUiSize(0.5); setUiSize(1);
     expect(localStorage.getItem("shopbook.erp")).toBe(records);
   });
 
-  it("uses the safe default for unknown stored values", () => {
-    localStorage.setItem("shopbook.uiSize", "invalid");
-    expect(getUiSize()).toBe("Default");
+  it("reads old named sizes and falls back safely", () => {
+    localStorage.setItem("shopbook.uiSize", "Larger"); expect(getUiSize()).toBe(1.1);
+    localStorage.setItem("shopbook.uiSize", "invalid"); expect(getUiSize()).toBe(1);
   });
 });

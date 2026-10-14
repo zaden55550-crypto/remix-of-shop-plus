@@ -15,7 +15,7 @@ import { APPS, canOpen, PLANS, store } from "@/lib/shopbook";
 import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
-import { applyUiSize, setTax, setUiSize, UI_SIZES, usePrefs, type UiSize } from "@/lib/prefs";
+import { applyUiSize, setTax, setUiSize, UI_MAX, UI_MIN, UI_STEP, usePrefs } from "@/lib/prefs";
 import { applySettings, useSettings, type SettingsConfig } from "@/lib/settings-config";
 import { useBackupStatus } from "@/lib/cloud-backup";
 import { listCloudBackups, getCloudBackup } from "@/lib/backup.functions";
@@ -107,9 +107,9 @@ function SettingsAccordion({ title, description, forceOpen, children }: { title:
   return <section className={`settings-section settings-acc${shown ? " is-open" : ""}`}><ShopButton variant="bare" type="button" className="settings-acc-head" aria-expanded={shown} aria-controls={id} onClick={() => setOpen(!open)}><span className="settings-acc-label"><span>{title}</span>{description && <small>{description}</small>}</span>{shown ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</ShopButton><div id={id} className="settings-acc-wrap" role="region" aria-label={title} inert={!shown} aria-hidden={!shown}><div className="settings-acc-inner"><div className="settings-section-body">{children}</div></div></div></section>;
 }
 
-const SIZE_ORDER: UiSize[] = ["Larger", "Default", "Compact", "Smaller"];
-function InterfaceSize({ size, tr }: { size: UiSize; tr: (x: string) => string }) {
-  return <div className="settings-size-control"><div className="settings-slider" dir="ltr"><span>{tr("Larger")}</span><input aria-label={tr("Interface Size")} aria-valuetext={`${tr(size)} (${Math.round(UI_SIZES[size] * 100)}%)`} type="range" min={0} max={SIZE_ORDER.length - 1} step={1} value={SIZE_ORDER.indexOf(size)} onChange={(e) => { const next = SIZE_ORDER[Number(e.target.value)]; if (next) setUiSize(next); }} /><span>{tr("Smaller")}</span></div><div className="settings-inline"><output aria-live="polite">{tr(size)} · {Math.round(UI_SIZES[size] * 100)}%</output><ShopButton variant="outline" className="settings-mini" onClick={() => setUiSize("Default")}>{tr("Reset to default")}</ShopButton></div></div>;
+function InterfaceSize({ size, tr }: { size: number; tr: (x: string) => string }) {
+  const pct = Math.round(size * 100);
+  return <div className="settings-size-control"><div className="settings-slider" dir="ltr"><span>{tr("Smaller")} 50%</span><input aria-label={tr("Interface Size")} aria-valuetext={`${pct}%`} type="range" min={UI_MIN} max={UI_MAX} step={UI_STEP} value={size} onChange={(e) => setUiSize(Number(e.target.value))} /><span>{tr("Larger")} 200%</span></div><div className="settings-inline"><output aria-live="polite">{pct}%</output><ShopButton variant="outline" className="settings-mini" onClick={() => setUiSize(1)}>{tr("Reset to default")}</ShopButton></div></div>;
 }
 function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveCfg, saveAccount, nav }: { name: string; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; tr: (x: string) => string; language: string; setLanguage: (x: never) => void; prefs: ReturnType<typeof usePrefs>; cfg: SettingsConfig; saveCfg: (p: Partial<SettingsConfig>) => void; saveAccount: (p: Partial<typeof acct>) => void; nav: ReturnType<typeof useNavigate> }) {
   const L = ({ label, children }: { label: string; children: ReactNode }) => <label className="inventory-field"><span>{tr(label)}</span>{children}</label>;
