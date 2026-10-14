@@ -20,9 +20,8 @@
 - Dashboard reads the shared ERP snapshot without mutations; unavailable financial sources stay unset rather than presenting fabricated totals.
 - Keep reorder AI helpers server-only and require Cloud identity for paid AI requests; recommendations are advisory and never mutate ERP stock or purchase records.
 - Commission is a ledger in the ERP state: returns append negative adjustment rows instead of editing earned rows, so history stays auditable.
-- Record per-product commission amounts when earning commission and reverse returned items from those recorded amounts; historical rows without allocations retain their legacy fallback.
+- Commission rows record per-product amounts; returns reverse from those (legacy rows fall back).
 - Reports (`src/lib/reports.ts`) are read-only builders over the ERP snapshot; sources that don't exist yet return null and render as a dash.
-- Backups are whole-ERP JSON files validated before restore; they include allowlisted Settings/import history and roll back on failure.
 - Purchases, expenses, supplier payments and float moves are signed rows in the shared `payments` ledger (`src/lib/finance.ts`), so Float, POS cash-up and Accounting read one money source.
 - Accounting (`src/lib/accounting.ts`) is a read-only double-entry journal derived from ERP records; never store separate ledger rows that could drift.
 - Demo seed lives in src/lib/demo.ts and only calls public ERP actions; it loads only into an empty shop and reset works only on demo-flagged devices, so real records are never wiped.
@@ -35,7 +34,7 @@
 - Accounting and Float share the ERP shell and money-ui controls; money-activity builds read-only financial documents and actual account movements separately to prevent double-counting.
 - Cash-up goes through the shared ERP cashUp action (one history for POS and Float).
 - Cloud backup mounts once at root; per user/device with revision checks; restore is explicit.
-- Backups exclude passwords, sessions, entitlements; restore validates all collections atomically.
+- Backups are whole-ERP JSON (plus allowlisted Settings/import history), exclude passwords/sessions/entitlements, and restore validates atomically with rollback.
 - Contacts/Payroll share ERP shell and people actions; settlements atomic; employees separate from contacts.
 - Charts use read-only chart-data/accounting series shared by overviews, Reports and Summary.
 - Settings: 12 ordered categories; imports use one atomic commit. Business AI is read-only, session-only, server-side.
