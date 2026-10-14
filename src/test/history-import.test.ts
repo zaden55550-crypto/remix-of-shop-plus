@@ -1,5 +1,5 @@
 import { test, expect, beforeEach } from "vitest";
-import { load, addProduct } from "@/lib/erp";
+import { load } from "@/lib/erp";
 import { applyHistory } from "@/lib/history-import";
 import { floatBalances } from "@/lib/finance";
 beforeEach(() => localStorage.clear());
