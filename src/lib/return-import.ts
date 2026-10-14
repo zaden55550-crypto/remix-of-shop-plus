@@ -8,7 +8,7 @@ import { findProduct, type TXIssue } from "@/lib/transaction-import";
 export const RT_FIELDS = [
   { key: "type", label: "Sale or purchase return", required: false, aliases: ["type", "return type", "kind"] },
   { key: "ref", label: "Return number", required: true, aliases: ["return no", "return number", "return ref", "credit note", "credit note no", "ref", "return id"] },
-  { key: "original", label: "Original receipt / invoice", required: true, aliases: ["original", "original receipt", "receipt", "receipt no", "invoice", "invoice no", "sale ref", "purchase ref", "original ref"] },
+  { key: "original", label: "Original receipt / invoice", required: true, aliases: ["original", "original receipt", "receipt", "receipt no", "invoice", "invoice no", "sale ref", "purchase ref", "original ref", "original transaction", "original transaction id", "original id", "transaction id", "sale id", "purchase id", "source id", "original sale", "original purchase", "original invoice"] },
   { key: "date", label: "Date", required: true, aliases: ["date", "return date"] },
   { key: "product", label: "Product (name, SKU or barcode)", required: true, aliases: ["product", "item", "product name", "sku", "barcode"] },
   { key: "qty", label: "Quantity returned", required: true, aliases: ["qty", "quantity", "returned", "qty returned"] },
