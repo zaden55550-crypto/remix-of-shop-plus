@@ -23,6 +23,7 @@ export function resetData(groups: string[], everything: boolean) {
     if (keys.includes("purchases") || keys.includes("payments")) s.suppliers.forEach((x) => { x.balance = 0; });
     if (keys.includes("movements")) s.products.forEach((p) => { p.qty = 0; });
     if (everything) { s.audit = []; s.seq = {}; }
+    const now = Date.now(); for (const k of keys) s.seq[`__reset:${String(k)}`] = now;
     c.audit(everything ? "ALL DATA DELETED" : "DATA DELETED", everything ? "Shop reset to a new start" : groups.join(", "));
   });
   if (everything) LOCAL_KEYS.forEach((k) => localStorage.removeItem(k));

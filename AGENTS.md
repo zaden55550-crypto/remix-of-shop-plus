@@ -39,3 +39,4 @@
 - Charts use read-only chart-data/accounting series shared by overviews, Reports and Summary.
 - Settings: 12 ordered categories; imports use one atomic commit. Business AI is read-only, session-only, server-side.
 - Phone sync: one row per owner; ERP merged by record id with revision-checked writes so concurrent saves never overwrite.
+- Resets stamp `seq['__reset:<collection>']`; sync merge drops older records so a stale phone can't restore deleted data.

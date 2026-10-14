@@ -1,3 +1,4 @@
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp, Download, Search, Store, Upload } from "lucide-react";
@@ -148,13 +149,17 @@ function BackupPanel({ tr, acct }: { tr: (x: string) => string; acct: NonNullabl
 }
 function LogoSetting({ value, onSave, tr }: { value?: string | undefined; onSave: (v: string) => void; tr: (x: string) => string }) { const [image, setImage] = useState(value ?? ""), file = useRef<HTMLInputElement>(null); return <><div className="settings-logo">{image ? <img src={image} alt="" /> : <Store className="h-8 w-8" />}</div><input ref={file} hidden type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (!f) return; const r = new FileReader(); r.onload = () => setImage(String(r.result)); r.readAsDataURL(f); }} /><ShopButton className="inventory-save" onClick={() => file.current?.click()}>{tr("Choose logo")}</ShopButton>{image && <ShopButton variant="outline" className="inventory-save" onClick={() => onSave(image)}>{tr("Save")}</ShopButton>}</>; }
 function ResetPanel({ tr }: { tr: (x: string) => string }) {
-  const [pick, setPick] = useState<string[]>([]), [all, setAll] = useState(false), [word, setWord] = useState("");
-  const go = () => { if (word.trim().toUpperCase() !== "DELETE") return void toast.error(tr("Type DELETE to confirm")); try { resetData(pick, all); toast.success(tr(all ? "Shop reset like a new user" : "Selected data deleted")); setPick([]); setAll(false); setWord(""); } catch (e) { toast.error(e instanceof Error ? tr(e.message) : tr("Delete failed")); } };
+  const [pick, setPick] = useState<string[]>([]), [all, setAll] = useState(false), [ask, setAsk] = useState(false), [busy, setBusy] = useState(false);
+  const go = () => { if (busy) return; setBusy(true); try { resetData(pick, all); toast.success(tr(all ? "Business data reset successfully. You can now start a new shop setup." : "Selected data deleted")); setPick([]); setAll(false); } catch (e) { toast.error(e instanceof Error ? tr(e.message) : tr("Delete failed")); } finally { setBusy(false); setAsk(false); } };
   return <div className="import-center"><p className="settings-note">{tr("Download a backup first. Deleted records cannot be recovered.")}</p>
     <div>{Object.keys(RESET_GROUPS).map((g) => <label key={g} className="settings-toggle"><span>{tr(g)}</span><input type="checkbox" disabled={all} checked={all || pick.includes(g)} onChange={(e) => setPick(e.target.checked ? [...pick, g] : pick.filter((x) => x !== g))} /></label>)}
     <label className="settings-toggle"><span><b>{tr("Delete everything (start as a new user)")}</b></span><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /></label></div>
-    <input className={inputCls} value={word} onChange={(e) => setWord(e.target.value)} placeholder={tr("Type DELETE to confirm")} />
-    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={!all && !pick.length} onClick={go}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton></div>;
+    <ShopButton className="inventory-save bg-destructive text-destructive-foreground" disabled={(!all && !pick.length) || busy} onClick={() => setAsk(true)}>{tr(all ? "Delete all data" : "Delete selected data")}</ShopButton>
+    <AlertDialog open={ask} onOpenChange={(o) => { if (!busy) setAsk(o); }}><AlertDialogContent>
+      <AlertDialogHeader><AlertDialogTitle>{tr(all ? "Are you sure you want to delete everything?" : "Are you sure you want to delete the selected data?")}</AlertDialogTitle>
+      <AlertDialogDescription>{tr(all ? "This will permanently remove the selected business data and reset your shop so you can start as a new user. This action cannot be undone from the application." : "This will permanently remove the selected business data. This action cannot be undone from the application.")}</AlertDialogDescription></AlertDialogHeader>
+      <AlertDialogFooter><AlertDialogCancel disabled={busy}>{tr("No, keep my data")}</AlertDialogCancel><AlertDialogAction disabled={busy} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={(e) => { e.preventDefault(); go(); }}>{tr(all ? "Yes, delete everything" : "Yes, delete selected data")}</AlertDialogAction></AlertDialogFooter>
+    </AlertDialogContent></AlertDialog></div>;
 }
 const csvCell = (v: unknown) => `"${String(v ?? "").replaceAll('"', '""')}"`;
 const csvDownload = (name: string, head: string[], rows: unknown[][]) => { const text = [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n"); const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
