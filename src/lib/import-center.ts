@@ -9,7 +9,7 @@ export type RawRow = Record<string, unknown>;
 export type Mapping = Record<string, string>;
 export type ImportIssue = { row: number; field: string; problem: string; suggestion: string };
 export type MappedValues = { name?: string | number; phone?: string | number; email?: string | number; address?: string | number; category?: string | number; brand?: string | number; sku?: string | number; barcode?: string | number; buy?: string | number; sell?: string | number; qty?: string | number; minStock?: string | number; unit?: string | number; image?: string | number; match?: string | number; amount?: string | number; method?: string | number; description?: string | number; date?: string | number; role?: string | number; salary?: string | number; [key: string]: string | number | undefined };
-export type PreviewRow = { row: number; values: MappedValues; status: "NEW" | "EXISTING" | "DUPLICATE" | "POSSIBLE MATCH" | "INVALID"; issues: ImportIssue[]; existingId?: string | undefined; matchField?: string; source?: "file" | "shop"; existingName?: string; diffs?: { field: string; existing: string; uploaded: string }[]; identical?: boolean; recommend?: string; excluded?: boolean };
+export type PreviewRow = { row: number; values: MappedValues; status: "NEW" | "EXISTING" | "DUPLICATE" | "POSSIBLE MATCH" | "INVALID"; issues: ImportIssue[]; existingId?: string | undefined; matchField?: string | undefined; source?: "file" | "shop" | undefined; existingName?: string | undefined; diffs?: { field: string; existing: string; uploaded: string }[]; identical?: boolean; recommend?: string; excluded?: boolean };
 export type ImportHistory = { id: string; at: number; file: string; type: ImportType; total: number; imported: number; updated: number; skipped: number; failed: number; errors: ImportIssue[]; mapping: Mapping };
 
 export const FIELDS: Record<Exclude<ImportType, "Product Images">, { key: string; label: string; required?: boolean; aliases: string[] }[]> = {
@@ -77,15 +77,15 @@ type Rec = { id: string; name?: string } & Record<string, unknown>;
 function matchFor(s: ErpState, type: ImportType, v: MappedValues): { rec: Rec; field: string } | undefined {
   const n = key(v.name), phone = key(v.phone), match = key(v.match);
   const by = (list: Rec[], tests: [string, (x: Rec) => boolean][]) => { for (const [field, t] of tests) { const r = list.find(t); if (r) return { rec: r, field }; } return undefined; };
-  const people = (list: Rec[]) => by(list, [["Phone", (x) => !!phone && key(x.phone) === phone], ["Name", (x) => !!n && key(x.name) === n]]);
-  if (type === "Products") return by(s.products as unknown as Rec[], [["SKU", (p) => !!key(v.sku) && key(p.sku) === key(v.sku)], ["Barcode", (p) => !!key(v.barcode) && key(p.barcode) === key(v.barcode)], ["Product Name", (p) => !!n && key(p.name) === n]]);
+  const people = (list: Rec[]) => by(list, [["Phone", (x) => !!phone && key(x["phone"]) === phone], ["Name", (x) => !!n && key(x.name) === n]]);
+  if (type === "Products") return by(s.products as unknown as Rec[], [["SKU", (p) => !!key(v.sku) && key(p["sku"]) === key(v.sku)], ["Barcode", (p) => !!key(v.barcode) && key(p["barcode"]) === key(v.barcode)], ["Product Name", (p) => !!n && key(p.name) === n]]);
   if (type === "Customers") return people(s.customers as unknown as Rec[]);
   if (type === "Suppliers") return people(s.suppliers as unknown as Rec[]);
   if (type === "Other Contacts") return people(s.otherContacts as unknown as Rec[]);
   if (type === "Employees") return people(s.employees as unknown as Rec[]);
   if (type === "Categories") return by(s.categories as unknown as Rec[], [["Name", (x) => !!n && key(x.name) === n]]);
   if (type === "Brands") return by(s.brands as unknown as Rec[], [["Name", (x) => !!n && key(x.name) === n]]);
-  if (type === "Opening Stock" || type === "Product Prices") return by(s.products as unknown as Rec[], [["SKU / Barcode / Name", (p) => !!match && [p.sku, p.barcode, p.name].some((x) => key(x) === match)]]);
+  if (type === "Opening Stock" || type === "Product Prices") return by(s.products as unknown as Rec[], [["SKU / Barcode / Name", (p) => !!match && [p["sku"], p["barcode"], p.name].some((x) => key(x) === match)]]);
   return undefined;
 }
 export function previewRows(s: ErpState, rows: RawRow[], type: Exclude<ImportType, "Product Images">, mapping: Mapping, selected: Set<string>): PreviewRow[] {
