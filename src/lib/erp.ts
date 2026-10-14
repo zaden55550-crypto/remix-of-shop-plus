@@ -90,7 +90,7 @@ function makeCtx(s: ErpState) {
       const p = s.products.find((x) => x.id === productId);
       if (!p) throw new ErpError("Product not found");
       if (!Number.isFinite(delta) || delta === 0) throw new ErpError("Enter a valid quantity");
-      const next = p.qty + delta;
+      const next = Math.round((p.qty + delta) * 1000) / 1000;
       if (next < 0) throw new ErpError(`Not enough stock for ${p.name} (available ${p.qty})`);
       s.movements.unshift({ id: uid(), at: Date.now(), type, productId, qty: delta, prev: p.qty, next, reason, source, user });
       p.qty = next;
@@ -209,9 +209,14 @@ export const removeNamed = (kind: "categories" | "brands", id: string) => commit
 });
 
 // ---------- Selling engine (shared by Sales → New Sale and POS → Sell) ----------
-export type CartLine = { productId: string; qty: number };
-export const lineTotal = (s: ErpState, cart: CartLine[]) =>
-  cart.reduce((a, l) => a + (s.products.find((p) => p.id === l.productId)?.sell ?? 0) * l.qty, 0);
+/** `price` is a one-sale override (manual/wholesale); the product's default price is never changed. Quantities may be fractional (3 decimals). */
+export type CartLine = { productId: string; qty: number; price?: number | undefined; priceReason?: string | undefined };
+export const roundQty = (q: number) => Math.round(q * 1000) / 1000;
+export const linePrice = (s: ErpState, l: CartLine) => l.price ?? s.products.find((p) => p.id === l.productId)?.sell ?? 0;
+export const lineAmount = (s: ErpState, l: CartLine) => Math.round(linePrice(s, l) * l.qty * 100) / 100;
+export const lineTotal = (s: ErpState, cart: CartLine[]) => Math.round(cart.reduce((a, l) => a + lineAmount(s, l), 0) * 100) / 100;
+/** Option B: quantity for a money amount at the unit price. Exact only if amount/price fits 3 decimals. */
+export function qtyForAmount(amount: number, price: number) { if (!(amount > 0) || !(price > 0)) return null; const raw = amount / price, qty = roundQty(raw); return { qty, exact: Math.abs(qty * price - amount) < 0.005 }; }
 export const methodOf = (pay: Record<Method, number>) => {
   const used = METHODS.filter((m) => pay[m] > 0);
   return used.length ? used.map((m) => METHOD_LABEL[m]).join(" + ") : "—";
@@ -242,11 +247,15 @@ export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Re
   const items: SaleItem[] = input.cart.map((l) => {
     const p = s.products.find((x) => x.id === l.productId);
     if (!p) throw new ErpError("Product not found");
-    if (!(l.qty > 0)) throw new ErpError(`Invalid quantity for ${p.name}`);
-    if (l.qty > p.qty) throw new ErpError(`Insufficient stock: ${p.name} (available ${p.qty})`);
-    return { productId: p.id, name: p.name, qty: l.qty, price: p.sell, cost: p.buy, returned: 0 };
+    const qty = roundQty(l.qty);
+    if (!(qty > 0) || !Number.isFinite(qty)) throw new ErpError(`Invalid quantity for ${p.name}`);
+    if (qty > p.qty + 1e-9) throw new ErpError(`Insufficient stock: ${p.name} (available ${p.qty})`);
+    if (l.price !== undefined && !(l.price >= 0 && Number.isFinite(l.price))) throw new ErpError(`Invalid price for ${p.name}`);
+    if (l.price !== undefined && l.price !== p.sell) c.audit("PRICE OVERRIDE", `${p.name}: ${p.sell} → ${l.price}${l.priceReason ? ` • ${l.priceReason}` : ""}`);
+    return { productId: p.id, name: p.name, qty, price: l.price ?? p.sell, cost: p.buy, returned: 0 };
   });
-  const subtotal = items.reduce((a, i) => a + i.qty * i.price, 0);
+  if (new Set(items.map((i) => i.productId)).size !== items.length) throw new ErpError("A product appears twice in the cart");
+  const subtotal = Math.round(items.reduce((a, i) => a + i.qty * i.price, 0) * 100) / 100;
   const discount = Math.round(input.discount * 100) / 100;
   if (discount < 0 || discount > subtotal) throw new ErpError("Discount can't exceed the subtotal");
   const rate = Math.min(100, Math.max(0, input.vatRate ?? 0));
