@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronDown, ChevronRight, Delete, Minus, Plus, Save, ShoppingCart, Trash2, X } from "lucide-react";
+import { ArrowRight, ChevronRight, Delete, Minus, Plus, Save, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { LineEditor } from "@/components/shopbook/line-editor";
@@ -46,8 +46,8 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
         const unit = p.unit || "pcs";
         return <div className="cart-line" key={p.id}>
           <ShopButton variant="bare" className="cart-product" onClick={() => setEdit(l)} title={tr("Edit price and amount")}><b>{p.name}</b><small>{money(erp.linePrice(s, l))} / {unit}</small></ShopButton>
-          <div className="cart-stepper"><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Decrease")} ${p.name}`} disabled={l.qty <= 1} onClick={() => change(l, l.qty - 1)}><Minus className="h-3.5 w-3.5" /></ShopButton><ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Increase")} ${p.name}`} onClick={() => change(l, l.qty + 1)}><Plus className="h-3.5 w-3.5" /></ShopButton></div>
-          <span className="cart-unit" title={tr("Selling unit")}>{unit}<ChevronDown className="h-3 w-3" /></span>
+          <div className="cart-stepper"><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Decrease")} ${p.name}`} disabled={l.qty <= 0.001} onClick={() => change(l, Math.max(0.001, l.qty - (l.qty <= 1 ? 0.25 : 1)))}><Minus className="h-3.5 w-3.5" /></ShopButton><ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Increase")} ${p.name}`} onClick={() => change(l, l.qty + 1)}><Plus className="h-3.5 w-3.5" /></ShopButton></div>
+          <select className="cart-unit" aria-label={`${tr("Selling unit")} ${p.name}`} value={unit} onChange={() => {}}><option value={unit}>{unit}</option></select>
           <b className="cart-amount">{money(erp.lineAmount(s, l))}</b>
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></ShopButton>
         </div>;
