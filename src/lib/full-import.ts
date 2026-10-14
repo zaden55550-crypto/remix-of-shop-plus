@@ -121,7 +121,7 @@ export async function fullTemplateBytes(): Promise<ArrayBuffer> {
   const help = [["SHOPBOOK Full Business Import template"], ["Fill one row per record in each sheet. Required columns are listed below each sheet name in the app mapping step. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Sales & Purchases / Returns: one item per row; rows sharing a receipt number become one transaction."], ["Import order is automatic: " + FULL_ORDER.join(" → ")]];
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(help), "Instructions");
   for (const c of FULL_ORDER) {
-    const heads = fieldsFor(c).map((f) => f.label);
+    const heads = fieldsFor(c).map((f) => { const a = (f as Field & { aliases?: string[] }).aliases?.find((x) => x.includes(" ")); return a ? a.replace(/\b\w/g, (m) => m.toUpperCase()) : f.label; });
     const ws = XLSX.utils.aoa_to_sheet([heads]);
     ws["!cols"] = heads.map((h) => ({ wch: Math.max(12, h.length + 2) }));
     XLSX.utils.book_append_sheet(wb, ws, c.replace(/[\\/?*[\]:&]/g, "-").slice(0, 31));
