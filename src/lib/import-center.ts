@@ -14,21 +14,21 @@ export type ImportHistory = { id: string; at: number; file: string; type: Import
 
 export const FIELDS: Record<Exclude<ImportType, "Product Images">, { key: string; label: string; required?: boolean; aliases: string[] }[]> = {
   Products: [
-    { key: "name", label: "Product Name", required: true, aliases: ["product", "product name", "name", "item"] },
-    { key: "sku", label: "SKU", aliases: ["sku", "item code", "product code"] }, { key: "barcode", label: "Barcode", aliases: ["barcode", "bar code", "qr code"] },
-    { key: "buy", label: "Buying Price", required: true, aliases: ["buy", "buying price", "cost", "cost price"] }, { key: "sell", label: "Selling Price", required: true, aliases: ["sell", "selling price", "retail", "retail price"] },
-    { key: "qty", label: "Quantity", aliases: ["qty", "quantity", "opening stock", "stock"] }, { key: "minStock", label: "Minimum Stock", aliases: ["minimum stock", "min stock", "low stock"] },
-    { key: "category", label: "Category", aliases: ["category"] }, { key: "brand", label: "Brand", aliases: ["brand", "make"] }, { key: "unit", label: "Unit", aliases: ["unit", "uom"] }, { key: "image", label: "Product Image", aliases: ["image", "image url", "photo"] },
+    { key: "name", label: "Product Name", required: true, aliases: ["product", "product name", "name", "item", "item name", "product_name", "description", "goods"] },
+    { key: "sku", label: "SKU", aliases: ["sku", "item code", "product code", "code", "item no", "part number"] }, { key: "barcode", label: "Barcode", aliases: ["barcode", "bar code", "qr code"] },
+    { key: "buy", label: "Buying Price", required: true, aliases: ["buy", "buying price", "cost", "cost price", "purchase price", "bp", "unit cost"] }, { key: "sell", label: "Selling Price", required: true, aliases: ["sell", "selling price", "retail", "retail price", "unit selling price", "sp", "price", "unit price"] },
+    { key: "qty", label: "Quantity", aliases: ["qty", "quantity", "opening stock", "stock", "stock quantity", "on hand", "balance"] }, { key: "minStock", label: "Minimum Stock", aliases: ["minimum stock", "min stock", "low stock"] },
+    { key: "category", label: "Category", aliases: ["category"] }, { key: "brand", label: "Brand", aliases: ["brand", "make", "brand name", "manufacturer"] }, { key: "unit", label: "Unit", aliases: ["unit", "uom"] }, { key: "image", label: "Product Image", aliases: ["image", "image url", "photo"] },
   ],
   Categories: [{ key: "name", label: "Category", required: true, aliases: ["category", "name"] }],
   Brands: [{ key: "name", label: "Brand", required: true, aliases: ["brand", "name"] }],
-  Customers: [{ key: "name", label: "Customer Name", required: true, aliases: ["customer", "customer name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }],
-  Suppliers: [{ key: "name", label: "Supplier Name", required: true, aliases: ["supplier", "supplier name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }],
-  "Other Contacts": [{ key: "name", label: "Contact Name", required: true, aliases: ["contact", "contact name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }, { key: "category", label: "Category", aliases: ["category", "type"] }],
+  Customers: [{ key: "name", label: "Customer Name", required: true, aliases: ["customer", "customer name", "name", "client", "buyer"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile", "phone number", "tel", "telephone", "contact"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }],
+  Suppliers: [{ key: "name", label: "Supplier Name", required: true, aliases: ["supplier", "supplier name", "name", "vendor", "seller"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile", "phone number", "tel", "telephone", "contact"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }],
+  "Other Contacts": [{ key: "name", label: "Contact Name", required: true, aliases: ["contact", "contact name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile", "phone number", "tel", "telephone", "contact"] }, { key: "email", label: "Email", aliases: ["email"] }, { key: "address", label: "Address", aliases: ["address", "location"] }, { key: "category", label: "Category", aliases: ["category", "type"] }],
   "Opening Stock": [{ key: "match", label: "SKU / Barcode / Product", required: true, aliases: ["sku", "barcode", "product", "product name", "name"] }, { key: "qty", label: "Opening Stock", required: true, aliases: ["opening stock", "quantity", "qty", "stock"] }],
   "Product Prices": [{ key: "match", label: "SKU / Barcode / Product", required: true, aliases: ["sku", "barcode", "product", "product name", "name"] }, { key: "buy", label: "Buying Price", aliases: ["buy", "buying price", "cost"] }, { key: "sell", label: "Selling Price", aliases: ["sell", "selling price", "retail"] }],
-  Expenses: [{ key: "category", label: "Category", required: true, aliases: ["category", "expense category"] }, { key: "amount", label: "Amount", required: true, aliases: ["amount", "total"] }, { key: "method", label: "Payment Method", required: true, aliases: ["payment method", "method", "paid via"] }, { key: "description", label: "Description", aliases: ["description", "note", "details"] }, { key: "date", label: "Date", aliases: ["date", "transaction date"] }],
-  Employees: [{ key: "name", label: "Employee Name", required: true, aliases: ["employee", "employee name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile"] }, { key: "role", label: "Role", required: true, aliases: ["role", "job title"] }, { key: "salary", label: "Salary", required: true, aliases: ["salary", "basic salary"] }],
+  Expenses: [{ key: "category", label: "Category", required: true, aliases: ["category", "expense category"] }, { key: "amount", label: "Amount", required: true, aliases: ["amount", "total", "cost", "value", "amount paid"] }, { key: "method", label: "Payment Method", required: true, aliases: ["payment method", "method", "paid via", "mode", "payment mode", "paid by"] }, { key: "description", label: "Description", aliases: ["description", "note", "details"] }, { key: "date", label: "Date", aliases: ["date", "transaction date"] }],
+  Employees: [{ key: "name", label: "Employee Name", required: true, aliases: ["employee", "employee name", "name"] }, { key: "phone", label: "Phone", aliases: ["phone", "mobile", "phone number", "tel", "telephone", "contact"] }, { key: "role", label: "Role", required: true, aliases: ["role", "job title"] }, { key: "salary", label: "Salary", required: true, aliases: ["salary", "basic salary"] }],
 };
 
 const norm = (v: unknown) => String(v ?? "").trim();
@@ -50,12 +50,23 @@ export function detectType(columns: string[]): Exclude<ImportType, "Product Imag
   for (const t of Object.keys(FIELDS) as Exclude<ImportType, "Product Images">[]) { const m = suggestMapping(columns, t); const hit = FIELDS[t].reduce((a, f) => a + (Object.values(m).includes(f.key) ? (f.required ? 2 : 1) : 0), 0); const missing = FIELDS[t].filter((f) => f.required && !Object.values(m).includes(f.key)).length; const v = hit - missing * 2; if (v > top) { top = v; best = t; } }
   return best;
 }
+/** Finds the real heading row (skips titles, logos, blank rows), drops empty rows/columns. */
+function tableFromGrid(grid: unknown[][]): RawRow[] {
+  const known = new Set(Object.values(FIELDS).flat().flatMap((f) => [f.label, f.key, ...f.aliases].map(key)));
+  let hi = -1, top = 0;
+  for (let i = 0; i < Math.min(grid.length, 30); i++) { const cells = (grid[i] ?? []).map(norm).filter(Boolean); const text = cells.filter((c) => !Number.isFinite(number(c)) || /[a-z]/i.test(c)); const v = text.length + cells.filter((c) => known.has(key(c))).length * 3; if (cells.length >= 2 && v > top) { top = v; hi = i; } }
+  if (hi < 0) return [];
+  const heads = (grid[hi] ?? []).map((h, i) => norm(h) || `Column ${i + 1}`), seen: Record<string, number> = {};
+  const names = heads.map((h) => (seen[h] = (seen[h] ?? 0) + 1) > 1 ? `${h} ${seen[h]}` : h);
+  return grid.slice(hi + 1).filter((r) => r.some((c) => norm(c))).map((r) => { const o: RawRow = {}; names.forEach((n, i) => { if (norm(grid[hi]?.[i]) || norm(r[i])) o[n] = r[i] ?? ""; }); return o; }).filter((o) => !/^(total|grand total|subtotal)$/i.test(norm(Object.values(o)[0])));
+}
 export async function parseImportFile(file: File): Promise<RawRow[]> {
   const ext = file.name.split(".").pop()?.toLowerCase();
   if (ext === "json") { const value: unknown = JSON.parse(await file.text()); const rows = Array.isArray(value) ? value : value && typeof value === "object" && Array.isArray((value as { records?: unknown[] }).records) ? (value as { records: unknown[] }).records : null; if (!rows) throw new Error("JSON must contain an array of records"); return rows.filter((x): x is RawRow => !!x && typeof x === "object" && !Array.isArray(x)); }
   if (ext !== "csv" && ext !== "xlsx" && ext !== "xls") throw new Error("Choose a CSV, XLSX or JSON file");
-  const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true }); const ws = wb.Sheets[wb.SheetNames[0] ?? ""]; if (!ws) throw new Error("The file has no worksheet");
-  return XLSX.utils.sheet_to_json<RawRow>(ws, { defval: "", raw: false });
+  const wb = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: true }); let best: RawRow[] = [];
+  for (const name of wb.SheetNames) { const ws = wb.Sheets[name]; if (!ws) continue; const rows = tableFromGrid(XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: "", raw: false, blankrows: false })); if (rows.length > best.length) best = rows; }
+  if (!best.length) throw new Error("No table with headings was found in this file"); return best;
 }
 function mapped(row: RawRow, mapping: Mapping, selected: Set<string>) { const v: MappedValues = {}; for (const [col, dest] of Object.entries(mapping)) if (dest && selected.has(dest)) v[dest] = typeof row[col] === "number" ? row[col] : norm(row[col]); return v; }
 function existingFor(s: ErpState, type: ImportType, v: MappedValues): { id: string } | undefined {
