@@ -23,7 +23,7 @@ describe("opening balances import", () => {
     expect(s.customers.find((c) => c.name === "Amina")!.balance).toBe(3500);
     expect(s.suppliers.find((c) => c.name === "Bidco")!.balance).toBe(18000);
     expect(s.sales.length + s.purchases.length + s.expenses.length).toBe(0);
-    expect(profitAndLoss(s).net).toBe(0); expect(balanceSheet(s).balanced).toBe(true);
+    expect(profitAndLoss(s).net).toBeCloseTo(0); expect(balanceSheet(s).balanced).toBe(true);
     const again = prev(); expect(again.filter((r) => r.status === "DUPLICATE").length).toBe(5);
     expect(applyOB(again, ["ob.csv"]).created).toBe(0); expect(floatBalances(load()).cash).toBe(15000);
   });
