@@ -16,21 +16,21 @@ describe("shared reference cart", () => {
     const { setLine } = setup();
     expect(screen.getByText("Subtotal (1 items)")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Edit quantity Ajab Flour" }));
-    for (const key of ["0", ".", "2", "5"]) fireEvent.click(screen.getByRole("button", { name: key, exact: true }));
-    fireEvent.click(screen.getByRole("button", { name: "Done", exact: true }));
+    for (const key of ["0", ".", "2", "5"]) fireEvent.click(screen.getByRole("button", { name: key }));
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 0.25, price: 200, priceReason: "wholesale" });
   });
   it("blocks over-stock quantity and lets Cancel keep the original line", () => {
     const { setLine } = setup();
     fireEvent.click(screen.getByRole("button", { name: "Edit quantity Ajab Flour" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Quantity" }), { target: { value: "11" } });
-    expect(screen.getByRole("button", { name: "Done", exact: true })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel", exact: true }));
+    expect(screen.getByRole("button", { name: "Done" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(setLine).not.toHaveBeenCalled();
   });
   it("saves only the draft and closes the cart", () => {
     const { saveDraft, close, setLine } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Cart", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Cart" }));
     expect(saveDraft).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
     expect(setLine).not.toHaveBeenCalled();
