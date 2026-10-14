@@ -116,7 +116,7 @@ export function previewOB(s: ErpState, sheets: { sheet: Sheet; mapping: OBMappin
     if (cur && cur !== currency && cur !== "KSH") iss("Currency", `${cur} differs from shop currency ${currency}`, "Convert to the shop currency before importing");
     if ((kind === "receivable" || kind === "payable") && !account && !phone) iss("Account / customer / supplier", "No customer or supplier named", "Add the name or phone");
     const sourceId = n(g("sourceId"));
-    const key = `OB:${kind ?? "?"}:${sourceId ? `id:${k(sourceId)}` : `${k(account) || k(phone) || kind}`}`;
+    const key = /^OB:/i.test(sourceId) ? sourceId : `OB:${kind ?? "?"}:${sourceId ? `id:${k(sourceId)}` : `${k(account) || k(phone) || kind}`}`;
     const x: OBRow = { file: sheet.file, sheet: sheet.sheet, row, account, phone, amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : 0, currency: cur, at: at ?? 0, sourceId, key, status: "VALID", issues, ...(kind ? { kind } : {}) };
     if (kind === "receivable" || kind === "payable") { const p = party(s, kind, account, phone); if (p) { x.matchId = p.id; x.matchName = p.name; } else x.createParty = true; }
     if (issues.length) x.status = "INVALID";
