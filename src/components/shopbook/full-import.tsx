@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { FULL_ORDER, fieldsFor, importFull, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
+import { FULL_ORDER, fieldsFor, fullTemplate, importFull, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
 import { issuesCsv, readSheets, type DateFmt, type ImportBatch } from "@/lib/opening-import";
 
 const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
@@ -53,6 +53,7 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
       <p className="import-note">{tr("Upload one Excel workbook with many sheets, or several files together. Each sheet is detected automatically: products, stock, prices, customers, suppliers, contacts, employees, opening balances (Cash, M-Pesa, Bank, credit), sales, purchases with payments, returns and expenses. Accounting, float and commission totals are calculated from these records.")}</p>
       <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
       <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose workbook or files")}</ShopButton>
+      <ShopButton variant="outline" className="inventory-save" onClick={async () => { const b = await fullTemplate(); const u = URL.createObjectURL(b); const a = document.createElement("a"); a.href = u; a.download = "shopbook-full-business-template.xlsx"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 30000); }}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
     </>}
     {stage === "map" && <>
       {plans.map((p) => { const miss = missing(p); return <div key={p.id} className="import-history" style={{ padding: 8 }}>
