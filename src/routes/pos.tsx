@@ -13,7 +13,7 @@ import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/com
 import { vatRate } from "@/lib/prefs";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
-import { LineEditor } from "@/components/shopbook/line-editor";
+import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
 import * as erp from "@/lib/erp";
 
 export const Route = createFileRoute("/pos")({
@@ -70,13 +70,13 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const { s, money, tr } = c;
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
-  const [cart, setCart] = useState<erp.CartLine[]>([]);
+  const { cart, setCart, saveDraft, clearDraft } = useCartDraft("POS");
   const [step, setStep] = useState<"list" | "cart" | "pay">("list");
   const [done, setDone] = useState<erp.Sale | null>(null);
   const cartBtn = useRef<HTMLButtonElement>(null);
   const cats = s.categories.filter((k) => s.products.some((p) => p.categoryId === k.id));
   const list = useMemo(() => erp.searchProducts(s, q).filter((p) => cat === "all" || p.categoryId === cat), [s, q, cat]);
-  const count = cart.reduce((a, l) => a + l.qty, 0);
+  const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
   const add = (id: string, from?: HTMLElement) => {
     const p = prod(id); if (!p) return;
@@ -88,7 +88,7 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const setQty = (id: string, raw: number) => { const qty = erp.roundQty(raw); const p = prod(id); if (p && qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; } setCart((x) => (qty <= 0 ? x.filter((l) => l.productId !== id) : x.map((l) => (l.productId === id ? { ...l, qty } : l)))); };
 
   if (done) return <Done {...c} sale={done} onNew={() => { setDone(null); setStep("list"); }} openSale={c.openSale} />;
-  if (step === "pay") return <Payment {...c} cart={cart} back={() => setStep("cart")} onDone={(x) => { setCart([]); setDone(x); }} />;
+  if (step === "pay") return <Payment {...c} cart={cart} back={() => setStep("cart")} onDone={(x) => { setCart([]); clearDraft(); setDone(x); }} />;
   return <>
     <ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
     {cats.length > 0 && <div className="mt-1.5"><Tabs small items={["all", ...cats.map((k) => k.id)]} value={cat} onChange={setCat} tr={(k) => (k === "all" ? tr("All") : cats.find((x) => x.id === k)?.name ?? k)} /></div>}
@@ -102,7 +102,10 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
         <button aria-label={`${tr("Add")} ${p.name}`} disabled={p.qty <= 0} onClick={(e) => add(p.id, e.currentTarget)} className="pos-add"><Plus className="h-3.5 w-3.5" /></button>
       </div>); })}
     <button ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</button>
-    {step === "cart" && <CartSheet {...c} cart={cart} setQty={setQty} setLine={(l) => setCart((x) => x.map((v) => v.productId === l.productId ? l : v))} clear={() => { setCart([]); setStep("list"); }} close={() => setStep("list")} next={() => setStep("pay")} />}
+    {step === "cart" && <CartSheet s={s} money={money} tr={tr} cart={cart}
+      setLine={(l) => setCart((x) => x.map((v) => v.productId === l.productId ? l : v))}
+      remove={(id) => setQty(id, 0)} clear={() => { setCart([]); clearDraft(); setStep("list"); }}
+      close={() => setStep("list")} next={() => setStep("pay")} saveDraft={saveDraft} />}
   </>;
 }
 
@@ -117,29 +120,6 @@ function fly(from: HTMLElement, to: HTMLElement) {
   const dx = b.left + b.width / 2 - (a.left + a.width / 2); const dy = b.top + b.height / 2 - (a.top + a.height / 2);
   dot.animate([{ transform: "translate(0,0) scale(1)", opacity: 1 }, { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 40}px) scale(0.9)`, opacity: 1, offset: 0.5 }, { transform: `translate(${dx}px, ${dy}px) scale(0.4)`, opacity: 0.3 }], { duration: 420, easing: "ease-in" }).onfinish = () => dot.remove();
   to.animate([{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], { duration: 220, delay: 400 });
-}
-
-function CartSheet({ s, money, tr, cart, setQty, setLine, clear, close, next }: Ctx & { cart: erp.CartLine[]; setQty: (id: string, q: number) => void; setLine: (l: erp.CartLine) => void; clear: () => void; close: () => void; next: () => void }) {
-  const [edit, setEdit] = useState<erp.CartLine | null>(null);
-  const count = cart.reduce((a, l) => a + l.qty, 0);
-  const total = erp.lineTotal(s, cart);
-  return <div role="dialog" aria-modal="true" aria-label={tr("Cart")} className="fixed inset-0 z-40 flex items-end justify-center bg-background/70" onClick={close}>
-    <div className="inventory-screen w-full rounded-t-lg border-t border-border p-3" style={{ minHeight: 0 }} onClick={(e) => e.stopPropagation()}>
-      <div className="mb-1.5 flex items-center justify-between"><p className="text-sm font-bold">{tr("Cart")} ({count})</p><div className="flex items-center gap-3"><button className="flex items-center gap-1 text-[11px] text-destructive" onClick={clear}><Trash2 className="h-3.5 w-3.5" />{tr("Clear")}</button><button aria-label={tr("Close")} onClick={close}><X className="h-4 w-4" /></button></div></div>
-      <div className="pos-cart-head"><span>{tr("Item")}</span><span>{tr("Qty")}</span><span>{tr("Price")}</span><span>{tr("Total")}</span></div>
-      <div className="max-h-[45dvh] overflow-y-auto">{cart.map((l) => { const p = s.products.find((x) => x.id === l.productId); if (!p) return null; return (
-        <div key={l.productId} className="pos-cart-row">
-          <button className="truncate text-start underline decoration-dotted" onClick={() => setEdit(l)}>{p.name}</button>
-          <span className="flex items-center gap-1"><button aria-label={tr("Decrease")} onClick={() => setQty(p.id, l.qty - 1)} className="pos-q"><Minus className="h-3 w-3" /></button><span className="min-w-5 text-center tabular-nums">{l.qty}</span><button aria-label={tr("Increase")} onClick={() => setQty(p.id, l.qty + 1)} className="pos-q pos-q-plus"><Plus className="h-3 w-3" /></button></span>
-          <span className="text-end tabular-nums">{n(erp.linePrice(s, l))}</span>
-          <span className="text-end tabular-nums">{n(erp.lineAmount(s, l))}</span>
-          <button aria-label={tr("Remove")} onClick={() => setQty(p.id, 0)}><MinusCircle className="h-3.5 w-3.5 text-destructive" /></button>
-        </div>); })}</div>
-      <div className="pur-totals mt-2"><span>{tr("Items")}</span><b>{count}</b><span>{tr("Subtotal")}</span><b>{money(total)}</b><span>{tr("Total")}</span><b className="text-primary">{money(total)}</b></div>
-      {edit && <LineEditor s={s} line={edit} money={money} tr={tr} onSave={setLine} onClose={() => setEdit(null)} />}
-      <ShopButton className="inventory-save mt-2 w-full" onClick={next}>{tr("Proceed to Payment")}<ArrowRight className="h-4 w-4" /></ShopButton>
-    </div>
-  </div>;
 }
 
 function Payment({ s, money, tr, cart, back, onDone }: Ctx & { cart: erp.CartLine[]; back: () => void; onDone: (x: erp.Sale) => void }) {
