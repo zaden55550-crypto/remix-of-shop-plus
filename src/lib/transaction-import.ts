@@ -8,7 +8,7 @@ export const TX_FIELDS = [
   { key: "type", label: "Sale or purchase", required: false, aliases: ["type", "transaction type", "kind", "document type", "doc type"] },
   { key: "ref", label: "Receipt / invoice number", required: true, aliases: ["ref", "receipt", "receipt no", "receipt number", "invoice", "invoice no", "invoice number", "transaction id", "transaction no", "bill no", "order no", "number", "doc no"] },
   { key: "date", label: "Date", required: true, aliases: ["date", "transaction date", "sale date", "purchase date", "invoice date"] },
-  { key: "party", label: "Customer / supplier", required: false, aliases: ["customer", "supplier", "party", "customer name", "supplier name", "client", "vendor"] },
+  { key: "party", label: "Customer / supplier", required: false, aliases: ["customer", "supplier", "customer/supplier", "party", "customer name", "supplier name", "client", "vendor"] },
   { key: "phone", label: "Customer / supplier phone", required: false, aliases: ["phone", "phone number", "mobile"] },
   { key: "product", label: "Product (name, SKU or barcode)", required: true, aliases: ["product", "item", "product name", "item name", "sku", "barcode", "description"] },
   { key: "qty", label: "Quantity", required: true, aliases: ["qty", "quantity", "units", "pcs"] },
@@ -51,7 +51,7 @@ export function txMappingProblems(m: TXMapping) {
 }
 function kindOf(x: string, sheet: string): "SALE" | "PURCHASE" | undefined {
   const v = k(x) || k(sheet);
-  if (/purchase|bill|grn|supplier|buy|po/.test(v)) return "PURCHASE";
+  if (/purchase|bill|grn|supplier|buy|^po$/.test(v)) return "PURCHASE";
   if (/sale|pos|receipt|invoice|sell|customer/.test(v)) return "SALE";
   return undefined;
 }
