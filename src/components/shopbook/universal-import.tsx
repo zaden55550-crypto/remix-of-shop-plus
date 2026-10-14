@@ -5,10 +5,11 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { useErp } from "@/components/shopbook/product-search";
 import { ImportCenter } from "@/components/shopbook/import-center";
 import { TransactionImport } from "@/components/shopbook/transaction-import";
+import { ReturnImport } from "@/components/shopbook/return-import";
 import { applyOB, batches, exportOB, issuesCsv, looksLikeOpening, mappingProblems, OB_FIELDS, OB_TEMPLATE, obLabel, previewOB, readSheets, suggestOB, type DateFmt, type ImportBatch, type OBMapping, type OBRow, type Sheet } from "@/lib/opening-import";
 
 const download = (name: string, text: string) => { const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
-type Cat = "Opening Balances" | "Sales & Purchases" | "Products, contacts & other records";
+type Cat = "Opening Balances" | "Sales & Purchases" | "Returns" | "Products, contacts & other records";
 type Stage = "upload" | "map" | "preview" | "done";
 
 /** Universal Import Center: one workspace, multi-file, multi-sheet, staged and atomic. */
@@ -48,8 +49,8 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
 
   return <div className="import-center">
     <div className="flex items-center justify-between"><h3>{tr("Universal Import Center")}</h3>{stage !== "upload" && <ShopButton variant="bare" className="inventory-icon-button" aria-label={tr("Cancel")} onClick={reset}><X className="h-4 w-4" /></ShopButton>}</div>
-    {stage === "upload" && <label className="inventory-field"><span>{tr("Data category")}</span><select className="inventory-input" value={cat} onChange={(e) => setCat(e.target.value as Cat)}><option value="Opening Balances">{tr("Opening Balances")}</option><option value="Sales & Purchases">{tr("Sales & Purchases")}</option><option value="Products, contacts & other records">{tr("Products, contacts & other records")}</option></select></label>}
-    {cat === "Sales & Purchases" ? <TransactionImport tr={tr} /> : cat !== "Opening Balances" ? <ImportCenter tr={tr} /> : <>
+    {stage === "upload" && <label className="inventory-field"><span>{tr("Data category")}</span><select className="inventory-input" value={cat} onChange={(e) => setCat(e.target.value as Cat)}><option value="Opening Balances">{tr("Opening Balances")}</option><option value="Sales & Purchases">{tr("Sales & Purchases")}</option><option value="Returns">{tr("Returns")}</option><option value="Products, contacts & other records">{tr("Products, contacts & other records")}</option></select></label>}
+    {cat === "Sales & Purchases" ? <TransactionImport tr={tr} /> : cat === "Returns" ? <ReturnImport tr={tr} /> : cat !== "Opening Balances" ? <ImportCenter tr={tr} /> : <>
       {stage === "upload" && <>
         <p className="import-note">{tr("Cash, M-Pesa, Bank, customer receivables and supplier payables. Opening balances are kept separate from sales, purchases and expenses.")}</p>
         <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
