@@ -118,7 +118,7 @@ export function previewOB(s: ErpState, sheets: { sheet: Sheet; mapping: OBMappin
     const sourceId = n(g("sourceId"));
     const key = /^OB:/i.test(sourceId) ? sourceId : `OB:${kind ?? "?"}:${sourceId ? `id:${k(sourceId)}` : `${k(account) || k(phone) || kind}`}`;
     const x: OBRow = { file: sheet.file, sheet: sheet.sheet, row, account, phone, amount: Number.isFinite(amount) ? Math.round(amount * 100) / 100 : 0, currency: cur, at: at ?? 0, sourceId, key, status: "VALID", issues, ...(kind ? { kind } : {}) };
-    if (kind === "receivable" || kind === "payable") { const p = party(s, kind, account, phone); if (p) { x.matchId = p.id; x.matchName = p.name; } else x.createParty = true; }
+    if (kind === "receivable" || kind === "payable") { const p = party(s, kind, account, phone); if (p) { x.matchId = p.id; x.matchName = p.name ?? ""; } else x.createParty = true; }
     if (issues.length) x.status = "INVALID";
     else if (posted.has(key)) { x.status = "DUPLICATE"; iss("Source ID", "Already imported in an earlier batch", "Nothing to do — it will be skipped"); }
     else if (seen.has(key)) { x.status = "DUPLICATE"; iss("Source ID", "Repeated in the uploaded files", "Keep one row per account"); }
