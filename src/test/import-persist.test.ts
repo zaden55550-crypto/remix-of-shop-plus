@@ -31,3 +31,12 @@ describe("duplicate details & reset", () => {
     const merged = mergeErp(load(), old); expect(merged.products.length).toBe(0);
   });
 });
+describe("opening stock root cause", () => {
+  beforeEach(() => localStorage.clear());
+  it("flags unmatched opening-stock rows instead of showing NEW and silently skipping", () => {
+    const f = [{ SKU: "X9", "Opening Stock": "4" }];
+    const m = suggestMapping(Object.keys(f[0]!), "Opening Stock");
+    const rows = previewRows(load(), f, "Opening Stock", m, new Set(Object.values(m).filter(Boolean)));
+    expect(rows[0]!.status).toBe("INVALID"); expect(rows[0]!.issues[0]!.suggestion).toMatch(/Products/);
+  });
+});
