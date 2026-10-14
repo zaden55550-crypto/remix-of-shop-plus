@@ -90,7 +90,7 @@ function makeCtx(s: ErpState) {
       const p = s.products.find((x) => x.id === productId);
       if (!p) throw new ErpError("Product not found");
       if (!Number.isFinite(delta) || delta === 0) throw new ErpError("Enter a valid quantity");
-      const next = p.qty + delta;
+      const next = Math.round((p.qty + delta) * 1000) / 1000;
       if (next < 0) throw new ErpError(`Not enough stock for ${p.name} (available ${p.qty})`);
       s.movements.unshift({ id: uid(), at: Date.now(), type, productId, qty: delta, prev: p.qty, next, reason, source, user });
       p.qty = next;
