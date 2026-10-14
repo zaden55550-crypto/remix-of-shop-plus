@@ -9,7 +9,7 @@ export type RawRow = Record<string, unknown>;
 export type Mapping = Record<string, string>;
 export type ImportIssue = { row: number; field: string; problem: string; suggestion: string };
 export type MappedValues = { name?: string | number; phone?: string | number; email?: string | number; address?: string | number; category?: string | number; brand?: string | number; sku?: string | number; barcode?: string | number; buy?: string | number; sell?: string | number; qty?: string | number; minStock?: string | number; unit?: string | number; image?: string | number; match?: string | number; amount?: string | number; method?: string | number; description?: string | number; date?: string | number; role?: string | number; salary?: string | number; [key: string]: string | number | undefined };
-export type PreviewRow = { row: number; values: MappedValues; status: "NEW" | "EXISTING" | "DUPLICATE" | "POSSIBLE MATCH" | "INVALID"; issues: ImportIssue[]; existingId?: string | undefined };
+export type PreviewRow = { row: number; values: MappedValues; status: "NEW" | "EXISTING" | "DUPLICATE" | "POSSIBLE MATCH" | "INVALID"; issues: ImportIssue[]; existingId?: string | undefined; matchField?: string; source?: "file" | "shop"; existingName?: string; diffs?: { field: string; existing: string; uploaded: string }[]; identical?: boolean; recommend?: string; excluded?: boolean };
 export type ImportHistory = { id: string; at: number; file: string; type: ImportType; total: number; imported: number; updated: number; skipped: number; failed: number; errors: ImportIssue[]; mapping: Mapping };
 
 export const FIELDS: Record<Exclude<ImportType, "Product Images">, { key: string; label: string; required?: boolean; aliases: string[] }[]> = {
@@ -70,15 +70,22 @@ export async function parseImportFile(file: File): Promise<RawRow[]> {
 }
 function mapped(row: RawRow, mapping: Mapping, selected: Set<string>) { const v: MappedValues = {}; for (const [col, dest] of Object.entries(mapping)) if (dest && selected.has(dest)) v[dest] = typeof row[col] === "number" ? row[col] : norm(row[col]); return v; }
 function existingFor(s: ErpState, type: ImportType, v: MappedValues): { id: string } | undefined {
+  const m = matchFor(s, type, v); return m ? { id: m.rec.id } : undefined;
+}
+type Rec = { id: string; name?: string } & Record<string, unknown>;
+/** Reliable identifiers first (SKU, barcode, phone), then exact name. Blank identifiers never match. */
+function matchFor(s: ErpState, type: ImportType, v: MappedValues): { rec: Rec; field: string } | undefined {
   const n = key(v.name), phone = key(v.phone), match = key(v.match);
-  if (type === "Products") return s.products.find((p) => (v.sku && key(p.sku) === key(v.sku)) || (v.barcode && key(p.barcode) === key(v.barcode)) || key(p.name) === n);
-  if (type === "Customers") return s.customers.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
-  if (type === "Suppliers") return s.suppliers.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
-  if (type === "Other Contacts") return s.otherContacts.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
-  if (type === "Categories") return s.categories.find((x) => key(x.name) === n);
-  if (type === "Brands") return s.brands.find((x) => key(x.name) === n);
-  if (type === "Employees") return s.employees.find((x) => (phone && key(x.phone) === phone) || key(x.name) === n);
-  if (type === "Opening Stock" || type === "Product Prices") return s.products.find((p) => [p.sku, p.barcode, p.name].some((x) => key(x) === match));
+  const by = (list: Rec[], tests: [string, (x: Rec) => boolean][]) => { for (const [field, t] of tests) { const r = list.find(t); if (r) return { rec: r, field }; } return undefined; };
+  const people = (list: Rec[]) => by(list, [["Phone", (x) => !!phone && key(x.phone) === phone], ["Name", (x) => !!n && key(x.name) === n]]);
+  if (type === "Products") return by(s.products as unknown as Rec[], [["SKU", (p) => !!key(v.sku) && key(p.sku) === key(v.sku)], ["Barcode", (p) => !!key(v.barcode) && key(p.barcode) === key(v.barcode)], ["Product Name", (p) => !!n && key(p.name) === n]]);
+  if (type === "Customers") return people(s.customers as unknown as Rec[]);
+  if (type === "Suppliers") return people(s.suppliers as unknown as Rec[]);
+  if (type === "Other Contacts") return people(s.otherContacts as unknown as Rec[]);
+  if (type === "Employees") return people(s.employees as unknown as Rec[]);
+  if (type === "Categories") return by(s.categories as unknown as Rec[], [["Name", (x) => !!n && key(x.name) === n]]);
+  if (type === "Brands") return by(s.brands as unknown as Rec[], [["Name", (x) => !!n && key(x.name) === n]]);
+  if (type === "Opening Stock" || type === "Product Prices") return by(s.products as unknown as Rec[], [["SKU / Barcode / Name", (p) => !!match && [p.sku, p.barcode, p.name].some((x) => key(x) === match)]]);
   return undefined;
 }
 export function previewRows(s: ErpState, rows: RawRow[], type: Exclude<ImportType, "Product Images">, mapping: Mapping, selected: Set<string>): PreviewRow[] {
@@ -87,16 +94,29 @@ export function previewRows(s: ErpState, rows: RawRow[], type: Exclude<ImportTyp
     for (const f of ["buy", "sell", "qty", "minStock", "amount", "salary"]) if (values[f] !== undefined && (!Number.isFinite(number(values[f])) || number(values[f]) < 0)) issues.push({ row: i + 2, field: f, problem: "Invalid number", suggestion: "Use zero or a positive number" });
     if (values.email && !/^\S+@\S+\.\S+$/.test(String(values.email))) issues.push({ row: i + 2, field: "Email", problem: "Invalid email", suggestion: "Correct or exclude Email" });
     if (type === "Expenses" && values.method && !["cash", "mpesa", "m-pesa", "bank", "credit"].includes(String(values.method).toLowerCase())) issues.push({ row: i + 2, field: "Payment Method", problem: "Unknown method", suggestion: "Use Cash, M-Pesa, Bank or Credit" });
-    const fingerprint = type === "Products" ? key(values.sku || values.barcode || values.name) : key(values.phone || values.match || values.name); const repeated = fingerprint && seen.has(fingerprint); if (fingerprint) seen.add(fingerprint); const existing = existingFor(s, type, values);
-    return { row: i + 2, values, issues, existingId: existing?.id, status: issues.length ? "INVALID" : repeated ? "DUPLICATE" : existing ? "EXISTING" : "NEW" }; });
+    const fingerprint = type === "Products" ? key(values.sku || values.barcode || values.name) : key(values.phone || values.match || values.name); const repeated = fingerprint && seen.has(fingerprint); if (fingerprint) seen.add(fingerprint); const hit = matchFor(s, type, values);
+    const diffs = hit ? diffFor(s, type, hit.rec, values) : [];
+    const status: PreviewRow["status"] = issues.length ? "INVALID" : repeated ? "DUPLICATE" : hit ? "EXISTING" : "NEW";
+    const recommend = status === "INVALID" ? "Fix the row or exclude it" : status === "DUPLICATE" ? "Skip: this record appears earlier in the same file" : status === "EXISTING" ? (diffs.length ? `Update existing: ${diffs.length} field${diffs.length > 1 ? "s" : ""} changed` : "Skip: identical to the record already in your shop") : type === "Expenses" ? "Review: expenses have no unique reference, check it is not already recorded" : "Import as new";
+    return { row: i + 2, values, issues, existingId: hit?.rec.id, status, matchField: repeated ? "Same identifier in file" : hit?.field, source: repeated ? "file" : hit ? "shop" : undefined, existingName: hit ? String(hit.rec.name ?? hit.rec.id) : undefined, diffs, identical: !!hit && !diffs.length, recommend }; });
 }
+const DIFF: Record<string, [string, string][]> = { buy: [["buy", "Buying price"]], sell: [["sell", "Selling price"]], qty: [["qty", "Quantity"]], sku: [["sku", "SKU"]], barcode: [["barcode", "Barcode"]], unit: [["unit", "Unit"]], minStock: [["minStock", "Minimum stock"]], name: [["name", "Name"]], phone: [["phone", "Phone"]], email: [["email", "Email"]], address: [["address", "Address"]], role: [["role", "Role"]], salary: [["salary", "Salary"]] };
+function diffFor(s: ErpState, type: ImportType, rec: Rec, v: MappedValues) {
+  const out: { field: string; existing: string; uploaded: string }[] = [];
+  for (const [k, raw] of Object.entries(v)) { if (raw === undefined || norm(raw) === "") continue; const d = DIFF[k === "match" ? "" : k]?.[0]; let cur: unknown = d ? rec[d[0]] : undefined, label = d?.[1];
+    if (type === "Products" && (k === "category" || k === "brand")) { const list = k === "category" ? s.categories : s.brands; cur = list.find((x) => x.id === rec[k === "category" ? "categoryId" : "brandId"])?.name; label = k === "category" ? "Category" : "Brand"; }
+    if (!label) continue; const numeric = ["buy", "sell", "qty", "minStock", "salary"].includes(k); const same = numeric ? number(cur) === number(raw) : key(cur) === key(raw);
+    if (!same) out.push({ field: label, existing: norm(cur) || "—", uploaded: norm(raw) }); }
+  return out;
+}
+export function reportCsv(rows: PreviewRow[]) { const c = (x: unknown) => `"${String(x ?? "").replaceAll('"', '""')}"`; return [["Row", "Record", "Status", "Found in", "Matched on", "Existing record", "Differences", "Recommendation", "Excluded"], ...rows.filter((r) => r.status !== "NEW").map((r) => [r.row, r.values.name ?? r.values.match ?? "", r.status, r.source === "file" ? "Uploaded file" : r.source === "shop" ? "Your shop" : "", r.matchField ?? "", r.existingName ?? "", (r.diffs ?? []).map((d) => `${d.field}: ${d.existing} -> ${d.uploaded}`).join("; ") || (r.identical ? "Identical" : r.issues.map((i) => `${i.field}: ${i.problem}`).join("; ")), r.recommend ?? "", r.excluded ? "Yes" : ""])].map((r) => r.map(c).join(",")).join("\n"); }
 const namedId = (s: ErpState, kind: "categories" | "brands", name: unknown) => { const n = norm(name); if (!n) return undefined; let x = s[kind].find((v) => key(v.name) === key(n)); if (!x) { x = { id: uid(), name: n }; s[kind].push(x); } return x.id; };
 export function applyImport(type: Exclude<ImportType, "Product Images">, file: string, rows: PreviewRow[], mapping: Mapping, action: DuplicateAction): ImportHistory {
   const target = ({ Products: "products", Categories: "categories", Brands: "brands", Expenses: "expenses", Employees: "employees", Customers: "customers", Suppliers: "suppliers", "Other Contacts": "otherContacts" } as Record<string, keyof ErpState>)[type];
   const size = () => { const c = target ? load()[target] : undefined; return Array.isArray(c) ? c.length : 0; }; const before = size();
-  const valid = rows.filter((x) => x.status !== "INVALID" && x.status !== "DUPLICATE"); let imported = 0, updated = 0, skipped = rows.length - valid.length;
-  commit((s, c) => { for (const row of valid) { const v = row.values; const exists = Boolean(row.existingId); if (exists && action === "skip") { skipped++; continue; }
-      if (type === "Products") { const data = { name: norm(v.name), buy: number(v.buy), sell: number(v.sell), sku: norm(v.sku) || undefined, barcode: norm(v.barcode) || undefined, unit: norm(v.unit) || undefined, image: norm(v.image) || undefined, minStock: Number.isFinite(number(v.minStock)) ? number(v.minStock) : 0, categoryId: namedId(s, "categories", v.category), brandId: namedId(s, "brands", v.brand) }; const existing = s.products.find((x) => x.id === row.existingId); if (existing && action === "update") { Object.assign(existing, data); const target = Math.max(0, number(v.qty) || 0); if (target !== existing.qty) c.move(existing.id, "ADJUSTMENT", target - existing.qty, "Catalogue import"); updated++; } else { const p = { ...data, id: uid(), qty: 0, createdAt: Date.now() }; s.products.unshift(p); const qty = Math.max(0, number(v.qty) || 0); if (qty) c.move(p.id, "OPENING", qty, "Opening stock import"); imported++; } }
+  const valid = rows.filter((x) => x.status !== "INVALID" && x.status !== "DUPLICATE" && !x.excluded); let imported = 0, updated = 0, skipped = rows.filter((x) => x.status === "DUPLICATE" || (x.excluded && x.status !== "INVALID")).length;
+  commit((s, c) => { for (const row of valid) { const v = row.values; const exists = Boolean(row.existingId); if (exists && action === "skip") { skipped++; continue; } if (!exists && action === "update") { skipped++; continue; }
+      if (type === "Products") { const data = { name: norm(v.name), buy: number(v.buy), sell: number(v.sell), sku: norm(v.sku) || undefined, barcode: norm(v.barcode) || undefined, unit: norm(v.unit) || undefined, image: norm(v.image) || undefined, minStock: Number.isFinite(number(v.minStock)) ? number(v.minStock) : 0, categoryId: namedId(s, "categories", v.category), brandId: namedId(s, "brands", v.brand) }; const existing = s.products.find((x) => x.id === row.existingId); if (existing && action === "update") { for (const [k, val] of Object.entries(data)) { const src = k === "categoryId" ? v.category : k === "brandId" ? v.brand : (v as Record<string, unknown>)[k]; if (src !== undefined && norm(src) !== "" && val !== undefined && !Number.isNaN(val)) (existing as Record<string, unknown>)[k] = val; } const target = Math.max(0, number(v.qty) || 0); if (v.qty !== undefined && norm(v.qty) !== "" && target !== existing.qty) c.move(existing.id, "ADJUSTMENT", target - existing.qty, "Catalogue import"); updated++; } else { const p = { ...data, id: uid(), qty: 0, createdAt: Date.now() }; s.products.unshift(p); const qty = Math.max(0, number(v.qty) || 0); if (qty) c.move(p.id, "OPENING", qty, "Opening stock import"); imported++; } }
       else if (type === "Categories" || type === "Brands") { const kind = type === "Categories" ? "categories" : "brands"; const existing = s[kind].find((x) => x.id === row.existingId); if (existing) { if (action === "update") { existing.name = norm(v.name); updated++; } else skipped++; } else { s[kind].push({ id: uid(), name: norm(v.name) }); imported++; } }
       else if (type === "Opening Stock") { const existing = s.products.find((x) => x.id === row.existingId); if (!existing) { skipped++; continue; } const target = number(v.qty); if (target !== existing.qty) c.move(existing.id, "ADJUSTMENT", target - existing.qty, "Opening stock import"); updated++; }
       else if (type === "Product Prices") { const existing = s.products.find((x) => x.id === row.existingId); if (!existing) { skipped++; continue; } if (v.buy !== undefined && norm(v.buy) !== "") existing.buy = number(v.buy); if (v.sell !== undefined && norm(v.sell) !== "") existing.sell = number(v.sell); updated++; }
