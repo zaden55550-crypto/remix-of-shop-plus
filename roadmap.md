@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [ ] Match Sales/POS carts to the supplied quantity-keypad reference, preserve amount/price editing, and verify totals and checkout without changing existing records.
+
 - [x] Regroup General settings and verify a persistent whole-app size slider (left larger, right smaller) without changing business records.
 
 - [x] Rebuild Settings around the locked 12-category order, with Import & Data inside General.
