@@ -15,7 +15,10 @@ export function mergeErp(mine: ErpState, theirs: ErpState): ErpState {
   const out = empty() as Record<string, unknown>;
   for (const key of Object.keys(out) as (keyof ErpState)[]) {
     if (key === "seq") { const seq: Record<string, number> = { ...theirs.seq }; for (const [k, v] of Object.entries(mine.seq ?? {})) seq[k] = Math.max(v, seq[k] ?? 0); out["seq"] = seq; continue; }
-    const a = (mine[key] ?? []) as { id: string; at?: number }[], b = (theirs[key] ?? []) as { id: string; at?: number }[];
+    // Reset markers: records older than the newest reset of this collection are dropped, so an old phone can't bring deleted data back.
+    const mk = `__reset:${String(key)}`, mr = mine.seq?.[mk] ?? 0, tr = theirs.seq?.[mk] ?? 0, R = Math.max(mr, tr);
+    const keep = (own: number) => (x: { at?: number; createdAt?: number }) => own >= R || (x.at ?? x.createdAt ?? 0) > R;
+    const a = ((mine[key] ?? []) as { id: string; at?: number; createdAt?: number }[]).filter(keep(mr)), b = ((theirs[key] ?? []) as { id: string; at?: number; createdAt?: number }[]).filter(keep(tr));
     const seen = new Set(a.map((x) => x.id)), merged = [...a, ...b.filter((x) => !seen.has(x.id))];
     if (merged.some((x) => typeof x.at === "number")) merged.sort((x, y) => (y.at ?? 0) - (x.at ?? 0));
     out[key] = merged;
