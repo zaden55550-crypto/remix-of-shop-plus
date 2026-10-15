@@ -13,7 +13,7 @@ export const TX_FIELDS = [
   { key: "product", label: "Product (name, SKU or barcode)", required: true, aliases: ["product", "item", "product name", "item name", "sku", "barcode", "description"] },
   { key: "qty", label: "Quantity", required: true, aliases: ["qty", "quantity", "units", "pcs"] },
   { key: "price", label: "Unit price / cost", required: true, aliases: ["price", "unit price", "unit cost", "cost", "rate", "selling price", "buying price"] },
-  { key: "discount", label: "Discount (whole transaction)", required: false, aliases: ["discount", "disc"] },
+  { key: "discount", label: "Discount (whole transaction)", required: false, aliases: ["discount", "disc", "discount whole transaction", "discount (whole transaction)", "transaction discount"] },
   { key: "total", label: "Transaction total", required: false, aliases: ["total", "grand total", "invoice total", "net total"] },
   { key: "cash", label: "Paid cash", required: false, aliases: ["cash", "paid cash", "cash paid"] },
   { key: "mpesa", label: "Paid M-Pesa", required: false, aliases: ["mpesa", "m-pesa", "paid mpesa", "mpesa paid"] },
@@ -45,7 +45,7 @@ export function suggestTX(columns: string[]): TXMapping {
 export const looksLikeTransactions = (cols: string[]) => { const m = suggestTX(cols); return !!(m.ref && m.product && m.qty); };
 export function txMappingProblems(m: TXMapping) {
   const p: string[] = []; TX_FIELDS.filter((f) => f.required && !m[f.key]).forEach((f) => p.push(`${f.label} is not mapped`));
-  if (m.paid && !m.method) p.push("Amount paid needs a Payment method column");
+  if (m.paid && !m.method && !(m.cash || m.mpesa || m.bank)) p.push("Amount paid needs a Payment method column");
   const v = Object.values(m).filter(Boolean); v.forEach((x, i) => { if (v.indexOf(x) !== i) p.push(`Column “${x}” is mapped twice`); });
   return [...new Set(p)];
 }
@@ -60,7 +60,7 @@ function dateOf(x: unknown, fmt: TXOptions["dateFmt"]): number | null {
   if (x instanceof Date) return x.getTime();
   const v = n(x); if (!v) return null; const p = v.split(/[\/\-. T:]/).map(Number);
   if (p.length >= 3 && p.slice(0, 3).every(Number.isFinite)) {
-    const [a, b, c] = p as [number, number, number]; const f = fmt === "auto" ? (a > 31 ? "YMD" : b > 12 ? "MDY" : "DMY") : fmt;
+    const [a, b, c] = p as [number, number, number]; const f = a > 31 ? "YMD" : fmt === "auto" ? (b > 12 ? "MDY" : "DMY") : fmt;
     let [d, m, y] = f === "YMD" ? [c, b, a] : f === "MDY" ? [b, a, c] : [a, b, c]; if (y < 100) y += 2000;
     return m >= 1 && m <= 12 && d >= 1 && d <= 31 ? new Date(y, m - 1, d, 12).getTime() : null;
   }
@@ -90,13 +90,15 @@ export function previewTX(s: ErpState, sheets: { sheet: Sheet; mapping: TXMappin
     const head = (f: "discount" | "total" | "cash" | "mpesa" | "bank", set: (v: number) => void, cur: number) => { const raw = n(g(f)); if (!raw) return; const v = num(raw); if (!Number.isFinite(v) || v < 0) { issue(grp!, f, `“${raw}” is not a valid amount`, "Enter a positive number"); return; } if (cur && Math.abs(cur - v) > 0.001) { issue(grp!, f, `Different ${f} values in one transaction (${cur} vs ${v})`, "Repeat the same value or fill it on one row only"); return; } set(v); };
     head("discount", (v) => (grp!.discount = v), grp.discount); head("total", (v) => (grp!.total = v), grp.total);
     (["cash", "mpesa", "bank"] as const).forEach((m) => head(m, (v) => (grp!.pay[m] = v), grp!.pay[m]));
-    if (mapping.paid) { const raw = n(g("paid")); if (raw) { const v = num(raw), mraw = n(g("method")), m = methodOf(mraw); const seen = paidSeen.get(grp) ?? new Set<string>(); paidSeen.set(grp, seen);
+    if (mapping.paid && !(mapping.cash || mapping.mpesa || mapping.bank)) { const raw = n(g("paid")); if (raw) { const v = num(raw), mraw = n(g("method")), m = methodOf(mraw); const seen = paidSeen.get(grp) ?? new Set<string>(); paidSeen.set(grp, seen);
       if (!Number.isFinite(v) || v < 0) issue(grp, "Amount paid", `“${raw}” is not a valid amount`, "Enter a positive number");
       else if (/mix|split|multiple/i.test(mraw)) issue(grp, "Payment method", "“Mixed” is not a payment method", "Put each part on its own row (Cash, M-Pesa, Bank) or use the Paid cash / Paid M-Pesa / Paid bank columns");
       else if (!m) issue(grp, "Payment method", `“${mraw || "blank"}” is not Cash, M-Pesa, Bank or Credit`, "Use Cash, M-Pesa, Bank or Credit");
       // The same method + amount repeated on every item line of one receipt is one payment, not one per line.
       else if (m !== "credit" && !seen.has(`${m}:${v}`)) { seen.add(`${m}:${v}`); grp.pay[m] = r2(grp.pay[m] + v); } } }
     if (!grp.party) grp.party = n(g("party")); if (!grp.phone) grp.phone = n(g("phone"));
+    // Party typed in an unlabeled extra column (e.g. supplier beside a "Customer Name" heading): use it when it names a known contact.
+    if (!grp.party) { const known = grp.kind === "SALE" ? s.customers : s.suppliers; const hit = Object.entries(r).find(([c, v]) => /^column \d+$/i.test(c) && n(v) && known.some((x) => k(x.name) === k(v))); if (hit) grp.party = n(hit[1]); }
     const product = n(g("product")), qty = num(g("qty")), price = num(g("price"));
     if (!product) issue(grp, "Product", "Missing product", "Enter the product name, SKU or barcode");
     if (!(qty > 0)) issue(grp, "Quantity", `“${n(g("qty")) || "blank"}” is not a valid quantity`, "Use a positive number; decimals like 0.5 are allowed");
