@@ -30,7 +30,7 @@ export function PayPicker({ value, onChange, total, money, tr, allowCredit = tru
   const paid = paidOf(pay);
   const over = value.mode === "ppay" && paid > total + 0.001;
   const change = value.mode === "cash" && value.received !== "" ? +value.received - total : null;
-  const status = over ? null : pay.credit > 0.001 ? (paid > 0 ? "P.PAY" : "Credit") : "Paid";
+  const status = over ? null : pay.credit > 0.001 ? (paid > 0 ? "Partially Paid" : "Unpaid") : "Paid";
   return <div className="grid gap-1.5">
     <p className="inventory-field">{tr("Payment Method")} <span className="text-destructive">*</span></p>
     <div role="radiogroup" className="inventory-tabs inventory-tabs-sub px-0">
@@ -43,10 +43,12 @@ export function PayPicker({ value, onChange, total, money, tr, allowCredit = tru
       <div className="grid grid-cols-2 items-center gap-1.5"><span className="inventory-input flex items-center">{tr("Credit")}</span><span className="inventory-input flex items-center tabular-nums text-warning">{pay.credit.toLocaleString("en-KE")}</span></div>
     </div>}
     <div className="pur-totals">
+      <span>{tr("Total bill")}</span><b>{money(total)}</b>
+      {change !== null && <><span>{tr("Cash tendered")}</span><b>{money(+value.received || 0)}</b></>}
       <span>{tr("Total Paid")}</span><b>{money(paid)}</b>
-      <span>{tr("Remaining")}</span><b className={cn(pay.credit > 0 && "text-warning")}>{money(pay.credit)}</b>
+      <span>{tr(pay.credit > 0.001 ? "Balance due (customer credit)" : "Balance due")}</span><b className={cn(pay.credit > 0 && "text-warning")}>{money(pay.credit)}</b>
       {change !== null && change > 0 && <><span>{tr("Change")}</span><b className="text-primary">{money(change)}</b></>}
-      {status && <><span>{tr("Status")}</span><span className="justify-self-end"><Badge s={status} /></span></>}
+      {status && <><span>{tr("Status")}</span><span className="justify-self-end"><Badge s={status === "Partially Paid" ? "P.PAY" : status === "Unpaid" ? "Credit" : "Paid"} /> <small className="ms-1 text-[10px] font-semibold">{tr(status.toUpperCase())}</small></span></>}
     </div>
     {over && <p className="text-[11px] text-destructive">{tr("Payments exceed the total")}</p>}
     {change !== null && change < -0.001 && <p className="text-[11px] text-destructive">{tr("Cash received is less than the total — use P.PAY")}</p>}
