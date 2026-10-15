@@ -97,6 +97,8 @@ export function previewTX(s: ErpState, sheets: { sheet: Sheet; mapping: TXMappin
       // The same method + amount repeated on every item line of one receipt is one payment, not one per line.
       else if (m !== "credit" && !seen.has(`${m}:${v}`)) { seen.add(`${m}:${v}`); grp.pay[m] = r2(grp.pay[m] + v); } } }
     if (!grp.party) grp.party = n(g("party")); if (!grp.phone) grp.phone = n(g("phone"));
+    // Party typed in an unlabeled extra column (e.g. supplier beside a "Customer Name" heading): use it when it names a known contact.
+    if (!grp.party) { const known = grp.kind === "SALE" ? s.customers : s.suppliers; const hit = Object.entries(r).find(([c, v]) => /^column \d+$/i.test(c) && n(v) && known.some((x) => k(x.name) === k(v))); if (hit) grp.party = n(hit[1]); }
     const product = n(g("product")), qty = num(g("qty")), price = num(g("price"));
     if (!product) issue(grp, "Product", "Missing product", "Enter the product name, SKU or barcode");
     if (!(qty > 0)) issue(grp, "Quantity", `“${n(g("qty")) || "blank"}” is not a valid quantity`, "Use a positive number; decimals like 0.5 are allowed");
