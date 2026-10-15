@@ -8,6 +8,7 @@ import { AppShell, dt, useAccount } from "@/components/shopbook/selling";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { BackupHub } from "@/components/shopbook/backup-hub";
 import { UniversalImport } from "@/components/shopbook/universal-import";
+import { ExportData, ManageModules, NamedManager } from "@/components/shopbook/settings-data";
 import { inputCls, useErp } from "@/components/shopbook/product-search";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
@@ -33,7 +34,7 @@ const CATS = ["Business", "General", "AI Setup", "People & Access", "Finance", "
 type Category = (typeof CATS)[number];
 const SUB: Record<Category, string[]> = {
   Business: ["Business Profile", "Business Type", "Location", "Contact Information", "Owner", "Logo", "Business Hours"],
-  General: ["Language & Currency", "Date & Time", "Number Format", "Interface Size", "Search & Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Reconciliation", "Export & Restore", "Delete & Reset"],
+  General: ["Language & Currency", "Date & Time", "Number Format", "Interface Size", "Search & Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Reconciliation", "Manage Modules", "Export Data", "Export & Restore", "Delete & Reset"],
   "AI Setup": ["ShopBot", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions", "AI Gateway"],
   "People & Access": ["Users", "Roles", "Permissions", "Data Access", "Active Users", "Invitations", "Access History"],
   Finance: ["Accounts", "Payment Methods", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
@@ -71,6 +72,8 @@ const GENERAL_DETAILS: Record<string, string> = {
   "Autosave & Backup": "Local save • Cloud backup",
   "Import & Data": "Universal Import Center",
   "Export & Restore": "Export records • Whole-shop backup",
+  "Manage Modules": "Show or hide apps • Records kept",
+  "Export Data": "Full workbook • Selected data • Date range • CSV",
   "Delete & Reset": "Selected records • All data",
 };
 
@@ -132,7 +135,8 @@ function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveC
   if (name === "Users" || name === "Active Users") return <p className="settings-note">{acct.shopName} • <b>{tr("Admin")}</b></p>; if (["Roles", "Permissions", "Data Access", "Invitations"].includes(name)) return <p className="settings-note">{tr("Admin is active. Additional staff access is not available yet.")}</p>; if (name === "Access History") return <Audit rows={state.audit} tr={tr} />;
   if (name === "Payment Methods") return <p className="settings-note">Cash • M-Pesa • Bank • Credit<br />{tr("P.PAY combines methods and is not an account.")}</p>;
   if (name === "Accounts") return <Links nav={nav} links={[["Float", "/float"], ["Accounting", "/accounting"]]} tr={tr} />; if (["Transfers", "Receivables", "Payables", "Financial Periods", "Costing"].includes(name)) return <Links nav={nav} links={[[name === "Transfers" ? "Float" : name === "Costing" ? "Accounting" : "Reports", name === "Transfers" ? "/float" : name === "Costing" ? "/accounting" : "/reports"]]} tr={tr} />;
-  if (["Categories", "Brands", "Units", "Pricing", "Buying", "Selling", "Barcodes", "Stock Behavior", "Custom Fields", "Product Settings"].includes(name)) return <Links nav={nav} links={[["Open Inventory", "/inventory"]]} tr={tr} />; if (name === "Low Stock") return <L label="Default low-stock level"><input className="inventory-input" type="number" min={0} value={cfg.lowStock} onChange={(e) => saveCfg({ lowStock: Math.max(0, +e.target.value) })} /></L>;
+  if (name === "Manage Modules") return <ManageModules tr={tr} />; if (name === "Export Data") return <ExportData tr={tr} shopName={acct.shopName} />; if (name === "Categories" || name === "Brands") return <NamedManager kind={name === "Brands" ? "brands" : "categories"} tr={tr} />;
+  if (["Units", "Pricing", "Buying", "Selling", "Barcodes", "Stock Behavior", "Custom Fields", "Product Settings"].includes(name)) return <Links nav={nav} links={[["Open Inventory", "/inventory"]]} tr={tr} />; if (name === "Low Stock") return <L label="Default low-stock level"><input className="inventory-input" type="number" min={0} value={cfg.lowStock} onChange={(e) => saveCfg({ lowStock: Math.max(0, +e.target.value) })} /></L>;
   if (["Interface Size", "Text Size", "Icon Size", "Spacing"].includes(name)) { const keys: Record<string, keyof SettingsConfig> = { "Interface Size": "interfaceScale", "Text Size": "textScale", "Icon Size": "iconScale", Spacing: "spacingScale" }; const k = keys[name] ?? "interfaceScale"; return <L label={name}><div className="settings-slider"><span>{tr(name === "Spacing" ? "Tighter" : "Smaller")}</span><input type="range" min={0} max={4} step={1} value={Number(cfg[k])} onChange={(e) => saveCfg({ [k]: +e.target.value })} /><span>{tr(name === "Spacing" ? "More space" : "Larger")}</span></div><p className="settings-note">{tr(name)}: {tr(["Smallest", "Small", "Compact", "Large", "Largest"][Number(cfg[k])] ?? "Compact")}</p></L>; }
   if (name === "VAT" || name === "Tax Settings") return <><label className="settings-toggle"><span>{tr("Charge VAT on sales")}</span><input type="checkbox" checked={prefs.tax.on} onChange={(e) => setTax({ ...prefs.tax, on: e.target.checked })} /></label><L label="VAT rate (%)"><input className="inventory-input" type="number" min={0} max={100} value={prefs.tax.rate} onChange={(e) => setTax({ ...prefs.tax, rate: Math.min(100, Math.max(0, +e.target.value)) })} /></L></>; if (name === "Audit Trail" || name === "Audit Log") return <Audit rows={state.audit} tr={tr} />;
   if (["eTIMS", "WhatsApp", "SMS", "Email", "M-Pesa", "Printers"].includes(name)) return <Status label={name} state="Not Connected" />; if (name === "Backup / Sync") return <Status label="Cloud backup" state="Configuration Required" />;

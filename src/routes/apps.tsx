@@ -6,6 +6,7 @@ import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { APPS, canOpen, chatIcons, store, trialDaysLeft, type Account } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/lib/settings-config";
 import { HelpChat } from "@/components/shopbook/help-chat";
 import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { useLanguage } from "@/hooks/use-language";
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/apps")({
   component: Apps,
 });
 
-const ROWS = [APPS.slice(0, 4), APPS.slice(4, 8), APPS.slice(8, 12)];
+
 const CURRENCIES = [["KSh", "Kenyan Shilling"], ["USh", "Ugandan Shilling"], ["TSh", "Tanzanian Shilling"], ["USD", "US Dollar"]] as const;
 const ROUTES: Record<string, "/dashboard" | "/inventory" | "/purchases" | "/sales" | "/pos" | "/expenses" | "/contacts" | "/accounting" | "/float" | "/payroll" | "/reports" | "/summary" | "/settings" | "/reconciliation"> = { dashboard: "/dashboard", inventory: "/inventory", purchases: "/purchases", sales: "/sales", pos: "/pos", expenses: "/expenses", contacts: "/contacts", accounting: "/accounting", float: "/float", payroll: "/payroll", reports: "/reports", summary: "/summary", reconciliation: "/reconciliation", settings: "/settings" };
 const SETTINGS_APP = APPS.find((a) => a.id === "settings");
@@ -35,6 +36,9 @@ function Apps() {
   const { t, dir, tr, language, setLanguage } = useLanguage();
   const { dark } = useTheme();
   const [acct, setAcct] = useState<Account | null>(null);
+  const [cfg] = useSettings();
+  const shown = APPS.filter((a) => a.id !== "settings" && !cfg.hiddenApps.includes(a.id));
+  const ROWS = Array.from({ length: Math.ceil(shown.length / 4) }, (_, i) => shown.slice(i * 4, i * 4 + 4));
   const [locked, setLocked] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [panel, setPanel] = useState<null | "profile" | "language" | "currency" | "help">(null);
