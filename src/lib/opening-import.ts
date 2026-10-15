@@ -83,7 +83,7 @@ export function parseDate(x: unknown, fmt: DateFmt): number | null {
   const p = v.split(/[\/\-. ]/).map(Number);
   if (p.length >= 3 && p.slice(0, 3).every(Number.isFinite)) {
     let [a, b, c] = p as [number, number, number]; let d: number, m: number, y: number;
-    const f = fmt === "auto" ? (a > 31 ? "YMD" : b > 12 ? "MDY" : "DMY") : fmt;
+    const f = a > 31 ? "YMD" : fmt === "auto" ? (b > 12 ? "MDY" : "DMY") : fmt;
     if (f === "YMD") [y, m, d] = [a, b, c]; else if (f === "MDY") [m, d, y] = [a, b, c]; else [d, m, y] = [a, b, c];
     if (y < 100) y += 2000;
     const t = new Date(y, m - 1, d).getTime();
