@@ -92,7 +92,7 @@ export function HelpChat({ open, onClose, shopName, email, icon }: { open: boole
 
   return (
     <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" onClick={onClose}>
-      <div dir={dir} className="mx-auto flex h-full max-w-[440px] flex-col border-x border-border bg-card" onClick={(e) => e.stopPropagation()}>
+      <div dir={dir} className="mx-auto flex h-full max-w-[440px] md:max-w-[640px] flex-col border-x border-border bg-card" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-border p-4">
           <img src={icon} alt="" className="h-9 w-9 rounded-full" />
           <div className="min-w-0 flex-1"><div className="font-bold">{tr("SHOPBOOK assistant")}</div><div className="text-xs text-muted-foreground">{tr("Instant answers · support team reads every chat")}</div></div>

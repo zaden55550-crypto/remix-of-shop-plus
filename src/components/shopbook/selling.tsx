@@ -45,7 +45,7 @@ export function AppShell({ title, tabs, tab, setTab, children }: { title: string
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
   return (
-    <main dir={dir} className="app-screen mx-auto flex min-h-screen w-full max-w-md flex-col bg-background pb-24 text-foreground">
+    <main dir={dir} className="app-screen mx-auto flex min-h-screen w-full max-w-md md:max-w-none flex-col bg-background pb-24 text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex items-center gap-2 px-4 py-3">
           <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></ShopButton>

@@ -486,3 +486,22 @@
 .cart-amount-input:focus { border-color: var(--primary); }
 .cart-amount-input[aria-invalid=true] { border-color: var(--destructive); }
 @media (max-width: 360px) { .cart-amount-input { width: 58px; } }
+
+/* ===== Responsive: phones keep the approved 430px design; tablets/desktops use the real width ===== */
+@media (min-width: 768px) {
+  .app-screen, .inventory-screen:not(.cart-sheet) { max-width: 100%; }
+  .inventory-screen:not(.cart-sheet) { zoom: 1.12; }
+  .inventory-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; align-content: start; grid-auto-flow: row dense; padding-inline: 16px; }
+  .inventory-content > * { grid-column: 1 / -1; min-width: 0; }
+  .inventory-content > .inventory-box { grid-column: auto; }
+  .inventory-header, .inventory-tabs, .inventory-backup { padding-inline: 16px; }
+  .inventory-screen .inventory-sheet { max-width: 560px; }
+  .assistant-shell { max-width: 640px; }
+}
+@media (min-width: 1200px) {
+  .inventory-screen:not(.cart-sheet) { zoom: 1.2; }
+  .inventory-content { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .inventory-screen > header, .inventory-content { width: 100%; max-width: 1600px; margin-inline: auto; }
+}
+/* Never let a page scroll sideways */
+html, body { overflow-x: hidden; }

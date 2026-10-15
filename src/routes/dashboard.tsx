@@ -128,7 +128,7 @@ function Dashboard() {
   const canShare = typeof navigator !== "undefined" && "share" in navigator;
 
   return (
-    <main dir={dir} className="app-screen mx-auto flex min-h-screen w-full max-w-md flex-col bg-background pb-10 text-foreground">
+    <main dir={dir} className="app-screen mx-auto flex min-h-screen w-full max-w-md md:max-w-none flex-col bg-background pb-10 text-foreground">
       <header className="sticky top-0 z-20 grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-border bg-background/95 px-3 py-2 backdrop-blur">
         <div className="flex min-w-0 items-center gap-1">
           <button aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })} className="p-1"><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></button>
