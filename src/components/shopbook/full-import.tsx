@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Download, FileSpreadsheet, Upload } from "lucide-react";
+import { ClipboardPaste, Download, FileSpreadsheet, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { FULL_ORDER, fieldsFor, fullTemplate, importFull, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
+import { FULL_ORDER, fieldsFor, fullTemplate, importFull, pastedSheet, templateName, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
 import { issuesCsv, readSheets, type DateFmt, type ImportBatch } from "@/lib/opening-import";
 
 import { download, openFile } from "@/lib/download";
@@ -23,16 +23,19 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   const [existing, setExisting] = useState<"skip" | "update">("skip");
   const [tpl, setTpl] = useState<Blob | null>(null);
   // Build the template ahead of time so the tap saves it immediately (iPhone/iPad drop slow taps).
-  useEffect(() => { void fullTemplate().then(setTpl).catch(() => setTpl(null)); }, []);
+  const [tplCat, setTplCat] = useState<string>("");
+  const [paste, setPaste] = useState<string | null>(null);
+  useEffect(() => { setTpl(null); void fullTemplate((tplCat || undefined) as never).then(setTpl).catch(() => setTpl(null)); }, [tplCat]);
   const opts: FullOptions = { dateFmt: fmt, stock, existing };
   const step = stage === "upload" ? 0 : stage === "map" ? 2 : stage === "preview" ? 4 : 6;
   const reset = () => { setStage("upload"); setPlans([]); setResults([]); setBatch(null); };
   const blocked = plans.filter((p) => p.cat !== "Skip" && missing(p).length);
   const active = plans.filter((p) => p.cat !== "Skip");
 
-  const read = async (list: FileList) => {
+  const read = async (list: FileList | "paste") => {
     try {
-      const sheets = await readSheets([...list]), next = planSheets(sheets);
+      const sheets = list === "paste" ? [pastedSheet(paste ?? "")] : await readSheets([...list]), next = planSheets(sheets);
+      setPaste(null);
       setPlans(next); setStage("map");
       // Products listed with their current stock already count it, so past sales should not reduce it again.
       setStock(next.some((p) => (p.cat === "Products" && p.map["qty"]) || p.cat === "Opening Stock") ? "record" : "update");
@@ -64,13 +67,17 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   const issues = results.flatMap((r) => r.issues), failed = results.filter((r) => r.error);
   const totals = (f: "created" | "updated" | "skipped" | "rejected") => results.reduce((a, r) => a + r[f], 0);
 
-  return <div className="grid gap-2">
+  return <div className="relative grid gap-2">
+    {stage !== "upload" && <ShopButton variant="bare" className="inventory-icon-button absolute right-0 top-0" aria-label={tr("Close import and return")} onClick={reset}><X className="h-4 w-4" /></ShopButton>}
     <ol className="flex flex-wrap gap-1 text-[9px]">{STEPS.map((x, i) => <li key={x} className={`rounded px-1.5 py-0.5 ${i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}. {tr(x)}</li>)}</ol>
     {stage === "upload" && <>
       <p className="import-note">{tr("Upload one Excel workbook with many sheets, or several files together. Each sheet is detected automatically: products, stock, prices, customers, suppliers, contacts, employees, opening balances (Cash, M-Pesa, Bank, credit), sales, purchases with payments, returns, expenses, stock adjustments, stock transfers, float movements and payroll history. Accounting, float and commission totals are calculated from these records.")}</p>
       <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
       <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose workbook or files")}</ShopButton>
-      <ShopButton variant="outline" className="inventory-save" disabled={!tpl} onClick={() => { if (tpl) void openFile(tpl, "shopbook-full-business-template.xlsx").then((r) => toast.success(tr(r === "shared" ? "Choose Excel, Numbers or Sheets to open the template" : "Template downloaded and opened"))); }}><Download className="h-4 w-4" />{tpl ? tr("Download template") : tr("Preparing template…")}</ShopButton>
+      <ShopButton variant="outline" className="inventory-save" onClick={() => setPaste(paste === null ? "" : null)}><ClipboardPaste className="h-4 w-4" />{tr("Paste from Excel or Google Sheets")}</ShopButton>
+      {paste !== null && <div className="relative grid gap-1"><ShopButton variant="bare" className="inventory-icon-button absolute right-1 top-1" aria-label={tr("Close")} onClick={() => setPaste(null)}><X className="h-4 w-4" /></ShopButton><textarea className="inventory-input min-h-32 pr-8 font-mono text-[10px]" placeholder={tr("Copy cells including the header row, then paste here")} value={paste} onChange={(e) => setPaste(e.target.value)} /><ShopButton className="inventory-save" disabled={!paste.trim()} onClick={() => void read("paste")}>{tr("Read pasted data")}</ShopButton></div>}
+      <label className="inventory-field"><span>{tr("Template")}</span><select className="inventory-input" value={tplCat} onChange={(e) => setTplCat(e.target.value)}><option value="">{tr("Complete Business (all sheets)")}</option>{FULL_ORDER.map((c) => <option key={c} value={c}>{tr(c)}</option>)}</select></label>
+      <ShopButton variant="outline" className="inventory-save" disabled={!tpl} onClick={() => { if (tpl) void openFile(tpl, templateName(tplCat || undefined)).then((r) => toast.success(tr(r === "shared" ? "Choose Excel, Numbers or Sheets to open the template" : "Template downloaded and opened"))); }}><Download className="h-4 w-4" />{tpl ? tr("Download template") : tr("Preparing template…")}</ShopButton>
     </>}
     {stage === "map" && <>
       {plans.map((p) => { const miss = missing(p); return <div key={p.id} className="import-history" style={{ padding: 8 }}>
