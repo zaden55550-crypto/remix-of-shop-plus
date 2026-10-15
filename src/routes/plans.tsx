@@ -95,7 +95,7 @@ function Plans() {
   }
 
   return (
-    <main dir={dir} className="app-screen px-3 pb-7 pt-4">
+    <main dir={dir} className="app-screen px-3 pb-7 pt-4 md:max-w-5xl">
       <div className="relative">
         <ShopButton variant="bare" onClick={() => router.history.back()} aria-label={t("back")} className="absolute left-0 top-[-0.45rem] h-10 w-10 p-0">
           <ChevronLeft className="rtl:rotate-180" />
