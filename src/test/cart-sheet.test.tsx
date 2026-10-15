@@ -65,13 +65,14 @@ describe("shared reference cart", () => {
     expect(remove).toHaveBeenCalledWith("flour");
   });
   it("stops stepping when the stock on hand is reached", () => {
-    const { setLine } = setup();
-    // 0.5 kg + 38 steps of 0.25 = 10 kg, exactly the stock on hand.
-    for (let i = 0; i < 38; i++) fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
-    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 10, price: 200, priceReason: "wholesale" });
-    const calls = (setLine as ReturnType<typeof vi.fn>).mock.calls.length;
+    const setLine = vi.fn();
+    const s = erp.empty();
+    s.products.push({ id: "flour", name: "Ajab Flour", buy: 100, sell: 300, qty: 10, unit: "kg", createdAt: 1 });
+    render(<CartSheet s={s} cart={[{ productId: "flour", qty: 10 }]} money={(n) => `KSh ${n}`} tr={(x) => x} setLine={setLine} remove={vi.fn()} clear={vi.fn()} close={vi.fn()} next={vi.fn()} saveDraft={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
-    expect((setLine as ReturnType<typeof vi.fn>).mock.calls.length).toBe(calls);
+    expect(setLine).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 9.75 });
   });
 });
 describe("amount mode", () => {
