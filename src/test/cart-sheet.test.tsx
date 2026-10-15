@@ -60,8 +60,12 @@ describe("shared reference cart", () => {
     const { remove, setLine } = setup();
     for (let i = 0; i < 2; i++) fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
     expect(remove).toHaveBeenCalledWith("flour");
-    for (let i = 0; i < 40; i++) fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
-    expect(setLine).not.toHaveBeenCalled();
+    // 0.5 kg + 38 steps of 0.25 = 10 kg, exactly the stock on hand.
+    for (let i = 0; i < 38; i++) fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 10, price: 200, priceReason: "wholesale" });
+    const calls = (setLine as ReturnType<typeof vi.fn>).mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
+    expect((setLine as ReturnType<typeof vi.fn>).mock.calls.length).toBe(calls);
   });
 });
 describe("amount mode", () => {
