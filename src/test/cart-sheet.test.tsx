@@ -49,6 +49,31 @@ describe("shared reference cart", () => {
     expect(close).toHaveBeenCalledOnce();
     expect(setLine).not.toHaveBeenCalled();
   });
+  it("steps quantity up and down with the − and + buttons", () => {
+    const { setLine } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 0.75, price: 200, priceReason: "wholesale" });
+    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 0.25, price: 200, priceReason: "wholesale" });
+  });
+  it("removes the line when decreased to zero and blocks stepping past stock", () => {
+    const remove = vi.fn(), setLine = vi.fn();
+    const s = erp.empty();
+    s.products.push({ id: "flour", name: "Ajab Flour", buy: 100, sell: 300, qty: 10, unit: "kg", createdAt: 1 });
+    render(<CartSheet s={s} cart={[{ productId: "flour", qty: 0.25 }]} money={(n) => `KSh ${n}`} tr={(x) => x} setLine={setLine} remove={remove} clear={vi.fn()} close={vi.fn()} next={vi.fn()} saveDraft={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
+    expect(remove).toHaveBeenCalledWith("flour");
+  });
+  it("stops stepping when the stock on hand is reached", () => {
+    const setLine = vi.fn();
+    const s = erp.empty();
+    s.products.push({ id: "flour", name: "Ajab Flour", buy: 100, sell: 300, qty: 10, unit: "kg", createdAt: 1 });
+    render(<CartSheet s={s} cart={[{ productId: "flour", qty: 10 }]} money={(n) => `KSh ${n}`} tr={(x) => x} setLine={setLine} remove={vi.fn()} clear={vi.fn()} close={vi.fn()} next={vi.fn()} saveDraft={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
+    expect(setLine).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 9.75 });
+  });
 });
 describe("amount mode", () => {
   it("turns the amount spent into a quantity at the unit price", () => {

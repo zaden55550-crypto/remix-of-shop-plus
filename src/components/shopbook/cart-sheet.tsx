@@ -37,6 +37,16 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
     if (qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
     setLine({ ...line, qty });
   };
+  const adjust = (line: erp.CartLine, direction: 1 | -1) => {
+    const p = s.products.find((p) => p.id === line.productId);
+    if (!p) return;
+    // Whole-unit products step by 1; everything else steps by 0.25 (3-decimal precision kept).
+    const step = erp.isWholeUnit(p.unit) ? 1 : 0.25;
+    const qty = erp.roundQty(line.qty + direction * step);
+    if (qty <= 0) { remove(line.productId); return; }
+    if (qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
+    setLine({ ...line, qty });
+  };
   return <div role="dialog" aria-modal="true" aria-label={tr("Cart")} className="cart-overlay" onClick={close} onKeyDown={(e) => { if (e.key === "Escape" && !quantity && !edit) close(); }}>
     <section className="inventory-screen cart-sheet" onClick={(e) => e.stopPropagation()}>
       <header className="cart-heading">
@@ -49,7 +59,11 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
         const unit = p.unit || "pcs";
         return <div className="cart-line" key={p.id}>
           <ShopButton variant="bare" className="cart-product" onClick={() => setEdit(l)} title={tr("Edit price and amount")}><b>{p.name}</b><small>{money(erp.linePrice(s, l))} / {unit}</small></ShopButton>
-          <div className="cart-stepper"><ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton></div>
+          <div className="cart-stepper">
+            <ShopButton variant="bare" className="cart-step" aria-label={`${tr("Decrease quantity")} ${p.name}`} onClick={() => adjust(l, -1)}>−</ShopButton>
+            <ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton>
+            <ShopButton variant="bare" className="cart-step" aria-label={`${tr("Increase quantity")} ${p.name}`} onClick={() => adjust(l, 1)}>+</ShopButton>
+          </div>
           <select className="cart-unit" aria-label={`${tr("Selling unit")} ${p.name}`} value={unit} onChange={() => {}}><option value={unit}>{unit}</option></select>
           <ShopButton variant="bare" className="cart-unit" aria-label={`${tr("Switch entry mode")} ${p.name}`} title={tr(modes[p.id] === "price" ? "Typing the amount changes the price" : "Typing the amount calculates the quantity")} onClick={() => setModes((m) => ({ ...m, [p.id]: m[p.id] === "price" ? "amount" : "price" }))}>{modes[p.id] === "price" ? tr("Price") : tr("Amt")}</ShopButton>
           <LineAmount mode={modes[p.id] ?? "amount"} s={s} line={l} tr={tr} setLine={setLine} onInvalid={(bad) => setInvalidAmounts((current) => current[p.id] === bad ? current : { ...current, [p.id]: bad })} />
