@@ -37,6 +37,16 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
     if (qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
     setLine({ ...line, qty });
   };
+  const adjust = (line: erp.CartLine, direction: 1 | -1) => {
+    const p = s.products.find((p) => p.id === line.productId);
+    if (!p) return;
+    // Whole-unit products step by 1; everything else steps by 0.25 (3-decimal precision kept).
+    const step = erp.isWholeUnit(p.unit) ? 1 : 0.25;
+    const qty = erp.roundQty(line.qty + direction * step);
+    if (qty <= 0) { remove(line.productId); return; }
+    if (qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
+    setLine({ ...line, qty });
+  };
   return <div role="dialog" aria-modal="true" aria-label={tr("Cart")} className="cart-overlay" onClick={close} onKeyDown={(e) => { if (e.key === "Escape" && !quantity && !edit) close(); }}>
     <section className="inventory-screen cart-sheet" onClick={(e) => e.stopPropagation()}>
       <header className="cart-heading">
