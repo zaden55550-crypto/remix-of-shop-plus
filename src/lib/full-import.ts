@@ -133,12 +133,37 @@ export async function fullTemplateBytes(only?: Exclude<FullCat, "Skip">): Promis
   if (cats.includes("Products")) help.push([], ["Products example"], ["Product Name", "Buying Price", "Selling Price", "Quantity", "Minimum Stock", "Category", "Brand", "Unit"], ["Example Product A", 100, 150, 20, 5, "Beverages", "Example Brand", "Piece"]);
   const ins = XLSX.utils.aoa_to_sheet(help); ins["!cols"] = [{ wch: 22 }, { wch: 60 }, { wch: 60 }];
   XLSX.utils.book_append_sheet(wb, ins, "Instructions");
+  const allHeads: string[][] = [];
   for (const c of cats) {
     const heads = fieldsFor(c).map(head), ws = XLSX.utils.aoa_to_sheet([heads]);
     ws["!cols"] = heads.map((h) => ({ wch: Math.max(12, h.length + 2) }));
     XLSX.utils.book_append_sheet(wb, ws, c.replace(/[\\/?*[\]:&]/g, "-").slice(0, 31));
+    allHeads.push(heads);
   }
-  return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
+  return polishTemplate(XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer, allHeads);
+}
+
+const colName = (i: number) => { let s = ""; for (i++; i; i = Math.floor((i - 1) / 26)) s = String.fromCharCode(65 + ((i - 1) % 26)) + s; return s; };
+const TEXT_COL = /phone|barcode|sku|code|\bid\b|receipt|reference|ref\b|no\b|number|invoice|bill/i;
+const LISTS: [RegExp, string][] = [[/payment method|refund method|^method$/i, "Cash,M-Pesa,Bank,Credit"], [/^(transaction )?type$|transaction type/i, "Sale,Purchase"], [/return type/i, "Sale Return,Purchase Return"], [/account type/i, "Cash,M-Pesa,Bank,Customer,Supplier"]];
+/** Adds what SheetJS can't write: frozen header row, text-format ID/phone/barcode columns (keeps leading zeros) and dropdown lists. */
+async function polishTemplate(buf: ArrayBuffer, heads: string[][]): Promise<ArrayBuffer> {
+  const { default: JSZip } = await import("jszip");
+  const z = await JSZip.loadAsync(buf);
+  let styles = await z.file("xl/styles.xml")!.async("string");
+  const n = Number(styles.match(/<cellXfs count="(\d+)"/)?.[1] ?? 1);
+  styles = styles.replace(/<cellXfs count="\d+">([\s\S]*?)<\/cellXfs>/, (_, x) => `<cellXfs count="${n + 1}">${x}<xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>`);
+  z.file("xl/styles.xml", styles);
+  for (let s = 0; s < heads.length; s++) {
+    const path = `xl/worksheets/sheet${s + 2}.xml`, f = z.file(path); if (!f) continue;
+    const h = heads[s]!; let x = await f.async("string");
+    x = x.replace(/<sheetView workbookViewId="0"\/>/, `<sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView>`);
+    x = x.replace(/<col min="(\d+)" max="\d+" ([^/]*)\/>/g, (m, i, rest) => TEXT_COL.test(h[Number(i) - 1] ?? "") ? `<col min="${i}" max="${i}" ${rest} style="${n}"/>` : m);
+    const dv = h.flatMap((name, i) => { const l = LISTS.find(([r]) => r.test(name)); return l ? [`<dataValidation type="list" allowBlank="1" showErrorMessage="0" sqref="${colName(i)}2:${colName(i)}5000"><formula1>"${l[1]}"</formula1></dataValidation>`] : []; });
+    if (dv.length) x = x.replace("</sheetData>", `</sheetData><dataValidations count="${dv.length}">${dv.join("")}</dataValidations>`);
+    z.file(path, x);
+  }
+  return z.generateAsync({ type: "arraybuffer" });
 }
 export const fullTemplate = async (only?: Exclude<FullCat, "Skip">) => new Blob([await fullTemplateBytes(only)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 export const templateName = (only?: string) => `SHOPBOOK_${(only ?? "Complete Business").replace(/[^A-Za-z0-9]+/g, "_")}_Import_Template.xlsx`;
