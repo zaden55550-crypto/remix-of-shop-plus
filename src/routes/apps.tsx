@@ -78,7 +78,7 @@ function Apps() {
   };
 
   return (
-    <main dir={dir} className="app-screen relative px-4 pb-24 pt-4">
+    <main dir={dir} className="app-screen relative px-4 pb-24 pt-4 md:max-w-3xl md:px-10">
       <header className="flex items-center justify-between gap-2">
         <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
           {acct.logo
@@ -116,7 +116,7 @@ function Apps() {
       </div>
 
       <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
-        className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] flex flex-col items-center">
+        className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] md:right-[max(1rem,calc(50%-370px))] flex flex-col items-center">
         <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-14 w-14 rounded-full" />
       </ShopButton>
 

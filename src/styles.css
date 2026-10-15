@@ -489,7 +489,8 @@
 
 /* ===== Responsive: phones keep the approved 430px design; tablets/desktops use the real width ===== */
 @media (min-width: 768px) {
-  .app-screen, .inventory-screen:not(.cart-sheet) { max-width: 100%; }
+  .app-screen { max-width: 640px; }
+  .inventory-screen:not(.cart-sheet) { max-width: 100%; }
   .inventory-screen:not(.cart-sheet) { zoom: 1.12; }
   .inventory-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; align-content: start; grid-auto-flow: row dense; padding-inline: 16px; }
   .inventory-content > * { grid-column: 1 / -1; min-width: 0; }
