@@ -41,6 +41,51 @@ export type Database = {
         }
         Relationships: []
       }
+      shopbook_backup_snapshots: {
+        Row: {
+          checksum: string
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          payload: string
+          record_count: number
+          restore_tested_at: string | null
+          shop_name: string
+          size_bytes: number
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          checksum: string
+          created_at?: string
+          device_id: string
+          id?: string
+          kind?: string
+          payload: string
+          record_count?: number
+          restore_tested_at?: string | null
+          shop_name?: string
+          size_bytes: number
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          checksum?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          kind?: string
+          payload?: string
+          record_count?: number
+          restore_tested_at?: string | null
+          shop_name?: string
+          size_bytes?: number
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       shopbook_device_backups: {
         Row: {
           device_id: string
