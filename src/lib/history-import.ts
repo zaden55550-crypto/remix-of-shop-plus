@@ -6,8 +6,8 @@
 import { commit, uid, type ErpState, type Method } from "@/lib/erp";
 import { parseDate, type DateFmt, type OBIssue, type Sheet } from "@/lib/opening-import";
 
-export type HistoryCat = "Stock Adjustments" | "Stock Transfers" | "Float Movements" | "Payroll History";
-export const HISTORY_CATS: HistoryCat[] = ["Stock Adjustments", "Stock Transfers", "Float Movements", "Payroll History"];
+export type HistoryCat = "Stock Adjustments" | "Stock Transfers" | "Float Movements" | "Payroll History" | "Customer Payments" | "Supplier Payments" | "Cash-ups";
+export const HISTORY_CATS: HistoryCat[] = ["Stock Adjustments", "Stock Transfers", "Float Movements", "Payroll History", "Customer Payments", "Supplier Payments", "Cash-ups"];
 type F = { key: string; label: string; required?: boolean; aliases: string[] };
 const PRODUCT: F = { key: "product", label: "Product", required: true, aliases: ["product", "item", "product name", "item name", "sku", "barcode"] };
 const DATE: F = { key: "date", label: "Date", aliases: ["date", "day", "transaction date"] };
@@ -16,6 +16,9 @@ export const HISTORY_FIELDS: Record<HistoryCat, F[]> = {
   "Stock Adjustments": [DATE, PRODUCT, { key: "counted", label: "Counted quantity", aliases: ["counted", "counted qty", "counted quantity", "physical count", "new qty", "actual"] }, { key: "change", label: "Quantity change", aliases: ["change", "qty change", "quantity change", "adjustment", "difference", "variance"] }, { key: "reason", label: "Reason", aliases: ["reason", "note", "notes", "remarks"] }, REF],
   "Stock Transfers": [DATE, PRODUCT, { key: "qty", label: "Quantity", required: true, aliases: ["qty", "quantity", "units"] }, { key: "from", label: "From shop", aliases: ["from", "from shop", "source", "origin"] }, { key: "to", label: "To shop", required: true, aliases: ["to", "to shop", "destination", "branch"] }, { key: "status", label: "Status", aliases: ["status", "state"] }, REF],
   "Float Movements": [DATE, { key: "type", label: "Movement type", required: true, aliases: ["type", "movement type", "movement", "kind"] }, { key: "account", label: "Account", required: true, aliases: ["account", "from account", "method", "wallet"] }, { key: "toAccount", label: "To account", aliases: ["to account", "to", "destination account"] }, { key: "amount", label: "Amount", required: true, aliases: ["amount", "value", "total"] }, { key: "note", label: "Note", aliases: ["note", "notes", "description", "details"] }, REF],
+  "Customer Payments": [DATE, { key: "party", label: "Customer", required: true, aliases: ["customer", "customer name", "name", "client", "debtor"] }, { key: "amount", label: "Amount", required: true, aliases: ["amount", "amount paid", "paid", "value"] }, { key: "method", label: "Payment method", required: true, aliases: ["method", "payment method", "paid via", "account"] }, REF],
+  "Supplier Payments": [DATE, { key: "party", label: "Supplier", required: true, aliases: ["supplier", "supplier name", "name", "vendor", "creditor"] }, { key: "amount", label: "Amount", required: true, aliases: ["amount", "amount paid", "paid", "value"] }, { key: "method", label: "Payment method", required: true, aliases: ["method", "payment method", "paid via", "account"] }, REF],
+  "Cash-ups": [DATE, { key: "expected", label: "Expected cash", aliases: ["expected", "expected cash", "system cash"] }, { key: "counted", label: "Counted cash", required: true, aliases: ["counted", "counted cash", "actual cash", "cash counted"] }, { key: "note", label: "Note", aliases: ["note", "notes", "remarks"] }],
   "Payroll History": [{ key: "employee", label: "Employee", required: true, aliases: ["employee", "staff", "name", "employee name"] }, { key: "from", label: "Period from", aliases: ["from", "period from", "start", "period start"] }, { key: "to", label: "Period to", aliases: ["to", "period to", "end", "period end"] }, { key: "salary", label: "Salary", aliases: ["salary", "basic", "basic pay"] }, { key: "commission", label: "Commission", aliases: ["commission"] }, { key: "deductions", label: "Deductions", aliases: ["deductions", "deduction"] }, { key: "paid", label: "Amount paid", aliases: ["paid", "amount paid", "payment"] }, { key: "method", label: "Payment method", aliases: ["method", "payment method", "paid via", "account"] }, { key: "date", label: "Payment date", aliases: ["payment date", "date", "paid on"] }, REF],
 };
 
@@ -85,6 +88,24 @@ export function applyHistory(cat: HistoryCat, sheets: { sheet: Sheet; map: Recor
             s.payments.unshift({ id: uid(), ref, at, method: from, amount: dep ? amt : -amt, kind: dep ? "DEPOSIT" : "WITHDRAWAL", source: note || (dep ? "Owner deposit" : "Owner withdrawal"), importKey: key, user: c.user });
           } else return bad("Movement type", `“${t(g("type"))}” not recognised`, "Use Deposit, Withdrawal or Transfer");
           c.audit("FLOAT IMPORTED", `${ref} • ${from} • ${amt}`);
+        } else if (cat === "Customer Payments" || cat === "Supplier Payments") {
+          const cust = cat === "Customer Payments", name = t(g("party")), amt = num(g("amount")), method = account(g("method"));
+          const p = (cust ? s.customers : s.suppliers).find((x) => k(x.name) === k(name));
+          if (!p) return bad(cust ? "Customer" : "Supplier", `“${name}” not found`, "Import the contact first");
+          if (!(amt > 0)) return bad("Amount", "Amount must be more than 0", "Enter numbers only");
+          if (!method) return bad("Payment method", `“${t(g("method"))}” is not Cash, M-Pesa or Bank`, "Use Cash, M-Pesa or Bank");
+          if (amt > p.balance + 0.001) return bad("Amount", `More than the ${p.balance} owed`, "Import the credit sales/purchases first or fix the amount");
+          p.balance = Math.round((p.balance - amt) * 100) / 100;
+          let left = amt;
+          const docs = (cust ? s.sales.filter((x) => x.customerId === p.id) : s.purchases.filter((x) => x.supplierId === p.id)).sort((a, b) => a.at - b.at);
+          for (const d of docs) { if (left <= 0.001) break; const b = Math.max(0, d.pay.credit - (d.settled ?? 0)); if (b <= 0) continue; const take = Math.min(b, left); d.settled = Math.round(((d.settled ?? 0) + take) * 100) / 100; left -= take; }
+          s.payments.unshift({ id: uid(), ref: t(g("ref")) || c.nextRef("PAY"), at, method, amount: cust ? amt : -amt, kind: cust ? "DEBT" : "SUPPLIER PAYMENT", source: p.name, customerId: cust ? p.id : undefined, supplierId: cust ? undefined : p.id, importKey: key, user: c.user });
+          c.audit(cust ? "DEBT PAYMENT IMPORTED" : "SUPPLIER PAYMENT IMPORTED", `${p.name} • ${amt}`);
+        } else if (cat === "Cash-ups") {
+          const counted = num(g("counted")), exp = num(g("expected")), expected = Number.isFinite(exp) ? exp : counted;
+          if (!(counted >= 0)) return bad("Counted cash", "Counted cash missing", "Enter numbers only");
+          s.cash.unshift({ id: uid(), at, type: "CASH UP", amount: Math.round((counted - expected) * 100) / 100, expected, counted, note: t(g("note")) || "Imported cash-up", user: c.user });
+          c.audit("CASH UP IMPORTED", `Expected ${expected} • Counted ${counted}`);
         } else {
           const name = t(g("employee")), e = s.employees.find((x) => k(x.name) === k(name));
           if (!e) return bad("Employee", `“${name}” not found`, "Import the employee first");
