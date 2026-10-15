@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import { applyUiSize } from "@/lib/prefs";
 import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
+import { startAutoSnapshots } from "@/lib/snapshots";
 import { startShopSync } from "@/lib/shop-sync";
 
 import appCss from "../styles.css?url";
@@ -125,6 +126,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => { applyUiSize(); applySettings(); }, []);
   useEffect(() => startCloudBackup(), []);
+  useEffect(() => startAutoSnapshots(), []);
   useEffect(() => startShopSync(), []);
 
   return (
