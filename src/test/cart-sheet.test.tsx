@@ -14,11 +14,13 @@ function setup() {
 describe("shared reference cart", () => {
   it("allows a manual amount without changing quantity or the product price", () => {
     const { setLine } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Switch entry mode Ajab Flour" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Amount Ajab Flour" }), { target: { value: "85.50" } });
     expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 0.5, price: 171, priceReason: "wholesale" });
   });
   it("blocks saving and checkout while a manual amount is invalid", () => {
     const { setLine } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Switch entry mode Ajab Flour" }));
     fireEvent.change(screen.getByRole("textbox", { name: "Amount Ajab Flour" }), { target: { value: "-1" } });
     expect(setLine).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Proceed to Checkout" })).toBeDisabled();
@@ -45,6 +47,13 @@ describe("shared reference cart", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Cart" }));
     expect(saveDraft).toHaveBeenCalledOnce();
     expect(close).toHaveBeenCalledOnce();
+    expect(setLine).not.toHaveBeenCalled();
+  });
+});
+describe("amount mode", () => {
+  it("turns the amount spent into a quantity at the unit price", () => {
+    const { setLine } = setup();
+    fireEvent.change(screen.getByRole("textbox", { name: "Amount to spend Ajab Flour" }), { target: { value: "0" } });
     expect(setLine).not.toHaveBeenCalled();
   });
 });

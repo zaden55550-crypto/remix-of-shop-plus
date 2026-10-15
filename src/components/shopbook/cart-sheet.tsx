@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronRight, Delete, Minus, Plus, Save, ShoppingCart, Trash2, X } from "lucide-react";
+import { ArrowRight, ChevronRight, Delete, Plus, Save, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { LineEditor } from "@/components/shopbook/line-editor";
@@ -25,6 +25,7 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
 }) {
   const [edit, setEdit] = useState<erp.CartLine | null>(null);
   const [quantity, setQuantity] = useState<erp.CartLine | null>(null);
+  const [modes, setModes] = useState<Record<string, "amount" | "price">>({});
   const [invalidAmounts, setInvalidAmounts] = useState<Record<string, boolean>>({});
   const invalid = cart.some((l) => invalidAmounts[l.productId]);
   const total = erp.lineTotal(s, cart);
@@ -48,9 +49,10 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
         const unit = p.unit || "pcs";
         return <div className="cart-line" key={p.id}>
           <ShopButton variant="bare" className="cart-product" onClick={() => setEdit(l)} title={tr("Edit price and amount")}><b>{p.name}</b><small>{money(erp.linePrice(s, l))} / {unit}</small></ShopButton>
-          <div className="cart-stepper"><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Decrease")} ${p.name}`} disabled={l.qty <= 0.001} onClick={() => change(l, Math.max(0.001, l.qty - (l.qty <= 1 ? 0.25 : 1)))}><Minus className="h-3.5 w-3.5" /></ShopButton><ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton><ShopButton variant="bare" className="cart-step" aria-label={`${tr("Increase")} ${p.name}`} onClick={() => change(l, l.qty + 1)}><Plus className="h-3.5 w-3.5" /></ShopButton></div>
+          <div className="cart-stepper"><ShopButton variant="bare" className="cart-quantity" aria-label={`${tr("Edit quantity")} ${p.name}`} onClick={() => setQuantity(l)}>{l.qty}</ShopButton></div>
           <select className="cart-unit" aria-label={`${tr("Selling unit")} ${p.name}`} value={unit} onChange={() => {}}><option value={unit}>{unit}</option></select>
-          <LineAmount s={s} line={l} tr={tr} setLine={setLine} onInvalid={(bad) => setInvalidAmounts((current) => current[p.id] === bad ? current : { ...current, [p.id]: bad })} />
+          <ShopButton variant="bare" className="cart-unit" aria-label={`${tr("Switch entry mode")} ${p.name}`} title={tr(modes[p.id] === "price" ? "Typing the amount changes the price" : "Typing the amount calculates the quantity")} onClick={() => setModes((m) => ({ ...m, [p.id]: m[p.id] === "price" ? "amount" : "price" }))}>{modes[p.id] === "price" ? tr("Price") : tr("Amt")}</ShopButton>
+          <LineAmount mode={modes[p.id] ?? "amount"} s={s} line={l} tr={tr} setLine={setLine} onInvalid={(bad) => setInvalidAmounts((current) => current[p.id] === bad ? current : { ...current, [p.id]: bad })} />
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><Trash2 className="h-4 w-4" /></ShopButton>
         </div>;
       })}</div>
@@ -63,13 +65,22 @@ export function CartSheet({ s, cart, money, tr, setLine, remove, clear, close, n
   </div>;
 }
 
-function LineAmount({ s, line, tr, setLine, onInvalid }: { s: erp.ErpState; line: erp.CartLine; tr: (x: string) => string; setLine: (l: erp.CartLine) => void; onInvalid: (bad: boolean) => void }) {
+function LineAmount({ s, line, tr, setLine, onInvalid, mode }: { mode: "amount" | "price"; s: erp.ErpState; line: erp.CartLine; tr: (x: string) => string; setLine: (l: erp.CartLine) => void; onInvalid: (bad: boolean) => void }) {
   const amount = erp.lineAmount(s, line);
   const [value, setValue] = useState(String(amount));
   const [invalid, setInvalid] = useState(false);
   useEffect(() => { setValue(String(amount)); setInvalid(false); onInvalid(false); }, [amount, line.qty]);
   const p = s.products.find((p) => p.id === line.productId);
   if (!p) return null;
+  const price = erp.linePrice(s, line);
+  // Amount mode: the typed money buys qty = amount ÷ unit price; the price itself never changes.
+  if (mode === "amount") return <input className="cart-amount cart-amount-input" aria-label={`${tr("Amount to spend")} ${p.name}`} aria-invalid={invalid} title={invalid ? tr("This amount doesn't give a valid quantity") : tr("Amount to spend")} inputMode="decimal" value={value} onFocus={(e) => e.currentTarget.select()} onChange={(e) => {
+    const raw = e.target.value; setValue(raw);
+    const r = /^\d+(\.\d{0,2})?$/.test(raw) ? erp.qtyForAmount(Number(raw), price) : null;
+    const bad = !r || !r.exact || r.qty <= 0 || r.qty > p.qty + 1e-9 || (erp.isWholeUnit(p.unit) && !Number.isInteger(r.qty));
+    setInvalid(bad); onInvalid(bad);
+    if (!bad && r) setLine({ ...line, qty: r.qty });
+  }} />;
   return <input className="cart-amount cart-amount-input" aria-label={`${tr("Amount")} ${p.name}`} aria-invalid={invalid} title={tr("Edit price and amount")} inputMode="decimal" value={value} onFocus={(e) => e.currentTarget.select()} onChange={(e) => {
     const raw = e.target.value;
     setValue(raw);
@@ -89,7 +100,7 @@ function QuantityPad({ s, line, tr, onSave, onClose }: { s: erp.ErpState; line: 
   const p = s.products.find((p) => p.id === line.productId);
   if (!p) return null;
   const qty = Number(value);
-  const error = !Number.isFinite(qty) || qty <= 0 ? tr("Enter a quantity above zero") : qty > p.qty ? `${tr("Insufficient stock")} (${p.qty} ${p.unit || "pcs"})` : erp.roundQty(qty) !== qty ? tr("Use up to 3 decimal places") : "";
+  const error = !Number.isFinite(qty) || qty <= 0 ? tr("Enter a quantity above zero") : qty > p.qty ? `${tr("Insufficient stock")} (${p.qty} ${p.unit || "pcs"})` : erp.roundQty(qty) !== qty ? tr("Use up to 3 decimal places") : erp.isWholeUnit(p.unit) && !Number.isInteger(qty) ? `${tr("Whole numbers only for")} ${p.unit || "pcs"}` : "";
   const enter = (key: string) => {
     if (key === "back") { setValue(replace ? "" : value.slice(0, -1)); setReplace(false); return; }
     const next = replace ? (key === "." ? "0." : key) : value + key;

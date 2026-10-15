@@ -214,6 +214,9 @@ export const removeNamed = (kind: "categories" | "brands", id: string) => commit
 /** `price` is a one-sale override (manual/wholesale); the product's default price is never changed. Quantities may be fractional (3 decimals). */
 export type CartLine = { productId: string; qty: number; price?: number | undefined; priceReason?: string | undefined };
 export const roundQty = (q: number) => Math.round(q * 1000) / 1000;
+/** Units sold only in whole numbers (packets, pieces, boxes…). Weight/volume/length units allow fractions. */
+const WHOLE_UNITS = new Set(["pcs", "pc", "piece", "pieces", "packet", "packets", "pkt", "box", "boxes", "bottle", "bottles", "carton", "cartons", "dozen", "pack", "packs", "bag", "bags", "tin", "tins", "unit", "units", "item", "items", "roll", "rolls", "pair", "pairs", "sachet", "sachets", "bar", "bars", "can", "cans", "crate", "crates"]);
+export const isWholeUnit = (unit?: string) => WHOLE_UNITS.has((unit || "pcs").trim().toLowerCase());
 export const linePrice = (s: ErpState, l: CartLine) => l.price ?? s.products.find((p) => p.id === l.productId)?.sell ?? 0;
 export const lineAmount = (s: ErpState, l: CartLine) => Math.round(linePrice(s, l) * l.qty * 100) / 100;
 export const lineTotal = (s: ErpState, cart: CartLine[]) => Math.round(cart.reduce((a, l) => a + lineAmount(s, l), 0) * 100) / 100;
@@ -252,6 +255,7 @@ export const confirmSale = (input: { cart: CartLine[]; discount: number; pay: Re
     const qty = roundQty(l.qty);
     if (!(qty > 0) || !Number.isFinite(qty)) throw new ErpError(`Invalid quantity for ${p.name}`);
     if (qty > p.qty + 1e-9) throw new ErpError(`Insufficient stock: ${p.name} (available ${p.qty})`);
+    if (isWholeUnit(p.unit) && !Number.isInteger(qty)) throw new ErpError(`${p.name} is sold in whole ${p.unit || "pcs"} only`);
     if (l.price !== undefined && !(l.price >= 0 && Number.isFinite(l.price))) throw new ErpError(`Invalid price for ${p.name}`);
     if (l.price !== undefined && l.price !== p.sell) c.audit("PRICE OVERRIDE", `${p.name}: ${p.sell} → ${l.price}${l.priceReason ? ` • ${l.priceReason}` : ""}`);
     return { productId: p.id, name: p.name, qty, price: l.price ?? p.sell, cost: p.buy, returned: 0 };
