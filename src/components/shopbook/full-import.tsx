@@ -6,7 +6,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { FULL_ORDER, fieldsFor, fullTemplate, importFull, missing, planSheets, previewFull, suggestFor, type FullCat, type FullOptions, type Plan, type StageResult } from "@/lib/full-import";
 import { issuesCsv, readSheets, type DateFmt, type ImportBatch } from "@/lib/opening-import";
 
-import { download, downloadBlob } from "@/lib/download";
+import { download, openFile } from "@/lib/download";
 type Stage = "upload" | "map" | "preview" | "done";
 const STEPS = ["Upload", "Detect", "Map", "Validate", "Preview", "Confirm Import", "Reconcile"];
 
@@ -41,7 +41,20 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
     if (ref.current) ref.current.value = "";
   };
   const update = (id: string, patch: Partial<Plan>) => setPlans(plans.map((p) => p.id === id ? { ...p, ...patch } : p));
-  const validate = () => { setBusy(true); try { setResults(previewFull(plans, opts)); setStage("preview"); } catch (e) { toast.error(e instanceof Error ? e.message : tr("Validation failed")); } finally { setBusy(false); } };
+  const validate = () => {
+    setBusy(true);
+    try {
+      // Auto-correct: if rows are rejected, try other date formats and keep the reading with the fewest errors.
+      const bad = (r: StageResult[]) => r.reduce((a, x) => a + x.rejected + (x.error ? 1000 : 0), 0);
+      let best = previewFull(plans, opts), bestFmt = fmt;
+      if (bad(best)) for (const f of (["auto", "DMY", "MDY", "YMD"] as DateFmt[]).filter((f) => f !== fmt)) {
+        const r = previewFull(plans, { ...opts, dateFmt: f });
+        if (bad(r) < bad(best)) { best = r; bestFmt = f; }
+      }
+      if (bestFmt !== fmt) { setFmt(bestFmt); toast.success(`${tr("Errors corrected automatically")}: ${tr("date format")} ${bestFmt === "auto" ? tr("Detect automatically") : bestFmt}`); }
+      setResults(best); setStage("preview");
+    } catch (e) { toast.error(e instanceof Error ? e.message : tr("Validation failed")); } finally { setBusy(false); }
+  };
   const run = () => {
     if (busy) return; setBusy(true);
     try { const r = importFull(plans, opts); setResults(r.results); setBatch(r.batch); setStage("done"); r.batch.created || r.batch.updated ? toast.success(`${r.batch.created} ${tr("records created")}`) : toast.warning(tr("Nothing new was saved")); }
@@ -57,7 +70,7 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
       <p className="import-note">{tr("Upload one Excel workbook with many sheets, or several files together. Each sheet is detected automatically: products, stock, prices, customers, suppliers, contacts, employees, opening balances (Cash, M-Pesa, Bank, credit), sales, purchases with payments, returns, expenses, stock adjustments, stock transfers, float movements and payroll history. Accounting, float and commission totals are calculated from these records.")}</p>
       <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
       <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose workbook or files")}</ShopButton>
-      <ShopButton variant="outline" className="inventory-save" disabled={!tpl} onClick={() => { if (tpl) { downloadBlob(tpl, "shopbook-full-business-template.xlsx"); toast.success(tr("Template downloaded")); } }}><Download className="h-4 w-4" />{tpl ? tr("Download template") : tr("Preparing template…")}</ShopButton>
+      <ShopButton variant="outline" className="inventory-save" disabled={!tpl} onClick={() => { if (tpl) void openFile(tpl, "shopbook-full-business-template.xlsx").then((r) => toast.success(tr(r === "shared" ? "Choose Excel, Numbers or Sheets to open the template" : "Template downloaded and opened"))); }}><Download className="h-4 w-4" />{tpl ? tr("Download template") : tr("Preparing template…")}</ShopButton>
     </>}
     {stage === "map" && <>
       {plans.map((p) => { const miss = missing(p); return <div key={p.id} className="import-history" style={{ padding: 8 }}>
