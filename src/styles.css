@@ -372,7 +372,8 @@
 .cart-product b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cart-product small { display: block; font-size: 9px; font-weight: 400; color: var(--muted-foreground); margin-top: 3px; }
 .cart-stepper { display: grid; grid-template-columns: 24px minmax(0,1fr) 24px; align-items: center; border: 1px solid var(--border); border-radius: 4px; height: 28px; }
-.inventory-screen .cart-step { width: 24px; height: 26px; padding: 0; border-radius: 3px; }
+.inventory-screen .cart-step { width: 24px; height: 26px; padding: 0; border-radius: 3px; font-size: 14px; line-height: 1; color: var(--muted-foreground); }
+.inventory-screen .cart-step:hover { color: var(--foreground); }
 .inventory-screen .cart-quantity { height: 26px; width: 100%; padding: 0; font-size: 11px; font-variant-numeric: tabular-nums; border-radius: 0; }
 .cart-unit { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 10px; height: 28px; border: 1px solid var(--border); border-radius: 4px; background: var(--card); color: var(--foreground); padding: 0 2px; }
 .cart-amount { text-align: end; color: var(--primary); font-size: 11px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

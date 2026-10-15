@@ -49,6 +49,20 @@ describe("shared reference cart", () => {
     expect(close).toHaveBeenCalledOnce();
     expect(setLine).not.toHaveBeenCalled();
   });
+  it("steps quantity up and down with the − and + buttons", () => {
+    const { setLine } = setup();
+    fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 0.75, price: 200, priceReason: "wholesale" });
+    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
+    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 0.25, price: 200, priceReason: "wholesale" });
+  });
+  it("removes the line when decreased to zero and blocks stepping past stock", () => {
+    const { remove, setLine } = setup();
+    for (let i = 0; i < 2; i++) fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
+    expect(remove).toHaveBeenCalledWith("flour");
+    for (let i = 0; i < 40; i++) fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
+    expect(setLine).not.toHaveBeenCalled();
+  });
 });
 describe("amount mode", () => {
   it("turns the amount spent into a quantity at the unit price", () => {
