@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { ShopButton } from "@/components/shopbook/ui";
+import { ShopButton } from "@/components/ui/shop-button";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { backupJson, restoreJson, validateBackup } from "@/lib/backup";
 import { load } from "@/lib/erp";
@@ -25,7 +25,7 @@ export function BackupHub({ tr, shopName }: { tr: (x: string) => string; shopNam
   const now = async () => { setBusy("backup"); try { await backUpNow("manual"); toast.success(tr("Backup completed and verified.")); } catch (e) { toast.error(`${e instanceof Error ? e.message : "Backup failed"} ${tr("Your previous verified backup is still available.")}`); } finally { setBusy(""); } };
   const download = () => { const u = URL.createObjectURL(new Blob([backupJson(shopName)], { type: "application/json" })); const a = document.createElement("a"); a.href = u; a.download = `shopbook-full-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(u); };
   const open = (text: string, id?: string) => {
-    const f = JSON.parse(text); validateBackup(f); const cur = load() as unknown as Record<string, unknown[]>; const d = f.data as Record<string, unknown[]>;
+    const f = JSON.parse(text); validateBackup(f); const cur = load() as unknown as Record<string, unknown[]>; const d = f.data as unknown as Record<string, unknown[]>;
     setPreview({ text, ...(id ? { id } : {}), shop: f.shop, at: f.at, rows: COUNTED.map((k) => [k, (cur[k] ?? []).length, (d[k] ?? []).length]) });
   };
   const pick = async (id: string) => { setBusy(id); try { open(await getSnapshot({ data: { id } }), id); } catch (e) { toast.error(e instanceof Error ? e.message : "Backup unavailable"); } finally { setBusy(""); } };
