@@ -21,7 +21,7 @@ export type Plan = { id: string; sheet: Sheet; cat: FullCat; map: FieldMap; reas
 export type StageResult = { cat: Exclude<FullCat, "Skip">; sheets: string[]; total: number; created: number; updated: number; skipped: number; rejected: number; issues: OBIssue[]; error?: string };
 export type FullOptions = { dateFmt: DateFmt; stock: TXOptions["stock"]; existing?: "skip" | "update" };
 
-const NAME_HINTS: [RegExp, FullCat][] = [[/payroll|salar|wage/, "Payroll History"], [/float|cash ?book|deposit|withdraw/, "Float Movements"], [/transfer/, "Stock Transfers"], [/adjust|stock ?take|stock ?count/, "Stock Adjustments"], [/opening|balance/, "Opening Balances"], [/return|refund|credit ?note/, "Returns"], [/sale|purchase|invoice|receipt|transaction/, "Sales & Purchases"], [/product|item|inventory|stock ?list/, "Products"], [/customer|client|debtor/, "Customers"], [/supplier|vendor|creditor/, "Suppliers"], [/employee|staff|payroll/, "Employees"], [/expense/, "Expenses"], [/categor/, "Categories"], [/brand/, "Brands"], [/price/, "Product Prices"]];
+const NAME_HINTS: [RegExp, FullCat][] = [[/cash ?-?up|till count/, "Cash-ups"], [/customer ?(payment|repay|receipt)|debt ?pay/, "Customer Payments"], [/supplier ?pay/, "Supplier Payments"], [/payroll|salar|wage/, "Payroll History"], [/float|cash ?book|deposit|withdraw/, "Float Movements"], [/transfer/, "Stock Transfers"], [/adjust|stock ?take|stock ?count/, "Stock Adjustments"], [/opening|balance/, "Opening Balances"], [/return|refund|credit ?note/, "Returns"], [/sale|purchase|invoice|receipt|transaction/, "Sales & Purchases"], [/product|item|inventory|stock ?list/, "Products"], [/customer|client|debtor/, "Customers"], [/supplier|vendor|creditor/, "Suppliers"], [/employee|staff|payroll/, "Employees"], [/expense/, "Expenses"], [/categor/, "Categories"], [/brand/, "Brands"], [/price/, "Product Prices"]];
 
 export function suggestFor(cat: FullCat, cols: string[]): FieldMap {
   if (cat === "Skip") return {};
@@ -122,18 +122,33 @@ export function importFull(plans: Plan[], o: FullOptions): { results: StageResul
   return { results, batch };
 }
 
-/** Blank Full Business Import workbook: one sheet per category, headers = field labels (* = required). Empty sheets are ignored on upload. */
-export async function fullTemplateBytes(): Promise<ArrayBuffer> {
+/** Official template built from the importer's own field list, so every header is recognised on upload.
+ * Pass one category for a single-category file. Examples sit on the Instructions sheet only, so they are never imported. */
+export async function fullTemplateBytes(only?: Exclude<FullCat, "Skip">): Promise<ArrayBuffer> {
   const XLSX = await import("xlsx");
-  const wb = XLSX.utils.book_new();
-  const help = [["SHOPBOOK Full Business Import template"], ["Fill one row per record in each sheet. Required columns are listed below each sheet name in the app mapping step. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Sales & Purchases / Returns: one item per row; rows sharing a receipt number become one transaction."], ["Import order is automatic: " + FULL_ORDER.join(" → ")]];
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(help), "Instructions");
-  for (const c of FULL_ORDER) {
-    const heads = fieldsFor(c).map((f) => { const a = (f as Field & { aliases?: string[] }).aliases?.find((x) => x.includes(" ")); return a ? a.replace(/\b\w/g, (m) => m.toUpperCase()) : f.label; });
-    const ws = XLSX.utils.aoa_to_sheet([heads]);
+  const wb = XLSX.utils.book_new(), cats = only ? [only] : FULL_ORDER;
+  const head = (f: Field) => { const a = (f as Field & { aliases?: string[] }).aliases?.find((x) => x.includes(" ")); return a ? a.replace(/\b\w/g, (m) => m.toUpperCase()) : f.label; };
+  const help: (string | number)[][] = [["SHOPBOOK " + (only ?? "Full Business") + " Import template"], ["Fill one row per record. One field per column. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Payment method: Cash, M-Pesa or Bank. Sales/Purchases/Returns: one item per row; rows sharing a receipt number become one transaction."], ["Rows on this Instructions sheet are examples and are never imported."], only ? [] : ["Import order is automatic: " + FULL_ORDER.join(" → ")], []];
+  for (const c of cats) { const fs = fieldsFor(c); help.push([c, "Required: " + fs.filter((f) => f.required).map(head).join(", "), "Optional: " + fs.filter((f) => !f.required).map(head).join(", ")]); }
+  if (cats.includes("Products")) help.push([], ["Products example"], ["Product Name", "Buying Price", "Selling Price", "Quantity", "Minimum Stock", "Category", "Brand", "Unit"], ["Example Product A", 100, 150, 20, 5, "Beverages", "Example Brand", "Piece"]);
+  const ins = XLSX.utils.aoa_to_sheet(help); ins["!cols"] = [{ wch: 22 }, { wch: 60 }, { wch: 60 }];
+  XLSX.utils.book_append_sheet(wb, ins, "Instructions");
+  for (const c of cats) {
+    const heads = fieldsFor(c).map(head), ws = XLSX.utils.aoa_to_sheet([heads]);
     ws["!cols"] = heads.map((h) => ({ wch: Math.max(12, h.length + 2) }));
     XLSX.utils.book_append_sheet(wb, ws, c.replace(/[\\/?*[\]:&]/g, "-").slice(0, 31));
   }
   return XLSX.write(wb, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
-export const fullTemplate = async () => new Blob([await fullTemplateBytes()], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+export const fullTemplate = async (only?: Exclude<FullCat, "Skip">) => new Blob([await fullTemplateBytes(only)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+export const templateName = (only?: string) => `SHOPBOOK_${(only ?? "Complete Business").replace(/[^A-Za-z0-9]+/g, "_")}_Import_Template.xlsx`;
+
+/** Turns cells copied from Excel/Google Sheets (tab separated) into a sheet; first non-empty row is the header. */
+export function pastedSheet(text: string): Sheet {
+  const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.trim());
+  if (lines.length < 2) throw new Error("Paste a header row and at least one data row");
+  const sep = lines[0]!.includes("\t") ? "\t" : ",";
+  const columns = lines[0]!.split(sep).map((c, i) => c.trim() || `Column ${i + 1}`);
+  const rows = lines.slice(1).map((l) => { const v = l.split(sep); return Object.fromEntries(columns.map((c, i) => [c, (v[i] ?? "").trim()])); });
+  return { file: "Pasted data", sheet: "Pasted", columns, rows } as Sheet;
+}
