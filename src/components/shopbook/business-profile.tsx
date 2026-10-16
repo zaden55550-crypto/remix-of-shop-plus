@@ -16,8 +16,8 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
   const [logo, setLogo] = useState(acct.logo ?? ""), file = useRef<HTMLInputElement>(null);
   const [br, setBr] = useState<Branch>({ name: "", location: "" });
   const txt = (k: "owner" | "phone" | "taxPin" | "country" | "city" | "location" | "website" | "hours", label: string, wide?: boolean) => <F tr={tr} label={label} wide={wide}><input className="inventory-input" value={cfg[k]} onChange={(e) => save({ [k]: e.target.value })} /></F>;
-  const pickLogo = (f?: File) => { if (!f) return; if (f.size > 1_500_000) return toast.error(tr("Logo must be under 1.5 MB")); const r = new FileReader(); r.onload = () => { const v = String(r.result); setLogo(v); onAccount({ logo: v }); }; r.readAsDataURL(f); };
-  const addBranch = () => { if (!br.name.trim()) return toast.error(tr("Enter a branch name")); save({ branches: [...cfg.branches, { name: br.name.trim(), location: br.location.trim() }] }); setBr({ name: "", location: "" }); toast.success(tr("Added")); };
+  const pickLogo = (f?: File) => { if (!f) return; if (f.size > 1_500_000) { toast.error(tr("Logo must be under 1.5 MB")); return; } const r = new FileReader(); r.onload = () => { const v = String(r.result); setLogo(v); onAccount({ logo: v }); }; r.readAsDataURL(f); };
+  const addBranch = () => { if (!br.name.trim()) { toast.error(tr("Enter a branch name")); return; } save({ branches: [...cfg.branches, { name: br.name.trim(), location: br.location.trim() }] }); setBr({ name: "", location: "" }); toast.success(tr("Added")); };
 
   return <div className="bp-grid">
     <div className="bp-card bp-logo-card">
@@ -40,7 +40,7 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
         <F tr={tr} label="Business Type"><select className="inventory-input" value={TYPES.includes(cfg.businessType) ? cfg.businessType : "Other"} onChange={(e) => save({ businessType: e.target.value })}>{TYPES.map((t) => <option key={t} value={t}>{tr(t)}</option>)}</select></F>
         {txt("owner", "Owner")}
         {txt("phone", "Phone")}
-        <F tr={tr} label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => { const v = e.target.value.trim(); if (v && !/^\S+@\S+\.\S+$/.test(v)) return toast.error(tr("Enter a valid email")); if (v !== acct.email) onAccount({ email: v }); }} /></F>
+        <F tr={tr} label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => { const v = e.target.value.trim(); if (v && !/^\S+@\S+\.\S+$/.test(v)) { toast.error(tr("Enter a valid email")); return; } if (v !== acct.email) onAccount({ email: v }); }} /></F>
         {txt("taxPin", "KRA PIN / Tax ID")}
       </div>
     </div>
