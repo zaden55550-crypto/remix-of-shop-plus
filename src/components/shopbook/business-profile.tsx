@@ -8,13 +8,14 @@ import { useSettings, type Branch } from "@/lib/settings-config";
 type Tr = (x: string) => string;
 const TYPES = ["Retail", "Wholesale", "Supermarket", "Pharmacy", "Hardware", "Restaurant", "Electronics", "Boutique", "Services", "Other"];
 
+function F({ label, children, wide, tr }: { label: string; children: ReactNode; wide?: boolean | undefined; tr: Tr }) { return <label className={`inventory-field${wide ? " bp-wide" : ""}`}><span>{tr(label)}</span>{children}</label>; }
+
 /** Business Profile: logo, basic info, location, extra details, branches, currency. Saves to account + device settings only. */
 export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr; onAccount: (p: Partial<Account>) => void }) {
   const [cfg, save] = useSettings();
   const [logo, setLogo] = useState(acct.logo ?? ""), file = useRef<HTMLInputElement>(null);
   const [br, setBr] = useState<Branch>({ name: "", location: "" });
-  const F = ({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) => <label className={`inventory-field${wide ? " bp-wide" : ""}`}><span>{tr(label)}</span>{children}</label>;
-  const txt = (k: "owner" | "phone" | "taxPin" | "country" | "city" | "location" | "website" | "hours", label: string, wide?: boolean) => <F label={label} wide={wide}><input className="inventory-input" value={cfg[k]} onChange={(e) => save({ [k]: e.target.value })} /></F>;
+  const txt = (k: "owner" | "phone" | "taxPin" | "country" | "city" | "location" | "website" | "hours", label: string, wide?: boolean) => <F tr={tr} label={label} wide={wide}><input className="inventory-input" value={cfg[k]} onChange={(e) => save({ [k]: e.target.value })} /></F>;
   const pickLogo = (f?: File) => { if (!f) return; if (f.size > 1_500_000) return toast.error(tr("Logo must be under 1.5 MB")); const r = new FileReader(); r.onload = () => { const v = String(r.result); setLogo(v); onAccount({ logo: v }); }; r.readAsDataURL(f); };
   const addBranch = () => { if (!br.name.trim()) return toast.error(tr("Enter a branch name")); save({ branches: [...cfg.branches, { name: br.name.trim(), location: br.location.trim() }] }); setBr({ name: "", location: "" }); toast.success(tr("Added")); };
 
@@ -35,11 +36,11 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
     <div className="bp-card">
       <p className="money-heading">{tr("Basic Information")}</p>
       <div className="bp-fields">
-        <F label="Business Name" wide><input className="inventory-input" defaultValue={acct.shopName} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== store.get()?.shopName) onAccount({ shopName: v }); }} /></F>
-        <F label="Business Type"><select className="inventory-input" value={TYPES.includes(cfg.businessType) ? cfg.businessType : "Other"} onChange={(e) => save({ businessType: e.target.value })}>{TYPES.map((t) => <option key={t} value={t}>{tr(t)}</option>)}</select></F>
+        <F tr={tr} label="Business Name" wide><input className="inventory-input" defaultValue={acct.shopName} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== store.get()?.shopName) onAccount({ shopName: v }); }} /></F>
+        <F tr={tr} label="Business Type"><select className="inventory-input" value={TYPES.includes(cfg.businessType) ? cfg.businessType : "Other"} onChange={(e) => save({ businessType: e.target.value })}>{TYPES.map((t) => <option key={t} value={t}>{tr(t)}</option>)}</select></F>
         {txt("owner", "Owner")}
         {txt("phone", "Phone")}
-        <F label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => { const v = e.target.value.trim(); if (v && !/^\S+@\S+\.\S+$/.test(v)) return toast.error(tr("Enter a valid email")); if (v !== acct.email) onAccount({ email: v }); }} /></F>
+        <F tr={tr} label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => { const v = e.target.value.trim(); if (v && !/^\S+@\S+\.\S+$/.test(v)) return toast.error(tr("Enter a valid email")); if (v !== acct.email) onAccount({ email: v }); }} /></F>
         {txt("taxPin", "KRA PIN / Tax ID")}
       </div>
     </div>
@@ -53,7 +54,7 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
       <p className="money-heading">{tr("Additional Details")}</p>
       <div className="bp-fields">
         {txt("website", "Website")}{txt("hours", "Business Hours")}
-        <F label="Description" wide><textarea className="inventory-input bp-text" rows={2} value={cfg.description} onChange={(e) => save({ description: e.target.value })} /></F>
+        <F tr={tr} label="Description" wide><textarea className="inventory-input bp-text" rows={2} value={cfg.description} onChange={(e) => save({ description: e.target.value })} /></F>
       </div>
     </div>
 
@@ -67,8 +68,8 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
     <div className="bp-card">
       <p className="money-heading">{tr("Currency & Number Format")}</p>
       <div className="bp-fields">
-        <F label="Currency"><select className="inventory-input" value={acct.currency} onChange={(e) => onAccount({ currency: e.target.value })}>{["KSh", "USh", "TSh", "USD"].map((x) => <option key={x}>{x}</option>)}</select></F>
-        <F label="Number format"><select className="inventory-input" value={cfg.numberFormat} onChange={(e) => save({ numberFormat: e.target.value })}>{["1,000,000", "1.000.000", "1 000 000"].map((x) => <option key={x}>{x}</option>)}</select></F>
+        <F tr={tr} label="Currency"><select className="inventory-input" value={acct.currency} onChange={(e) => onAccount({ currency: e.target.value })}>{["KSh", "USh", "TSh", "USD"].map((x) => <option key={x}>{x}</option>)}</select></F>
+        <F tr={tr} label="Number format"><select className="inventory-input" value={cfg.numberFormat} onChange={(e) => save({ numberFormat: e.target.value })}>{["1,000,000", "1.000.000", "1 000 000"].map((x) => <option key={x}>{x}</option>)}</select></F>
       </div>
       <p className="settings-note">{tr("Example")}: {acct.currency} {cfg.numberFormat.replace("000,000", "250,500").replace("000.000", "250.500").replace("000 000", "250 500")}</p>
     </div>
