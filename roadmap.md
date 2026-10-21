@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [ ] Add and verify Settings → General → Sample Data with test-shop confirmation and existing-record protection.
+
 - [x] Match page typography to POS and add products by tapping rows in POS/Sales/Inventory. Editable line amounts verified through saved Inventory-to-Sales drafts and a completed isolated test sale: payment/receipt 185.50, stock deducted once, default product price unchanged, override audited; 9 automated tests pass and phone/desktop checked. Real records untouched.
 
 - [x] Match Sales/POS carts to the supplied quantity-keypad reference; 7 tests pass; verify decimal edits, line totals, saved draft reload, completed sales, receipt and exact stock deductions on a 390px phone in isolated browser storage; preserve amount/price editing and existing ERP records. Unit alternatives await configured conversion rules (only each product's saved unit is available).

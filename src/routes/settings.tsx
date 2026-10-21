@@ -9,6 +9,7 @@ import { BackupStatus } from "@/components/shopbook/backup-status";
 import { BackupHub } from "@/components/shopbook/backup-hub";
 import { UniversalImport } from "@/components/shopbook/universal-import";
 import { BusinessProfile } from "@/components/shopbook/business-profile";
+import { SampleData } from "@/components/shopbook/sample-data";
 import { ExportData, ManageModules, NamedManager } from "@/components/shopbook/settings-data";
 import { inputCls, useErp } from "@/components/shopbook/product-search";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -16,7 +17,6 @@ import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
 import { APPS, canOpen, PLANS, store } from "@/lib/shopbook";
 import { backupJson, lastBackup, restoreJson } from "@/lib/backup";
-import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { translateCurrent } from "@/lib/interface-translations";
 import { applyUiSize, setTax, setUiSize, UI_MAX, UI_MIN, UI_STEP, usePrefs } from "@/lib/prefs";
 import { applySettings, useSettings, type SettingsConfig } from "@/lib/settings-config";
@@ -35,7 +35,7 @@ const CATS = ["Business", "General", "AI Setup", "People & Access", "Finance", "
 type Category = (typeof CATS)[number];
 const SUB: Record<Category, string[]> = {
   Business: ["Business Profile"],
-  General: ["Language & Currency", "Date & Time", "Number Format", "Interface Size", "Search & Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Reconciliation", "Manage Modules", "Export Data", "Export & Restore", "Delete & Reset"],
+  General: ["Language & Currency", "Date & Time", "Number Format", "Interface Size", "Search & Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Sample Data", "Reconciliation", "Manage Modules", "Export Data", "Export & Restore", "Delete & Reset"],
   "AI Setup": ["ShopBot", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions", "AI Gateway"],
   "People & Access": ["Users", "Roles", "Permissions", "Data Access", "Active Users", "Invitations", "Access History"],
   Finance: ["Accounts", "Payment Methods", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
@@ -72,6 +72,7 @@ const GENERAL_DETAILS: Record<string, string> = {
   "System Preferences": "Autosave • Offline mode • Automatic sync",
   "Autosave & Backup": "Local save • Cloud backup",
   "Import & Data": "Universal Import Center",
+  "Sample Data": "Empty test shops only",
   "Export & Restore": "Export records • Whole-shop backup",
   "Manage Modules": "Show or hide apps • Records kept",
   "Export Data": "Full workbook • Selected data • Date range • CSV",
@@ -121,6 +122,7 @@ function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveC
   const text = (key: keyof SettingsConfig, label: string) => <L label={label}><input className="inventory-input" value={String(cfg[key])} onChange={(e) => saveCfg({ [key]: e.target.value })} /></L>;
   const toggle = (key: keyof SettingsConfig, label: string) => <label className="settings-toggle"><span>{tr(label)}</span><input type="checkbox" checked={Boolean(cfg[key])} onChange={(e) => saveCfg({ [key]: e.target.checked })} /></label>;
   if (name === "Business Profile") return <BusinessProfile acct={acct} tr={tr} onAccount={saveAccount} />;
+  if (name === "Sample Data") return <SampleData tr={tr} shopName={acct.shopName} />;
   if (name === "__oldProfile") return <><L label="Business Name"><input className="inventory-input" defaultValue={acct.shopName} onBlur={(e) => e.target.value.trim() && saveAccount({ shopName: e.target.value.trim() })} /></L>{text("owner", "Owner")}{text("phone", "Phone")}<L label="Email"><input className="inventory-input" type="email" defaultValue={acct.email} onBlur={(e) => saveAccount({ email: e.target.value.trim() })} /></L></>;
   if (name === "Business Type") return text("businessType", "Business Type"); if (name === "Location") return text("location", "Location"); if (name === "Contact Information") return <>{text("phone", "Phone")}<p className="settings-note">{acct.email || tr("Email optional")}</p></>; if (name === "Owner") return text("owner", "Owner"); if (name === "Business Hours") return text("hours", "Business Hours");
   if (name === "Logo") return <LogoSetting value={acct.logo} onSave={(logo) => saveAccount({ logo })} tr={tr} />;
