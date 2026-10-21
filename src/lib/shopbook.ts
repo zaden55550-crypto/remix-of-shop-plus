@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 // Local-only store for the screens-first phase (no backend yet).
 import Dashboard from "@/assets/icons-final/Dashboard.png.asset.json";
 import Inventory from "@/assets/Inventory.png.asset.json";
@@ -117,4 +118,4 @@ export function canOpen(a: Account | null, tier: Tier) {
   return RANK[a.plan] >= RANK[tier];
 }
 
-export const fmtKsh = (n: number) => `KSh ${n.toLocaleString("en-KE")}`;
+export const fmtKsh = (n: number) => `KSh ${clean(n).toLocaleString("en-KE")}`;

@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -44,7 +45,7 @@ function range(p: P, custom: [string, string]): [number, number] {
 
 function compact(_cur: string) {
   return (n: number) => {
-    return Math.round(n).toLocaleString("en-US");
+    return clean(Math.round(clean(n))).toLocaleString("en-US");
   };
 }
 

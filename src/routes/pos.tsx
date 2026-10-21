@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState, type ReactNode } from "react";
@@ -42,7 +43,7 @@ const ACC: erp.Method[] = ["cash", "mpesa", "bank"];
 const tm = (n: number) => new Date(n).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const today0 = () => new Date(new Date().toDateString()).getTime();
 const posSales = (s: erp.ErpState) => s.sales.filter((x) => x.channel === "POS");
-const n = (v: number) => (Math.round(v * 100) / 100).toLocaleString("en-KE");
+const n = (v: number) => clean(Math.round(clean(v) * 100) / 100).toLocaleString("en-KE");
 
 function Pos() {
   const acct = useAccount("basic");

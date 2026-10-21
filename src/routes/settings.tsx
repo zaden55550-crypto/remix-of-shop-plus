@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -177,7 +178,7 @@ const csvCell = (v: unknown) => `"${String(v ?? "").replaceAll('"', '""')}"`;
 const csvDownload = (name: string, head: string[], rows: unknown[][]) => { const text = [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n"); const u = URL.createObjectURL(new Blob([text], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); URL.revokeObjectURL(u); };
 function ExportPanel({ tr, acct }: { tr: (x: string) => string; acct: NonNullable<ReturnType<typeof store.get>> }) {
   const s = useErp(), file = useRef<HTMLInputElement>(null), day = new Date().toISOString().slice(0, 10);
-  const money = (n: number) => n.toFixed(2);
+  const money = (n: number) => clean(n).toFixed(2);
   const catName = (id?: string) => s.categories.find((c) => c.id === id)?.name ?? "", brandName = (id?: string) => s.brands.find((b) => b.id === id)?.name ?? "";
   const custName = (id?: string) => s.customers.find((c) => c.id === id)?.name ?? "", suppName = (id?: string) => s.suppliers.find((x) => x.id === id)?.name ?? "";
   const exports: [string, () => void][] = [

@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { useId, useState } from "react";
 import { Area, Bar, CartesianGrid, ComposedChart, Legend, Line, Pie, PieChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -10,7 +11,7 @@ type Props = { points: ChartPoint[]; money: (n: number) => string; tr: (s: strin
 
 export function CompactGraph({ points, money, tr, title, labels = [title], kind = "line", count }: Props) {
   const id = useId().replace(/:/g, "");
-  const fmt = count ? (v: number) => v.toLocaleString("en-KE") : money;
+  const fmt = count ? (v: number) => clean(v).toLocaleString("en-KE") : money;
   const hasData = points.some((p) => p.value !== 0 || (p.secondary ?? 0) !== 0 || (p.third ?? 0) !== 0);
   const breakdown = kind === "donut" || kind === "ranking";
   const nonzero = points.filter((p) => p.value !== 0);
