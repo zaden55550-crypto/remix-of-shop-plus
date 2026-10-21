@@ -9,7 +9,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { applyUiSize } from "@/lib/prefs";
+import { applyFluidScale, applyUiSize } from "@/lib/prefs";
 import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
 import { startAutoSnapshots } from "@/lib/snapshots";
@@ -124,7 +124,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => { applyUiSize(); applySettings(); }, []);
+  useEffect(() => { applyUiSize(); applySettings(); window.addEventListener("resize", applyFluidScale); return () => window.removeEventListener("resize", applyFluidScale); }, []);
   useEffect(() => startCloudBackup(), []);
   useEffect(() => startAutoSnapshots(), []);
   useEffect(() => startShopSync(), []);

@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { useMemo, useRef, useState } from "react";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ export function ReturnImport({ tr }: { tr: (x: string) => string }) {
   const problems = useMemo(() => sheets.flatMap((x) => rtMappingProblems(maps[id(x)] ?? {}).map((p) => `${x.sheet}: ${p}`)), [sheets, maps]);
   const read = async (l: FileList) => { try { const all = await readSheets([...l]); setSheets(all); setMaps(Object.fromEntries(all.map((x) => [id(x), suggestRT(x.columns)]))); setStage("map"); } catch (e) { toast.error(e instanceof Error ? e.message : "Files could not be read"); } };
   const live = groups.filter((g) => g.status === "VALID" && !g.excluded);
-  const money = (x: number) => x.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const money = (x: number) => clean(x).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const run = () => {
     if (busy) return; setBusy(true);
     const files = [...new Set(sheets.map((x) => x.file))], errors = groups.flatMap((g) => g.issues);

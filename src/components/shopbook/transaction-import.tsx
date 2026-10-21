@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { useMemo, useRef, useState } from "react";
 import { Download, FileSpreadsheet, Upload } from "lucide-react";
 import { toast } from "sonner";
@@ -33,7 +34,7 @@ export function TransactionImport({ tr, onDone }: { tr: (x: string) => string; o
       toast.error(e instanceof Error ? e.message : "Import failed; nothing was saved");
     } finally { setBusy(false); }
   };
-  const money = (x: number) => x.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  const money = (x: number) => clean(x).toLocaleString(undefined, { maximumFractionDigits: 2 });
 
   return <>
     {stage === "upload" && <>

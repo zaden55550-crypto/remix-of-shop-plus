@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -72,7 +73,7 @@ function Purchases() {
   const [view, setView] = useState<View>(null);
   if (!acct) return <main className="app-screen" />;
   const cur = acct.currency || "KSh";
-  const money = (n: number) => `${cur} ${(Math.round(n * 100) / 100 || 0).toLocaleString("en-KE")}`;
+  const money = (n: number) => `${cur} ${clean(Math.round(clean(n) * 100) / 100).toLocaleString("en-KE")}`;
   const go = (m: Menu, sm?: string) => { setView(null); setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); };
   const ctx: Ctx = { s, money, tr, go, open: setView, shop: acct.shopName };
   return (

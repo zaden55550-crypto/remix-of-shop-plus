@@ -231,6 +231,13 @@
   scrollbar-width: thin;
 }
 .kpi-item { flex: 1 0 auto; min-width: max-content; }
+/* Summary strips: one row of equal-width cards that shrink their own text instead of wrapping or scrolling. */
+.kpi-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: clamp(3px, 1vw, 10px); overflow: hidden; }
+.kpi-item { min-width: 0; container-type: inline-size; }
+.kpi-item p { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.kpi-item p:first-child { font-size: clamp(7px, 11cqi, 11px) !important; }
+.kpi-item p:last-child { font-size: clamp(8px, 13cqi, 15px) !important; }
+@container (max-width: 64px) { .kpi-item .kpi-icon { display: none; } }
 
 /* The approved Inventory palette is local: other SHOPBOOK apps keep their theme. */
 .inventory-screen {
@@ -493,7 +500,6 @@
 @media (min-width: 768px) {
   .app-screen { max-width: 640px; }
   .inventory-screen:not(.cart-sheet) { max-width: 100%; }
-  .inventory-screen:not(.cart-sheet) { zoom: 1.12; }
   .inventory-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; align-content: start; grid-auto-flow: row dense; padding-inline: 16px; }
   .inventory-content > * { grid-column: 1 / -1; min-width: 0; }
   .inventory-content > .inventory-box { grid-column: auto; }
@@ -502,10 +508,12 @@
   .assistant-shell { max-width: 640px; }
 }
 @media (min-width: 1200px) {
-  .inventory-screen:not(.cart-sheet) { zoom: 1.2; }
   .inventory-content { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .inventory-screen > header, .inventory-content { width: 100%; max-width: 1600px; margin-inline: auto; }
 }
+/* Smooth width-based scaling for every app screen (set from prefs.ts; no breakpoint jumps). */
+.inventory-screen:not(.cart-sheet), .app-screen { zoom: var(--fluid-scale, 1); }
+.inventory-screen .inventory-header h1, .truncate-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Never let a page scroll sideways */
 html, body { overflow-x: hidden; }
 

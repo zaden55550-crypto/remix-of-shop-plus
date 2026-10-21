@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -39,7 +40,7 @@ export function useAccount(tier: Tier) {
   }, [nav, tier]);
   return acct;
 }
-export const moneyFor = (cur: string) => (n: number) => `${cur} ${((Math.round(n * 100) / 100) || 0).toLocaleString("en-KE")}`;
+export const moneyFor = (cur: string) => (n: number) => `${cur} ${clean(Math.round(clean(n) * 100) / 100).toLocaleString("en-KE")}`;
 
 export function AppShell({ title, tabs, tab, setTab, children }: { title: string; tabs: string[]; tab: string; setTab: (t: string) => void; children: ReactNode }) {
   const nav = useNavigate();

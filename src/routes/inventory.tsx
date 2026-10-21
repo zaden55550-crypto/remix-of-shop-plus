@@ -1,3 +1,4 @@
+import { clean } from "@/lib/format";
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -68,7 +69,7 @@ function Inventory() {
   if (!acct) return <main className="app-screen" />;
 
   const cur = acct.currency || "KSh";
-  const money = (n: number) => `${cur} ${Math.round(n).toLocaleString("en-KE")}`;
+  const money = (n: number) => `${cur} ${clean(Math.round(clean(n))).toLocaleString("en-KE")}`;
   const go = (m: Menu, sm?: string) => { setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); };
   const ctx = { s, money, tr, go, cur, shop: acct.shopName, onUnknown: (code: string) => { setPrefill(code); go("products", "Add Product"); } };
 
