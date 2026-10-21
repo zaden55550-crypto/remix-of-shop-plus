@@ -31,7 +31,7 @@ export const Route = createFileRoute("/settings")({ head: () => ({ meta: [
   { property: "og:title", content: "Settings — SHOPBOOK ERP" }, { property: "og:description", content: "Configure SHOPBOOK and safely import business data." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), component: Settings });
 
-const CATS = ["Business", "General", "AI Setup", "People & Access", "Finance", "Products & Operations", "Appearance", "Tax & Compliance", "Notifications & Communication", "Security & Activity", "Integrations", "Subscription"] as const;
+const CATS = ["General", "AI Setup", "Business", "People & Access", "Finance", "Products & Operations", "Appearance", "Tax & Compliance", "Notifications & Communication", "Security & Activity", "Integrations", "Subscription"] as const;
 type Category = (typeof CATS)[number];
 const SUB: Record<Category, string[]> = {
   Business: ["Business Profile"],
@@ -49,7 +49,7 @@ const SUB: Record<Category, string[]> = {
 };
 
 const BLURB: Record<Category, string> = {
-  Business: "Your shop's name, owner, contacts, logo and hours.",
+  Business: "Your shop's name, contacts, logo and location.",
   General: "Set things once for the whole shop. They are copied to every app that uses them.",
   "AI Setup": "Choose what ShopBot can help with. ShopBot only reads your records.",
   "People & Access": "Who uses this shop and what they can see.",
@@ -81,15 +81,17 @@ const GENERAL_DETAILS: Record<string, string> = {
 
 function Settings() {
   const acct = useAccount("basic"), s = useErp(), { tr } = useLanguage(), nav = useNavigate(), [query, setQuery] = useState(""), [cat, setCat] = useState<Category>("General");
+  const [detail, setDetail] = useState(false);
   if (!acct) return <main className="app-screen" />;
   const q = query.trim().toLowerCase(), shown = CATS.filter((c) => !q || [c, ...SUB[c]].some((x) => tr(x).toLowerCase().includes(q)));
   const apply = () => { applyUiSize(); applySettings(); window.dispatchEvent(new Event("shopbook-settings")); window.dispatchEvent(new Event("shopbook-prefs")); toast.success(tr("Applied to all apps")); };
   return <AppShell title="Settings" tabs={[]} tab="" setTab={() => {}}>
+    {detail && <ShopButton variant="bare" className="settings-detail-back" onClick={() => setDetail(false)}><ArrowLeft className="h-3.5 w-3.5" />{tr(cat)}</ShopButton>}
     <ShopButton variant="bare" className="settings-back" onClick={() => nav({ to: "/apps" })}><ArrowLeft className="h-3.5 w-3.5" />{tr("Home")}</ShopButton>
     <h1 className="settings-title">⚙️ {tr("Settings")}</h1><p className="settings-note -mt-1 mb-2">{tr("Business configuration")}</p>
     <div className="settings-search"><Search className="h-3.5 w-3.5" /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tr("Search settings...")} /></div>
-    <div className="settings-split">
-      <nav className="settings-nav">{shown.map((c) => <ShopButton key={c} variant="bare" className={`settings-nav-item${c === cat ? " is-active" : ""}`} onClick={() => setCat(c)}>{tr(c)}</ShopButton>)}</nav>
+    <div className={`settings-split${detail ? " settings-detail" : ""}`}>
+      <nav className="settings-nav">{shown.map((c) => <ShopButton key={c} variant="bare" className={`settings-nav-item${c === cat ? " is-active" : ""}`} onClick={() => { setCat(c); setDetail(true); }}><span>{tr(c)}</span><ChevronDown aria-hidden className="h-3.5 w-3.5 -rotate-90" /></ShopButton>)}</nav>
       <div className="settings-panel">
         <div className="settings-panel-head"><div><h2>{tr(cat)} {tr("Settings")}</h2><p>{tr(BLURB[cat])}</p></div><ShopButton variant="bare" className="settings-apply" onClick={apply}>{tr("Apply to All Apps")}</ShopButton></div>
         <SettingsCategory key={cat} category={cat} acct={acct} state={s} query={q} />
@@ -102,6 +104,7 @@ function Settings() {
 function SettingsCategory({ category, acct, state, query }: { category: Category; acct: NonNullable<ReturnType<typeof store.get>>; state: ReturnType<typeof useErp>; query: string }) {
   const { tr, language, setLanguage } = useLanguage(), nav = useNavigate(), prefs = usePrefs(), [cfg, saveCfg] = useSettings(), [, refresh] = useState(0);
   const saveAccount = (patch: Partial<typeof acct>) => { store.update(patch); toast.success(tr("Saved")); refresh((n) => n + 1); };
+  if (category === "Business") return <BusinessProfile acct={store.get() ?? acct} tr={tr} onAccount={saveAccount} />;
   const names = SUB[category].filter((n) => !query || tr(n).toLowerCase().includes(query) || tr(category).toLowerCase().includes(query));
   return <div className="settings-sections">{names.map((name) => <SettingsAccordion key={name} title={tr(name)} description={category === "General" ? GENERAL_DETAILS[name]?.split(" • ").map(tr).join(" • ") : undefined} forceOpen={!!query.trim()}><Panel name={name} acct={acct} state={state} tr={tr} language={language} setLanguage={setLanguage} prefs={prefs} cfg={cfg} saveCfg={saveCfg} saveAccount={saveAccount} nav={nav} /></SettingsAccordion>)}</div>;
 }

@@ -50,20 +50,20 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
       <div className="bp-fields">{txt("country", "Country")}{txt("city", "City / Town")}{txt("location", "Street address", true)}</div>
     </div>
 
-    <div className="bp-card">
-      <p className="money-heading">{tr("Additional Details")}</p>
+    <details className="bp-card">
+      <summary className="money-heading cursor-pointer">{tr("Additional Details")}</summary>
       <div className="bp-fields">
-        {txt("website", "Website")}{txt("hours", "Business Hours")}
+        {txt("website", "Website")}
         <F tr={tr} label="Description" wide><textarea className="inventory-input bp-text" rows={2} value={cfg.description} onChange={(e) => save({ description: e.target.value })} /></F>
       </div>
-    </div>
+    </details>
 
-    <div className="bp-card">
-      <p className="money-heading">{tr("Branches")}</p>
+    <details className="bp-card">
+      <summary className="money-heading cursor-pointer">{tr("Branches")}</summary>
       {!cfg.branches.length && <p className="settings-note">{tr("No branches yet")}</p>}
       {cfg.branches.map((b, i) => <div key={i} className="flex items-center gap-2 border-b border-border py-1.5"><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{b.name}</p>{b.location && <p className="truncate text-[10px] text-muted-foreground">{b.location}</p>}</div><ShopButton variant="bare" className="inventory-icon-button text-destructive" aria-label={`${tr("Delete")} ${b.name}`} onClick={() => save({ branches: cfg.branches.filter((_, j) => j !== i) })}><Trash2 className="h-3.5 w-3.5" /></ShopButton></div>)}
       <div className="bp-branch-add"><input className="inventory-input" placeholder={tr("Branch name")} aria-label={tr("Branch name")} value={br.name} onChange={(e) => setBr({ ...br, name: e.target.value })} /><input className="inventory-input" placeholder={tr("Location")} aria-label={tr("Branch location")} value={br.location} onChange={(e) => setBr({ ...br, location: e.target.value })} /><ShopButton className="inventory-add-named" aria-label={tr("Add branch")} onClick={addBranch}><Plus className="h-4 w-4" /></ShopButton></div>
-    </div>
+    </details>
 
     <div className="bp-card">
       <p className="money-heading">{tr("Currency & Number Format")}</p>
