@@ -17,7 +17,7 @@ export const isDemo = () => typeof window !== "undefined" && localStorage.getIte
 /** True when this device has no business records at all. */
 export function isEmptyShop() {
   const s = load();
-  return !s.products.length && !s.sales.length && !s.customers.length && !s.suppliers.length && !s.payments.length && !s.employees.length && !s.purchases.length && !s.expenses.length;
+  return Object.entries(s).every(([key, value]) => key === "audit" || !Array.isArray(value) || value.length === 0);
 }
 
 const P = (cash = 0, mpesa = 0, bank = 0, credit = 0): Record<Method, number> => ({ cash, mpesa, bank, credit });
@@ -147,11 +147,17 @@ function wipe() {
 /** Loads the sample shop. Refuses if the device already has real records. */
 export function loadDemoData() {
   if (!isEmptyShop()) throw new Error("Demo data can only be loaded into an empty shop");
+  const previous = localStorage.getItem(KEY), previousFlag = localStorage.getItem(FLAG);
   try {
     localStorage.setItem(FLAG, "1");
     seed();
     commit((_s, c) => c.audit("DEMO DATA LOADED", "TechPoint Electronics sample dataset"));
-  } catch (e) { wipe(); localStorage.removeItem(FLAG); throw e; }
+  } catch (e) {
+    if (previous === null) wipe(); else localStorage.setItem(KEY, previous);
+    if (previousFlag === null) localStorage.removeItem(FLAG); else localStorage.setItem(FLAG, previousFlag);
+    window.dispatchEvent(new Event("shopbook-erp"));
+    throw e;
+  }
 }
 
 /** Admin-only. Works only on a demo device: backs up, clears the demo records, reseeds, logs it. */

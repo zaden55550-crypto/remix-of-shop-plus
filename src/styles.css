@@ -438,6 +438,7 @@
 /* Settings: category column + navy panel (approved reference) */
 .settings-split { display: grid; grid-template-columns: 31% minmax(0,1fr); gap: 7px; align-items: start; }
 .settings-nav { display: grid; gap: 5px; }
+.settings-detail-back { display: none; }
 .inventory-screen .settings-nav-item, .settings-nav-item { display: block; width: 100%; height: auto; min-height: 28px; padding: 5px 6px; border: 1px solid color-mix(in oklab, var(--primary) 35%, var(--border)); border-radius: 6px; background: var(--card); text-align: start; font-size: 8.5px; line-height: 1.25; white-space: normal; color: var(--foreground); }
 .settings-nav-item.is-active { background: linear-gradient(135deg, var(--primary), color-mix(in oklab, var(--primary) 60%, var(--background))); color: var(--primary-foreground); border-color: var(--primary); }
 .settings-panel { min-width: 0; border: 1px solid color-mix(in oklab, var(--primary) 40%, var(--border)); border-radius: 10px; background: var(--card); padding: 8px; }
@@ -521,4 +522,20 @@ html, body { overflow-x: hidden; }
   .bp-logo-card { grid-column: 1 / -1; }
   .bp-fields { grid-template-columns: 1fr 1fr; }
   .bp-wide { grid-column: 1 / -1; }
+}
+@media (max-width: 767px) {
+  .settings-split { grid-template-columns: minmax(0, 1fr); }
+  .settings-split:not(.settings-detail) .settings-panel { display: none; }
+  .settings-detail .settings-nav { display: none; }
+  .settings-detail-back { display: inline-flex; align-items: center; gap: 6px; }
+  .inventory-screen .settings-nav-item { display: flex; align-items: center; justify-content: space-between; min-height: 42px; padding: 9px 12px; font-size: 12px; }
+  .settings-panel { border: 0; padding: 0; background: transparent; }
+}
+.bp-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bp-wide { grid-column: 1 / -1; }
+.bp-fields .inventory-input { min-width: 0; width: 100%; }
+@media (min-width: 768px) {
+  .app-screen:has(.settings-split) { max-width: 1200px; }
+  .settings-split { grid-template-columns: 220px minmax(0, 1fr); }
+  .settings-nav-item { display: flex; align-items: center; justify-content: space-between; }
 }
