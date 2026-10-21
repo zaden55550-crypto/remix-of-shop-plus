@@ -534,3 +534,8 @@ html, body { overflow-x: hidden; }
 .bp-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .bp-wide { grid-column: 1 / -1; }
 .bp-fields .inventory-input { min-width: 0; width: 100%; }
+@media (min-width: 768px) {
+  .app-screen:has(.settings-split) { max-width: 1200px; }
+  .settings-split { grid-template-columns: 220px minmax(0, 1fr); }
+  .settings-nav-item { display: flex; align-items: center; justify-content: space-between; }
+}

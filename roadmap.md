@@ -1,6 +1,7 @@
 # SHOPBOOK updates
 
-- [ ] Add and verify Settings → General → Sample Data with test-shop confirmation and existing-record protection.
+- [x] Add Settings → General → Sample Data; phone walkthrough loaded 25 products in isolated test storage; four tests verify confirmation and existing-record protection.
+- [ ] Complete the supplied Business Profile spec: searchable currency, global monetary precision, prefilled registration phone and remaining tablet/wide-layout checks.
 
 - [x] Match page typography to POS and add products by tapping rows in POS/Sales/Inventory. Editable line amounts verified through saved Inventory-to-Sales drafts and a completed isolated test sale: payment/receipt 185.50, stock deducted once, default product price unchanged, override audited; 9 automated tests pass and phone/desktop checked. Real records untouched.
 
