@@ -514,7 +514,6 @@
 /* Smooth width-based scaling for every app screen (set from prefs.ts; no breakpoint jumps). */
 .inventory-screen:not(.cart-sheet), .app-screen { zoom: var(--fluid-scale, 1); }
 .inventory-screen .inventory-header h1, .truncate-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (pointer: coarse) { .inventory-screen button:not(.kpi-item *), .app-screen button { min-height: 2.5rem; } }
 /* Never let a page scroll sideways */
 html, body { overflow-x: hidden; }
 
