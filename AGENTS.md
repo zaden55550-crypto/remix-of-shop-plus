@@ -24,7 +24,7 @@
 - Reports (`src/lib/reports.ts`) are read-only builders over the ERP snapshot; sources that don't exist yet return null and render as a dash.
 - Purchases, expenses, supplier payments and float moves are signed rows in the shared `payments` ledger (`src/lib/finance.ts`), so Float, POS cash-up and Accounting read one money source.
 - Accounting (`src/lib/accounting.ts`) is a read-only double-entry journal derived from ERP records; never store separate ledger rows that could drift.
-- Demo seed lives in src/lib/demo.ts and only calls public ERP actions; it loads only into an empty shop and reset works only on demo-flagged devices, so real records are never wiped.
+- Demo seed uses public ERP actions; Settings requires test-shop confirmation and execution-time emptiness checks; resets require demo flags, protecting real records.
 - Support chat is in Cloud: owners use Google sign-in, AI replies only from the server route, support role (user_roles) gates /support-inbox.
 - Purchase drafts are device-local unsaved work (not ERP records); only confirmed purchases go through finance.ts so stock, money and supplier balances change once.
 - Part payments (P.PAY) go in a separate settled amount; the original pay split stays untouched to avoid double counting. Purchases and Sales share erp-shell.tsx.
