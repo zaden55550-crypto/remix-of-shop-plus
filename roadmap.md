@@ -74,3 +74,8 @@
 - [x] Phase 1: Opening balances (cash, M-Pesa, bank, receivables, payables) — multi-file/sheet, mapping, validation, duplicate-safe, history, export/re-import
 - [x] Phase 2: Grouped sales & purchases with line items and payments
 - [ ] Phase 3: Returns, stock movements, payroll, float history; retire legacy importer
+
+## Offline resilience
+- [x] Online / Connecting / Offline buttons in Apps header with backend health check + details panel
+- [ ] Admin outage announcements (server-stored, cached locally)
+- [ ] Tests for connection status logic
