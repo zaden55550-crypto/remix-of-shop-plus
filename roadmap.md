@@ -77,5 +77,6 @@
 
 ## Offline resilience
 - [x] Online / Connecting / Offline buttons in Apps header with backend health check + details panel
-- [ ] Admin outage announcements (server-stored, cached locally)
-- [ ] Tests for connection status logic
+- [x] Admin outage announcements (server-stored, cached locally)
+- [x] Announcement tests
+- [ ] Full offline outbox for every money action (ERP already saves on-device first; needs server-side idempotent writes)
