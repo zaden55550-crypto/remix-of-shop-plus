@@ -202,6 +202,45 @@ export type Database = {
         }
         Relationships: []
       }
+      system_announcements: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string
+          dismissible: boolean
+          ends_at: string | null
+          id: string
+          kind: string
+          message: string
+          starts_at: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string
+          dismissible?: boolean
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          message: string
+          starts_at?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string
+          dismissible?: boolean
+          ends_at?: string | null
+          id?: string
+          kind?: string
+          message?: string
+          starts_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
