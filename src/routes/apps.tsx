@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/settings-config";
 import { HelpChat } from "@/components/shopbook/help-chat";
 import { BusinessAssistant } from "@/components/shopbook/business-assistant";
+import { ConnectionStatus } from "@/components/shopbook/connection-status";
+import { AnnouncementBanner } from "@/components/shopbook/announcement-banner";
 import { useLanguage } from "@/hooks/use-language";
 import { getT, LANGS, NATIVE, SUPPORT, type TKey } from "@/lib/i18n";
 
@@ -89,6 +91,7 @@ function Apps() {
             ? <img src={acct.logo} alt={tr("Shop logo")} className="h-full w-full object-cover object-center" />
             : <Store className="h-4.5 w-4.5 text-primary" />}
         </span>
+        <ConnectionStatus className="shrink-0" />
         <span className="min-w-0 flex-1 truncate text-center text-base font-bold">{acct.shopName}</span>
         <div className="flex shrink-0 items-center gap-2">
           <ShopButton variant="bare" aria-label={tr("Notifications")} className="relative h-auto w-auto p-0"><Bell className="h-5 w-5" /></ShopButton>
@@ -96,6 +99,7 @@ function Apps() {
           <ShopButton variant="bare" className="h-auto w-auto p-0" aria-label={tr("Menu")} onClick={() => { setPanel(null); setMenuOpen(true); }}><Menu className="h-5 w-5" /></ShopButton>
         </div>
       </header>
+      <AnnouncementBanner />
 
       {acct.plan === "trial" && (
         <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-card/70 p-3">
