@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 export type Conn = "online" | "connecting" | "offline";
 
 async function checkBackend(timeoutMs = 6000): Promise<boolean> {
-  const url = import.meta.env.VITE_SUPABASE_URL, key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const url = import.meta.env["VITE_SUPABASE_URL"] as string | undefined, key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined;
   if (!url) return false;
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
   try { const r = await fetch(`${url}/auth/v1/health`, { headers: { apikey: key ?? "" }, signal: ctl.signal, cache: "no-store" }); return r.ok; }
