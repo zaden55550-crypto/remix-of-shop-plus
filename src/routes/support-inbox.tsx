@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { ShopButton } from "@/components/ui/shop-button";
 import { cn } from "@/lib/utils";
+import { AnnouncementAdmin } from "@/components/shopbook/announcement-banner";
 
 export const Route = createFileRoute("/support-inbox")({
   head: () => ({
@@ -77,6 +78,7 @@ function Inbox() {
 
   return (
     <main className="app-screen flex min-h-dvh flex-col p-4">
+      {!sel && <AnnouncementAdmin />}
       {!sel ? (
         <>
           <div className="flex items-center gap-2"><Link to="/apps" aria-label="Back"><ChevronLeft className="h-5 w-5" /></Link><h1 className="text-lg font-bold">Support inbox</h1></div>
