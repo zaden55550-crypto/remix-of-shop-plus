@@ -42,3 +42,4 @@
 - Resets stamp `seq['__reset:<collection>']`; sync merge drops older records so a stale phone can't restore deleted data.
 - Opening balances import as OPENING rows in the payments ledger with an importKey (src/lib/opening-import.ts), so they never count as sales/expenses and re-imports never double-post.
 - Full import (src/lib/full-import.ts) only orchestrates category importers; preview runs then restores a snapshot, confirm is all-or-nothing.
+- Connection status (src/components/shopbook/connection-status.tsx) uses a backend health check, not navigator.onLine alone; system announcements are server rows writable only by the support role and cached on-device for outages.
