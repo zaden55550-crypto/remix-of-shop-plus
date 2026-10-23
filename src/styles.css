@@ -178,7 +178,7 @@
 @utility app-screen {
   min-height: 100dvh;
   width: 100%;
-  max-width: 430px;
+  max-width: 100%;
   margin-inline: auto;
   background-image: var(--surface-gradient);
 }
@@ -262,7 +262,7 @@
   --inventory-panel-shadow: 0 1px 3px oklch(0.1 0.03 245 / .25);
   background: var(--background);
   color: var(--foreground);
-  max-width: 430px;
+  max-width: 100%;
   min-height: 100dvh;
   margin-inline: auto;
   font-size: 12px;
@@ -497,7 +497,6 @@
 
 /* ===== Responsive: phones keep the approved 430px design; tablets/desktops use the real width ===== */
 @media (min-width: 768px) {
-  .app-screen { max-width: 640px; }
   .inventory-screen:not(.cart-sheet) { max-width: 100%; }
   .inventory-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; align-content: start; grid-auto-flow: row dense; padding-inline: 16px; }
   .inventory-content > * { grid-column: 1 / -1; min-width: 0; }

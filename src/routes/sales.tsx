@@ -102,8 +102,7 @@ function SaleList(c: Ctx & { filter: string }) {
   const ok = (x: erp.Sale) => { const st = erp.saleStatus(s, x); return filter === "Completed" ? st === "Paid" : filter === "Pending" ? st === "P.PAY" || st === "Credit" : filter === "Cancelled" ? st === "Cancelled" : true; };
   const list = s.sales.filter((x) => ok(x) && `${x.ref} ${custName(s, x.customerId) ?? ""}`.toLowerCase().includes(q.toLowerCase()));
   return <>
-    <BigButton onClick={() => c.open({ k: "new" })}><Plus className="h-4 w-4" />{tr("New Sale")}</BigButton>
-    <Search q={q} setQ={setQ} tr={tr} ph="Search sales..." />
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1.5 [&>*]:mb-1.5"><Search q={q} setQ={setQ} tr={tr} ph="Search sales..." /><ShopButton className="inventory-save h-full whitespace-nowrap px-3 text-[12px] font-bold" onClick={() => c.open({ k: "new" })}><Plus className="h-4 w-4" />{tr("New Sale")}</ShopButton></div>
     <div className="inventory-box">{list.length ? list.map((x) => <SaleRow key={x.id} x={x} c={c} />) : <Empty>{tr("No sales yet")}</Empty>}</div>
   </>;
 }
