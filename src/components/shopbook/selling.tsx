@@ -1,11 +1,11 @@
 import { clean } from "@/lib/format";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ChevronLeft, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { ProductSearch, inputCls } from "@/components/shopbook/product-search";
+import { inputCls } from "@/components/shopbook/product-search";
 import { store, canOpen, type Account, type Tier } from "@/lib/shopbook";
 import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/components/shopbook/pay-picker";
 import { vatRate } from "@/lib/prefs";
@@ -15,6 +15,8 @@ import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import { BackupStatus } from "@/components/shopbook/backup-status";
+import { ProductCatalog } from "@/components/shopbook/product-catalog";
+import { Tabs } from "@/components/shopbook/erp-shell";
 import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
 import * as erp from "@/lib/erp";
 
@@ -53,11 +55,7 @@ export function AppShell({ title, tabs, tab, setTab, children }: { title: string
           <h1 className="text-lg font-bold tracking-wide">{tr(title).toUpperCase()}</h1>
         </div>
         <BackupStatus />
-        <div className="flex gap-1 overflow-x-auto px-3 pb-2 [scrollbar-width:none]">
-          {tabs.map((k) => (
-            <button key={k} onClick={() => setTab(k)} className={cn("shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold transition", tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{tr(k).toUpperCase()}</button>
-          ))}
-        </div>
+        <Tabs items={tabs} value={tab} onChange={setTab} tr={tr} />
       </header>
       <section className="flex-1 px-4 pt-4">{children}</section>
     </main>
@@ -81,11 +79,9 @@ function Sheet({ onClose, children, title }: { onClose: () => void; children: Re
 
 // ---------------- SELL ----------------
 export function Sell({ s, money, tr, shop, channel }: SCtx) {
-  const [q, setQ] = useState("");
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft(channel);
   const [step, setStep] = useState<null | "cart" | "pay">(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
-  const list = useMemo(() => erp.searchProducts(s, q), [s, q]);
   const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
 
@@ -105,27 +101,10 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
 
   return (
     <div>
-      <ProductSearch q={q} setQ={setQ} onScan={onScan} tr={tr} />
-      <div className="mt-2">
-        {list.length === 0 && <Empty>{s.products.length ? tr("No matching products") : tr("No products yet. Add products in Inventory.")}</Empty>}
-        {list.map((p) => {
-          const n = cart.find((l) => l.productId === p.id)?.qty ?? 0;
-          return (
-            <ShopButton variant="bare" key={p.id} aria-label={`${tr("Add")} ${p.name}`} onClick={() => add(p.id)} disabled={p.qty <= 0} className="pos-product-button sales-product-row">
-              {p.image && <img src={p.image} alt="" className="h-10 w-10 rounded-lg object-cover" />}
-              <div className="min-w-0 flex-1"><p className="truncate text-[11px] font-medium">{p.name}</p><p className="text-[11px] text-muted-foreground">{p.sku} • {p.qty > 0 ? `${p.qty} ${p.unit || tr("pcs")}` : tr("Out of stock")}</p></div>
-              <span className="shrink-0 text-[11px] font-semibold">{money(p.sell)}</span>
-              {n > 0 && <span className="grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-primary px-1 text-xs font-bold text-primary-foreground">{n}</span>}
-            </ShopButton>
-          );
-        })}
-      </div>
-
-      {count > 0 && (
-        <button onClick={() => setStep("cart")} aria-label={tr("Cart")} className="fixed right-4 top-1/2 z-30 grid h-14 w-14 -translate-y-1/2 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg">
-          <ShoppingCart className="h-6 w-6" /><span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full bg-foreground px-1 text-xs font-bold text-background">{count}</span>
-        </button>
-      )}
+      <ProductCatalog s={s} cart={cart} tr={tr} add={(id) => add(id)} onScan={onScan} />
+      <ShopButton variant="bare" onClick={() => cart.length ? setStep("cart") : toast(tr("Cart is empty"))} aria-label={`${tr("Cart")} (${count})`} className="pos-fab">
+        <ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}
+      </ShopButton>
 
       {step === "cart" && <CartSheet s={s} cart={cart} money={money} tr={tr}
         setLine={(line) => setCart((c) => c.map((v) => v.productId === line.productId ? line : v))}
@@ -410,7 +389,7 @@ export function SalesReport({ s, money, tr, onlyChannel }: SCtx & { onlyChannel?
   const st = salesStats(s, (x) => x.at >= since && (!onlyChannel || x.channel === onlyChannel));
   return (
     <div>
-      <div className="mb-3 flex gap-1">{(["today", "7d", "all"] as const).map((r) => <button key={r} onClick={() => setRange(r)} className={cn("rounded-full px-3 py-1 text-xs font-semibold", range === r ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>{tr(r === "today" ? "Today" : r === "7d" ? "Last 7 days" : "All time")}</button>)}</div>
+      <Tabs small items={["today", "7d", "all"]} value={range} onChange={(v) => { if (v === "today" || v === "7d" || v === "all") setRange(v); }} tr={(r) => tr(r === "today" ? "Today" : r === "7d" ? "Last 7 days" : "All time")} />
       <KpiRow>
         <Kpi label={tr("Sales")} value={st.count} />
         <Kpi label={tr("Net sales")} value={money(st.net)} />
@@ -455,9 +434,7 @@ export function Cash({ s, money, tr }: SCtx) {
   };
   return (
     <div>
-      <div className="mb-3 flex gap-1 overflow-x-auto [scrollbar-width:none]">
-        {(["OPENING CASH", "CASH IN", "CASH OUT", "CASH UP", "CASH HISTORY"] as const).map((k) => <button key={k} onClick={() => setView(k)} className={cn("shrink-0 rounded-full px-3 py-1 text-xs font-semibold", view === k ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>{tr(k)}</button>)}
-      </div>
+      <Tabs small items={["OPENING CASH", "CASH IN", "CASH OUT", "CASH UP", "CASH HISTORY"]} value={view} onChange={(v) => { if (v === "OPENING CASH" || v === "CASH IN" || v === "CASH OUT" || v === "CASH UP" || v === "CASH HISTORY") setView(v); }} tr={tr} />
       <KpiRow>
         <Kpi label={tr("Opening Cash")} value={money(cs.opening)} />
         <Kpi label={tr("Cash Sales")} value={money(cs.sales)} />

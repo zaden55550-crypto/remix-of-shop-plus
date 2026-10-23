@@ -1,11 +1,11 @@
 import { clean } from "@/lib/format";
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, FileText, MessageCircle, Minus, MinusCircle, Plus, Printer, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { ProductSearch, useErp } from "@/components/shopbook/product-search";
+import { useErp } from "@/components/shopbook/product-search";
 import { Receipt, ReceiptSheet, ReturnForm, moneyFor, run, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, Row, Tabs, toneOf, type Tr } from "@/components/shopbook/erp-shell";
@@ -14,6 +14,7 @@ import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/com
 import { vatRate } from "@/lib/prefs";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
+import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
 import * as erp from "@/lib/erp";
 
@@ -69,14 +70,10 @@ function Pos() {
 // ---------------- SELL ----------------
 function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const { s, money, tr } = c;
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("all");
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft("POS");
   const [step, setStep] = useState<"list" | "cart" | "pay">("list");
   const [done, setDone] = useState<erp.Sale | null>(null);
   const cartBtn = useRef<HTMLButtonElement>(null);
-  const cats = s.categories.filter((k) => s.products.some((p) => p.categoryId === k.id));
-  const list = useMemo(() => erp.searchProducts(s, q).filter((p) => cat === "all" || p.categoryId === cat), [s, q, cat]);
   const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
   const add = (id: string, from?: HTMLElement) => {
@@ -91,18 +88,8 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   if (done) return <Done {...c} sale={done} onNew={() => { setDone(null); setStep("list"); }} openSale={c.openSale} />;
   if (step === "pay") return <Payment {...c} cart={cart} back={() => setStep("cart")} onDone={(x) => { setCart([]); clearDraft(); setDone(x); }} />;
   return <>
-    {cats.length > 0 && <div><Tabs small items={["all", ...cats.map((k) => k.id)]} value={cat} onChange={setCat} tr={(k) => (k === "all" ? tr("All") : cats.find((x) => x.id === k)?.name ?? k)} /></div>}
-    <div className="mt-1.5"><ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} /></div>
-    <div className="pos-head"><span>{tr("Product")}</span><span>{tr("Stock")}</span><span>{tr("Price")}</span><span /></div>
-    {list.length === 0 && <Empty>{s.products.length ? tr("No matching products") : tr("No products yet. Add products in Inventory.")}</Empty>}
-    {list.map((p) => { const inCart = cart.find((l) => l.productId === p.id)?.qty ?? 0; return (
-      <ShopButton variant="bare" key={p.id} aria-label={`${tr("Add")} ${p.name}`} disabled={p.qty <= 0} onClick={(e) => add(p.id, e.currentTarget)} className={cn("pos-row pos-product-button", inCart > 0 && "pos-row-on")}>
-        <span className="flex min-w-0 items-center gap-1.5"><Dot tone={p.qty <= 0 ? "bad" : p.qty <= (p.minStock ?? 5) ? "warn" : "ok"} /><span className="truncate">{p.name}</span>{inCart > 0 && <span className="pos-chip">×{inCart}</span>}</span>
-        <span className="text-center tabular-nums">{p.qty}</span>
-        <span className="text-end tabular-nums">{n(p.sell)}</span>
-        <span className="pos-add" aria-hidden="true"><Plus className="h-3.5 w-3.5" /></span>
-      </ShopButton>); })}
-    <button ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</button>
+    <ProductCatalog s={s} cart={cart} tr={tr} add={add} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
+    <ShopButton variant="bare" ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</ShopButton>
     {step === "cart" && <CartSheet s={s} money={money} tr={tr} cart={cart}
       setLine={(l) => setCart((x) => x.map((v) => v.productId === l.productId ? l : v))}
       remove={(id) => setQty(id, 0)} clear={() => { setCart([]); clearDraft(); setStep("list"); }}

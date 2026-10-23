@@ -46,3 +46,6 @@
 - Connectivity has one root-owned active monitor; pending operations share the ERP atomic local write, preserving records and queue together.
 - Multi-stage import previews use isolated in-memory ERP transactions; confirmation publishes one operation, avoiding temporary cloud writes.
 - Native ShopBot uses deterministic help and read-only approved queries; online queries derive caller identity from authenticated server middleware.
+
+- POS and Sales use the shared ProductCatalog for category/search/stock/price rows; keep checkout and drafts caller-owned to preserve their distinct workflows.
+- Horizontal navigation uses shared intrinsic equal-width grid tracks, scrolling within each row when labels cannot fit; do not truncate or wrap menu labels.

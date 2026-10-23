@@ -489,7 +489,6 @@
 .inventory-product-open p:last-child, .settings-note, .settings-panel-head p { font-size: var(--erp-caption); }
 .inventory-header h1, .inventory-box-heading h2 { font-size: var(--erp-heading); }
 .inventory-screen .pos-product-button { width: 100%; height: auto; text-align: start; font-size: var(--erp-text); font-weight: 400; border-radius: 3px; }
-.sales-product-row { display: flex; gap: 8px; min-height: 32px; padding: 5px 0; border-bottom: 1px solid var(--border); }
 .inventory-screen .inventory-product-open { font-size: var(--erp-text); }
 .cart-amount-input { width: 100%; min-width: 0; height: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; outline: none; }
 .cart-amount-input:focus { border-color: var(--primary); }
@@ -553,4 +552,7 @@ html, body { overflow-x: hidden; }
 .inventory-content .inventory-box p.py-6 { padding-block: 0.75rem; }
 @media (max-width: 379px) { .inventory-tabs { gap: 3px; padding-inline: 8px; } .inventory-screen .inventory-tab { padding-inline: 4px; font-size: 9px; } }
 
-.inventory-tabs > .inventory-tab { flex: 0 0 auto; white-space: nowrap; }
+/* Equal tracks when readable labels fit; otherwise only this row scrolls. */
+.inventory-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); min-width: 0; max-width: 100%; }
+.inventory-tabs > .inventory-tab { min-width: max-content; width: 100%; white-space: nowrap; scroll-snap-align: start; }
+.inventory-tabs .inventory-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
