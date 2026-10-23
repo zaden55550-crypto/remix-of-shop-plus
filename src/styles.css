@@ -275,7 +275,7 @@
 .inventory-header h1 { font-size: 12px; font-weight: 700; white-space: nowrap; }
 .inventory-header p { font-size: 11px; }
 .inventory-backup { display: flex; align-items: center; gap: 5px; padding: 0 10px 6px; font-size: 9px; color: var(--muted-foreground); }
-.inventory-tabs { display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; padding: 0 10px 7px; scrollbar-width: none; }
+.inventory-tabs { display: flex; flex-wrap: wrap; gap: 4px; overflow-x: auto; padding: 0 10px 7px; scrollbar-width: none; }
 .inventory-tabs::-webkit-scrollbar { display: none; }
 .inventory-screen .inventory-tab { flex: 1 1 auto; min-width: max-content; width: auto; height: 28px; border: 1px solid var(--border); border-radius: 4px; padding: 0 clamp(4px, 1.6vw, 10px); font-size: 10px; font-weight: 600; white-space: nowrap; background: var(--card); color: var(--foreground); }
 .inventory-screen .inventory-tab[aria-selected="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
