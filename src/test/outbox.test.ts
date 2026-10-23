@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { addProduct, commit, confirmSale, empty, load, returnSale } from "../lib/erp";
+import { addProduct, commit, confirmSale, empty, load, returnSale, runErpTransaction } from "../lib/erp";
 import { getOutbox, pendingOperations, retryDelay, updateOperation } from "../lib/outbox";
 describe("durable atomic ERP outbox", () => {
   beforeEach(() => { localStorage.clear(); localStorage.setItem("shopbook.account", JSON.stringify({ shopName: "Test", businessId: "test-business" })); });
@@ -35,4 +35,14 @@ describe("durable atomic ERP outbox", () => {
     expect(() => commit((s) => { s.products[0] && (s.products[0].sell = 50); })).toThrow("Quota exceeded"); spy.mockRestore(); expect(localStorage.getItem("shopbook.erp")).toBe(before);
   });
   it("bounds per-operation retry backoff at 60 seconds", () => { expect(retryDelay(1)).toBe(2000); expect(retryDelay(20)).toBe(60000); });
+  it("never persists preview records or preview operations", () => {
+    runErpTransaction(() => { addProduct({ name: "Preview", buy: 1, sell: 2, qty: 2 }); expect(load().products).toHaveLength(1); expect(getOutbox()).toHaveLength(0); }, false);
+    expect(load().products).toHaveLength(0); expect(getOutbox()).toHaveLength(0);
+  });
+  it("commits all import stages as one operation and rolls back failed stages", () => {
+    expect(() => runErpTransaction(() => { addProduct({ name: "A", buy: 1, sell: 2, qty: 2 }); throw new Error("Later stage failed"); })).toThrow();
+    expect(load().products).toHaveLength(0); expect(getOutbox()).toHaveLength(0);
+    runErpTransaction(() => { addProduct({ name: "A", buy: 1, sell: 2, qty: 2 }); addProduct({ name: "B", buy: 1, sell: 2, qty: 3 }); });
+    expect(load().products).toHaveLength(2); expect(getOutbox()).toHaveLength(1);
+  });
 });

@@ -44,6 +44,9 @@ export function startShopSync() {
       const { data, error } = await supabase.auth.getUser();
       if (error || !data.user) { publish({ phase: "local", at: 0, pending, error: "Sign-in required to resume synchronization" }); return; }
       const owner = data.user.id, business = businessId();
+      const binding = await supabase.from("shopbook_sync_business").select("business_id").eq("user_id", owner).maybeSingle();
+      if (binding.error) throw new Error(binding.error.message);
+      if (binding.data && binding.data.business_id !== business) throw new Error("SYNC_CONFLICT: these device records belong to a different business. Explicit linking is required.");
       const bound = localStorage.getItem("shopbook.syncOwner");
       if (bound && bound !== owner) throw new Error("This device's records belong to another owner. Sign in with the original account.");
       localStorage.setItem("shopbook.syncOwner", owner);
@@ -81,7 +84,7 @@ export function startShopSync() {
       if (remaining.length) { publish({ phase: "failed", at: state.at, pending: remaining.length, error: remaining[0]?.error }); return; }
       const r = await supabase.from("shopbook_shop_sync").select("payload,updated_at,revision").eq("user_id", owner).maybeSingle();
       if (r.error) throw new Error(r.error.message);
-      if (!validIdentity() || pendingOperations(owner).length) return;
+      if (!validIdentity() || getOutbox().some((op) => op.phase !== "synced")) return;
       if (r.data) {
         // No unacknowledged changes: authoritative server projection is safe to adopt.
         const server = { ...empty(), ...(r.data.payload as unknown as ErpState) };
