@@ -48,6 +48,7 @@ export function answerShopbot(question: string, context: BotContext, previous?: 
     if (/live|externally confirmed|provider confirmed/.test(q)) return { text: "I cannot verify external provider payment confirmations. Recorded entries are not proof of M-Pesa or bank settlement." };
     if (!context.allowed || !context.state) return { text: "Sign in to this shop to view its records. I can still help with SHOPBOOK instructions." };
     const s = context.state, currency = context.currency;
+    if (/last month|last week|last year|\d{4}|\bbetween\b/.test(q)) return { text: "For that date range, open Reports and choose the exact dates. I currently answer Today, Yesterday, This week and This month.", path: "/reports" };
     const money = (n: number) => `${currency} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     const period: Period = q.includes("month") ? "Month" : q.includes("week") ? "Week" : q.includes("all time") ? "All time" : "Today";
     const from = q.includes("yesterday") ? periodStart("Today", now) - 864e5 : q.includes("this week") ? periodStart("Today", now) - ((now.getDay() + 6) % 7) * 864e5 : periodStart(period, now);

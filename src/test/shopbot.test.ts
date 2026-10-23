@@ -16,4 +16,13 @@ describe("native read-only ShopBot", () => {
   it("does not claim a sync timestamp if none occurred", () => { const answer = answerShopbot("cash balance", { ...base(), syncedAt: 0 }); expect(answer.text).toContain("No confirmed sync yet"); });
   it("honestly refuses unsupported figures and unclear questions", () => { expect(answerShopbot("what is the total weather", base()).data).toBeUndefined(); expect(answerShopbot("purple giraffe", base()).topic).toBeUndefined(); });
   it("answers instructions offline and never mutates supplied records", () => { const context = base(), before = JSON.stringify(context.state); answerShopbot("How to record a refund", context); expect(JSON.stringify(context.state)).toBe(before); });
+  it("understands how much and date follow-ups without guessing unsupported periods", () => {
+    expect(answerShopbot("How much did I sell today?", base()).data).toBe(true);
+    expect(answerShopbot("what about this month", base(), "sales").data).toBe(true);
+    expect(answerShopbot("last month sales", base()).data).toBeUndefined();
+  });
+  it("never substitutes local entries for external confirmations or another business", () => {
+    expect(answerShopbot("externally confirmed mpesa received today", base()).data).toBeUndefined();
+    expect(answerShopbot("today sales from another shop", base()).data).toBeUndefined();
+  });
 });

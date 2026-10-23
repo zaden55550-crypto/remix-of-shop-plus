@@ -8,6 +8,7 @@ import { answerShopbot, type BotAnswer } from "@/lib/shopbot";
 import { store } from "@/lib/shopbook";
 import { useSyncStatus } from "@/lib/shop-sync";
 import { useConnectivity } from "@/lib/connectivity";
+import { queryShopbot } from "@/lib/shopbot.functions";
 import { cn } from "@/lib/utils";
 
 type Message = BotAnswer & { role: "user" | "assistant"; id: number };
@@ -22,12 +23,20 @@ function NativeSession({ onClose, shop, currency, icon }: { onClose: () => void;
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [messages]);
   useEffect(() => { const close = () => { if (!store.signedIn()) onClose(); }; window.addEventListener("shopbook-session", close); return () => window.removeEventListener("shopbook-session", close); }, [onClose]);
-  const send = (question = input) => {
+  const send = async (question = input) => {
     const value = question.trim(); if (!value) return;
     const allowed = store.signedIn() && store.get()?.shopName === shop;
     const answer = answerShopbot(value, { state: allowed ? state : null, allowed, currency, syncedAt: sync.at, pending: sync.pending ?? 0, online: connection.backend === "up" }, topic);
-    setMessages((old) => [...old, { text: value, role: "user", id: Date.now() }, { ...answer, role: "assistant", id: Date.now() + 1 }]);
+    const id = Date.now() + 1;
+    setMessages((old) => [...old, { text: value, role: "user", id: id - 1 }, { ...answer, role: "assistant", id }]);
     if (answer.topic) setTopic(answer.topic); setInput("");
+    if (answer.data && connection.backend === "up" && sync.phase === "live" && !sync.pending && allowed) {
+      try {
+        const confirmed = await queryShopbot({ data: { question: value, currency, ...(topic ? { previous: topic } : {}) } });
+        if (!store.signedIn() || store.get()?.shopName !== shop) return;
+        setMessages((old) => old.map((m) => m.id === id ? { ...m, ...confirmed, text: confirmed.text.replace("Device records", "Server-confirmed records") } : m));
+      } catch { /* The displayed local answer retains its actual cache timestamp; never claim a server result after failure. */ }
+    }
   };
   return <div className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" onClick={onClose}>
     <section role="dialog" aria-label="ShopBot" aria-modal="true" dir={dir} className="assistant-shell" onClick={(e) => e.stopPropagation()}>
