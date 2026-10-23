@@ -91,9 +91,14 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
 
   const add = (id: string) => {
     const p = prod(id); if (!p) return;
-    const inCart = cart.find((l) => l.productId === id)?.qty ?? 0;
-    if (inCart + 1 > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
-    setCart((c) => (c.some((l) => l.productId === id) ? c.map((l) => (l.productId === id ? { ...l, qty: l.qty + 1 } : l)) : [...c, { productId: id, qty: 1 }]));
+    // Check inside the updater so rapid taps can't exceed stock through a stale cart.
+    let blocked = false;
+    setCart((c) => {
+      const inCart = c.find((l) => l.productId === id)?.qty ?? 0;
+      if (inCart + 1 > p.qty + 1e-9) { blocked = true; return c; }
+      return c.some((l) => l.productId === id) ? c.map((l) => (l.productId === id ? { ...l, qty: l.qty + 1 } : l)) : [...c, { productId: id, qty: 1 }];
+    });
+    if (blocked || (cart.find((l) => l.productId === id)?.qty ?? 0) + 1 > p.qty + 1e-9) toast.error(`${tr("Insufficient stock")}: ${p.name} (${tr("Available")} ${p.qty})`, { id: `stock-${id}` });
   };
   const setQty = (id: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.productId !== id) : c.map((l) => (l.productId === id ? { ...l, qty } : l))));
   const onScan = (code: string) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); };
