@@ -38,15 +38,19 @@ export function matchTopic(question: string, previous?: string): Topic | undefin
 }
 export type BotContext = { state: ErpState | null; allowed: boolean; currency: string; syncedAt: number; pending: number; online: boolean };
 export function answerShopbot(question: string, context: BotContext, previous?: string, now = new Date()): BotAnswer {
-  const q = normalize(question), topic = matchTopic(question, previous);
-  const help = /\b(how|where|add|record|change|set|import|export|why|download)\b/.test(q);
+  const raw = normalize(question);
+  const follow = /^(and |what about |how about )/.test(raw) && !BOT_TOPICS.some((t) => t.words.some((w) => raw.includes(w))) && previous;
+  const q = follow ? `${raw} ${previous}` : raw, topic = matchTopic(question, previous);
+  const help = /\b(how to|how do|how can|where|add|record|change|set|import|export|why|download)\b/.test(q);
   const dataQuestion = !help && /\b(today|month|week|yesterday|balance|balances|value|worth|low|owe|owes|outstanding|top|much|total|received|profit)\b/.test(q);
   if (dataQuestion) {
+    if (/another (shop|business|user)|other (shop|business|user)/.test(q)) return { text: "I can only answer from this shop's authorized records." };
+    if (/live|externally confirmed|provider confirmed/.test(q)) return { text: "I cannot verify external provider payment confirmations. Recorded entries are not proof of M-Pesa or bank settlement." };
     if (!context.allowed || !context.state) return { text: "Sign in to this shop to view its records. I can still help with SHOPBOOK instructions." };
     const s = context.state, currency = context.currency;
     const money = (n: number) => `${currency} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
     const period: Period = q.includes("month") ? "Month" : q.includes("week") ? "Week" : q.includes("all time") ? "All time" : "Today";
-    const from = q.includes("yesterday") ? periodStart("Today", now) - 864e5 : periodStart(period, now);
+    const from = q.includes("yesterday") ? periodStart("Today", now) - 864e5 : q.includes("this week") ? periodStart("Today", now) - ((now.getDay() + 6) % 7) * 864e5 : periodStart(period, now);
     const to = q.includes("yesterday") ? periodStart("Today", now) - 1 : now.getTime();
     let text: string | undefined, path = topic?.path;
     if (/low.*stock|out.*stock|reorder/.test(q)) { text = s.products.filter((p) => stockStatus(p) !== "OK").map((p) => `${p.name}: ${p.qty} ${p.unit ?? "pcs"}`).join("\n") || "No products are low or out of stock in these records."; path = "/inventory"; }
