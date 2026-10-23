@@ -34,7 +34,7 @@ export function mergeErp(mine: ErpState, theirs: ErpState): ErpState {
 /** Single coordinator; server applies each immutable operation exactly once. Conflicts stop dependencies. */
 export function startShopSync() {
   let stopped = false, busy = false;
-  const run = async () => {
+  const work = async () => {
     if (stopped || busy || document.visibilityState !== "visible") return;
     const pending = pendingOperations().length;
     if (!navigator.onLine || getConnectivity().backend !== "up") { publish({ phase: "offline", at: state.at, pending }); return; }
@@ -61,7 +61,11 @@ export function startShopSync() {
         updateOperation(op.id, { owner, attempts: op.attempts + 1 }, "Upload attempted");
         publish({ phase: "syncing", at: state.at, pending: pendingOperations(owner).length });
         try {
-          const result = await applyOperation({ data: { id: op.id, device: op.device, business: op.business, kind: op.kind, changes: op.changes, seq: op.seq } });
+          let timeout: ReturnType<typeof setTimeout> | undefined;
+          const result = await Promise.race([
+            applyOperation({ data: { id: op.id, device: op.device, business: op.business, kind: op.kind, changes: op.changes, seq: op.seq } }),
+            new Promise<never>((_, reject) => { timeout = setTimeout(() => reject(new Error("Upload timed out; retry will use the same operation ID")), 12000); }),
+          ]).finally(() => { if (timeout) clearTimeout(timeout); });
           if (!validIdentity()) return;
           if (result.operationId !== op.id) throw new Error("Server did not acknowledge this operation");
           const at = new Date(result.acknowledgedAt).getTime();
@@ -90,6 +94,9 @@ export function startShopSync() {
     } catch (e) { if (!stopped) publish({ phase: "failed", at: state.at, pending: pendingOperations().length, error: e instanceof Error ? e.message : "Synchronization failed" }); }
     finally { busy = false; }
   };
+  const run = () => navigator.locks
+    ? navigator.locks.request("shopbook-outbox", { ifAvailable: true }, async (lock) => { if (lock) await work(); })
+    : work();
   const now = () => { void run(); };
   const retry = () => { for (const op of pendingOperations()) if (op.phase !== "conflict") updateOperation(op.id, { nextRetry: 0 }, "Manual retry requested"); now(); };
   const poll = setInterval(now, ACTIVE_CHECK_MS);
@@ -98,7 +105,13 @@ export function startShopSync() {
   window.addEventListener("shopbook-sync-now", retry);
   const visibility = () => { if (document.visibilityState === "visible") now(); };
   document.addEventListener("visibilitychange", visibility);
-  const auth = supabase.auth.onAuthStateChange(() => { setTimeout(now, 0); });
+  const auth = supabase.auth.onAuthStateChange((_event, session) => {
+    const bound = localStorage.getItem("shopbook.syncOwner");
+    if (bound && session && session.user.id !== bound) {
+      localStorage.removeItem("shopbook.session"); window.dispatchEvent(new Event("shopbook-session"));
+      publish({ phase: "local", at: 0, pending: pendingOperations().length, error: "Sign in with the original owner to access this device's records" });
+    } else setTimeout(now, 0);
+  });
   now();
   return () => { stopped = true; clearInterval(poll); events.forEach((event) => window.removeEventListener(event, now)); window.removeEventListener("shopbook-sync-now", retry); document.removeEventListener("visibilitychange", visibility); auth.data.subscription.unsubscribe(); };
 }

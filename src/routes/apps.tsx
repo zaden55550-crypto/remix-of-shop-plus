@@ -54,6 +54,9 @@ function Apps() {
     if (!a || !store.signedIn()) { nav({ to: "/", replace: true }); return; }
     if (!a.plan) { nav({ to: "/plans", replace: true }); return; }
     setAcct(a);
+    const onSession = () => { if (!store.signedIn()) { setAcct(null); nav({ to: "/", replace: true }); } };
+    window.addEventListener("shopbook-session", onSession);
+    return () => window.removeEventListener("shopbook-session", onSession);
   }, [nav]);
 
   if (!acct) return <main className="app-screen" />;

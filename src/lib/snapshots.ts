@@ -19,6 +19,11 @@ export async function backUpNow(kind: "manual" | "automatic" | "pre-restore") {
   try {
     const acct = JSON.parse(localStorage.getItem("shopbook.account") || "null");
     if (!acct) throw new Error("Open your shop first");
+    if (localStorage.getItem("shopbook.session") !== "1") throw new Error("Sign in to this shop first");
+    const identity = await supabase.auth.getUser();
+    if (!identity.data.user) throw new Error("Sign-in required for cloud backup");
+    const bound = localStorage.getItem("shopbook.syncOwner") || localStorage.getItem("shopbook.backupOwner");
+    if (bound && bound !== identity.data.user.id) throw new Error("Sign in with this device's original owner");
     const r = await createSnapshot({ data: { deviceId: device(), kind, keep: getPrefs().keep, text: backupJson(acct.shopName) } });
     localStorage.setItem(LAST, String(new Date(r.verified_at ?? r.created_at).getTime())); localStorage.removeItem(FAIL);
     window.dispatchEvent(new Event(EVENT));
@@ -34,7 +39,7 @@ export async function backUpNow(kind: "manual" | "automatic" | "pre-restore") {
 export function startAutoSnapshots() {
   const tick = async () => {
     const p = getPrefs();
-    if (!p.auto || !navigator.onLine || Date.now() < lastVerified() + p.hours * 3600000) return;
+    if (!p.auto || !navigator.onLine || document.visibilityState !== "visible" || localStorage.getItem("shopbook.session") !== "1" || Date.now() < lastVerified() + p.hours * 3600000) return;
     const { data } = await supabase.auth.getSession(); if (!data.session || !localStorage.getItem("shopbook.account")) return;
     const owner = localStorage.getItem("shopbook.backupOwner"); if (owner && owner !== data.session.user.id) return;
     try { await backUpNow("automatic"); } catch { /* failure recorded for the status line */ }
