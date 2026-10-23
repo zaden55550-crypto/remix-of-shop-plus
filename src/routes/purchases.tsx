@@ -185,8 +185,8 @@ function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
   };
   return (<div className="inventory-form">
     <p className="inventory-form-title">{tr("New Purchase")}</p>
-    <label className="inventory-field"><span>{tr("Supplier")} <span className="text-destructive">*</span></span>
-      <SearchPicker tr={tr} items={s.suppliers.map((x) => ({ id: x.id, label: x.name, hint: x.phone }))} value={sup} onChange={setSup} placeholder={tr("Select supplier")} addLabel={tr("Add Supplier")} withPhone onAdd={(n, ph) => run(() => fin.addSupplier(n, ph))?.id} /></label>
+    <div className="inventory-field" role="group" aria-label={tr("Supplier")}><span>{tr("Supplier")} <span className="text-destructive">*</span></span>
+      <SearchPicker tr={tr} items={s.suppliers.map((x) => ({ id: x.id, label: x.name, hint: x.phone }))} value={sup} onChange={setSup} placeholder={tr("Select supplier")} addLabel={tr("Add Supplier")} withPhone onAdd={(n, ph) => run(() => fin.addSupplier(n, ph))?.id} /></div>
     <div><ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) addLine(p); else setNewP({ name: "", buy: "", sell: "", unit: "Piece", barcode: code }); }} />
       {q.trim() && !newP && !results.some((p) => p.name.toLowerCase() === q.trim().toLowerCase()) && <button type="button" className="mt-1 flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-start text-[12px] font-semibold text-primary hover:bg-muted" onClick={() => setNewP({ name: q.trim(), buy: "", sell: "", unit: "Piece", barcode: "" })}><Plus className="h-3.5 w-3.5" /><span className="truncate">{tr("Add Product")} &quot;{q.trim()}&quot;</span></button>}
       {newP && <form className="mt-1 grid gap-1.5 rounded-md border border-border bg-card p-1.5" onSubmit={(e) => { e.preventDefault(); const p = run(() => erp.addProduct({ name: newP.name, buy: +newP.buy || 0, sell: +newP.sell || 0, qty: 0, unit: newP.unit, barcode: newP.barcode.trim() || undefined }), tr("Product added")); if (p) { addLine(p); setNewP(null); setQ(""); } }}>
