@@ -64,8 +64,28 @@ const KEY = "shopbook.erp";
 const EVT = "shopbook-erp";
 export const empty = (): ErpState => ({ products: [], categories: [], brands: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [], suppliers: [], purchases: [], purchaseReturns: [], expenses: [], expenseCategories: [], otherContacts: [], contactCategories: [], payrollDrafts: [] });
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+let transaction: { state: ErpState } | undefined;
+
+/** Multi-stage imports/previews never expose intermediate records or operations to storage. */
+export function runErpTransaction<T>(work: () => T, persist = true): T {
+  if (transaction) return work();
+  const baseline = localStorage.getItem(KEY), before = load();
+  transaction = { state: structuredClone(before) };
+  try {
+    const result = work(), after = transaction.state;
+    if (persist) {
+      if (localStorage.getItem(KEY) !== baseline) throw new ErpError("Records changed in another window. Review and retry.");
+      const existing = getOutbox(), operation = createOperation(before, after);
+      const bootstrap = !existing.length && !localStorage.getItem("shopbook.syncInitialized") ? createOperation(empty(), before, true) : null;
+      persistErp(after, [...existing, ...(bootstrap ? [bootstrap] : []), ...(operation ? [operation] : [])]);
+      window.dispatchEvent(new Event(EVT));
+    }
+    return result;
+  } finally { transaction = undefined; }
+}
 
 export function load(): ErpState {
+  if (transaction) return structuredClone(transaction.state);
   if (typeof window === "undefined") return empty();
   try { const { __outbox: _outbox, ...data } = JSON.parse(localStorage.getItem(KEY) || "{}"); return { ...empty(), ...data }; } catch { return empty(); }
 }
@@ -74,10 +94,13 @@ export class ErpError extends Error {}
 
 /** Atomic transaction: works on a copy; saves only if every step succeeds. */
 export function commit<T>(fn: (s: ErpState, ctx: Ctx) => T): T {
+  const baseline = localStorage.getItem(KEY);
   const before = load();
   const draft: ErpState = structuredClone(before);
   const ctx = makeCtx(draft);
   const out = fn(draft, ctx); // throws → nothing is saved
+  if (transaction) { transaction.state = draft; return out; }
+  if (localStorage.getItem(KEY) !== baseline) throw new ErpError("Records changed in another window. Review and retry.");
   const operation = createOperation(before, draft);
   const existing = getOutbox();
   const bootstrap = !existing.length && !localStorage.getItem("shopbook.syncInitialized") ? createOperation(empty(), before, true) : null;

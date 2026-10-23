@@ -48,9 +48,10 @@ export function restoreJson(text: string) {
   const keys: string[] = [KEY, "shopbook.account", ...BACKUP_KEYS];
   const previous = keys.map((k) => [k, localStorage.getItem(k)] as const);
   try {
-    const restored = { ...empty(), ...f.data };
-    const operation = createOperation(load(), restored);
-    persistErp(restored, operation ? [...getOutbox(), operation] : getOutbox());
+    const restored = { ...empty(), ...f.data }, before = load(), existing = getOutbox();
+    const bootstrap = !existing.length && !localStorage.getItem("shopbook.syncInitialized") ? createOperation(empty(), before, true) : null;
+    const operation = createOperation(before, restored);
+    persistErp(restored, [...existing, ...(bootstrap ? [bootstrap] : []), ...(operation ? [operation] : [])]);
     if (f.settings) for (const key of BACKUP_KEYS) { const v = f.settings[key]; if (v === null) localStorage.removeItem(key); else if (typeof v === "string") localStorage.setItem(key, v); }
     const account = JSON.parse(localStorage.getItem("shopbook.account") || "null");
     if (account && f.business) localStorage.setItem("shopbook.account", JSON.stringify({ ...account, shopName: f.business.shopName, currency: f.business.currency, logo: f.business.logo }));

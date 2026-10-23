@@ -33,11 +33,12 @@ export function createOperation(before: ErpState, after: ErpState, bootstrap = f
 }
 /** ERP projection and pending operations share ONE atomic storage write. */
 export function persistErp(snapshot: ErpState, outbox = getOutbox()) {
-  localStorage.setItem(ERP_KEY, JSON.stringify({ ...snapshot, __outbox: outbox }));
+  const confirmed = outbox.filter((o) => o.phase === "synced").slice(-100).map((o) => ({ ...o, changes: [], seq: {}, history: o.history.slice(-1) }));
+  localStorage.setItem(ERP_KEY, JSON.stringify({ ...snapshot, __outbox: [...confirmed, ...outbox.filter((o) => o.phase !== "synced")] }));
 }
 export function updateOperation(id: string, patch: Partial<Operation>, event: string) {
   const raw = JSON.parse(localStorage.getItem(ERP_KEY) || "{}");
-  raw.__outbox = (raw.__outbox ?? []).map((op: Operation) => op.id === id ? { ...op, ...patch, history: [...op.history, { at: Date.now(), event }] } : op);
+  raw.__outbox = (raw.__outbox ?? []).map((op: Operation) => op.id === id ? { ...op, ...patch, history: [...op.history.slice(-19), { at: Date.now(), event }] } : op);
   localStorage.setItem(ERP_KEY, JSON.stringify(raw));
 }
 export function pendingOperations(owner?: string) {
