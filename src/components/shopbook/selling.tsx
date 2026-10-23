@@ -2,7 +2,7 @@ import { clean } from "@/lib/format";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronLeft, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";
+import { ChevronLeft, FileText, Mail, MessageCircle, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { inputCls } from "@/components/shopbook/product-search";
@@ -18,7 +18,8 @@ import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { Tabs } from "@/components/shopbook/erp-shell";
 import { SearchPicker } from "@/components/shopbook/search-picker";
-import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { readSettings } from "@/lib/settings-config";
 import * as erp from "@/lib/erp";
 
 export type Tr = (t: string) => string;
@@ -81,7 +82,7 @@ function Sheet({ onClose, children, title }: { onClose: () => void; children: Re
 // ---------------- SELL ----------------
 export function Sell({ s, money, tr, shop, channel }: SCtx) {
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft(channel);
-  const [step, setStep] = useState<null | "cart" | "pay">(null);
+  const [step, setStep] = useState<null | "cart">(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
   const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
