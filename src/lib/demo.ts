@@ -4,7 +4,7 @@
 // Real shops start with zero sample data; demo data only loads on an empty device on request.
 import {
   addCustomer, addEmployee, addNamed, addProduct, adjustStock, cashUp, cashSession, commit, confirmPayroll,
-  confirmSale, createTransfer, load, payPayroll, receiveDebt, returnSale, type Method,
+  confirmSale, createTransfer, empty, load, payPayroll, receiveDebt, returnSale, type Method,
 } from "@/lib/erp";
 import { addExpense, addExpenseCategory, addSupplier, confirmPurchase, floatDeposit, floatTransfer, paySupplier, expenseCategories } from "@/lib/finance";
 import { backupJson } from "@/lib/backup";
@@ -141,7 +141,7 @@ function seed() {
 }
 
 function wipe() {
-  localStorage.removeItem(KEY);
+  commit((s) => { Object.assign(s, empty()); });
 }
 
 /** Loads the sample shop. Refuses if the device already has real records. */

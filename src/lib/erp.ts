@@ -79,7 +79,9 @@ export function commit<T>(fn: (s: ErpState, ctx: Ctx) => T): T {
   const ctx = makeCtx(draft);
   const out = fn(draft, ctx); // throws → nothing is saved
   const operation = createOperation(before, draft);
-  persistErp(draft, operation ? [...getOutbox(), operation] : getOutbox());
+  const existing = getOutbox();
+  const bootstrap = !existing.length && !localStorage.getItem("shopbook.syncInitialized") ? createOperation(empty(), before, true) : null;
+  persistErp(draft, [...existing, ...(bootstrap ? [bootstrap] : []), ...(operation ? [operation] : [])]);
   window.dispatchEvent(new Event(EVT));
   return out;
 }

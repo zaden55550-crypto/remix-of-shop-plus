@@ -103,7 +103,7 @@ export const store = {
   },
   save(a: Account) {
     const old = store.get();
-    if (old && old.password !== a.password && old.shopName !== a.shopName) throw new Error("Sign in to the existing shop or export and clear this device before changing businesses.");
+    if (old && !a.businessId && (old.password !== a.password || old.shopName !== a.shopName || old.phone !== a.phone)) throw new Error("Sign in to the existing shop or export and clear this device before changing businesses.");
     localStorage.setItem(KEY, JSON.stringify({ ...a, businessId: a.businessId ?? old?.businessId ?? crypto.randomUUID() }));
   },
   update(p: Partial<Account>) { const a = store.get(); if (a) store.save({ ...a, ...p }); },
