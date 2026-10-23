@@ -1,5 +1,5 @@
 import { performance, position, periodStart, type Period } from "@/lib/summary";
-import { floatBalances, purchaseTotals } from "@/lib/finance";
+import { floatBalances, purchaseTotals, purchaseBalance } from "@/lib/finance";
 import { profitAndLoss } from "@/lib/accounting";
 import { stockStatus, type ErpState } from "@/lib/erp";
 
@@ -57,7 +57,7 @@ export function answerShopbot(question: string, context: BotContext, previous?: 
     if (/low.*stock|out.*stock|reorder/.test(q)) { text = s.products.filter((p) => stockStatus(p) !== "OK").map((p) => `${p.name}: ${p.qty} ${p.unit ?? "pcs"}`).join("\n") || "No products are low or out of stock in these records."; path = "/inventory"; }
     else if (/stock.*(value|worth)|inventory.*value/.test(q)) text = `Stock value at buying cost: ${money(position(s).stock)}.`;
     else if (/customer.*(owe|outstanding|credit)|who.*owe|receivable/.test(q)) { text = s.customers.filter((c) => c.balance > 0).map((c) => `${c.name}: ${money(c.balance)}`).join("\n") || "No outstanding customer balances in these records."; path = "/contacts"; }
-    else if (/supplier.*balance|purchase.*balance|payable/.test(q)) { text = `Outstanding purchase balances: ${money(purchaseTotals(s).payables)}.`; path = "/purchases"; }
+    else if (/supplier.*balance|purchase.*(balance|outstanding)|payable/.test(q)) { text = s.purchases.filter((p) => purchaseBalance(s, p) > 0.001).map((p) => `${p.ref}: ${money(purchaseBalance(s, p))}`).join("\n") || "No outstanding purchase balances in these records."; path = "/purchases"; }
     else if (/balance/.test(q)) { const accounts = floatBalances(s), method = q.includes("mpesa") || q.includes("m pesa") ? "mpesa" : q.includes("bank") ? "bank" : "cash"; text = `Recorded ${method === "mpesa" ? "M-Pesa" : method} balance: ${money(accounts[method])}.`; path = "/float"; }
     else if (/top|best sell/.test(q)) { text = performance(s, from, to).top.map((p) => `${p.name}: ${p.qty} sold, ${money(p.value)}`).join("\n") || "No sales in this period."; path = "/reports"; }
     else if (/mpesa|m pesa/.test(q)) { const total = s.payments.filter((p) => p.method === "mpesa" && p.amount > 0 && p.at >= from && p.at <= to).reduce((a, p) => a + p.amount, 0); text = `${period} recorded M-Pesa inflows: ${money(total)}. These entries are not externally verified.`; path = "/float"; }

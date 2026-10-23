@@ -76,11 +76,14 @@
 - [ ] Phase 3: Returns, stock movements, payroll, float history; retire legacy importer
 
 ## Offline resilience
-- [ ] Uploaded connectivity brief: shared five-second health monitor and single-state panel.
-- [ ] Durable owner-scoped outbox, acknowledged idempotent synchronization and conflict protection.
-- [ ] Native provider-free ShopBot: verified help, controlled real-data queries and offline fallbacks.
-- [ ] Automated regression tests and signed-in browser/database verification; report limitations honestly.
+- [x] Shared five-second active health monitor and single-state panel; fixed cadence, foreground recovery and stale-response tests pass.
+- [x] Durable ERP/outbox atomic write; server acknowledgement IDs, stale before-value rejection, audited stock validation and business binding implemented.
+- [x] Native provider-free ShopBot help and approved read-only queries; cached answers identify pending changes and confirmation time.
+- [x] Offline browser POS sale saved receipt 40 and stock 8 from 10, two pending operations; ShopBot works without Google; 86 automated checks pass.
+- [ ] Authenticated end-to-end synchronization/retry/expiry and two-device conflict verification: blocked by no Cloud auth users and test connection lacking authenticated-role permission; local shop login is not Cloud login.
+- [ ] Finish production hardening: server-wide financial candidate-state validation, fully serialized cross-tab writers, explicit second-device business linking and configured-business-timezone query ranges remain incomplete.
+- [ ] Offline cold-start installation/cache support was not added; current offline guarantee applies to an already-open loaded app.
 - [x] Online / Connecting / Offline buttons in Apps header with backend health check + details panel
 - [x] Admin outage announcements (server-stored, cached locally)
 - [x] Announcement tests
-- [ ] Full offline outbox for every money action (ERP already saves on-device first; needs server-side idempotent writes)
+- [x] ERP money actions enter durable outbox; whole-import preview no longer persists temporary operations, and confirmation publishes one combined operation.
