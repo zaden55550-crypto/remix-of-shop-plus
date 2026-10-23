@@ -555,3 +555,28 @@ html, body { overflow-x: hidden; }
 .inventory-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(max-content, 1fr); min-width: 0; max-width: 100%; }
 .inventory-tabs > .inventory-tab { min-width: max-content; width: 100%; white-space: nowrap; scroll-snap-align: start; }
 .inventory-tabs .inventory-tab:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
+
+/* Cart & Payment page (page 2 of selling) */
+.cart-page { position: fixed; inset: 0; z-index: 45; overflow-y: auto; background: var(--background); display: flex; justify-content: center; }
+.cart-page > .inventory-screen.cart-sheet { max-width: 100%; max-height: none; border: 0; border-radius: 0; padding: 12px clamp(10px, 3vw, 28px) 24px; overflow: visible; }
+.cart-row { display: grid; grid-template-columns: minmax(0,1fr) 56px 34px 48px 64px 24px; align-items: center; gap: 4px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.cart-row-head { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--muted-foreground); padding: 4px 0; }
+.cart-qty-input { text-align: center; }
+.pay-strip { display: grid; gap: 4px; }
+.pay-chip { min-width: 0; height: 34px; padding: 0 2px; border: 1px solid var(--border); border-radius: 6px; font-size: clamp(9px, 2.6vw, 12px); font-weight: 700; white-space: nowrap; background: var(--card); }
+.pay-chip.pay-on { border-color: var(--primary); color: var(--primary); background: color-mix(in oklab, var(--primary) 14%, var(--card)); }
+.ppay-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 6px; }
+.ppay-card { display: grid; gap: 3px; font-size: 10px; font-weight: 700; }
+.pos-fab { background: color-mix(in oklab, var(--card) 45%, transparent); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+
+/* Live thermal receipt */
+.thermal { display: grid; justify-items: center; }
+.thermal-head { position: relative; width: min(100%, 22rem); height: 34px; border-radius: 10px 10px 4px 4px; background: linear-gradient(var(--muted), var(--card)); border: 1px solid var(--border); box-shadow: 0 6px 14px color-mix(in oklab, var(--foreground) 18%, transparent); z-index: 1; }
+.thermal-light { position: absolute; right: 12px; top: 8px; width: 7px; height: 7px; border-radius: 999px; background: var(--primary); box-shadow: 0 0 8px var(--primary); animation: thermal-blink 0.6s steps(2) 5; }
+.thermal-slot { position: absolute; left: 8%; right: 8%; bottom: 5px; height: 4px; border-radius: 2px; background: var(--foreground); opacity: .6; }
+.thermal-paper { width: min(92%, 20rem); margin-top: -4px; overflow: hidden; animation: thermal-feed 2.4s steps(24, end) both; transform-origin: top; }
+.thermal-paper .receipt-paper { border-radius: 0; }
+.thermal-tear { height: 8px; background: linear-gradient(-45deg, transparent 4px, #fff 0) 0 0/8px 8px repeat-x, linear-gradient(45deg, transparent 4px, #fff 0) 0 0/8px 8px repeat-x; }
+@keyframes thermal-feed { from { clip-path: inset(0 0 100% 0); transform: translateY(-12px); } to { clip-path: inset(0 0 0 0); transform: translateY(0); } }
+@keyframes thermal-blink { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .thermal-paper, .thermal-light { animation: none; } }
