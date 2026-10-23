@@ -86,7 +86,7 @@ function Apps() {
   };
 
   return (
-    <main dir={dir} className="app-screen relative px-4 pb-16 pt-[clamp(0.5rem,2dvh,1rem)] md:px-10">
+    <main dir={dir} className="app-screen relative flex flex-col px-4 pb-[clamp(3rem,11dvh,5.5rem)] pt-[clamp(0.5rem,2dvh,1rem)] md:px-10" style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}>
       <header className="flex items-center justify-between gap-2">
         <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
           {acct.logo
@@ -114,10 +114,13 @@ function Apps() {
         </div>
       )}
 
-      <div className="mt-[clamp(0.5rem,2dvh,1.5rem)] grid grid-cols-4 gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.3rem,1.6dvh,1.25rem)]">
-        {shown.map(renderApp)}
+      {/* Launcher rows spread evenly over the remaining height so apps fill the screen top to bottom. */}
+      <div className="flex min-h-0 flex-1 flex-col justify-evenly py-[clamp(0.25rem,1.5dvh,1rem)]">
+        <div className="grid grid-cols-4 content-evenly gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.3rem,1.6dvh,1.25rem)]" style={{ flex: "1 1 auto" }}>
+          {shown.map(renderApp)}
+        </div>
+        {SETTINGS_APP && <div className="flex justify-center pt-[clamp(0.3rem,1.6dvh,1.25rem)]"><div className="w-1/4 px-[clamp(0.2rem,1vw,0.6rem)]">{renderApp(SETTINGS_APP)}</div></div>}
       </div>
-      {SETTINGS_APP && <div className="mt-[clamp(0.3rem,1.6dvh,1.25rem)] flex justify-center"><div className="w-1/4 px-[clamp(0.2rem,1vw,0.6rem)]">{renderApp(SETTINGS_APP)}</div></div>}
 
       <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
         className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center">
