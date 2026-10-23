@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, Ref } from "react";
 import { cn } from "@/lib/utils";
 
 const variants = {
@@ -8,7 +8,7 @@ const variants = {
   bare: "bg-transparent text-foreground",
 };
 
-export function ShopButton({ variant = "primary", className, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof variants }) {
+export function ShopButton({ variant = "primary", className, ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof variants; ref?: Ref<HTMLButtonElement> }) {
   return (
     <button {...p} className={cn("flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold transition active:scale-[0.98] disabled:opacity-50", variants[variant], className)} />
   );
