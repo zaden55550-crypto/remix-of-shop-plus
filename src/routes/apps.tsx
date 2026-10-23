@@ -40,7 +40,6 @@ function Apps() {
   const [acct, setAcct] = useState<Account | null>(null);
   const [cfg] = useSettings();
   const shown = APPS.filter((a) => a.id !== "settings" && !cfg.hiddenApps.includes(a.id));
-  const ROWS = Array.from({ length: Math.ceil(shown.length / 4) }, (_, i) => shown.slice(i * 4, i * 4 + 4));
   const [locked, setLocked] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [panel, setPanel] = useState<null | "profile" | "language" | "currency" | "help">(null);
@@ -74,14 +73,14 @@ function Apps() {
     const ok = canOpen(acct, app.tier);
     return (
       <ShopButton variant="bare" key={app.id} onClick={() => (ok && ROUTES[app.id] ? nav({ to: ROUTES[app.id]! }) : openApp(ok, appName(app.id)))}
-        className="h-auto w-full min-w-0 flex-col items-center justify-start gap-2 rounded-none p-0">
-        <span className="relative flex aspect-square w-full max-w-[90px] items-center justify-center">
+        className="h-auto w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none p-0">
+        <span className="relative flex aspect-square w-full max-w-[clamp(52px,16vw,96px)] items-center justify-center">
           <span className="block h-full w-full">
             <img src={dark ? app.iconDark : app.icon} alt="" className={cn("h-full w-full object-contain", app.id === "inventory" && "scale-[1.18]", !ok && "opacity-50 grayscale")} />
           </span>
           {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
         </span>
-        <span className="min-h-8 w-full break-words text-center text-[11px] font-semibold leading-4 text-foreground">{appName(app.id)}</span>
+        <span className="min-h-7 w-full break-words text-center text-[clamp(10px,2.6vw,13px)] font-semibold leading-tight text-foreground">{appName(app.id)}</span>
       </ShopButton>
     );
   };
@@ -115,13 +114,8 @@ function Apps() {
         </div>
       )}
 
-      <div className="mt-8 space-y-9">
-        {ROWS.map((row, i) => (
-          <div key={i} className="grid grid-cols-4 gap-x-2">
-            {row.map(renderApp)}
-          </div>
-        ))}
-        {SETTINGS_APP && <div className="mx-auto w-[calc((100%-1.5rem)/4)]">{renderApp(SETTINGS_APP)}</div>}
+      <div className="mt-[clamp(0.75rem,3vh,1.75rem)] grid grid-cols-4 gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.5rem,2.2vh,1.5rem)]">
+        {[...shown, ...(SETTINGS_APP ? [SETTINGS_APP] : [])].map(renderApp)}
       </div>
 
       <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
