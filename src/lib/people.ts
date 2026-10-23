@@ -21,7 +21,7 @@ export function saveContact(kind: "customers" | "suppliers" | "otherContacts", i
 export const addContactCategory = (name: string) => commit((s, c) => {
   if (!name.trim()) throw new ErpError("Enter a name");
   if (s.contactCategories.some((x) => x.name.toLowerCase() === name.trim().toLowerCase())) throw new ErpError("Category already exists");
-  s.contactCategories.push({ id: uid(), name: name.trim() }); c.audit("CONTACT CATEGORY", name.trim());
+  const cat = { id: uid(), name: name.trim() }; s.contactCategories.push(cat); c.audit("CONTACT CATEGORY", cat.name); return cat;
 });
 export function editEmployee(id: string, input: NewEmployee) {
   return commit((s, c) => {

@@ -78,15 +78,11 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
 }) {
   const [bad, setBad] = useState<Record<string, boolean>>({});
   const [customerId, setCustomer] = useState("");
-  const [sellerId, setSeller] = useState("");
-  const [disc, setDisc] = useState("");
   const [pay, setPay] = useState<PayState>(emptyPay());
-  const sellers = s.employees.filter((e) => e.active);
   const vr = vatRate();
   const subtotal = erp.lineTotal(s, cart);
-  const discount = Math.min(subtotal, Math.max(0, +disc || 0));
-  const vat = Math.round((subtotal - discount) * vr) / 100;
-  const total = Math.round((subtotal - discount + vat) * 100) / 100;
+  const vat = Math.round(subtotal * vr) / 100;
+  const total = Math.round((subtotal + vat) * 100) / 100;
   const rec = payRecord(pay, total);
   const invalid = cart.some((l) => bad[l.productId]);
   const mark = (id: string) => (b: boolean) => setBad((c) => (c[id] === b ? c : { ...c, [id]: b }));
@@ -95,7 +91,8 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
     if (payInvalid(pay, total)) { toast.error(tr("Check the payment amounts")); return; }
     if (rec.credit > 0.001 && !customerId) { toast.error(tr("Credit needs a registered customer")); return; }
     try {
-      const sale = erp.confirmSale({ cart, discount, pay: rec, customerId: customerId || undefined, channel, sellerId: sellerId || undefined, vatRate: vr });
+      // Seller is always the signed-in user (recorded as the sale's cashier).
+      const sale = erp.confirmSale({ cart, discount: 0, pay: rec, customerId: customerId || undefined, channel, vatRate: vr });
       toast.success(`${tr("Sale completed")} • ${sale.ref}`);
       onDone(sale);
     } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); }
@@ -127,11 +124,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><X className="h-4 w-4" /></ShopButton>
         </div>;
       })}
-      <div className="mt-2 grid grid-cols-2 gap-1.5">
-        <label className="inventory-field"><span>{tr("Discount")}</span><input className="inventory-input" inputMode="decimal" placeholder="0" value={disc} onChange={(e) => setDisc(e.target.value)} /></label>
-        <label className="inventory-field"><span>{tr("Seller")}</span><select className="inventory-input" value={sellerId} disabled={!sellers.length} onChange={(e) => setSeller(e.target.value)}><option value="">{tr("Admin")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
-      </div>
-      {(discount > 0 || vr > 0) && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b>{discount > 0 && <><span>{tr("Discount")}</span><b>− {money(discount)}</b></>}{vr > 0 && <><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></>}</div>}
+      {vr > 0 && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></div>}
       <div className="mt-2"><PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote={customerId ? undefined : "Credit needs a registered customer"} /></div>
       <ShopButton className="inventory-save mt-2 w-full" disabled={!cart.length || invalid} onClick={complete}>{tr("Complete Sale")} • {money(total)}</ShopButton>
     </section>

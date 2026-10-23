@@ -110,10 +110,6 @@ function fly(from: HTMLElement, to: HTMLElement) {
   to.animate([{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], { duration: 220, delay: 400 });
 }
 
-/** Seller defaults to Admin; other active staff can be picked when they exist. */
-export function SellerSelect({ tr, value, onChange, sellers }: { s: erp.ErpState; tr: Tr; value: string; onChange: (v: string) => void; sellers: erp.ErpState["employees"] }) {
-  return <label className="inventory-field"><span>{tr("Seller")}</span><select className="inventory-input" value={value} disabled={!sellers.length} onChange={(e) => onChange(e.target.value)}><option value="">{tr("Admin")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>;
-}
 
 // ---------------- TRANSACTIONS ----------------
 function Transactions({ s, money, tr, view, openSale }: Ctx & { view: string; openSale: (id: string) => void }) {

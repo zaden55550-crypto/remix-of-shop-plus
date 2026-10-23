@@ -3,7 +3,8 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { PayPicker, emptyPay, payInvalid, payRecord, paidOf } from "@/components/shopbook/pay-picker";
 import { run } from "@/components/shopbook/selling";
 import { settlePeople } from "@/lib/people";
-export function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="inventory-field"><span>{label}</span>{children}</label>; }
+/** `group` renders a div so searchable pickers inside are not re-clicked by a wrapping label. */
+export function Field({ label, children, group }: { label: string; children: ReactNode; group?: boolean }) { return group ? <div role="group" aria-label={label} className="inventory-field"><span>{label}</span>{children}</div> : <label className="inventory-field"><span>{label}</span>{children}</label>; }
 export function PaymentForm({ kind, id, balance, money, tr, onDone }: { kind: "customer" | "supplier" | "payroll"; id: string; balance: number; money: (n: number) => string; tr: (s: string) => string; onDone: () => void }) {
  const [amount, setAmount] = useState(String(balance)); const [pay, setPay] = useState(emptyPay(kind === "customer" ? "cash" : "mpesa"));
  const total = +amount, parts = payRecord(pay, total);
