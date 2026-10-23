@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { empty, load, type ErpState } from "@/lib/erp";
-import type { Json } from "@/integrations/supabase/types";
+import { applyOperation } from "@/lib/sync.functions";
+import { businessId, createOperation, getOutbox, pendingOperations, persistErp, retryDelay, updateOperation } from "@/lib/outbox";
+import { getConnectivity, ACTIVE_CHECK_MS } from "@/lib/connectivity";
 
 /** Live multi-phone sync of the whole ERP for one signed-in owner.
  * Records carry ids, so phones merge by id (union); for the same id the side doing the merge keeps its own copy. */
-export type SyncState = { phase: "local" | "offline" | "syncing" | "live" | "failed"; at: number; error?: string };
+export type SyncState = { phase: "local" | "offline" | "syncing" | "live" | "failed"; at: number; pending?: number; error?: string };
 let state: SyncState = { phase: "local", at: 0 };
 const EVT = "shopbook-sync-status";
 const publish = (s: SyncState) => { state = s; window.dispatchEvent(new Event(EVT)); };
@@ -26,50 +28,77 @@ export function mergeErp(mine: ErpState, theirs: ErpState): ErpState {
   const s = out as ErpState;
   // Stock follows the newest recorded movement so both phones agree on quantity.
   const latest = new Map<string, number>(); for (const m of s.movements) if (!latest.has(m.productId)) latest.set(m.productId, m.next);
-  s.products = s.products.map((p) => latest.has(p.id) ? { ...p, qty: latest.get(p.id)! } : p);
+  s.products = s.products.map((p) => { const qty = latest.get(p.id); return qty === undefined ? p : { ...p, qty }; });
   return s;
 }
-const KEY = "shopbook.erp", BASE = "shopbook.syncRevision";
-const write = (s: ErpState) => { localStorage.setItem(KEY, JSON.stringify(s)); window.dispatchEvent(new Event("shopbook-erp-remote")); window.dispatchEvent(new Event("storage")); };
-
+/** Single coordinator; server applies each immutable operation exactly once. Conflicts stop dependencies. */
 export function startShopSync() {
-  let stopped = false, busy = false, again = false, timer: ReturnType<typeof setTimeout> | undefined, user = "", retry = 2000, lastPushed = "";
-  const device = localStorage.getItem("shopbook.deviceId") || crypto.randomUUID(); localStorage.setItem("shopbook.deviceId", device);
-  const schedule = (ms = 800) => { if (timer) clearTimeout(timer); timer = setTimeout(run, ms); };
+  let stopped = false, busy = false;
   const run = async () => {
-    if (stopped) return;
-    if (!navigator.onLine) return publish({ phase: "offline", at: state.at });
-    if (busy) { again = true; return; }
+    if (stopped || busy || document.visibilityState !== "visible") return;
+    const pending = pendingOperations().length;
+    if (!navigator.onLine || getConnectivity().backend !== "up") { publish({ phase: "offline", at: state.at, pending }); return; }
+    if (localStorage.getItem("shopbook.session") !== "1") { publish({ phase: "local", at: 0, pending }); return; }
     busy = true;
     try {
-      const { data } = await supabase.auth.getSession();
-      if (!data.session || !localStorage.getItem("shopbook.account")) { user = ""; return publish({ phase: "local", at: 0 }); }
-      user = data.session.user.id;
-      const r = await supabase.from("shopbook_shop_sync").select("revision,device_id,payload,updated_at").eq("user_id", user).maybeSingle();
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data.user) { publish({ phase: "local", at: 0, pending, error: "Sign-in required to resume synchronization" }); return; }
+      const owner = data.user.id, business = businessId();
+      const bound = localStorage.getItem("shopbook.syncOwner");
+      if (bound && bound !== owner) throw new Error("This device's records belong to another owner. Sign in with the original account.");
+      localStorage.setItem("shopbook.syncOwner", owner);
+      const validIdentity = () => !stopped && localStorage.getItem("shopbook.session") === "1" && businessId() === business && localStorage.getItem("shopbook.syncOwner") === owner;
+      // Recover legacy existing records only once. Never use snapshot merging to overwrite a pending financial operation.
+      if (!getOutbox().length && !localStorage.getItem("shopbook.syncInitialized")) {
+        const bootstrap = createOperation(empty(), load(), true);
+        if (bootstrap) { bootstrap.owner = owner; persistErp(load(), [bootstrap]); }
+        localStorage.setItem("shopbook.syncInitialized", "1");
+      }
+      for (const op of pendingOperations(owner)) {
+        if (!validIdentity()) return;
+        if (op.phase === "conflict" || op.nextRetry > Date.now()) break;
+        if (op.owner && op.owner !== owner) throw new Error("Operation belongs to another owner");
+        updateOperation(op.id, { owner, attempts: op.attempts + 1 }, "Upload attempted");
+        publish({ phase: "syncing", at: state.at, pending: pendingOperations(owner).length });
+        try {
+          const result = await applyOperation({ data: { id: op.id, device: op.device, business: op.business, kind: op.kind, changes: op.changes, seq: op.seq } });
+          if (!validIdentity()) return;
+          if (result.operationId !== op.id) throw new Error("Server did not acknowledge this operation");
+          const at = new Date(result.acknowledgedAt).getTime();
+          updateOperation(op.id, { phase: "synced", error: undefined, acknowledgedAt: at, revision: result.revision, nextRetry: 0 }, "Server confirmed persistence");
+          publish({ phase: "live", at, pending: pendingOperations(owner).length });
+        } catch (e) {
+          const message = e instanceof Error ? e.message : "Synchronization failed";
+          updateOperation(op.id, { phase: message.includes("SYNC_CONFLICT") ? "conflict" : "failed", error: message, nextRetry: Date.now() + retryDelay(op.attempts + 1) }, message);
+          throw e;
+        }
+      }
+      const remaining = pendingOperations(owner);
+      if (remaining.length) { publish({ phase: "failed", at: state.at, pending: remaining.length, error: remaining[0]?.error }); return; }
+      const r = await supabase.from("shopbook_shop_sync").select("payload,updated_at,revision").eq("user_id", owner).maybeSingle();
       if (r.error) throw new Error(r.error.message);
-      const base = Number(localStorage.getItem(BASE) || 0), local = load();
-      let next = local;
-      if (r.data && r.data.revision > base) { next = mergeErp(local, { ...empty(), ...(r.data.payload as unknown as ErpState) }); if (JSON.stringify(next) !== JSON.stringify(local)) write(next); }
-      const body = JSON.stringify(next), remoteSame = r.data && JSON.stringify(r.data.payload) === body;
-      if (remoteSame || (r.data && body === lastPushed && r.data.revision <= base)) { localStorage.setItem(BASE, String(r.data!.revision)); return publish({ phase: "live", at: new Date(r.data!.updated_at).getTime() }); }
-      publish({ phase: "syncing", at: state.at });
-      const revision = (r.data?.revision ?? 0) + 1, payload = next as unknown as Json;
-      const w = r.data
-        ? await supabase.from("shopbook_shop_sync").update({ revision, device_id: device, payload }).eq("user_id", user).eq("revision", r.data.revision).select("revision,updated_at")
-        : await supabase.from("shopbook_shop_sync").insert({ user_id: user, revision, device_id: device, payload }).select("revision,updated_at");
-      if (w.error) throw new Error(w.error.message);
-      if (!w.data?.length) { again = true; return; } // another phone saved first: merge again
-      localStorage.setItem(BASE, String(revision)); lastPushed = body; retry = 2000;
-      publish({ phase: "live", at: new Date(w.data[0]!.updated_at).getTime() });
-    } catch (e) { publish({ phase: "failed", at: state.at, error: e instanceof Error ? e.message : "Sync failed" }); schedule(retry); retry = Math.min(60000, retry * 2); }
-    finally { busy = false; if (again && !stopped) { again = false; schedule(300); } }
+      if (!validIdentity() || pendingOperations(owner).length) return;
+      if (r.data) {
+        // No unacknowledged changes: authoritative server projection is safe to adopt.
+        const server = { ...empty(), ...(r.data.payload as unknown as ErpState) };
+        for (const key of Object.keys(empty()) as (keyof ErpState)[]) if (Array.isArray(server[key])) (server[key] as { at?: number }[]).sort((a,b) => (b.at ?? 0) - (a.at ?? 0));
+        persistErp(server);
+        window.dispatchEvent(new Event("shopbook-erp-remote")); window.dispatchEvent(new Event("storage"));
+      }
+      const ack = getOutbox().reduce((at, op) => op.phase === "synced" ? Math.max(at, op.acknowledgedAt ?? 0) : at, 0);
+      publish({ phase: "live", at: ack || (r.data ? new Date(r.data.updated_at).getTime() : 0), pending: 0 });
+    } catch (e) { if (!stopped) publish({ phase: "failed", at: state.at, pending: pendingOperations().length, error: e instanceof Error ? e.message : "Synchronization failed" }); }
+    finally { busy = false; }
   };
-  const changed = () => schedule();
-  ["shopbook-erp", "online", "offline"].forEach((e) => window.addEventListener(e, changed));
-  const auth = supabase.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_IN" || ev === "SIGNED_OUT") { localStorage.removeItem(BASE); schedule(50); } });
-  const channel = supabase.channel("shop-sync").on("postgres_changes", { event: "*", schema: "public", table: "shopbook_shop_sync" }, (p) => { const row = p.new as { device_id?: string; user_id?: string }; if (row?.user_id === user && row.device_id !== device) schedule(100); }).subscribe();
-  const poll = setInterval(() => { if (document.visibilityState === "visible") schedule(0); }, 15000);
-  const vis = () => { if (document.visibilityState === "visible") schedule(0); }; document.addEventListener("visibilitychange", vis);
-  schedule(100);
-  return () => { stopped = true; if (timer) clearTimeout(timer); clearInterval(poll); document.removeEventListener("visibilitychange", vis); ["shopbook-erp", "online", "offline"].forEach((e) => window.removeEventListener(e, changed)); auth.data.subscription.unsubscribe(); void supabase.removeChannel(channel); };
+  const now = () => { void run(); };
+  const retry = () => { for (const op of pendingOperations()) if (op.phase !== "conflict") updateOperation(op.id, { nextRetry: 0 }, "Manual retry requested"); now(); };
+  const poll = setInterval(now, ACTIVE_CHECK_MS);
+  const events = ["shopbook-erp", "shopbook-backend-ready", "online", "shopbook-session"];
+  events.forEach((event) => window.addEventListener(event, now));
+  window.addEventListener("shopbook-sync-now", retry);
+  const visibility = () => { if (document.visibilityState === "visible") now(); };
+  document.addEventListener("visibilitychange", visibility);
+  const auth = supabase.auth.onAuthStateChange(() => { setTimeout(now, 0); });
+  now();
+  return () => { stopped = true; clearInterval(poll); events.forEach((event) => window.removeEventListener(event, now)); window.removeEventListener("shopbook-sync-now", retry); document.removeEventListener("visibilitychange", visibility); auth.data.subscription.unsubscribe(); };
 }
