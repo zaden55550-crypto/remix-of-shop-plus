@@ -551,3 +551,4 @@ html, body { overflow-x: hidden; }
 /* Compact pass: tighter boxes and empty states across all ERP screens. */
 .inventory-content .inventory-box { margin-top: 6px; }
 .inventory-content .inventory-box p.py-6 { padding-block: 0.75rem; }
+@media (max-width: 379px) { .inventory-tabs { gap: 3px; padding-inline: 8px; } .inventory-screen .inventory-tab { padding-inline: 4px; font-size: 9px; } }
