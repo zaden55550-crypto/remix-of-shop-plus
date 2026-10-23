@@ -137,6 +137,39 @@ export type Database = {
         }
         Relationships: []
       }
+      shopbook_sync_operations: {
+        Row: {
+          acknowledged_at: string
+          business_id: string
+          device_id: string
+          kind: string
+          operation_id: string
+          request: Json
+          revision: number
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          business_id: string
+          device_id: string
+          kind: string
+          operation_id: string
+          request: Json
+          revision: number
+          user_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          business_id?: string
+          device_id?: string
+          kind?: string
+          operation_id?: string
+          request?: Json
+          revision?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_messages: {
         Row: {
           body: string
@@ -264,6 +297,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_shopbook_operation: {
+        Args: {
+          p_business: string
+          p_changes: Json
+          p_device: string
+          p_kind: string
+          p_operation: string
+          p_seq: Json
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -271,6 +315,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      shopbook_health: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "support"
