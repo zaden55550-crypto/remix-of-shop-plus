@@ -6,6 +6,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { lastBackup } from "@/lib/backup";
 import { BackupStatus } from "@/components/shopbook/backup-status";
+import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { cn } from "@/lib/utils";
 
 export type Tr = (t: string) => string;
@@ -28,6 +29,7 @@ export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, childre
         <div className="inventory-header">
           <div className="flex shrink-0 items-center gap-1"><ShopButton variant="bare" className="h-auto w-auto p-0" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-4 w-4 rtl:rotate-180" /></ShopButton><h1>{tr(title).toUpperCase()}</h1></div>
           <p className="min-w-0 flex-1 truncate text-center text-sm font-semibold">{shop}</p>
+          <ConnectionStatus className="shrink-0" />
           <div className="relative shrink-0">
             <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Menu")} onClick={() => setOpen(!open)}><MenuIcon className="h-5 w-5" /></ShopButton>
             {open && <div className="absolute end-0 top-9 z-30 w-48 rounded-xl border border-border bg-popover p-1 shadow-lg">

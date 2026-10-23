@@ -15,6 +15,27 @@
       "when": 1792744033887,
       "tag": "0001_acknowledged_shopbook_operations",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792776362681,
+      "tag": "0002_verify_health_and_audited_stock",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792776441110,
+      "tag": "0003_bind_sync_projection_to_business",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792776675811,
+      "tag": "0004_correct_correlated_stock_validation",
+      "breakpoints": true
     }
   ]
 }

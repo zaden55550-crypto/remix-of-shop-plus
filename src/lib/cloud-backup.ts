@@ -13,7 +13,7 @@ export function startCloudBackup() {
   const device = localStorage.getItem("shopbook.deviceId") || crypto.randomUUID(); localStorage.setItem("shopbook.deviceId", device);
   const schedule = (ms = 1200) => { if (timer) clearTimeout(timer); timer = setTimeout(sync, ms); };
   const sync = async () => {
-    if (stopped) return;
+    if (stopped || document.visibilityState !== "visible") return;
     if (localStorage.getItem("shopbook.session") !== "1") { publish({ phase: "local", at: 0 }); return; }
     if (!navigator.onLine) { publish({ phase: "offline", at: state.at }); return; }
     if (busy) { schedule(); return; }
@@ -37,18 +37,18 @@ export function startCloudBackup() {
       const result = await saveCloudBackup({ data: { deviceId: device, revision, shop: payload.shop, payload } });
       if (stopped) return;
       const session = await supabase.auth.getSession();
-      if (session.data.session?.user.id !== boundUser) { signature = ""; publish({ phase: "local", at: 0 }); return; }
+      if (session.data.session?.user.id !== boundUser || localStorage.getItem("shopbook.session") !== "1") { signature = ""; publish({ phase: "local", at: 0 }); return; }
       signature = sig; retry = 2000;
       publish({ phase: "backed", at: new Date(result.updated_at).getTime() });
     } catch (e) { if (!stopped) { publish({ phase: "failed", at: state.at, error: e instanceof Error ? e.message : "Backup failed" }); schedule(retry); retry = Math.min(60000, retry * 2); } }
     finally { busy = false; }
   };
   const changed = () => { publish({ phase: navigator.onLine ? "syncing" : "offline", at: state.at }); schedule(); };
-  const events = ["shopbook-erp", "shopbook-prefs", "shopbook-language", "storage", "online", "offline"];
+  const events = ["shopbook-erp", "shopbook-prefs", "shopbook-language", "storage", "online", "offline", "shopbook-session"];
   events.forEach((e) => window.addEventListener(e, changed));
   const auth = supabase.auth.onAuthStateChange(() => { signature = ""; schedule(50); });
   // Also captures older screens whose preference/draft setters do not dispatch events.
-  const check = setInterval(() => { const keys = ["shopbook.erp", "shopbook.account", ...BACKUP_KEYS]; const current = keys.map((k) => localStorage.getItem(k)).join("|"); if (current !== last) { last = current; changed(); } }, 2000);
+  const check = setInterval(() => { if (document.visibilityState !== "visible") return; const keys = ["shopbook.erp", "shopbook.account", ...BACKUP_KEYS]; const current = keys.map((k) => localStorage.getItem(k)).join("|"); if (current !== last) { last = current; changed(); } }, 2000);
   let last = ""; schedule(50);
   return () => { stopped = true; if (timer) clearTimeout(timer); clearInterval(check); events.forEach((e) => window.removeEventListener(e, changed)); auth.data.subscription.unsubscribe(); };
 }

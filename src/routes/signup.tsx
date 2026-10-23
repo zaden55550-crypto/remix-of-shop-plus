@@ -38,7 +38,8 @@ function Signup() {
     setErr(next);
     const first = next.password || next.confirm || next.agree;
     if (first) { toast.error(first); return; }
-    store.save({ language, shopName: f.shopName.trim(), phone: f.phone.trim(), email: "", password: f.password, currency: f.currency, logo: f.logo || undefined });
+    try { store.save({ language, shopName: f.shopName.trim(), phone: f.phone.trim(), email: "", password: f.password, currency: f.currency, logo: f.logo || undefined }); }
+    catch (e) { toast.error(e instanceof Error ? e.message : tr("Could not create account")); return; }
     store.signIn();
     nav({ to: "/plans" });
   };

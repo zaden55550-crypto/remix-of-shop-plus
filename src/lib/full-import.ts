@@ -2,7 +2,7 @@
 // preview and import in dependency order, reusing the existing category importers so every rule
 // (importKeys, duplicate checks, opening-balance separation) stays in one place.
 // The whole run is all-or-nothing: if any stage fails, shop data and history are restored.
-import { load } from "@/lib/erp";
+import { load, runErpTransaction } from "@/lib/erp";
 import { applyImport, detectType, FIELDS, previewRows, suggestMapping, type ImportType } from "@/lib/import-center";
 import { applyOB, looksLikeOpening, OB_FIELDS, previewOB, saveBatch, suggestOB, type DateFmt, type ImportBatch, type OBIssue, type OBMapping, type Sheet } from "@/lib/opening-import";
 import { applyTX, looksLikeTransactions, previewTX, suggestTX, TX_FIELDS, type TXMapping, type TXOptions } from "@/lib/transaction-import";
@@ -52,7 +52,7 @@ export function detect(sheet: Sheet): { cat: FullCat; reason: string } {
 }
 export const planSheets = (sheets: Sheet[]): Plan[] => sheets.map((sheet) => { const d = detect(sheet); return { id: `${sheet.file}::${sheet.sheet}`, sheet, cat: d.cat, map: suggestFor(d.cat, sheet.columns), reason: d.reason }; });
 
-const KEYS = ["shopbook.erp", "shopbook.importBatches", "shopbook.importHistory"];
+const KEYS = ["shopbook.importBatches", "shopbook.importHistory"];
 const snapshot = () => KEYS.map((key) => [key, localStorage.getItem(key)] as const);
 const restore = (snap: ReturnType<typeof snapshot>) => { for (const [key, v] of snap) v === null ? localStorage.removeItem(key) : localStorage.setItem(key, v); window.dispatchEvent(new Event("shopbook-erp")); window.dispatchEvent(new Event("shopbook-prefs")); };
 
@@ -105,14 +105,14 @@ const usable = (plans: Plan[]) => plans.filter((p) => p.cat !== "Skip" && !missi
  * Later sheets see records created by earlier ones, so results match the real import exactly. */
 export function previewFull(plans: Plan[], o: FullOptions): StageResult[] {
   const snap = snapshot();
-  try { return runAll(usable(plans), o, false); } finally { restore(snap); }
+  try { return runErpTransaction(() => runAll(usable(plans), o, false), false); } finally { restore(snap); }
 }
 
 /** All-or-nothing import. Records one combined batch in Import History. */
 export function importFull(plans: Plan[], o: FullOptions): { results: StageResult[]; batch: ImportBatch } {
   const snap = snapshot(), go = usable(plans);
   let results: StageResult[];
-  try { results = runAll(go, o, true); }
+  try { results = runErpTransaction(() => runAll(go, o, true)); }
   catch (e) { restore(snap); throw e; }
   // Replace the per-stage history entries with one combined Full Business Import entry.
   for (const [key, v] of snap) if (key !== "shopbook.erp") v === null ? localStorage.removeItem(key) : localStorage.setItem(key, v);

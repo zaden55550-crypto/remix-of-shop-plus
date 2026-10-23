@@ -38,8 +38,11 @@
 - Contacts/Payroll share ERP shell and people actions; settlements atomic; employees separate from contacts.
 - Charts use read-only chart-data/accounting series shared by overviews, Reports and Summary.
 - Settings: 12 ordered categories; imports use one atomic commit. Business AI is read-only, session-only, server-side.
-- Phone sync: one row per owner; ERP merged by record id with revision-checked writes so concurrent saves never overwrite.
+- Phone sync uses owner/business-bound acknowledged operations with immutable IDs and before-value conflict checks; never merge or overwrite pending financial records silently.
 - Resets stamp `seq['__reset:<collection>']`; sync merge drops older records so a stale phone can't restore deleted data.
 - Opening balances import as OPENING rows in the payments ledger with an importKey (src/lib/opening-import.ts), so they never count as sales/expenses and re-imports never double-post.
 - Full import (src/lib/full-import.ts) only orchestrates category importers; preview runs then restores a snapshot, confirm is all-or-nothing.
 - Connection status (src/components/shopbook/connection-status.tsx) uses a backend health check, not navigator.onLine alone; system announcements are server rows writable only by the support role and cached on-device for outages.
+- Connectivity has one root-owned active monitor; pending operations share the ERP atomic local write, preserving records and queue together.
+- Multi-stage import previews use isolated in-memory ERP transactions; confirmation publishes one operation, avoiding temporary cloud writes.
+- Native ShopBot uses deterministic help and read-only approved queries; online queries derive caller identity from authenticated server middleware.

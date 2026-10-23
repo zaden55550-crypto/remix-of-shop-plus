@@ -26,6 +26,7 @@ export function ConnectionStatus({ className }: { className?: string }) {
     <ShopButton variant="bare" aria-label={tr("Connection status")} aria-expanded={open} onClick={() => setOpen((v) => !v)}
       className={cn("h-7 w-auto gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-semibold", color)}>
       <Icon className={cn("h-3.5 w-3.5", (conn === "connecting" || conn === "syncing") && "motion-safe:animate-spin")} />
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", conn === "online" ? "bg-success" : conn === "offline" ? "bg-destructive" : "bg-warning")} />
       <span className="hidden min-[400px]:inline" role="status">{tr(labels[conn])}</span>
     </ShopButton>
     {open && <div role="dialog" aria-label={tr("Connection details")} className="absolute left-0 top-9 z-40 w-64 max-w-[calc(100vw-5rem)] rounded-lg border border-border bg-popover p-3 text-start text-xs shadow-lg">
