@@ -31,16 +31,19 @@ export function PayPicker({ value, onChange, total, money, tr, allowCredit = tru
   const over = value.mode === "ppay" && paid > total + 0.001;
   const change = value.mode === "cash" && value.received !== "" ? +value.received - total : null;
   const status = over ? null : pay.credit > 0.001 ? (paid > 0 ? "Partially Paid" : "Unpaid") : "Paid";
+  const opts = PAY_OPTIONS.filter((o) => o.id === "credit" ? allowCredit : o.id === "ppay" ? allowPartial : true);
   return <div className="grid gap-1.5">
     <p className="inventory-field">{tr("Payment Method")} <span className="text-destructive">*</span></p>
-    <div role="radiogroup" className="inventory-tabs inventory-tabs-sub px-0">
-      {PAY_OPTIONS.filter((o) => o.id === "credit" ? allowCredit : o.id === "ppay" ? allowPartial : true).map((o) => <ShopButton variant="bare" key={o.id} role="radio" aria-checked={value.mode === o.id} onClick={() => onChange({ ...value, mode: o.id })} className={cn("inventory-tab", value.mode === o.id && "pay-on")}>{o.id === "ppay" ? "P.PAY" : tr(o.label)}</ShopButton>)}
+    <div role="radiogroup" aria-label={tr("Payment Method")} className="pay-strip" style={{ gridTemplateColumns: `repeat(${opts.length}, minmax(0, 1fr))` }}>
+      {opts.map((o) => <ShopButton variant="bare" key={o.id} role="radio" aria-checked={value.mode === o.id} onClick={() => onChange({ ...value, mode: o.id })} className={cn("pay-chip", value.mode === o.id && "pay-on")}>{o.id === "ppay" ? "P.PAY" : tr(o.label)}</ShopButton>)}
     </div>
-    {value.mode === "cash" && <div className="grid grid-cols-2 items-center gap-1.5"><span className="text-[11px]">{tr("Cash received (optional)")}</span><input className="inventory-input" inputMode="decimal" placeholder={String(total)} value={value.received} onChange={(e) => onChange({ ...value, received: e.target.value })} /></div>}
+    {value.mode === "cash" && <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1.5"><span className="text-[11px]">{tr("Money given")}</span><input aria-label={tr("Money given")} className="inventory-input" inputMode="decimal" placeholder={String(total)} value={value.received} onChange={(e) => onChange({ ...value, received: e.target.value })} /><ShopButton variant="outline" className="h-8 px-2 text-[11px]" onClick={() => onChange({ ...value, received: String(total) })}>{tr("MAX")}</ShopButton></div>}
     {value.mode === "ppay" && <div className="inventory-box mt-0 grid gap-1.5">
-      <p className="text-[11px] font-bold">{tr("Partial Payment")}</p>
-      {(["cash", "mpesa", "bank"] as const).map((m) => <div key={m} className="grid grid-cols-2 items-center gap-1.5"><span className="inventory-input flex items-center">{tr(m === "cash" ? "Cash" : m === "mpesa" ? "M-Pesa" : "Bank")}</span><input className="inventory-input" inputMode="decimal" placeholder="0" value={value.split[m]} onChange={(e) => onChange({ ...value, split: { ...value.split, [m]: e.target.value } })} /></div>)}
-      <div className="grid grid-cols-2 items-center gap-1.5"><span className="inventory-input flex items-center">{tr("Credit")}</span><span className="inventory-input flex items-center tabular-nums text-warning">{pay.credit.toLocaleString("en-KE")}</span></div>
+      <p className="text-[11px] font-bold">{tr("Combined payment")}</p>
+      <div className="ppay-cards">
+        {(["cash", "mpesa", "bank"] as const).map((m) => <label key={m} className="ppay-card"><span>{tr(m === "cash" ? "Cash" : m === "mpesa" ? "M-Pesa" : "Bank")}</span><input aria-label={`${tr("P.PAY")} ${m}`} className="inventory-input" inputMode="decimal" placeholder="0" value={value.split[m]} onChange={(e) => onChange({ ...value, split: { ...value.split, [m]: e.target.value } })} /></label>)}
+        {allowCredit && <div className="ppay-card"><span>{tr("Credit")}</span><span className="inventory-input flex items-center tabular-nums text-warning">{pay.credit.toLocaleString("en-KE")}</span></div>}
+      </div>
     </div>}
     <div className="pur-totals">
       <span>{tr("Total bill")}</span><b>{money(total)}</b>
