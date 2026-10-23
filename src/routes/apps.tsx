@@ -74,19 +74,19 @@ function Apps() {
     return (
       <ShopButton variant="bare" key={app.id} onClick={() => (ok && ROUTES[app.id] ? nav({ to: ROUTES[app.id]! }) : openApp(ok, appName(app.id)))}
         className="h-auto w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none p-0">
-        <span className="relative flex aspect-square w-full max-w-[clamp(52px,16vw,96px)] items-center justify-center">
+        <span className="relative flex aspect-square w-full max-w-[min(16vw,9.5dvh,96px)] items-center justify-center">
           <span className="block h-full w-full">
             <img src={dark ? app.iconDark : app.icon} alt="" className={cn("h-full w-full object-contain", app.id === "inventory" && "scale-[1.18]", !ok && "opacity-50 grayscale")} />
           </span>
           {!ok && <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-card shadow"><Lock className="h-3 w-3" /></span>}
         </span>
-        <span className="min-h-7 w-full break-words text-center text-[clamp(10px,2.6vw,13px)] font-semibold leading-tight text-foreground">{appName(app.id)}</span>
+        <span className="w-full truncate text-center text-[clamp(9px,min(2.6vw,1.9dvh),13px)] font-semibold leading-tight text-foreground">{appName(app.id)}</span>
       </ShopButton>
     );
   };
 
   return (
-    <main dir={dir} className="app-screen relative px-4 pb-24 pt-4 md:max-w-3xl md:px-10">
+    <main dir={dir} className="app-screen relative px-4 pb-16 pt-[clamp(0.5rem,2dvh,1rem)] md:max-w-3xl md:px-10">
       <header className="flex items-center justify-between gap-2">
         <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
           {acct.logo
@@ -104,23 +104,23 @@ function Apps() {
       <AnnouncementBanner />
 
       {acct.plan === "trial" && (
-        <div className="mt-4 flex flex-nowrap items-center gap-[clamp(0.35rem,1.5vw,0.75rem)] rounded-2xl border border-border bg-card/70 p-[clamp(0.4rem,1.5vw,0.75rem)]">
-          <Crown className="h-[clamp(1.1rem,4vw,1.75rem)] w-[clamp(1.1rem,4vw,1.75rem)] shrink-0 text-badge-gold" />
-          <div className="min-w-0 flex-1 truncate text-[clamp(0.6rem,2.4vw,0.8rem)] text-muted-foreground">{t("usingPlan", planLabel)}</div>
-          <div className="min-w-0 shrink truncate text-[clamp(0.6rem,2.4vw,0.85rem)] font-semibold uppercase">{t("trialRemaining")}</div>
-          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-primary px-[clamp(0.35rem,1.5vw,0.65rem)] py-1 text-[clamp(0.6rem,2.4vw,0.8rem)] font-semibold text-primary-foreground glow">
-            <Clock className="h-3.5 w-3.5" /> {t("daysLeft", days)}
+        <div className="mt-[clamp(0.4rem,1.5dvh,1rem)] flex flex-nowrap items-center gap-[clamp(0.25rem,1.2vw,0.6rem)] rounded-xl border border-border bg-card/70 px-[clamp(0.35rem,1.2vw,0.65rem)] py-[clamp(0.2rem,0.8dvh,0.45rem)]">
+          <Crown className="h-[clamp(0.9rem,3.2vw,1.35rem)] w-[clamp(0.9rem,3.2vw,1.35rem)] shrink-0 text-badge-gold" />
+          <div className="min-w-0 flex-1 truncate text-[clamp(0.55rem,2.1vw,0.75rem)] text-muted-foreground">{t("usingPlan", planLabel)}</div>
+          <div className="min-w-0 shrink truncate text-[clamp(0.55rem,2.1vw,0.75rem)] font-semibold uppercase">{t("trialRemaining")}</div>
+          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-[clamp(0.3rem,1.2vw,0.5rem)] py-0.5 text-[clamp(0.55rem,2.1vw,0.75rem)] font-semibold text-primary-foreground">
+            <Clock className="h-3 w-3" /> {days} {tr(days === 1 ? "day" : "days")}
           </span>
         </div>
       )}
 
-      <div className="mt-[clamp(0.75rem,3vh,1.75rem)] grid grid-cols-4 gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.5rem,2.2vh,1.5rem)]">
+      <div className="mt-[clamp(0.5rem,2dvh,1.5rem)] grid grid-cols-4 gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.3rem,1.6dvh,1.25rem)]">
         {[...shown, ...(SETTINGS_APP ? [SETTINGS_APP] : [])].map(renderApp)}
       </div>
 
       <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
         className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] md:right-[max(1rem,calc(50%-370px))] flex flex-col items-center">
-        <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-14 w-14 rounded-full" />
+        <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-[clamp(2.5rem,9dvh,3.5rem)] w-[clamp(2.5rem,9dvh,3.5rem)] rounded-full" />
       </ShopButton>
 
       {menuOpen && (
