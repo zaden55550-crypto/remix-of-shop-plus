@@ -40,7 +40,6 @@ function Apps() {
   const [acct, setAcct] = useState<Account | null>(null);
   const [cfg] = useSettings();
   const shown = APPS.filter((a) => a.id !== "settings" && !cfg.hiddenApps.includes(a.id));
-  const ROWS = Array.from({ length: Math.ceil(shown.length / 4) }, (_, i) => shown.slice(i * 4, i * 4 + 4));
   const [locked, setLocked] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [panel, setPanel] = useState<null | "profile" | "language" | "currency" | "help">(null);
@@ -115,13 +114,8 @@ function Apps() {
         </div>
       )}
 
-      <div className="mt-8 space-y-9">
-        {ROWS.map((row, i) => (
-          <div key={i} className="grid grid-cols-4 gap-x-2">
-            {row.map(renderApp)}
-          </div>
-        ))}
-        {SETTINGS_APP && <div className="mx-auto w-[calc((100%-1.5rem)/4)]">{renderApp(SETTINGS_APP)}</div>}
+      <div className="mt-[clamp(0.75rem,3vh,1.75rem)] grid grid-cols-4 gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.5rem,2.2vh,1.5rem)]">
+        {[...shown, ...(SETTINGS_APP ? [SETTINGS_APP] : [])].map(renderApp)}
       </div>
 
       <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
