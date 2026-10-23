@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { Tabs } from "@/components/shopbook/erp-shell";
+import { SearchPicker } from "@/components/shopbook/search-picker";
 import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
 import * as erp from "@/lib/erp";
 
@@ -124,7 +125,6 @@ export function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: 
   const [customerId, setCustomer] = useState("");
   const [sellerId, setSeller] = useState("");
   const sellers = s.employees.filter((e) => e.active);
-  const [newCust, setNewCust] = useState<string | null>(null);
   const [dMode, setDMode] = useState<"fixed" | "percent">("fixed");
   const [dVal, setDVal] = useState("");
   const [pay, setPay] = useState<PayState>(emptyPay());
@@ -139,20 +139,7 @@ export function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: 
     <Sheet title={tr("Payment")} onClose={onClose}>
       <div className="space-y-3">
         <Label t={tr("Customer")}>
-          {newCust === null ? (
-            <div className="flex gap-2">
-              <select value={customerId} onChange={(e) => (e.target.value === "__new" ? setNewCust("") : setCustomer(e.target.value))} className={inputCls}>
-                <option value="">{tr("No Customer")}</option>
-                {s.customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                <option value="__new">+ {tr("New customer")}</option>
-              </select>
-            </div>
-          ) : (
-            <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); const c = run(() => erp.addCustomer(newCust)); if (c) { setCustomer(c.id); setNewCust(null); } }}>
-              <input autoFocus value={newCust} maxLength={100} onChange={(e) => setNewCust(e.target.value)} placeholder={tr("Customer name")} className={inputCls} />
-              <ShopButton className="h-11 w-20">{tr("Add")}</ShopButton>
-            </form>
-          )}
+          <SearchPicker tr={tr} items={s.customers.map((c) => ({ id: c.id, label: c.name, hint: c.phone }))} value={customerId} onChange={setCustomer} noneLabel={tr("No Customer")} placeholder={tr("Select customer")} addLabel={tr("Add Customer")} withPhone onAdd={(n, ph) => run(() => erp.addCustomer(n, ph))?.id} />
         </Label>
         <Label t={tr("Discount")}>
           <div className="flex gap-2">
