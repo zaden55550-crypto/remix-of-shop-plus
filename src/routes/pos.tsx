@@ -71,7 +71,7 @@ function Pos() {
 function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const { s, money, tr } = c;
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft("POS");
-  const [step, setStep] = useState<"list" | "cart" | "pay">("list");
+  const [step, setStep] = useState<"list" | "cart">("list");
   const [done, setDone] = useState<erp.Sale | null>(null);
   const cartBtn = useRef<HTMLButtonElement>(null);
   const count = cart.length;
@@ -83,17 +83,17 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
     setCart((x) => (x.some((l) => l.productId === id) ? x.map((l) => (l.productId === id ? { ...l, qty: l.qty + 1 } : l)) : [...x, { productId: id, qty: 1 }]));
     if (from && cartBtn.current) fly(from, cartBtn.current);
   };
-  const setQty = (id: string, raw: number) => { const qty = erp.roundQty(raw); const p = prod(id); if (p && qty > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; } setCart((x) => (qty <= 0 ? x.filter((l) => l.productId !== id) : x.map((l) => (l.productId === id ? { ...l, qty } : l)))); };
+  const setQty = (id: string, raw: number) => { const qty = erp.roundQty(raw); setCart((x) => (qty <= 0 ? x.filter((l) => l.productId !== id) : x.map((l) => (l.productId === id ? { ...l, qty } : l)))); };
 
-  if (done) return <Done {...c} sale={done} onNew={() => { setDone(null); setStep("list"); }} openSale={c.openSale} />;
-  if (step === "pay") return <Payment {...c} cart={cart} back={() => setStep("cart")} onDone={(x) => { setCart([]); clearDraft(); setDone(x); }} />;
   return <>
     <ProductCatalog s={s} cart={cart} tr={tr} add={add} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
     <ShopButton variant="bare" ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</ShopButton>
-    {step === "cart" && <CartSheet s={s} money={money} tr={tr} cart={cart}
+    {step === "cart" && <CartCheckout s={s} money={money} tr={tr} cart={cart} channel="POS"
       setLine={(l) => setCart((x) => x.map((v) => v.productId === l.productId ? l : v))}
       remove={(id) => setQty(id, 0)} clear={() => { setCart([]); clearDraft(); setStep("list"); }}
-      close={() => setStep("list")} next={() => setStep("pay")} saveDraft={saveDraft} />}
+      back={() => setStep("list")} saveDraft={saveDraft}
+      onDone={(x) => { setCart([]); clearDraft(); setStep("list"); setDone(x); }} />}
+    {done && <ReceiptSheet live sale={s.sales.find((x) => x.id === done.id) ?? done} s={s} money={money} tr={tr} shop={c.shop} onClose={() => setDone(null)} />}
   </>;
 }
 
