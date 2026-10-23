@@ -1,6 +1,7 @@
 // SHOPBOOK ERP Core — shared business data + one transaction engine.
 // Every module (Inventory, Sales, POS, Purchases, Returns, Reports) reads and
 // writes through `commit`, which validates and applies a whole transaction or nothing.
+import { createOperation, getOutbox, persistErp } from "@/lib/outbox";
 
 export type Product = {
   id: string; name: string; buy: number; sell: number; qty: number;
@@ -66,17 +67,19 @@ export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().to
 
 export function load(): ErpState {
   if (typeof window === "undefined") return empty();
-  try { return { ...empty(), ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch { return empty(); }
+  try { const { __outbox: _outbox, ...data } = JSON.parse(localStorage.getItem(KEY) || "{}"); return { ...empty(), ...data }; } catch { return empty(); }
 }
 
 export class ErpError extends Error {}
 
 /** Atomic transaction: works on a copy; saves only if every step succeeds. */
 export function commit<T>(fn: (s: ErpState, ctx: Ctx) => T): T {
-  const draft: ErpState = structuredClone(load());
+  const before = load();
+  const draft: ErpState = structuredClone(before);
   const ctx = makeCtx(draft);
   const out = fn(draft, ctx); // throws → nothing is saved
-  localStorage.setItem(KEY, JSON.stringify(draft));
+  const operation = createOperation(before, draft);
+  persistErp(draft, operation ? [...getOutbox(), operation] : getOutbox());
   window.dispatchEvent(new Event(EVT));
   return out;
 }

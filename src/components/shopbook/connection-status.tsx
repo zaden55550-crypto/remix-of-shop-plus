@@ -1,93 +1,45 @@
-// Three-state connection indicator (Online / Connecting / Offline) with a small details panel.
-// Browser online status alone is not trusted: a lightweight backend health check confirms the service.
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Wifi, WifiOff, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { Wifi, WifiOff, RefreshCw, X } from "lucide-react";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
-import { useBackupStatus } from "@/lib/cloud-backup";
 import { useSyncStatus } from "@/lib/shop-sync";
+import { useBackupStatus } from "@/lib/cloud-backup";
+import { connectionLabel, useConnectivity, type VisibleConnection } from "@/lib/connectivity";
 import { cn } from "@/lib/utils";
-
-export type Conn = "online" | "connecting" | "offline";
-
-async function checkBackend(timeoutMs = 6000): Promise<boolean> {
-  const url = import.meta.env["VITE_SUPABASE_URL"] as string | undefined, key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"] as string | undefined;
-  if (!url) return false;
-  const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), timeoutMs);
-  try { const r = await fetch(`${url}/auth/v1/health`, { headers: { apikey: key ?? "" }, signal: ctl.signal, cache: "no-store" }); return r.ok; }
-  catch { return false; } finally { clearTimeout(t); }
-}
-
+export type Conn = VisibleConnection;
 export function useConnection() {
-  const [conn, setConn] = useState<Conn>("connecting");
-  const [lastOk, setLastOk] = useState(0);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const delay = useRef(15000);
-  const check = useCallback(async () => {
-    if (timer.current) clearTimeout(timer.current);
-    if (!navigator.onLine) { setConn("offline"); return; }
-    setConn((c) => (c === "online" ? c : "connecting"));
-    const ok = await checkBackend();
-    if (ok) { setConn("online"); setLastOk(Date.now()); delay.current = 30000; }
-    else { setConn(navigator.onLine ? "connecting" : "offline"); delay.current = Math.min(120000, delay.current * 2) * (0.8 + Math.random() * 0.4); }
-    if (document.visibilityState === "visible") timer.current = setTimeout(check, ok ? 30000 : delay.current);
-  }, []);
-  useEffect(() => {
-    const off = () => setConn("offline");
-    const on = () => { delay.current = 5000; void check(); };
-    const vis = () => { if (document.visibilityState === "visible") void check(); };
-    window.addEventListener("offline", off); window.addEventListener("online", on); document.addEventListener("visibilitychange", vis);
-    void check();
-    return () => { if (timer.current) clearTimeout(timer.current); window.removeEventListener("offline", off); window.removeEventListener("online", on); document.removeEventListener("visibilitychange", vis); };
-  }, [check]);
-  return { conn, lastOk, retry: check };
+  const s = useConnectivity();
+  return { conn: connectionLabel(s, false), lastOk: s.lastOk, retry: s.retry };
 }
-
-const STATES: { k: Conn; label: string; dot: string }[] = [
-  { k: "online", label: "Online", dot: "bg-success" },
-  { k: "connecting", label: "Connecting", dot: "bg-warning" },
-  { k: "offline", label: "Offline", dot: "bg-destructive" },
-];
-
+const labels = { online: "Online", connecting: "Connecting", offline: "Offline", syncing: "Syncing" };
 export function ConnectionStatus({ className }: { className?: string }) {
-  const { tr } = useLanguage();
-  const { conn, lastOk, retry } = useConnection();
-  const sync = useSyncStatus(), backup = useBackupStatus();
+  const { tr } = useLanguage(), connection = useConnectivity(), sync = useSyncStatus(), backup = useBackupStatus();
   const [open, setOpen] = useState(false);
-  const message = conn === "offline" ? tr("Offline — working from saved data. Changes are saved on this phone and will sync when back online.")
-    : conn === "connecting" ? tr("Connecting — service not confirmed yet. Changes are saved on this phone.")
-    : sync.phase === "syncing" || backup.phase === "syncing" ? tr("Online — syncing changes")
-    : sync.phase === "local" ? tr("Online — sign in to sync this shop")
-    : sync.phase === "failed" || backup.phase === "failed" ? tr("Sync issue — will retry automatically")
-    : tr("Online — all changes synced");
-  const syncedAt = Math.max(sync.at, backup.at, 0);
-  return (
-    <div className={cn("relative flex min-w-0 items-center justify-center", className)}>
-      <div role="group" aria-label={tr("Connection status")} className="flex items-center gap-0.5 rounded-full border border-border bg-card/60 p-0.5">
-        {STATES.map((s) => {
-          const active = conn === s.k;
-          return (
-            <ShopButton key={s.k} variant="bare" aria-pressed={active} title={tr(s.label)} onClick={() => setOpen((o) => !o)}
-              className={cn("flex h-6 w-auto items-center gap-1 rounded-full px-1.5 text-[10px] font-semibold transition-colors", active ? "bg-muted text-foreground" : "text-muted-foreground opacity-60")}>
-              {s.k === "offline" ? <WifiOff className="h-3 w-3" /> : s.k === "connecting" ? <RefreshCw className={cn("h-3 w-3", active && "animate-spin")} /> : <Wifi className="h-3 w-3" />}
-              <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
-              <span className={cn(!active && "hidden sm:inline")}>{tr(s.label)}</span>
-            </ShopButton>
-          );
-        })}
-      </div>
-      {open && (
-        <div role="dialog" aria-label={tr("Connection details")} className="absolute left-1/2 top-8 z-40 w-64 -translate-x-1/2 rounded-xl border border-border bg-popover p-3 text-start text-xs shadow-lg">
-          <p className="font-semibold">{message}</p>
-          <p className="mt-2 text-muted-foreground">{tr("Last server check")}: {lastOk ? new Date(lastOk).toLocaleTimeString() : "—"}</p>
-          <p className="text-muted-foreground">{tr("Last sync")}: {syncedAt ? new Date(syncedAt).toLocaleTimeString() : "—"}</p>
-          {(sync.error || backup.error) && conn === "online" && <p className="mt-1 text-destructive">{tr("Last sync error — retrying")}</p>}
-          <div className="mt-3 flex gap-2">
-            <ShopButton className="h-8 flex-1 text-xs" onClick={() => { void retry(); window.dispatchEvent(new Event("shopbook-erp")); }}>{tr("Retry now")}</ShopButton>
-            <ShopButton variant="outline" className="h-8 flex-1 text-xs" onClick={() => setOpen(false)}>{tr("Close")}</ShopButton>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  const conn = connectionLabel(connection, sync.phase === "syncing");
+  const pending = sync.pending ?? 0;
+  const Icon = conn === "offline" ? WifiOff : conn === "connecting" || conn === "syncing" ? RefreshCw : Wifi;
+  const color = conn === "online" ? "text-success" : conn === "offline" ? "text-destructive" : "text-warning";
+  const message = sync.phase === "local" ? tr("Sign-in required to resume synchronization")
+    : pending ? `${pending} ${tr("changes waiting to sync")}`
+    : sync.phase === "live" && sync.at ? tr("All changes synchronized") : tr("Changes are saved on this device");
+  return <div className={cn("relative flex min-w-0 items-center", className)}>
+    <ShopButton variant="bare" aria-label={tr("Connection status")} aria-expanded={open} onClick={() => setOpen((v) => !v)}
+      className={cn("h-7 w-auto gap-1 rounded-full border border-border bg-card px-2 text-[10px] font-semibold", color)}>
+      <Icon className={cn("h-3.5 w-3.5", (conn === "connecting" || conn === "syncing") && "motion-safe:animate-spin")} />
+      <span className="hidden min-[400px]:inline" role="status">{tr(labels[conn])}</span>
+    </ShopButton>
+    {open && <div role="dialog" aria-label={tr("Connection details")} className="absolute left-0 top-9 z-40 w-64 max-w-[calc(100vw-5rem)] rounded-lg border border-border bg-popover p-3 text-start text-xs shadow-lg">
+      <div className="flex items-center justify-between"><b className={color}>{tr(labels[conn])}</b><ShopButton variant="bare" className="h-6 w-6 p-0" aria-label={tr("Close")} onClick={() => setOpen(false)}><X className="h-3 w-3" /></ShopButton></div>
+      <p className="mt-2 font-semibold">{message}</p>
+      <p className="mt-2 text-muted-foreground">{tr("Internet")}: {tr(connection.internet ? "Available" : "Unavailable")}</p>
+      <p className="text-muted-foreground">{tr("Backend")}: {tr(connection.backend === "up" ? "Available" : connection.backend === "down" ? "Unavailable" : "Checking")}</p>
+      <p className="text-muted-foreground">{tr("Pending changes")}: {pending}</p>
+      <p className="text-muted-foreground">{tr("Last server check")}: {connection.lastOk ? new Date(connection.lastOk).toLocaleTimeString() : "—"}</p>
+      <p className="text-muted-foreground">{tr("Last sync")}: {sync.at ? new Date(sync.at).toLocaleTimeString() : "—"}</p>
+      <p className="mt-1 text-muted-foreground">{tr("M-Pesa and bank entries are recorded, not externally verified.")}</p>
+      {sync.error && <p role="alert" className="mt-2 break-words text-destructive">{sync.error.includes("SYNC_CONFLICT") ? tr("A record changed on another device. Changes remain saved here; review with support before retrying.") : sync.error}</p>}
+      {backup.phase === "failed" && <p className="mt-1 text-warning">{tr("Cloud backup needs attention")}</p>}
+      <ShopButton className="mt-3 h-8 text-xs" onClick={() => { void connection.retry(); }}>{tr("Retry now")}</ShopButton>
+    </div>}
+  </div>;
 }

@@ -14,6 +14,7 @@ import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
 import { startAutoSnapshots } from "@/lib/snapshots";
 import { startShopSync } from "@/lib/shop-sync";
+import { startConnectivity } from "@/lib/connectivity";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -126,6 +127,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => { applyUiSize(); applySettings(); window.addEventListener("resize", applyFluidScale); return () => window.removeEventListener("resize", applyFluidScale); }, []);
   useEffect(() => startCloudBackup(), []);
+  useEffect(() => startConnectivity(), []);
   useEffect(() => startAutoSnapshots(), []);
   useEffect(() => startShopSync(), []);
 

@@ -1,5 +1,6 @@
 // Whole-device backups exclude passwords, sessions and entitlement data.
 import { commit, empty, load, type ErpState } from "@/lib/erp";
+import { createOperation, getOutbox, persistErp } from "@/lib/outbox";
 const KEY = "shopbook.erp";
 const LAST = "shopbook.lastBackup";
 export const BACKUP_KEYS = ["shopbook.purchaseDrafts", "shopbook.savedReports", "shopbook.uiSize", "shopbook.tax", "shopbook.theme", "shopbook.language", "shopbook.settings", "shopbook.importHistory", "shopbook.reconcile"] as const;
@@ -47,7 +48,9 @@ export function restoreJson(text: string) {
   const keys: string[] = [KEY, "shopbook.account", ...BACKUP_KEYS];
   const previous = keys.map((k) => [k, localStorage.getItem(k)] as const);
   try {
-    localStorage.setItem(KEY, JSON.stringify({ ...empty(), ...f.data }));
+    const restored = { ...empty(), ...f.data };
+    const operation = createOperation(load(), restored);
+    persistErp(restored, operation ? [...getOutbox(), operation] : getOutbox());
     if (f.settings) for (const key of BACKUP_KEYS) { const v = f.settings[key]; if (v === null) localStorage.removeItem(key); else if (typeof v === "string") localStorage.setItem(key, v); }
     const account = JSON.parse(localStorage.getItem("shopbook.account") || "null");
     if (account && f.business) localStorage.setItem("shopbook.account", JSON.stringify({ ...account, shopName: f.business.shopName, currency: f.business.currency, logo: f.business.logo }));
