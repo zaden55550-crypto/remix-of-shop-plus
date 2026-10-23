@@ -1,5 +1,7 @@
 # SHOPBOOK updates
 
+- [ ] Match Sales selling list to POS columns/categories; adapt all shared and module-specific horizontal menus, verify populated screens at supplied widths and final-unit stock sale.
+
 - [x] Add Settings → General → Sample Data; phone walkthrough loaded 25 products in isolated test storage; four tests verify confirmation and existing-record protection.
 - [ ] Complete the supplied Business Profile spec: searchable currency, global monetary precision, prefilled registration phone and remaining tablet/wide-layout checks.
 
