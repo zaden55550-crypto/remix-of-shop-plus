@@ -1,7 +1,7 @@
 import type { ErpState } from "@/lib/erp";
 
 export type Change = { collection: string; id: string; before: unknown; after: unknown };
-export type Operation = { id: string; business: string; owner: string | null; device: string; kind: string; createdAt: number; changes: Change[]; seq: Record<string, number>; phase: "pending" | "failed" | "conflict" | "synced"; attempts: number; nextRetry: number; error?: string; acknowledgedAt?: number; revision?: number; history: { at: number; event: string }[] };
+export type Operation = { id: string; business: string; owner: string | null; device: string; kind: string; createdAt: number; changes: Change[]; seq: Record<string, number>; phase: "pending" | "failed" | "conflict" | "synced"; attempts: number; nextRetry: number; error?: string | undefined; acknowledgedAt?: number; revision?: number; history: { at: number; event: string }[] };
 export const ERP_KEY = "shopbook.erp";
 export function businessId(): string {
   const account = JSON.parse(localStorage.getItem("shopbook.account") || "null");

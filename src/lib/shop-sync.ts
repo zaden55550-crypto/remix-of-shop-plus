@@ -7,7 +7,7 @@ import { getConnectivity, ACTIVE_CHECK_MS } from "@/lib/connectivity";
 
 /** Live multi-phone sync of the whole ERP for one signed-in owner.
  * Records carry ids, so phones merge by id (union); for the same id the side doing the merge keeps its own copy. */
-export type SyncState = { phase: "local" | "offline" | "syncing" | "live" | "failed"; at: number; pending?: number; error?: string };
+export type SyncState = { phase: "local" | "offline" | "syncing" | "live" | "failed"; at: number; pending?: number; error?: string | undefined };
 let state: SyncState = { phase: "local", at: 0 };
 const EVT = "shopbook-sync-status";
 const publish = (s: SyncState) => { state = s; window.dispatchEvent(new Event(EVT)); };
