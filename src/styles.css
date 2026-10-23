@@ -271,13 +271,13 @@
   color-scheme: dark;
 }
 .inventory-screen header { background: var(--background); }
-.inventory-header { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px; padding: 12px 10px 7px; }
+.inventory-header { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 8px; padding: 12px 10px 7px; }
 .inventory-header h1 { font-size: 12px; font-weight: 700; white-space: nowrap; }
 .inventory-header p { font-size: 11px; }
 .inventory-backup { display: flex; align-items: center; gap: 5px; padding: 0 10px 6px; font-size: 9px; color: var(--muted-foreground); }
 .inventory-tabs { display: flex; flex-wrap: nowrap; gap: 4px; overflow-x: auto; padding: 0 10px 7px; scrollbar-width: none; }
 .inventory-tabs::-webkit-scrollbar { display: none; }
-.inventory-screen .inventory-tab { flex: 1 0 auto; width: auto; height: 30px; border: 1px solid var(--border); border-radius: 4px; padding: 0 8px; font-size: 10px; font-weight: 600; white-space: nowrap; background: var(--card); color: var(--foreground); }
+.inventory-screen .inventory-tab { flex: 1 1 auto; min-width: max-content; width: auto; height: 28px; border: 1px solid var(--border); border-radius: 4px; padding: 0 clamp(4px, 1.6vw, 10px); font-size: 10px; font-weight: 600; white-space: nowrap; background: var(--card); color: var(--foreground); }
 .inventory-screen .inventory-tab[aria-selected="true"] { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
 .inventory-tabs-sub .inventory-tab { height: 28px; padding-inline: 7px; font-size: 9px; }
 .inventory-content { padding: 2px 10px 20px; min-width: 0; }
@@ -547,3 +547,7 @@ html, body { overflow-x: hidden; }
   .settings-split { grid-template-columns: 220px minmax(0, 1fr); }
   .settings-nav-item { display: flex; align-items: center; justify-content: space-between; }
 }
+
+/* Compact pass: tighter boxes and empty states across all ERP screens. */
+.inventory-content .inventory-box { margin-top: 6px; }
+.inventory-content .inventory-box p.py-6 { padding-block: 0.75rem; }
