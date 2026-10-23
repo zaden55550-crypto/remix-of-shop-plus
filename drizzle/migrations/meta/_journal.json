@@ -29,6 +29,13 @@
       "when": 1792776441110,
       "tag": "0003_bind_sync_projection_to_business",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792776675811,
+      "tag": "0004_correct_correlated_stock_validation",
+      "breakpoints": true
     }
   ]
 }
