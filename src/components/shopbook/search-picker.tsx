@@ -32,11 +32,12 @@ export function SearchPicker({ items, value, onChange, placeholder, addLabel, on
   const enter = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); save(); } };
 
   return <div className="grid gap-1">
-    <button type="button" className="inventory-input flex items-center justify-between gap-2 text-start" aria-expanded={open} onClick={() => setOpen(!open)}>
+    <button type="button" className="inventory-input !flex flex-row items-center justify-between gap-2 text-start" aria-expanded={open} onClick={() => setOpen(!open)}>
       <span className={cn("truncate", !sel && "text-muted-foreground")}>{sel ? sel.label : (value === "" && noneLabel) || placeholder}</span>
       <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
     </button>
-    {open && <div className="rounded-md border border-border bg-card p-1.5 shadow-sm">
+    {/* Pickers often sit inside a <label>; cancelling the click default stops the label re-clicking the toggle and closing this panel. */}
+    {open && <div className="rounded-md border border-border bg-card p-1.5 shadow-sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
       {adding ? <div role="group" aria-label={addLabel} className="grid gap-1.5">
         <p className="text-[11px] font-semibold">{addLabel}</p>
         <input autoFocus className="inventory-input" maxLength={100} placeholder={tr("Name")} value={adding.name} onKeyDown={enter} onChange={(e) => setAdding({ ...adding, name: e.target.value })} />
