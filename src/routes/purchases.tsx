@@ -155,6 +155,7 @@ const sumRows = (rows: { a: string }[]) => rows.reduce((a, r) => a + (+r.a || 0)
 function NewPurchase(c: Ctx & { draft?: Draft | undefined }) {
   const { s, money, tr, go, draft } = c;
   const [q, setQ] = useState("");
+  const [newP, setNewP] = useState<null | { name: string; buy: string; sell: string; unit: string; barcode: string }>(null);
   const [lines, setLines] = useState<DraftLine[]>(draft?.lines ?? []);
   const [sup, setSup] = useState(draft?.supplierId ?? "");
   const [pay, setPay] = useState<PayState>(emptyPay());
