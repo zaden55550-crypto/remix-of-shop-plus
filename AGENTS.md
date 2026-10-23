@@ -14,7 +14,7 @@
 - Use the shared useLanguage hook for interface language across pre-login and account screens; persist choices separately from accounts to keep selectors synchronized.
 - Keep additional interface translations in interface-translations.ts and existing keyed app translations in i18n.ts; translate plan presentation without changing centralized entitlement data.
 - All business data flows through the transaction engine in `src/lib/erp.ts` (`commit` = validate-then-save atomically); stock only changes via recorded movements, for one audited source of truth.
-- Sales, POS and Inventory reuse CartSheet and the quantity keypad; Inventory uses the Sales draft/Checkout. Drafts never change records. Manual amounts derive audited one-sale price overrides.
+- Sales, POS and Inventory share one CartCheckout page (cart + payment) and qty-parse fractions, so selling rules stay identical. Drafts never change records. Manual amounts derive audited one-sale price overrides.
 - Use the shared KpiRow and Kpi components for all summary metrics so every app obeys the global non-wrapping strip rule.
 - Scope Inventory's approved theme and compact control styles to its screen so other apps retain their shared theme; reuse the shared KPI and transaction components to prevent divergence.
 - Dashboard reads the shared ERP snapshot without mutations; unavailable financial sources stay unset rather than presenting fabricated totals.
