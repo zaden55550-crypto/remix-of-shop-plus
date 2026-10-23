@@ -86,7 +86,7 @@ function Apps() {
   };
 
   return (
-    <main dir={dir} className="app-screen relative px-4 pb-16 pt-[clamp(0.5rem,2dvh,1rem)] md:max-w-3xl md:px-10">
+    <main dir={dir} className="app-screen relative px-4 pb-16 pt-[clamp(0.5rem,2dvh,1rem)] md:px-10">
       <header className="flex items-center justify-between gap-2">
         <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
           {acct.logo
@@ -106,9 +106,9 @@ function Apps() {
       {acct.plan === "trial" && (
         <div className="mt-[clamp(0.4rem,1.5dvh,1rem)] flex flex-nowrap items-center gap-[clamp(0.25rem,1.2vw,0.6rem)] rounded-xl border border-border bg-card/70 px-[clamp(0.35rem,1.2vw,0.65rem)] py-[clamp(0.2rem,0.8dvh,0.45rem)]">
           <Crown className="h-[clamp(0.9rem,3.2vw,1.35rem)] w-[clamp(0.9rem,3.2vw,1.35rem)] shrink-0 text-badge-gold" />
-          <div className="min-w-0 flex-1 truncate text-[clamp(0.55rem,2.1vw,0.75rem)] text-muted-foreground">{t("usingPlan", planLabel)}</div>
-          <div className="min-w-0 flex-1 truncate text-center text-[clamp(0.55rem,2.1vw,0.75rem)] font-semibold uppercase">{t("trialRemaining")}</div>
-          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-[clamp(0.3rem,1.2vw,0.5rem)] py-0.5 text-[clamp(0.55rem,2.1vw,0.75rem)] font-semibold text-primary-foreground">
+          <div className="min-w-0 flex-1 whitespace-nowrap text-[clamp(6px,2vw,0.85rem)] text-muted-foreground">{t("usingPlan", planLabel)}</div>
+          <div className="min-w-0 flex-1 whitespace-nowrap text-center text-[clamp(6px,2vw,0.85rem)] font-semibold uppercase">{t("trialRemaining")}</div>
+          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-primary px-[clamp(0.3rem,1.2vw,0.5rem)] py-0.5 text-[clamp(6px,2vw,0.85rem)] font-semibold text-primary-foreground">
             <Clock className="h-3 w-3" /> {days} {tr(days === 1 ? "day" : "days")}
           </span>
         </div>
@@ -120,7 +120,7 @@ function Apps() {
       {SETTINGS_APP && <div className="mt-[clamp(0.3rem,1.6dvh,1.25rem)] flex justify-center"><div className="w-1/4 px-[clamp(0.2rem,1vw,0.6rem)]">{renderApp(SETTINGS_APP)}</div></div>}
 
       <ShopButton variant="bare" aria-label="ShopBot" onClick={() => setBusinessAi(true)}
-        className="h-auto w-auto fixed bottom-6 right-[max(1rem,calc(50%-199px))] md:right-[max(1rem,calc(50%-370px))] flex flex-col items-center">
+        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center">
         <img src={dark ? chatIcons.dark : chatIcons.light} alt="" className="h-[min(11vw,6.5dvh,64px)] w-[min(11vw,6.5dvh,64px)] rounded-full" />
       </ShopButton>
 
