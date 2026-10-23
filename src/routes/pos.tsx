@@ -91,8 +91,8 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   if (done) return <Done {...c} sale={done} onNew={() => { setDone(null); setStep("list"); }} openSale={c.openSale} />;
   if (step === "pay") return <Payment {...c} cart={cart} back={() => setStep("cart")} onDone={(x) => { setCart([]); clearDraft(); setDone(x); }} />;
   return <>
-    <ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
-    {cats.length > 0 && <div className="mt-1.5"><Tabs small items={["all", ...cats.map((k) => k.id)]} value={cat} onChange={setCat} tr={(k) => (k === "all" ? tr("All") : cats.find((x) => x.id === k)?.name ?? k)} /></div>}
+    {cats.length > 0 && <div><Tabs small items={["all", ...cats.map((k) => k.id)]} value={cat} onChange={setCat} tr={(k) => (k === "all" ? tr("All") : cats.find((x) => x.id === k)?.name ?? k)} /></div>}
+    <div className="mt-1.5"><ProductSearch q={q} setQ={setQ} tr={tr} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} /></div>
     <div className="pos-head"><span>{tr("Product")}</span><span>{tr("Stock")}</span><span>{tr("Price")}</span><span /></div>
     {list.length === 0 && <Empty>{s.products.length ? tr("No matching products") : tr("No products yet. Add products in Inventory.")}</Empty>}
     {list.map((p) => { const inCart = cart.find((l) => l.productId === p.id)?.qty ?? 0; return (
