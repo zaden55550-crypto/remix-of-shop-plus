@@ -32,7 +32,7 @@ export function SearchPicker({ items, value, onChange, placeholder, addLabel, on
   const enter = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); save(); } };
 
   return <div className="grid gap-1">
-    <button type="button" className="inventory-input !flex flex-row items-center justify-between gap-2 text-start" aria-expanded={open} onClick={() => setOpen(!open)}>
+    <button type="button" style={{ display: "flex" }} className="inventory-input flex-row items-center justify-between gap-2 text-start" aria-expanded={open} onClick={() => setOpen(!open)}>
       <span className={cn("truncate", !sel && "text-muted-foreground")}>{sel ? sel.label : (value === "" && noneLabel) || placeholder}</span>
       <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
     </button>
