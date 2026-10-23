@@ -50,7 +50,7 @@ function Sales() {
   const go = (m: Menu, sm?: string) => { setView(null); setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); };
   const ctx: Ctx = { s, money: moneyFor(acct.currency || "KSh"), tr, shop: acct.shopName, channel: "Sales", go, open: setView };
   return (
-    <ErpShell title="Sales" shop={acct.shopName} menus={MENUS} menu={menu} sub={sub} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
+    <ErpShell title="Sales" shop={acct.shopName} menus={MENUS} menu={menu} sub={view?.k === "new" ? "" : sub} hideSub={view?.k === "new"} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
       {view?.k === "new" ? <><p className="inventory-form-title">{tr("New Sale")}</p><Sell {...ctx} /></>
         : view?.k === "detail" ? <SaleDetail {...ctx} id={view.id} />
         : <>

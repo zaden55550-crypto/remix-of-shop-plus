@@ -1,27 +1,22 @@
 // Shared compact navy shell for Purchases and Sales: header, one-row menus, boxes, slim badges, one-line rows.
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronLeft, Menu as MenuIcon, Search as SearchIcon } from "lucide-react";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
-import { lastBackup } from "@/lib/backup";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { cn } from "@/lib/utils";
 
 export type Tr = (t: string) => string;
 
-export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, children, deps }: {
+export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, children, hideSub }: {
   title: string; shop: string; menus: Record<string, readonly string[]>; menu: string; sub: string;
-  onMenu: (m: string) => void; onSub: (s: string) => void; children: ReactNode; deps?: unknown;
+  onMenu: (m: string) => void; onSub: (s: string) => void; children: ReactNode; deps?: unknown; hideSub?: boolean;
 }) {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [lb, setLb] = useState(0);
-  const [online, setOnline] = useState(true);
-  useEffect(() => { setLb(lastBackup()); }, [deps]);
-  useEffect(() => { const f = () => setOnline(navigator.onLine); f(); window.addEventListener("online", f); window.addEventListener("offline", f); return () => { window.removeEventListener("online", f); window.removeEventListener("offline", f); }; }, []);
   const subs = menus[menu] ?? [];
   return (
     <main dir={dir} className="inventory-screen flex w-full flex-col">
@@ -40,7 +35,7 @@ export function ErpShell({ title, shop, menus, menu, sub, onMenu, onSub, childre
         </div>
         <BackupStatus />
         <Tabs items={Object.keys(menus)} value={menu} onChange={onMenu} tr={tr} />
-        {subs.length > 0 && <Tabs small items={[...subs]} value={sub} onChange={onSub} tr={tr} />}
+        {!hideSub && subs.length > 0 && <Tabs small items={[...subs]} value={sub} onChange={onSub} tr={tr} />}
       </header>
       <section className="inventory-content flex-1">{children}</section>
     </main>
