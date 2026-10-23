@@ -14,6 +14,7 @@ export function startCloudBackup() {
   const schedule = (ms = 1200) => { if (timer) clearTimeout(timer); timer = setTimeout(sync, ms); };
   const sync = async () => {
     if (stopped) return;
+    if (localStorage.getItem("shopbook.session") !== "1") { publish({ phase: "local", at: 0 }); return; }
     if (!navigator.onLine) { publish({ phase: "offline", at: state.at }); return; }
     if (busy) { schedule(); return; }
     busy = true;
@@ -21,6 +22,8 @@ export function startCloudBackup() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) { publish({ phase: "local", at: 0 }); return; }
       const owner = localStorage.getItem("shopbook.backupOwner");
+      const syncOwner = localStorage.getItem("shopbook.syncOwner");
+      if (syncOwner && syncOwner !== data.session.user.id) { publish({ phase: "account", at: 0 }); return; }
       if (owner && owner !== data.session.user.id) { publish({ phase: "account", at: 0 }); return; }
       if (!localStorage.getItem("shopbook.account")) return;
       boundUser = data.session.user.id;

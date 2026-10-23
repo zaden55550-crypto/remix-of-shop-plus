@@ -87,6 +87,7 @@ export type Account = {
   language?: string;
   currency: string;
   logo?: string | undefined;
+  businessId?: string;
   password: string; // screens-only phase; replaced by real auth later
   plan?: PlanId | "trial";
   trialStart?: number;
@@ -100,10 +101,14 @@ export const store = {
     if (typeof window === "undefined") return null;
     try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; }
   },
-  save(a: Account) { localStorage.setItem(KEY, JSON.stringify(a)); },
+  save(a: Account) {
+    const old = store.get();
+    if (old && old.password !== a.password && old.shopName !== a.shopName) throw new Error("Sign in to the existing shop or export and clear this device before changing businesses.");
+    localStorage.setItem(KEY, JSON.stringify({ ...a, businessId: a.businessId ?? old?.businessId ?? crypto.randomUUID() }));
+  },
   update(p: Partial<Account>) { const a = store.get(); if (a) store.save({ ...a, ...p }); },
-  signIn() { localStorage.setItem(SESSION, "1"); },
-  signOut() { localStorage.removeItem(SESSION); },
+  signIn() { localStorage.setItem(SESSION, "1"); window.dispatchEvent(new Event("shopbook-session")); },
+  signOut() { localStorage.removeItem(SESSION); window.dispatchEvent(new Event("shopbook-session")); },
   signedIn() { return typeof window !== "undefined" && localStorage.getItem(SESSION) === "1"; },
 };
 
