@@ -4,7 +4,7 @@
 // Real shops start with zero sample data; demo data only loads on an empty device on request.
 import {
   addCustomer, addEmployee, addNamed, addProduct, adjustStock, cashUp, cashSession, commit, confirmPayroll,
-  confirmSale, createTransfer, empty, load, payPayroll, receiveDebt, returnSale, type Method,
+  confirmSale, createTransfer, empty, load, payPayroll, receiveDebt, returnSale, runErpTransaction, type Method,
 } from "@/lib/erp";
 import { addExpense, addExpenseCategory, addSupplier, confirmPurchase, floatDeposit, floatTransfer, paySupplier, expenseCategories } from "@/lib/finance";
 import { backupJson } from "@/lib/backup";
@@ -150,10 +150,8 @@ export function loadDemoData() {
   const previous = localStorage.getItem(KEY), previousFlag = localStorage.getItem(FLAG);
   try {
     localStorage.setItem(FLAG, "1");
-    seed();
-    commit((_s, c) => c.audit("DEMO DATA LOADED", "TechPoint Electronics sample dataset"));
+    runErpTransaction(() => { seed(); commit((_s, c) => c.audit("DEMO DATA LOADED", "TechPoint Electronics sample dataset")); });
   } catch (e) {
-    if (previous === null) wipe(); else localStorage.setItem(KEY, previous);
     if (previousFlag === null) localStorage.removeItem(FLAG); else localStorage.setItem(FLAG, previousFlag);
     window.dispatchEvent(new Event("shopbook-erp"));
     throw e;
@@ -166,9 +164,8 @@ export function resetDemoData(shop: string) {
   const previous = localStorage.getItem(KEY);
   localStorage.setItem(BACKUP, backupJson(shop));
   try {
-    wipe(); seed();
-    commit((_s, c) => c.audit("DEMO DATA RESET", "Sample dataset recreated"));
-  } catch (e) { if (previous) localStorage.setItem(KEY, previous); throw e; }
+    runErpTransaction(() => { wipe(); seed(); commit((_s, c) => c.audit("DEMO DATA RESET", "Sample dataset recreated")); });
+  } catch (e) { throw e; }
 }
 
 /** Removes demo records so the shop can start for real. */
