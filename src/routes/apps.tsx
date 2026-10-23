@@ -30,7 +30,7 @@ export const Route = createFileRoute("/apps")({
 
 
 const CURRENCIES = [["KSh", "Kenyan Shilling"], ["USh", "Ugandan Shilling"], ["TSh", "Tanzanian Shilling"], ["USD", "US Dollar"]] as const;
-const ROUTES: Record<string, "/dashboard" | "/inventory" | "/purchases" | "/sales" | "/pos" | "/expenses" | "/contacts" | "/accounting" | "/float" | "/payroll" | "/reports" | "/summary" | "/settings" | "/reconciliation"> = { dashboard: "/dashboard", inventory: "/inventory", purchases: "/purchases", sales: "/sales", pos: "/pos", expenses: "/expenses", contacts: "/contacts", accounting: "/accounting", float: "/float", payroll: "/payroll", reports: "/reports", summary: "/summary", reconciliation: "/reconciliation", settings: "/settings" };
+const ROUTES: Record<string, "/dashboard" | "/inventory" | "/purchases" | "/sales" | "/pos" | "/expenses" | "/contacts" | "/accounting" | "/float" | "/payroll" | "/reports" | "/summary" | "/settings"> = { dashboard: "/dashboard", inventory: "/inventory", purchases: "/purchases", sales: "/sales", pos: "/pos", expenses: "/expenses", contacts: "/contacts", accounting: "/accounting", float: "/float", payroll: "/payroll", reports: "/reports", summary: "/summary", settings: "/settings" };
 const SETTINGS_APP = APPS.find((a) => a.id === "settings");
 
 function Apps() {
@@ -105,13 +105,11 @@ function Apps() {
       <AnnouncementBanner />
 
       {acct.plan === "trial" && (
-        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-border bg-card/70 p-3">
-          <Crown className="h-7 w-7 text-badge-gold" />
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold">{t("trialRemaining")}</div>
-            <div className="text-xs text-muted-foreground">{t("usingPlan", planLabel)}</div>
-          </div>
-          <span className="flex items-center gap-1 rounded-xl bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground glow">
+        <div className="mt-4 flex flex-nowrap items-center gap-[clamp(0.35rem,1.5vw,0.75rem)] rounded-2xl border border-border bg-card/70 p-[clamp(0.4rem,1.5vw,0.75rem)]">
+          <Crown className="h-[clamp(1.1rem,4vw,1.75rem)] w-[clamp(1.1rem,4vw,1.75rem)] shrink-0 text-badge-gold" />
+          <div className="min-w-0 flex-1 truncate text-[clamp(0.6rem,2.4vw,0.8rem)] text-muted-foreground">{t("usingPlan", planLabel)}</div>
+          <div className="min-w-0 shrink truncate text-[clamp(0.6rem,2.4vw,0.85rem)] font-semibold uppercase">{t("trialRemaining")}</div>
+          <span className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-xl bg-primary px-[clamp(0.35rem,1.5vw,0.65rem)] py-1 text-[clamp(0.6rem,2.4vw,0.8rem)] font-semibold text-primary-foreground glow">
             <Clock className="h-3.5 w-3.5" /> {t("daysLeft", days)}
           </span>
         </div>
