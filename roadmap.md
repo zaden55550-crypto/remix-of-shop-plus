@@ -76,6 +76,10 @@
 - [ ] Phase 3: Returns, stock movements, payroll, float history; retire legacy importer
 
 ## Offline resilience
+- [ ] Uploaded connectivity brief: shared five-second health monitor and single-state panel.
+- [ ] Durable owner-scoped outbox, acknowledged idempotent synchronization and conflict protection.
+- [ ] Native provider-free ShopBot: verified help, controlled real-data queries and offline fallbacks.
+- [ ] Automated regression tests and signed-in browser/database verification; report limitations honestly.
 - [x] Online / Connecting / Offline buttons in Apps header with backend health check + details panel
 - [x] Admin outage announcements (server-stored, cached locally)
 - [x] Announcement tests
