@@ -1,84 +1,60 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { CartSheet } from "@/components/shopbook/cart-sheet";
+import { CartCheckout, lineForAmount } from "@/components/shopbook/cart-sheet";
+import { parseQty } from "@/lib/qty-parse";
 import * as erp from "@/lib/erp";
 
 afterEach(cleanup);
-function setup() {
+const shop = () => {
   const s = erp.empty();
-  s.products.push({ id: "flour", name: "Ajab Flour", buy: 100, sell: 300, qty: 10, unit: "kg", createdAt: 1 });
-  const setLine = vi.fn(), saveDraft = vi.fn(), close = vi.fn();
-  render(<CartSheet s={s} cart={[{ productId: "flour", qty: 0.5, price: 200, priceReason: "wholesale" }]} money={(n) => `KSh ${n}`} tr={(x) => x} setLine={setLine} remove={vi.fn()} clear={vi.fn()} close={close} next={vi.fn()} saveDraft={saveDraft} />);
-  return { setLine, saveDraft, close };
+  s.products.push({ id: "meat", name: "Beef", buy: 500, sell: 800, qty: 10, unit: "kg", createdAt: 1 });
+  s.products.push({ id: "soap", name: "Soap", buy: 50, sell: 100, qty: 5, unit: "pcs", createdAt: 1 });
+  return s;
+};
+function setup(line: erp.CartLine) {
+  const setLine = vi.fn();
+  render(<CartCheckout s={shop()} cart={[line]} money={(n: number) => `KSh ${n}`} tr={(x: string) => x} channel="Sales" setLine={setLine} remove={vi.fn()} clear={vi.fn()} back={vi.fn()} saveDraft={vi.fn()} onDone={vi.fn()} />);
+  return setLine;
 }
-describe("shared reference cart", () => {
-  it("allows a manual amount without changing quantity or the product price", () => {
-    const { setLine } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Switch entry mode Ajab Flour" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Amount Ajab Flour" }), { target: { value: "85.50" } });
-    expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 0.5, price: 171, priceReason: "wholesale" });
+
+describe("typed quantities", () => {
+  it("reads decimals, fractions and mixed fractions", () => {
+    expect(parseQty("0.5")).toBe(0.5);
+    expect(parseQty("1/2")).toBe(0.5);
+    expect(parseQty("1 3/4")).toBe(1.75);
+    expect(parseQty("1 and 3/4 yards")).toBe(1.75);
+    expect(parseQty("2.25 yard")).toBe(2.25);
+    expect(parseQty("¼")).toBe(0.25);
+    expect(parseQty("abc")).toBeNull();
   });
-  it("blocks saving and checkout while a manual amount is invalid", () => {
-    const { setLine } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Switch entry mode Ajab Flour" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Amount Ajab Flour" }), { target: { value: "-1" } });
+  it("sets half a kg from the quantity box", () => {
+    const setLine = setup({ productId: "meat", qty: 1 });
+    fireEvent.change(screen.getByRole("textbox", { name: "Quantity Beef" }), { target: { value: "1/2" } });
+    expect(setLine).toHaveBeenCalledWith({ productId: "meat", qty: 0.5 });
+  });
+  it("blocks more than the stock on hand", () => {
+    const setLine = setup({ productId: "meat", qty: 1 });
+    fireEvent.change(screen.getByRole("textbox", { name: "Quantity Beef" }), { target: { value: "11" } });
     expect(setLine).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Proceed to Checkout" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save Cart" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Complete Sale/ })).toBeDisabled();
   });
-  it("opens the quantity keypad and preserves the line price override", () => {
-    const { setLine } = setup();
-    expect(screen.getByText("Subtotal (1 items)")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Edit quantity Ajab Flour" }));
-    for (const key of ["0", ".", "2", "5"]) fireEvent.click(screen.getByRole("button", { name: key }));
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
-    expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 0.25, price: 200, priceReason: "wholesale" });
-  });
-  it("blocks over-stock quantity and lets Cancel keep the original line", () => {
-    const { setLine } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Edit quantity Ajab Flour" }));
-    fireEvent.change(screen.getByRole("textbox", { name: "Quantity" }), { target: { value: "11" } });
-    expect(screen.getByRole("button", { name: "Done" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  it("blocks half a piece", () => {
+    const setLine = setup({ productId: "soap", qty: 1 });
+    fireEvent.change(screen.getByRole("textbox", { name: "Quantity Soap" }), { target: { value: "0.5" } });
     expect(setLine).not.toHaveBeenCalled();
-  });
-  it("saves only the draft and closes the cart", () => {
-    const { saveDraft, close, setLine } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Save Cart" }));
-    expect(saveDraft).toHaveBeenCalledOnce();
-    expect(close).toHaveBeenCalledOnce();
-    expect(setLine).not.toHaveBeenCalled();
-  });
-  it("steps quantity up and down with the − and + buttons", () => {
-    const { setLine } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
-    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 0.75, price: 200, priceReason: "wholesale" });
-    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
-    expect(setLine).toHaveBeenLastCalledWith({ productId: "flour", qty: 0.25, price: 200, priceReason: "wholesale" });
-  });
-  it("removes the line when decreased to zero and blocks stepping past stock", () => {
-    const remove = vi.fn(), setLine = vi.fn();
-    const s = erp.empty();
-    s.products.push({ id: "flour", name: "Ajab Flour", buy: 100, sell: 300, qty: 10, unit: "kg", createdAt: 1 });
-    render(<CartSheet s={s} cart={[{ productId: "flour", qty: 0.25 }]} money={(n) => `KSh ${n}`} tr={(x) => x} setLine={setLine} remove={remove} clear={vi.fn()} close={vi.fn()} next={vi.fn()} saveDraft={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
-    expect(remove).toHaveBeenCalledWith("flour");
-  });
-  it("stops stepping when the stock on hand is reached", () => {
-    const setLine = vi.fn();
-    const s = erp.empty();
-    s.products.push({ id: "flour", name: "Ajab Flour", buy: 100, sell: 300, qty: 10, unit: "kg", createdAt: 1 });
-    render(<CartSheet s={s} cart={[{ productId: "flour", qty: 10 }]} money={(n) => `KSh ${n}`} tr={(x) => x} setLine={setLine} remove={vi.fn()} clear={vi.fn()} close={vi.fn()} next={vi.fn()} saveDraft={vi.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: "Increase quantity Ajab Flour" }));
-    expect(setLine).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Decrease quantity Ajab Flour" }));
-    expect(setLine).toHaveBeenCalledWith({ productId: "flour", qty: 9.75 });
   });
 });
-describe("amount mode", () => {
-  it("turns the amount spent into a quantity at the unit price", () => {
-    const { setLine } = setup();
-    fireEvent.change(screen.getByRole("textbox", { name: "Amount to spend Ajab Flour" }), { target: { value: "0" } });
-    expect(setLine).not.toHaveBeenCalled();
+
+describe("typed amounts", () => {
+  it("KSh 100 of 800/kg meat is 0.125 kg at the normal price", () => {
+    const setLine = setup({ productId: "meat", qty: 1 });
+    fireEvent.change(screen.getByRole("textbox", { name: "Amount Beef" }), { target: { value: "100" } });
+    expect(setLine).toHaveBeenCalledWith({ productId: "meat", qty: 0.125 });
+  });
+  it("an amount that does not divide evenly keeps the exact money with a recorded price override", () => {
+    const l = lineForAmount(shop(), { productId: "meat", qty: 1 }, 333)!;
+    expect(l.qty).toBe(0.416);
+    expect(Math.round(l.qty * l.price! * 100) / 100).toBe(333);
+    expect(l.priceReason).toBe("Manual amount");
   });
 });

@@ -2,7 +2,7 @@ import { clean } from "@/lib/format";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { ChevronLeft, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";
+import { ChevronLeft, FileText, Mail, MessageCircle, Minus, Plus, Printer, Share2, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { inputCls } from "@/components/shopbook/product-search";
@@ -18,7 +18,8 @@ import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { Tabs } from "@/components/shopbook/erp-shell";
 import { SearchPicker } from "@/components/shopbook/search-picker";
-import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { readSettings } from "@/lib/settings-config";
 import * as erp from "@/lib/erp";
 
 export type Tr = (t: string) => string;
@@ -81,7 +82,7 @@ function Sheet({ onClose, children, title }: { onClose: () => void; children: Re
 // ---------------- SELL ----------------
 export function Sell({ s, money, tr, shop, channel }: SCtx) {
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft(channel);
-  const [step, setStep] = useState<null | "cart" | "pay">(null);
+  const [step, setStep] = useState<null | "cart">(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
   const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
@@ -107,61 +108,13 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
         <ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}
       </ShopButton>
 
-      {step === "cart" && <CartSheet s={s} cart={cart} money={money} tr={tr}
+      {step && <CartCheckout s={s} cart={cart} money={money} tr={tr} channel={channel}
         setLine={(line) => setCart((c) => c.map((v) => v.productId === line.productId ? line : v))}
         remove={(id) => setQty(id, 0)} clear={() => { setCart([]); clearDraft(); setStep(null); }}
-        close={() => setStep(null)} next={() => setStep("pay")} saveDraft={saveDraft} />}
-
-      {step === "pay" && (
-        <Checkout s={s} money={money} tr={tr} cart={cart} onClose={() => setStep("cart")}
-          onDone={(sale) => { setCart([]); clearDraft(); setStep(null); setReceipt(sale); }} channel={channel} />
-      )}
-      {receipt && <ReceiptSheet sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />}
+        back={() => setStep(null)} saveDraft={saveDraft}
+        onDone={(sale) => { setCart([]); clearDraft(); setStep(null); setReceipt(sale); }} />}
+      {receipt && <ReceiptSheet live sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />}
     </div>
-  );
-}
-
-export function Checkout({ s, money, tr, cart, onClose, onDone, channel }: { s: erp.ErpState; money: SCtx["money"]; tr: Tr; cart: erp.CartLine[]; onClose: () => void; onDone: (s: erp.Sale) => void; channel: SCtx["channel"] }) {
-  const [customerId, setCustomer] = useState("");
-  const [sellerId, setSeller] = useState("");
-  const sellers = s.employees.filter((e) => e.active);
-  const [dMode, setDMode] = useState<"fixed" | "percent">("fixed");
-  const [dVal, setDVal] = useState("");
-  const [pay, setPay] = useState<PayState>(emptyPay());
-  const vr = vatRate();
-  const subtotal = erp.lineTotal(s, cart);
-  const discount = Math.min(subtotal, Math.max(0, dMode === "percent" ? (subtotal * (+dVal || 0)) / 100 : +dVal || 0));
-  const vat = Math.round((subtotal - discount) * vr) / 100;
-  const total = Math.round((subtotal - discount + vat) * 100) / 100;
-  const nums = payRecord(pay, total);
-
-  return (
-    <Sheet title={tr("Payment")} onClose={onClose}>
-      <div className="space-y-3">
-        <Label t={tr("Customer")}>
-          <SearchPicker tr={tr} items={s.customers.map((c) => ({ id: c.id, label: c.name, hint: c.phone }))} value={customerId} onChange={setCustomer} noneLabel={tr("No Customer")} placeholder={tr("Select customer")} addLabel={tr("Add Customer")} withPhone onAdd={(n, ph) => run(() => erp.addCustomer(n, ph))?.id} />
-        </Label>
-        <Label t={tr("Discount")}>
-          <div className="flex gap-2">
-            <select value={dMode} onChange={(e) => setDMode(e.target.value as "fixed" | "percent")} className={cn(inputCls, "w-36")}><option value="fixed">{tr("Fixed amount")}</option><option value="percent">{tr("Percentage")}</option></select>
-            <input type="number" min="0" inputMode="decimal" value={dVal} onChange={(e) => setDVal(e.target.value)} placeholder={dMode === "percent" ? "%" : "0"} className={inputCls} />
-          </div>
-        </Label>
-        <div className="rounded-xl bg-muted/50 p-3 text-sm">
-          <div className="flex justify-between"><span>{tr("Subtotal")}</span><span>{money(subtotal)}</span></div>
-          <div className="flex justify-between"><span>{tr("Discount")}</span><span>{discount ? `− ${money(discount)}` : "—"}</span></div>
-          {vr > 0 && <div className="flex justify-between"><span>{tr("VAT")} ({vr}%)</span><span>{money(vat)}</span></div>}
-          <div className="mt-1 flex justify-between text-sm font-bold"><span>{tr("TOTAL")}</span><span>{money(total)}</span></div>
-        </div>
-        <PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote={customerId ? undefined : "Credit needs a registered customer"} />
-        <label className="block text-sm"><span className="text-xs text-muted-foreground">{tr("Seller")}</span>
-          <select className={inputCls} value={sellerId} onChange={(e) => setSeller(e.target.value)}><option value="">{tr("Admin")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
-        <ShopButton disabled={payInvalid(pay, total) || (nums.credit > 0 && !customerId)}
-          onClick={() => { const sale = run(() => erp.confirmSale({ cart, discount, pay: nums, customerId: customerId || undefined, channel, sellerId: sellerId || undefined, vatRate: vr })); if (sale) { toast.success(`${tr("Sale completed")} • ${sale.ref}`); onDone(sale); } }}>
-          {tr("Confirm Sale")}
-        </ShopButton>
-      </div>
-    </Sheet>
   );
 }
 
@@ -199,23 +152,31 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
   );
 }
 
-export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode }) {
-  const text = () => [`SHOPBOOK — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${i.qty * i.price}`), `${tr("TOTAL")} ${money(sale.total)}`, `${tr("Payment")}: ${tr(erp.methodOf(sale.pay))}`].join("\n");
+export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
+  const text = () => [`SHOPBOOK — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.METHODS.filter((m) => sale.pay[m] > 0).map((m) => `${tr(erp.METHOD_LABEL[m])} ${money(sale.pay[m])}`)].join("\n");
   const share = async () => {
     try { if (navigator.share) await navigator.share({ title: sale.ref, text: text() }); else { await navigator.clipboard.writeText(text()); toast.success(tr("Receipt copied")); } } catch { /* cancelled */ }
   };
-  const [print, setPrint] = useState(false);
+  const [print, setPrint] = useState<null | "print" | "pdf">(null);
+  const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));
+  const A = ({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) => <ShopButton variant="outline" className="h-10 flex-col gap-0.5 px-1 text-[10px]" onClick={onClick}>{icon}{label}</ShopButton>;
   return (
     <>
-    {print && <PrintPreview title="Receipt" onClose={() => setPrint(false)} actions={<ShopButton variant="outline" className="h-9 text-sm" onClick={() => whatsapp(text())}>{tr("Send Receipt (WhatsApp)")}</ShopButton>}><Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} /></PrintPreview>}
+    {print && <PrintPreview title={print === "pdf" ? "Save as PDF" : "Receipt"} onClose={() => setPrint(null)} actions={print === "pdf" ? <p className="text-center text-[11px] text-muted-foreground">{tr("Tap Print, then choose “Save as PDF” as the printer.")}</p> : undefined}><Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} /></PrintPreview>}
     <Sheet title={tr("Receipt")} onClose={onClose}>
-      <Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} />
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <ShopButton variant="outline" className="h-10 text-sm" onClick={share}><Share2 className="h-4 w-4" />{tr("Share")}</ShopButton>
-        <ShopButton variant="outline" className="h-10 text-sm" onClick={() => setPrint(true)}><Printer className="h-4 w-4" />{tr("Print")}</ShopButton>
-        <ShopButton variant="outline" className="h-10 text-sm" onClick={() => setPrint(true)}>{tr("Reprint")}</ShopButton>
+      {animate ? <div className="thermal">
+        <div className="thermal-head" aria-hidden><span className="thermal-light" /><span className="thermal-slot" /></div>
+        <div className="thermal-paper"><Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} /><div className="thermal-tear" aria-hidden /></div>
+      </div> : <Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} />}
+      <div className="mt-3 grid grid-cols-5 gap-1.5">
+        <A label={tr("Print")} icon={<Printer className="h-4 w-4" />} onClick={() => setPrint("print")} />
+        <A label="PDF" icon={<FileText className="h-4 w-4" />} onClick={() => setPrint("pdf")} />
+        <A label="WhatsApp" icon={<MessageCircle className="h-4 w-4" />} onClick={() => whatsapp(text())} />
+        <A label={tr("Email")} icon={<Mail className="h-4 w-4" />} onClick={() => window.open(`mailto:?subject=${encodeURIComponent(`${tr("Receipt")} ${sale.ref}`)}&body=${encodeURIComponent(text())}`, "_self")} />
+        <A label={tr("Share")} icon={<Share2 className="h-4 w-4" />} onClick={share} />
       </div>
       {children}
+      <ShopButton className="mt-2 h-10 w-full text-sm" onClick={onClose}>{tr("Exit")}</ShopButton>
     </Sheet>
     </>
   );
