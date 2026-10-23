@@ -18,8 +18,8 @@ const runPick = (fn: () => { id: string }) => runR(fn)?.id;
 import { lastBackup } from "@/lib/backup";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { useErp } from "@/components/shopbook/product-search";
-import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
-import { Checkout, ReceiptSheet } from "@/components/shopbook/selling";
+import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { ReceiptSheet } from "@/components/shopbook/selling";
 
 import { InventorySearch, InventoryField, BarcodeField, InventoryProductPicker, inventoryProducts, inventoryInput } from "@/components/shopbook/inventory-controls";
 
@@ -192,7 +192,7 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft("Sales");
-  const [step, setStep] = useState<null | "cart" | "pay">(null);
+  const [step, setStep] = useState<null | "cart">(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
   const add = (p: erp.Product) => {
     const existing = cart.find((l) => l.productId === p.id);

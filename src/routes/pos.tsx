@@ -15,7 +15,7 @@ import { vatRate } from "@/lib/prefs";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
-import { CartSheet, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import * as erp from "@/lib/erp";
 
 export const Route = createFileRoute("/pos")({
@@ -110,59 +110,9 @@ function fly(from: HTMLElement, to: HTMLElement) {
   to.animate([{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], { duration: 220, delay: 400 });
 }
 
-function Payment({ s, money, tr, cart, back, onDone }: Ctx & { cart: erp.CartLine[]; back: () => void; onDone: (x: erp.Sale) => void }) {
-  const [pay, setPay] = useState<PayState>(emptyPay());
-  const [disc, setDisc] = useState("");
-  const [cust, setCust] = useState("");
-  const [seller, setSeller] = useState("");
-  const [note, setNote] = useState("");
-  const vr = vatRate();
-  const sellers = s.employees.filter((e) => e.active);
-  const subtotal = erp.lineTotal(s, cart);
-  const discount = Math.min(subtotal, Math.max(0, +disc || 0));
-  const vat = Math.round((subtotal - discount) * vr) / 100;
-  const total = Math.round((subtotal - discount + vat) * 100) / 100;
-  const rec = payRecord(pay, total);
-  const count = cart.reduce((a, l) => a + l.qty, 0);
-  const complete = () => {
-    if (payInvalid(pay, total)) { toast.error(tr("Check the payment amounts")); return; }
-    if (rec.credit > 0.001 && !cust) { toast.error(tr("Credit needs a registered customer")); return; }
-    const sale = run(() => erp.confirmSale({ cart, discount, pay: rec, customerId: cust || undefined, channel: "POS", sellerId: seller || undefined, vatRate: vr }));
-    if (sale) onDone(sale);
-  };
-  return <div className="inventory-form">
-    <div className="flex items-center gap-2"><button aria-label={tr("Back")} onClick={back}><ArrowLeft className="h-4 w-4" /></button><p className="inventory-form-title m-0">{tr("Payment")}</p></div>
-    <div className="inventory-box mt-0 pur-totals"><span>{tr("Items")} ({count})</span><b>{count}</b><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("Discount")}</span><b>{money(discount)}</b>{vr > 0 && <><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></>}<span>{tr("Total")}</span><b className="text-primary">{money(total)}</b></div>
-    <div className="grid grid-cols-2 gap-1.5">
-      <label className="inventory-field"><span>{tr("Discount")}</span><input className="inventory-input" inputMode="decimal" placeholder="0" value={disc} onChange={(e) => setDisc(e.target.value)} /></label>
-      <SellerSelect s={s} tr={tr} value={seller} onChange={setSeller} sellers={sellers} />
-    </div>
-    <PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote="The unpaid balance needs a registered customer" />
-    {(rec.credit > 0.001 || s.customers.length > 0) && <label className="inventory-field"><span>{tr(rec.credit > 0.001 ? "Customer" : "Customer (optional)")}{rec.credit > 0.001 && <span className="text-destructive"> *</span>}</span><select className="inventory-input" value={cust} onChange={(e) => setCust(e.target.value)}><option value="">{tr(rec.credit > 0.001 ? "Select customer" : "No Customer")}</option>{s.customers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
-    <label className="inventory-field"><span>{tr("Notes (Optional)")}</span><input className="inventory-input" placeholder={tr("Enter notes...")} value={note} onChange={(e) => setNote(e.target.value)} /></label>
-    <ShopButton className="inventory-save" onClick={complete}>{tr("Complete Sale")}</ShopButton>
-  </div>;
-}
-
 /** Seller defaults to Admin; other active staff can be picked when they exist. */
 export function SellerSelect({ tr, value, onChange, sellers }: { s: erp.ErpState; tr: Tr; value: string; onChange: (v: string) => void; sellers: erp.ErpState["employees"] }) {
   return <label className="inventory-field"><span>{tr("Seller")}</span><select className="inventory-input" value={value} disabled={!sellers.length} onChange={(e) => onChange(e.target.value)}><option value="">{tr("Admin")}</option>{sellers.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></label>;
-}
-
-const receiptText = (x: erp.Sale, money: (n: number) => string, shop: string, bal: number) => [shop, `${x.ref} • ${new Date(x.at).toLocaleString("en-GB")}`, ...x.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${i.qty * i.price}`), `Total ${money(x.total)}`, ...ACC.filter((m) => x.pay[m] > 0).map((m) => `${erp.METHOD_LABEL[m]} ${money(x.pay[m])}`), bal > 0 ? `Balance ${money(bal)} (P.PAY)` : ""].filter(Boolean).join("\n");
-
-function Done({ s, money, tr, shop, sale, onNew, openSale }: Ctx & { sale: erp.Sale; onNew: () => void; openSale: (id: string) => void }) {
-  const [print, setPrint] = useState(false);
-  const live = s.sales.find((x) => x.id === sale.id) ?? sale;
-  const A = ({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) => <button className="pur-action" onClick={onClick}>{icon}<span className="flex-1 text-start">{label}</span><ChevronRight className="h-4 w-4" /></button>;
-  return <div className="grid gap-2">
-    <div className="pur-done"><CheckCircle2 className="h-16 w-16 text-primary" /><p className="text-lg font-bold">{tr("Sale Completed")}</p><p className="text-[11px] text-muted-foreground">{tr("Transaction")} {live.ref} {tr("has been completed successfully.")}</p><Badge s={erp.saleStatus(s, live)} /></div>
-    <A icon={<FileText className="h-4 w-4" />} label={tr("View Transaction")} onClick={() => openSale(live.id)} />
-    <A icon={<Printer className="h-4 w-4" />} label={tr("Print Receipt")} onClick={() => setPrint(true)} />
-    <A icon={<MessageCircle className="h-4 w-4 text-primary" />} label={tr("Send Receipt (WhatsApp)")} onClick={() => whatsapp(receiptText(live, money, shop, erp.saleBalance(s, live)))} />
-    <BigButton onClick={onNew}><Plus className="h-4 w-4" />{tr("New Sale")}</BigButton>
-    {print && <PrintPreview title="Receipt" onClose={() => setPrint(false)}><Receipt sale={live} s={s} money={money} tr={tr} shop={shop} /></PrintPreview>}
-  </div>;
 }
 
 // ---------------- TRANSACTIONS ----------------
