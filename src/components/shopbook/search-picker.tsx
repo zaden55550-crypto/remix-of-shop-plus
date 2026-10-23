@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent } from "react";
 import { Check, ChevronDown, Plus, Search, X } from "lucide-react";
 import { ShopButton } from "@/components/ui/shop-button";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,7 @@ export function SearchPicker({ items, value, onChange, placeholder, addLabel, on
     if (id) { setMade((m) => [...m, { id, label: adding.name.trim(), hint: adding.phone.trim() || undefined }]); pick(id); }
   };
   // Never a nested <form>: Enter or Save here must not submit the surrounding form and lose its draft.
-  const enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); save(); } };
+  const enter = (e: KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); save(); } };
 
   return <div className="grid gap-1">
     <button type="button" className="inventory-input flex items-center justify-between gap-2 text-start" aria-expanded={open} onClick={() => setOpen(!open)}>
