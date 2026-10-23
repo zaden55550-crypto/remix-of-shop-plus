@@ -137,6 +137,21 @@ export type Database = {
         }
         Relationships: []
       }
+      shopbook_sync_business: {
+        Row: {
+          business_id: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shopbook_sync_operations: {
         Row: {
           acknowledged_at: string
