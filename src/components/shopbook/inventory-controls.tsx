@@ -7,8 +7,10 @@ import * as erp from "@/lib/erp";
 type Tr = (text: string) => string;
 export const inventoryInput = "inventory-input";
 
-export function InventoryField({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
-  return <label className="inventory-field"><span>{label}{required && <span className="text-destructive"> *</span>}</span>{children}</label>;
+// `group` renders a <div> for composite controls (pickers): a <label> would re-click their toggle and close them.
+export function InventoryField({ label, required, children, group }: { label: string; required?: boolean; children: ReactNode; group?: boolean }) {
+  const head = <span>{label}{required && <span className="text-destructive"> *</span>}</span>;
+  return group ? <div className="inventory-field" role="group" aria-label={label}>{head}{children}</div> : <label className="inventory-field">{head}{children}</label>;
 }
 
 export function InventorySearch({ q, setQ, onScan, tr, placeholder = "Search products..." }: { q: string; setQ: (q: string) => void; onScan?: (code: string) => void; tr: Tr; placeholder?: string }) {

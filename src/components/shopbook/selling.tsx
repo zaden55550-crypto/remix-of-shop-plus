@@ -65,7 +65,7 @@ export function AppShell({ title, tabs, tab, setTab, children }: { title: string
 
 export const Title = ({ children }: { children: ReactNode }) => <h2 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground first:mt-0">{children}</h2>;
 export const Empty = ({ children }: { children: ReactNode }) => <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
-const Label = ({ t, children }: { t: string; children: ReactNode }) => <label className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t}<div className="mt-1">{children}</div></label>;
+const Label = ({ t, children }: { t: string; children: ReactNode }) => <div role="group" aria-label={t} className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t}<div className="mt-1">{children}</div></div>;
 
 function Sheet({ onClose, children, title }: { onClose: () => void; children: ReactNode; title: string }) {
   return (
