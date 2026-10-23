@@ -227,7 +227,7 @@ export const cancelTransfer = (id: string) => commit((s, c) => {
 export const addNamed = (kind: "categories" | "brands", name: string) => commit((s, c) => {
   const n = name.trim(); if (!n) throw new ErpError("Enter a name");
   if (s[kind].some((x) => x.name.toLowerCase() === n.toLowerCase())) throw new ErpError("Already exists");
-  s[kind].push({ id: uid(), name: n }); c.audit(kind === "brands" ? "BRAND CREATED" : "CATEGORY CREATED", n);
+  const item = { id: uid(), name: n }; s[kind].push(item); c.audit(kind === "brands" ? "BRAND CREATED" : "CATEGORY CREATED", n); return item;
 });
 export const renameNamed = (kind: "categories" | "brands", id: string, name: string) => commit((s) => {
   const x = s[kind].find((v) => v.id === id); if (x && name.trim()) x.name = name.trim();

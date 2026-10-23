@@ -14,6 +14,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
 import * as fin from "@/lib/finance";
+import { SearchPicker } from "@/components/shopbook/search-picker";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({ meta: [
@@ -142,7 +143,7 @@ function AddExpense(c: Ctx) {
   };
   return <div className="inventory-form">
     <p className="inventory-form-title">{tr("Add Expense")}</p>
-    <L t="Category" req><select className="inventory-input" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}><option value="">{tr("Select category")}</option>{fin.expenseCategories(s).map((k) => <option key={k} value={k}>{tr(k)}</option>)}</select></L>
+    <L t="Category" req><SearchPicker tr={tr} items={fin.expenseCategories(s).map((k) => ({ id: k, label: tr(k) }))} value={f.category} onChange={(v) => setF({ ...f, category: v })} placeholder={tr("Select category")} addLabel={tr("Add Category")} onAdd={(n) => run(() => fin.addExpenseCategory(n))} /></L>
     <L t="Description" req><input className="inventory-input" maxLength={120} placeholder={tr("e.g. Electricity bill - October")} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></L>
     <div className="grid grid-cols-2 gap-1.5">
       <L t="Amount" req><input className="inventory-input" inputMode="decimal" placeholder="0" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></L>

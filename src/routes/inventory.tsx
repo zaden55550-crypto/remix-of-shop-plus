@@ -12,6 +12,9 @@ import { Reorder } from "@/components/shopbook/reorder";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
+import { SearchPicker } from "@/components/shopbook/search-picker";
+import { run as runR } from "@/components/shopbook/selling";
+const runPick = (fn: () => { id: string }) => runR(fn)?.id;
 import { lastBackup } from "@/lib/backup";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { useErp } from "@/components/shopbook/product-search";
@@ -255,8 +258,8 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     <InventoryField label={tr("Product name")} required><input aria-label={tr("Product name")} placeholder={tr("Enter product name")} value={f.name} onChange={set("name")} className={inventoryInput} required /></InventoryField>
     <div className="grid grid-cols-2 gap-2"><InventoryField label={tr("Buying price")} required><input aria-label={tr("Buying price")} type="number" min="0" step="any" value={f.buy} onChange={set("buy")} className={inventoryInput} required /></InventoryField><InventoryField label={tr("Selling price")} required><input aria-label={tr("Selling price")} type="number" min="0" step="any" value={f.sell} onChange={set("sell")} className={inventoryInput} required /></InventoryField></div>
     <InventoryField label={tr("Quantity")} required><input aria-label={tr("Quantity")} type="number" min="0" step="any" value={f.qty} onChange={set("qty")} className={inventoryInput} required /></InventoryField>
-    <InventoryField label={tr("Category")}><select aria-label={tr("Category")} value={f.categoryId} onChange={set("categoryId")} className={inventoryInput}><option value="">{tr("Select category")}</option>{s.categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></InventoryField>
-    <InventoryField label={tr("Brand")}><select aria-label={tr("Brand")} value={f.brandId} onChange={set("brandId")} className={inventoryInput}><option value="">{tr("Select brand")}</option>{s.brands.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></InventoryField>
+    <InventoryField label={tr("Category")}><SearchPicker tr={tr} items={s.categories.map(c => ({ id: c.id, label: c.name }))} value={f.categoryId} onChange={v => setF(x => ({...x,categoryId:v}))} noneLabel={tr("No category")} placeholder={tr("Select category")} addLabel={tr("Add Category")} onAdd={n => runPick(() => erp.addNamed("categories", n))} /></InventoryField>
+    <InventoryField label={tr("Brand")}><SearchPicker tr={tr} items={s.brands.map(c => ({ id: c.id, label: c.name }))} value={f.brandId} onChange={v => setF(x => ({...x,brandId:v}))} noneLabel={tr("No brand")} placeholder={tr("Select brand")} addLabel={tr("Add Brand")} onAdd={n => runPick(() => erp.addNamed("brands", n))} /></InventoryField>
     <InventoryField label={tr("Barcode")}><BarcodeField value={f.barcode} onChange={v => setF(x => ({...x,barcode:v}))} tr={tr} /></InventoryField>
     <InventoryField label={tr("Unit")}><select aria-label={tr("Unit")} className={inventoryInput} value={f.unit} onChange={set("unit")}>{["Piece","Box","Pack","Kg","Gram","Litre","Metre","Yard"].map(u => <option key={u} value={u}>{tr(u)}</option>)}</select></InventoryField>
     <ShopButton variant="bare" type="button" className="h-auto w-auto justify-start p-0 text-[10px] text-primary" onClick={() => setAdv(!adv)}>{tr("More details")}<ChevronDown className="h-3 w-3" /></ShopButton>
