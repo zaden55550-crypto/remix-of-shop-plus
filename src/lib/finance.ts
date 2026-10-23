@@ -162,7 +162,7 @@ export const payExpense = (expenseId: string, amount: number, method: Method, at
 export const addExpenseCategory = (name: string) => commit((s, c) => {
   const n = name.trim(); if (!n) throw new ErpError("Enter a name");
   if ([...DEFAULT_EXPENSE_CATEGORIES, ...s.expenseCategories.map((x) => x.name)].some((x) => x.toLowerCase() === n.toLowerCase())) throw new ErpError("Category already exists");
-  s.expenseCategories.push({ id: uid(), name: n }); c.audit("EXPENSE CATEGORY", n);
+  s.expenseCategories.push({ id: uid(), name: n }); c.audit("EXPENSE CATEGORY", n); return n;
 });
 export const expenseCategories = (s: ErpState) => [...DEFAULT_EXPENSE_CATEGORIES, ...s.expenseCategories.map((x) => x.name)];
 
