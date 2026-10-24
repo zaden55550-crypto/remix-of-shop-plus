@@ -120,14 +120,7 @@ function Login() {
               {/* 1/2 + 1/2 Bottom Card Box */}
               <div className="auth-split-card">
                 <span className="auth-split-label">{tr("Don't have an account?")}</span>
-                {/* 1/2 + 1/2 Bottom Card Box */}
-                <div className="auth-split-card">
-                  <span className="auth-split-label">{tr("Don't have an account?")}</span>
-                  <Link to="/signup" className="auth-split-btn auth-split-btn-register">
-                    {tr("Register now")} →
-                  </Link>
-                </div>
-                <Link to="/signup" className="auth-split-btn">
+                <Link to="/signup" className="auth-split-btn auth-split-btn-register">
                   {tr("Register now")} →
                 </Link>
               </div>
