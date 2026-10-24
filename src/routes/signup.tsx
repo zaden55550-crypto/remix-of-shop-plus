@@ -14,6 +14,7 @@ import {
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
+import { detectUserCountry } from "@/lib/world-data";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -36,13 +37,15 @@ function Signup() {
   const nav = useNavigate();
   const { tr, dir, language } = useLanguage();
 
+  const detected = typeof window !== "undefined" ? detectUserCountry() : { countryCode: "KEN", currencyCode: "KSH" };
+
   const [f, setF] = useState({
     shopName: "",
     email: "",
     password: "",
     confirm: "",
-    currency: "KSH",
-    country: "KEN",
+    currency: detected.currencyCode,
+    country: detected.countryCode,
     logo: "",
   });
 
