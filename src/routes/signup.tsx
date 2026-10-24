@@ -2,7 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Lock, Mail, Store, ShieldCheck, MonitorSmartphone, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
-import { BrandRing, Field, LogoCropPicker, SocialButtons, TopBar } from "@/components/shopbook/ui";
+import {
+  BrandRing,
+  Field,
+  LogoCropPicker,
+  SearchableCurrencyPicker,
+  SearchableCountryPicker,
+  SocialButtons,
+  TopBar,
+} from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
@@ -13,13 +21,10 @@ export const Route = createFileRoute("/signup")({
       { title: "Create Account — SHOPBOOK ERP" },
       {
         name: "description",
-        content: "Create your SHOPBOOK shop account in under a minute. No verification needed.",
+        content: "Create your free SHOPBOOK ERP shop account to manage sales, stock and accounts.",
       },
       { property: "og:title", content: "Create Account — SHOPBOOK ERP" },
-      {
-        property: "og:description",
-        content: "Create your SHOPBOOK shop account.",
-      },
+      { property: "og:description", content: "Create your free SHOPBOOK ERP shop account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -36,7 +41,8 @@ function Signup() {
     email: "",
     password: "",
     confirm: "",
-    currency: "KSh",
+    currency: "KSH",
+    country: "KEN",
     logo: "",
   });
 
@@ -123,21 +129,16 @@ function Signup() {
             <BrandRing size={180} />
           </div>
 
-          <div className="signup-hero-brand">
-            <span>SHOPBOOK</span>
-            <span>ERP</span>
-          </div>
-
           <div className="signup-benefits">
-            {benefits.map(({ icon: Icon, title, description }) => (
-              <div className="signup-benefit" key={title}>
-                <span className="signup-benefit-icon">
-                  <Icon aria-hidden="true" />
-                </span>
-                <span className="signup-benefit-copy">
-                  <strong>{tr(title)}</strong>
-                  <span>{tr(description)}</span>
-                </span>
+            {benefits.map((b, i) => (
+              <div key={i} className="signup-benefit">
+                <div className="signup-benefit-icon">
+                  <b.icon className="h-4 w-4" />
+                </div>
+                <div className="signup-benefit-text">
+                  <h3>{tr(b.title)}</h3>
+                  <p>{tr(b.description)}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -145,26 +146,28 @@ function Signup() {
 
         <section className="signup-form-panel">
           <header className="signup-form-heading">
-            <h1>{tr("Create Your Account")}</h1>
-            <p>{tr("Set up your shop to get started with SHOPBOOK ERP")}</p>
+            <h1>{tr("Create Account")}</h1>
+            <p>{tr("Get started with your free shop account")}</p>
           </header>
 
           <form onSubmit={submit} className="signup-form">
             <div className="signup-form-fields">
+              {/* Row 1 Left: Shop Name */}
               <Field
                 icon={<Store className="h-5 w-5" />}
                 label={tr("Shop Name")}
-                placeholder={tr("Enter your shop name")}
+                placeholder={tr("Enter shop name")}
                 value={f.shopName}
                 onChange={set("shopName")}
                 required
               />
 
+              {/* Row 2 Left: Email */}
               <Field
                 icon={<Mail className="h-5 w-5" />}
                 inputMode="email"
                 label={tr("Email")}
-                placeholder={tr("Enter your email address")}
+                placeholder={tr("Enter email address")}
                 type="email"
                 autoComplete="email"
                 value={f.email}
@@ -172,50 +175,61 @@ function Signup() {
                 required
               />
 
+              {/* Rows 1 & 2 Right: Logo Upload */}
               <div className="signup-upload">
                 <LogoCropPicker value={f.logo} onChange={(logo) => setF((previous) => ({ ...previous, logo }))} />
               </div>
 
-              <Field
-                icon={<Lock className="h-5 w-5" />}
-                password
-                label={tr("Password")}
-                placeholder={tr("Create a password")}
-                autoComplete="new-password"
-                error={err.password}
-                value={f.password}
-                onChange={set("password")}
-                required
-              />
+              {/* Row 3: Password (1/2) and Confirm Password (1/2) */}
+              <div className="signup-row-split signup-passwords-row">
+                <Field
+                  icon={<Lock className="h-5 w-5" />}
+                  password
+                  label={tr("Password")}
+                  placeholder={tr("Create password")}
+                  autoComplete="new-password"
+                  error={err.password}
+                  value={f.password}
+                  onChange={set("password")}
+                  required
+                />
 
-              <Field
-                icon={<Lock className="h-5 w-5" />}
-                password
-                label={tr("Confirm Password")}
-                placeholder={tr("Re-enter your password")}
-                autoComplete="new-password"
-                error={err.confirm}
-                value={f.confirm}
-                onChange={set("confirm")}
-                required
-              />
+                <Field
+                  icon={<Lock className="h-5 w-5" />}
+                  password
+                  label={tr("Confirm Password")}
+                  placeholder={tr("Re-enter password")}
+                  autoComplete="new-password"
+                  error={err.confirm}
+                  value={f.confirm}
+                  onChange={set("confirm")}
+                  required
+                />
+              </div>
 
-              <div className="signup-currency">
-                <label htmlFor="signup-currency" className="signup-field-label">
-                  {tr("Currency")}
-                </label>
-
-                <select
-                  id="signup-currency"
+              {/* Row 4: Currency (1/2) and Country (1/2) Linked */}
+              <div className="signup-row-split signup-currency-row">
+                <SearchableCurrencyPicker
                   value={f.currency}
-                  onChange={set("currency")}
-                  className="signup-currency-select"
-                >
-                  <option value="KSh">KSh – {tr("Kenyan Shilling")}</option>
-                  <option value="USh">USh – {tr("Ugandan Shilling")}</option>
-                  <option value="TSh">TSh – {tr("Tanzanian Shilling")}</option>
-                  <option value="USD">USD – {tr("US Dollar")}</option>
-                </select>
+                  onChange={(curr, countryCode) => {
+                    setF((prev) => ({
+                      ...prev,
+                      currency: curr,
+                      country: countryCode || prev.country,
+                    }));
+                  }}
+                />
+
+                <SearchableCountryPicker
+                  value={f.country}
+                  onChange={(countryCode, currCode) => {
+                    setF((prev) => ({
+                      ...prev,
+                      country: countryCode,
+                      currency: currCode || prev.currency,
+                    }));
+                  }}
+                />
               </div>
             </div>
 
@@ -235,7 +249,7 @@ function Signup() {
             <div className="signup-actions">
               {/* Outstanding Full-Width Create Account Button */}
               <ShopButton type="submit" className="auth-btn-primary w-full">
-                {tr("Create Account")} →
+                {tr("Create Account")}
               </ShopButton>
 
               {/* 3-in-1 Social Row: Google, Apple, 6-Digit */}
