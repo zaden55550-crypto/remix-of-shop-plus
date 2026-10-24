@@ -109,15 +109,15 @@ function Login() {
             </div>
 
             <div className="signup-actions">
-              {/* Full-width Log In button */}
+              {/* Outstanding Full-Width Log In Button */}
               <ShopButton type="submit" className="auth-btn-primary w-full">
                 {tr("Log In")}
               </ShopButton>
 
-              {/* 3-in-1 Single Row: Google, Apple, 6-Digit */}
+              {/* 3-in-1 Social Row: Google, Apple, 6-Digit */}
               <SocialButtons onCodeSuccess={onCodeSuccess} />
 
-              {/* 1/2 + 1/2 Card Box */}
+              {/* 1/2 + 1/2 Bottom Card Box */}
               <div className="auth-split-card">
                 <span className="auth-split-label">{tr("Don't have an account?")}</span>
                 <Link to="/signup" className="auth-split-btn">
