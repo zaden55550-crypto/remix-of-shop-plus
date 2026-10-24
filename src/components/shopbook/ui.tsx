@@ -1,5 +1,7 @@
+import { toast } from "sonner";
+import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 import { useEffect, useState, type CSSProperties, type InputHTMLAttributes, type ReactNode, useId } from "react";
-import { Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
+import { Apple as AppleIcon, Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -132,7 +134,7 @@ export function BrandRing({ size = 220 }: { size?: number }) {
   return (
     <div className="auth-brand-emblem" style={{ "--emblem-size": `${size}px` } as CSSProperties}>
       <img
-        src="/shopbook/auth-brand-emblem.jpg"
+        src={emblemAsset.url}
         alt="SHOPBOOK ERP"
         className="auth-brand-emblem-image"
         draggable={false}
@@ -421,6 +423,21 @@ export function Wordmark({ className }: { className?: string }) {
   return (
     <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
       SHOP<span className="text-primary">BOOK</span>
+    </div>
+  );
+}
+
+/* Social sign-in entry points (styled; not yet connected) */
+export function SocialButtons() {
+  const { tr } = useLanguage();
+  const soon = () => toast(tr("Google and Apple sign-in are coming soon."));
+  return (
+    <div className="auth-social">
+      <div className="auth-or"><span />{tr("OR")}<span /></div>
+      <div className="auth-social-row">
+        <button type="button" onClick={soon}><b className="auth-g">G</b>Google</button>
+        <button type="button" onClick={soon}><AppleIcon className="h-4 w-4" />Apple</button>
+      </div>
     </div>
   );
 }
