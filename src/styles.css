@@ -2412,3 +2412,5 @@ body {
   .signup-form-heading{text-align:start}
 }
 @media (min-width:768px) and (max-height:620px){.signup-benefits{display:none}}
+.app-screen.signup-page{zoom:1}
+.signup-form-fields{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-areas:"a a a u" "b b b u" "c c d d" "e e e e"}
