@@ -2488,9 +2488,13 @@ body {
 }
 .signup-form-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) clamp(80px, 22vw, 140px);
-  grid-template-areas: "a a u" "b b u" "c d d" "e e e";
-  gap: clamp(3px, 0.8dvh, 10px) clamp(6px, 1.5vw, 14px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) clamp(70px, 18vw, 110px);
+  grid-template-areas:
+    "a a u"
+    "b b u"
+    "p p p"
+    "c c c";
+  gap: clamp(3px, 0.8dvh, 8px) clamp(6px, 1.2vw, 12px);
 }
 .signup-form-fields > :nth-child(1) {
   grid-area: a;
@@ -2502,14 +2506,44 @@ body {
   grid-area: u;
 }
 .signup-form-fields > :nth-child(4) {
-  grid-area: c;
+  grid-area: p;
 }
 .signup-form-fields > :nth-child(5) {
-  grid-area: d;
+  grid-area: c;
 }
-.signup-form-fields > :nth-child(6) {
-  grid-area: e;
+
+/* 50% / 50% (1/2 and 1/2) Split Rows */
+.signup-row-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(6px, 1.2vw, 12px);
+  width: 100%;
 }
+
+.signup-col-picker {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2px, 0.4dvh, 4px);
+  min-width: 0;
+}
+
+.signup-col-picker button {
+  height: clamp(34px, 4.4dvh, 40px);
+  font-size: clamp(10.5px, 1.5dvh, 13px);
+  border-radius: var(--auth-input-radius, 10px);
+}
+
+.signup-topbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.signup-topbar header {
+  justify-content: center !important;
+  position: relative;
+}
+
 .login-fields {
   display: grid;
   gap: clamp(4px, 1.2dvh, 12px);
