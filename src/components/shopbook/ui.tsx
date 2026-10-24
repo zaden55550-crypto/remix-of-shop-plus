@@ -335,8 +335,8 @@ export function Field({
 }: InputHTMLAttributes<HTMLInputElement> & {
   icon?: ReactNode;
   password?: boolean;
-  label?: string;
-  error?: string;
+  label?: string | undefined;
+  error?: string | undefined;
 }) {
   const [show, setShow] = useState(false);
   const { tr } = useLanguage();
