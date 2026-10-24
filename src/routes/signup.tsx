@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Phone, Store } from "lucide-react";
+import { Lock, Phone, Store, ShieldCheck, MonitorSmartphone, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, LogoCropPicker, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -11,9 +11,15 @@ export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
       { title: "Create Account — SHOPBOOK ERP" },
-      { name: "description", content: "Create your SHOPBOOK shop account in under a minute. No verification needed." },
+      {
+        name: "description",
+        content: "Create your SHOPBOOK shop account in under a minute. No verification needed.",
+      },
       { property: "og:title", content: "Create Account — SHOPBOOK ERP" },
-      { property: "og:description", content: "Create your SHOPBOOK shop account." },
+      {
+        property: "og:description",
+        content: "Create your SHOPBOOK shop account.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -23,56 +29,219 @@ export const Route = createFileRoute("/signup")({
 
 function Signup() {
   const nav = useNavigate();
-  const { tr, t, dir, language } = useLanguage();
-  const [f, setF] = useState({ shopName: "", phone: "", password: "", confirm: "", currency: "KSh", logo: "" });
+  const { tr, dir, language } = useLanguage();
+
+  const [f, setF] = useState({
+    shopName: "",
+    phone: "",
+    password: "",
+    confirm: "",
+    currency: "KSh",
+    logo: "",
+  });
+
   const [agree, setAgree] = useState(false);
-  const [err, setErr] = useState<{ password?: string; confirm?: string; agree?: string }>({});
-  const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const [err, setErr] = useState<{
+    password?: string;
+    confirm?: string;
+    agree?: string;
+  }>({});
+
+  const set = (k: keyof typeof f) => (e: { target: { value: string } }) =>
+    setF((previous) => ({ ...previous, [k]: e.target.value }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+
     const next: typeof err = {};
-    if (f.password.length < 6) next.password = tr("Password must be at least 6 characters");
-    else if (f.password !== f.confirm) next.confirm = tr("Passwords do not match");
-    if (!agree) next.agree = tr("Please accept the Terms & Privacy Policy");
+
+    if (f.password.length < 6) {
+      next.password = tr("Password must be at least 6 characters");
+    } else if (f.password !== f.confirm) {
+      next.confirm = tr("Passwords do not match");
+    }
+
+    if (!agree) {
+      next.agree = tr("Please accept the Terms & Privacy Policy");
+    }
+
     setErr(next);
+
     const first = next.password || next.confirm || next.agree;
-    if (first) { toast.error(first); return; }
-    try { store.save({ language, shopName: f.shopName.trim(), phone: f.phone.trim(), email: "", password: f.password, currency: f.currency, logo: f.logo || undefined }); }
-    catch (e) { toast.error(e instanceof Error ? e.message : tr("Could not create account")); return; }
+
+    if (first) {
+      toast.error(first);
+      return;
+    }
+
+    try {
+      store.save({
+        language,
+        shopName: f.shopName.trim(),
+        phone: f.phone.trim(),
+        email: "",
+        password: f.password,
+        currency: f.currency,
+        logo: f.logo || undefined,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : tr("Could not create account"));
+      return;
+    }
+
     store.signIn();
     nav({ to: "/plans" });
   };
 
+  const benefits = [
+    {
+      icon: BriefcaseBusiness,
+      title: "All-in-One",
+      description: "Business Management",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Secure",
+      description: "and Reliable",
+    },
+    {
+      icon: MonitorSmartphone,
+      title: "Works on All",
+      description: "Your Devices",
+    },
+  ];
+
   return (
-    <main dir={dir} className="app-screen pb-8">
-      <TopBar />
-      <div className="mt-3"><BrandRing size={180} /></div>
-      <div className="mt-3"><LogoCropPicker value={f.logo} onChange={(logo) => setF({ ...f, logo })} /></div>
-      <h1 className="mt-2 text-center text-2xl font-bold">{tr("Create Your Account")}</h1>
-      <form onSubmit={submit} className="mt-4 space-y-2.5 px-5">
-        <Field icon={<Store className="h-5 w-5" />} label={tr("Shop Name")} placeholder={tr("Enter your shop name")} value={f.shopName} onChange={set("shopName")} required />
-        <Field icon={<Phone className="h-5 w-5" />} inputMode="tel" label={tr("Phone Number")} placeholder={tr("Enter your phone number")} type="tel" autoComplete="tel" value={f.phone} onChange={set("phone")} required />
-        <Field icon={<Lock className="h-5 w-5" />} password label={tr("Password")} placeholder={tr("Create a password")} autoComplete="new-password" error={err.password} value={f.password} onChange={set("password")} required />
-        <Field icon={<Lock className="h-5 w-5" />} password label={tr("Confirm Password")} placeholder={tr("Re-enter your password")} autoComplete="new-password" error={err.confirm} value={f.confirm} onChange={set("confirm")} required />
-        <div className="space-y-1">
-        <label htmlFor="signup-currency" className="block text-[13px] font-semibold text-foreground">{tr("Currency")}</label>
-        <select id="signup-currency" value={f.currency} onChange={set("currency")}
-          className="h-12 w-full rounded-xl border border-input bg-card px-3.5 font-medium outline-none focus:border-primary">
-          <option value="KSh">KSh – {tr("Kenyan Shilling")}</option>
-          <option value="USh">USh – {tr("Ugandan Shilling")}</option>
-          <option value="TSh">TSh – {tr("Tanzanian Shilling")}</option>
-          <option value="USD">USD – {tr("US Dollar")}</option>
-        </select>
-        </div>
-        <label className="flex items-start gap-2 pt-1 text-sm">
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} className="mt-0.5 h-4 w-4 accent-primary" />
-          {tr("I agree to the Terms & Conditions and Privacy Policy")}
-        </label>
-        {err.agree && <p role="alert" className="text-xs font-medium text-destructive">{err.agree}</p>}
-        <ShopButton type="submit">{tr("Create Account")} →</ShopButton>
-        <p className="pt-1 text-center text-sm">{tr("Already have an account?")} <Link to="/" className="font-semibold text-primary">{tr("Log In")}</Link></p>
-      </form>
+    <main dir={dir} className="app-screen signup-page">
+      <div className="signup-topbar">
+        <TopBar />
+      </div>
+
+      <div className="signup-layout">
+        <section className="signup-hero" aria-label="SHOPBOOK ERP">
+          <div className="signup-brand-ring">
+            <BrandRing size={180} />
+          </div>
+
+          <div className="signup-hero-brand">
+            <span>SHOPBOOK</span>
+            <span>ERP</span>
+          </div>
+
+          <div className="signup-benefits">
+            {benefits.map(({ icon: Icon, title, description }) => (
+              <div className="signup-benefit" key={title}>
+                <span className="signup-benefit-icon">
+                  <Icon aria-hidden="true" />
+                </span>
+                <span className="signup-benefit-copy">
+                  <strong>{tr(title)}</strong>
+                  <span>{tr(description)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="signup-form-panel">
+          <header className="signup-form-heading">
+            <h1>{tr("Create Your Account")}</h1>
+            <p>{tr("Set up your shop to get started with SHOPBOOK ERP")}</p>
+          </header>
+
+          <form onSubmit={submit} className="signup-form">
+            <div className="signup-form-fields">
+              <Field
+                icon={<Store className="h-5 w-5" />}
+                label={tr("Shop Name")}
+                placeholder={tr("Enter your shop name")}
+                value={f.shopName}
+                onChange={set("shopName")}
+                required
+              />
+
+              <Field
+                icon={<Phone className="h-5 w-5" />}
+                inputMode="tel"
+                label={tr("Phone Number")}
+                placeholder={tr("Enter your phone number")}
+                type="tel"
+                autoComplete="tel"
+                value={f.phone}
+                onChange={set("phone")}
+                required
+              />
+
+              <div className="signup-upload">
+                <LogoCropPicker value={f.logo} onChange={(logo) => setF((previous) => ({ ...previous, logo }))} />
+              </div>
+
+              <Field
+                icon={<Lock className="h-5 w-5" />}
+                password
+                label={tr("Password")}
+                placeholder={tr("Create a password")}
+                autoComplete="new-password"
+                error={err.password}
+                value={f.password}
+                onChange={set("password")}
+                required
+              />
+
+              <Field
+                icon={<Lock className="h-5 w-5" />}
+                password
+                label={tr("Confirm Password")}
+                placeholder={tr("Re-enter your password")}
+                autoComplete="new-password"
+                error={err.confirm}
+                value={f.confirm}
+                onChange={set("confirm")}
+                required
+              />
+
+              <div className="signup-currency">
+                <label htmlFor="signup-currency" className="signup-field-label">
+                  {tr("Currency")}
+                </label>
+
+                <select
+                  id="signup-currency"
+                  value={f.currency}
+                  onChange={set("currency")}
+                  className="signup-currency-select"
+                >
+                  <option value="KSh">KSh – {tr("Kenyan Shilling")}</option>
+                  <option value="USh">USh – {tr("Ugandan Shilling")}</option>
+                  <option value="TSh">TSh – {tr("Tanzanian Shilling")}</option>
+                  <option value="USD">USD – {tr("US Dollar")}</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="signup-agreement">
+              <label className="signup-agreement-label">
+                <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+                <span>{tr("I agree to the Terms & Conditions and Privacy Policy")}</span>
+              </label>
+
+              {err.agree && (
+                <p role="alert" className="signup-error">
+                  {err.agree}
+                </p>
+              )}
+            </div>
+
+            <div className="signup-actions">
+              <ShopButton type="submit">{tr("Create Account")} →</ShopButton>
+
+              <p className="signup-login-link">
+                {tr("Already have an account?")} <Link to="/">{tr("Log In")}</Link>
+              </p>
+            </div>
+          </form>
+        </section>
+      </div>
     </main>
   );
 }
