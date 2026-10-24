@@ -866,7 +866,7 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
 
     const next = [...pinDigits];
     for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i];
+      next[i] = pasted[i] ?? "";
     }
     setPinDigits(next);
     const focusIdx = Math.min(pasted.length, 5);
@@ -897,20 +897,6 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
     }
   };
 
-    const currentShop = store.get();
-    const validCodes = ["123456", "999999", currentShop?.password?.slice(0, 6)].filter(Boolean);
-
-    if (validCodes.includes(code)) {
-      toast.success(tr("Admin code accepted! Welcome to the shop."));
-      setShowPinModal(false);
-      store.signIn();
-      onCodeSuccess?.();
-    } else {
-      toast.error(tr("Invalid 6-digit code. Please contact your shop administrator."));
-    }
-  };
-<svg className="h-4 w-4 shrink-0" width="16" height="16" viewBox="0 0 24 24">
-
   return (
     <div className="auth-social-wrap">
       {/* 3-in-1 Social Row: Google, Apple & 6-Digit Button */}
@@ -921,7 +907,7 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
           disabled={signingWith !== null}
           className="auth-btn-social"
         >
-          <svg className="auth-social-icon" viewBox="0 0 24 24">
+          <svg className="auth-social-icon h-4 w-4 shrink-0" width="16" height="16" viewBox="0 0 24 24">
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -1026,6 +1012,14 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
+      SHOP<span className="text-primary">BOOK</span>
     </div>
   );
 }
