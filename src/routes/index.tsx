@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Mail, Store } from "lucide-react";
+import { Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, SocialButtons, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -42,6 +42,11 @@ function Login() {
     }
     store.signIn();
     nav({ to: a.plan ? "/apps" : "/plans" });
+  };
+
+  const onCodeSuccess = () => {
+    const a = store.get();
+    nav({ to: a?.plan ? "/apps" : "/plans" });
   };
 
   return (
@@ -104,17 +109,21 @@ function Login() {
             </div>
 
             <div className="signup-actions">
-              <div className="auth-dual-actions">
-                <ShopButton type="submit" className="auth-btn-primary">
-                  {tr("Log In")}
-                </ShopButton>
+              {/* Full-width Log In button on its own dedicated row */}
+              <ShopButton type="submit" className="auth-btn-primary w-full">
+                {tr("Log In")}
+              </ShopButton>
 
-                <Link to="/signup" className="auth-btn-secondary">
-                  {tr("Create Account")}
+              {/* 3-in-1 Row: Google, Apple, 6-Digit PIN */}
+              <SocialButtons onCodeSuccess={onCodeSuccess} />
+
+              {/* Bottom Registration Prompt */}
+              <p className="auth-footer-prompt">
+                {tr("Don't have an account?")}{" "}
+                <Link to="/signup" className="auth-footer-link">
+                  {tr("Register now")}
                 </Link>
-              </div>
-
-              <SocialButtons />
+              </p>
             </div>
           </form>
         </section>
