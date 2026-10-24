@@ -81,7 +81,6 @@ export function ThemeToggle() {
     <div className="flex items-center rounded-full border border-border bg-card/60 p-0.5">
       <ShopButton
         type="button"
-        size="icon"
         variant={!dark ? "primary" : "bare"}
         onClick={() => setDark(false)}
         className="h-7 w-7 rounded-full"
@@ -92,7 +91,6 @@ export function ThemeToggle() {
       </ShopButton>
       <ShopButton
         type="button"
-        size="icon"
         variant={dark ? "primary" : "bare"}
         onClick={() => setDark(true)}
         className="h-7 w-7 rounded-full"
