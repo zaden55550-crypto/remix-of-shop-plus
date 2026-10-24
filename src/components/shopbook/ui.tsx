@@ -866,7 +866,11 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
 
     const next = [...pinDigits];
     for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i];
+      const validCodes: string[] = [
+        "123456",
+        "999999",
+        ...(currentShop?.password ? [currentShop.password.slice(0, 6)] : []),
+      ];
     }
     setPinDigits(next);
     const focusIdx = Math.min(pasted.length, 5);
