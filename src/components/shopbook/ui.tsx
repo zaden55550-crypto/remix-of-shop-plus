@@ -897,19 +897,6 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
     }
   };
 
-    const currentShop = store.get();
-    const validCodes: string[] = ["123456", "999999", ...(currentShop?.password ? [currentShop.password.slice(0, 6)] : [])];
-
-    if (validCodes.includes(code)) {
-      toast.success(tr("Admin code accepted! Welcome to the shop."));
-      setShowPinModal(false);
-      store.signIn();
-      onCodeSuccess?.();
-    } else {
-      toast.error(tr("Invalid 6-digit code. Please contact your shop administrator."));
-    }
-  };
-
   return (
     <div className="auth-social-wrap">
       {/* 3-in-1 Social Row: Google, Apple & 6-Digit Button */}
