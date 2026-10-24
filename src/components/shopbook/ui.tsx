@@ -5,6 +5,7 @@ import { useEffect, useState, type CSSProperties, type InputHTMLAttributes, type
 import { Apple as AppleIcon, Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
+import { RING_ICONS } from "@/lib/shopbook";
 import { ShopButton } from "@/components/ui/shop-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -122,19 +123,41 @@ export function TopBar() {
 }
 
 /* -------------------------------------------------------
-   Responsive master SHOPBOOK emblem
-
-   Expected asset:
-   public/shopbook/auth-brand-emblem.jpg
-
-   The component API remains compatible with existing
-   <BrandRing size={180} /> and <BrandRing size={300} /> calls.
+   Responsive SHOPBOOK emblem with rotating app orbit
 ------------------------------------------------------- */
 
 export function BrandRing({ size = 220 }: { size?: number }) {
+  // Trigonometric distribution for 12 app icons around circular orbit
+  const orbitRadiusPercent = 42;
+
   return (
     <div className="auth-brand-emblem" style={{ "--emblem-size": `${size}px` } as CSSProperties}>
-      <img src={emblemAsset.url} alt="SHOPBOOK ERP" className="auth-brand-emblem-image" draggable={false} />
+      {/* Central 3D master emblem */}
+      <div className="auth-brand-emblem-core">
+        <img src={emblemAsset.url} alt="SHOPBOOK ERP" className="auth-brand-emblem-image" draggable={false} />
+      </div>
+
+      {/* Rotating orbit track */}
+      <div className="auth-brand-orbit spin-slow" aria-hidden="true">
+        {RING_ICONS.map((src, i) => {
+          const angle = (i / RING_ICONS.length) * Math.PI * 2 - Math.PI / 2;
+          const x = 50 + Math.cos(angle) * orbitRadiusPercent;
+          const y = 50 + Math.sin(angle) * orbitRadiusPercent;
+
+          return (
+            <div
+              key={i}
+              className="auth-orbit-icon"
+              style={{
+                left: `${x.toFixed(2)}%`,
+                top: `${y.toFixed(2)}%`,
+              }}
+            >
+              <img src={src} alt="" className="counter-spin h-full w-full object-contain" draggable={false} />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -333,8 +356,8 @@ export function Field({
 }: InputHTMLAttributes<HTMLInputElement> & {
   icon?: ReactNode;
   password?: boolean;
-  label?: string | undefined;
-  error?: string | undefined;
+  label?: string;
+  error?: string;
 }) {
   const [show, setShow] = useState(false);
   const { tr } = useLanguage();
