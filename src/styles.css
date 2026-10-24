@@ -2527,12 +2527,6 @@ body {
   min-width: 0;
 }
 
-.signup-col-picker button {
-  height: clamp(34px, 4.4dvh, 40px);
-  font-size: clamp(10.5px, 1.5dvh, 13px);
-  border-radius: var(--auth-input-radius, 10px);
-}
-
 .signup-topbar {
   display: flex;
   justify-content: center;
@@ -2551,22 +2545,47 @@ body {
 .signup-form label,
 .signup-field-label {
   font-size: clamp(10px, 1.5dvh, 13.5px);
+  font-weight: 600;
+  color: var(--muted-foreground);
 }
+
+/* ===== Shaded Cardboxed Fillable Fields (Login & Create Account) ===== */
 .signup-field-input,
-.signup-currency-select {
-  height: clamp(32px, 5dvh, 46px);
-  border-radius: 999px;
-  padding: 0 clamp(10px, 2.5vw, 16px);
-  font-size: clamp(12px, 1.7dvh, 14.5px);
+.signup-currency-select,
+.signup-col-picker button {
+  height: clamp(32px, 4.8dvh, 42px);
+  border-radius: 11px;
+  padding: 0 clamp(10px, 2.2vw, 14px);
+  font-size: clamp(11.5px, 1.6dvh, 13.5px);
+  background: color-mix(in oklab, var(--card) 75%, var(--foreground) 7%);
+  border: 1.5px solid color-mix(in oklab, var(--border) 85%, transparent);
+  box-shadow:
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.16),
+    0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--foreground);
+  transition: all 0.18s ease;
+  width: 100%;
 }
-.signup-currency-select {
-  border-radius: 14px;
+
+.signup-field-input:focus,
+.signup-col-picker button:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--card) 90%, var(--primary) 8%);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--primary) 28%, transparent),
+    inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
+/* Shaded Cardbox for Logo Uploader */
 .signup-upload .logo-crop {
   width: 100%;
   height: 100%;
-  min-height: clamp(68px, 11dvh, 96px);
-  border-radius: 16px;
+  min-height: clamp(64px, 10.5dvh, 92px);
+  border-radius: 12px;
+  border: 1.5px dashed color-mix(in oklab, var(--primary) 45%, var(--border));
+  background: color-mix(in oklab, var(--card) 75%, var(--foreground) 5%);
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 .signup-upload .logo-crop-label {
   font-size: clamp(10px, 1.5dvh, 13px);
@@ -2578,6 +2597,7 @@ body {
   height: clamp(18px, 3dvh, 26px);
   width: clamp(18px, 3dvh, 26px);
 }
+
 .signup-agreement,
 .login-row {
   display: flex;
@@ -2693,25 +2713,32 @@ body {
   font-size: clamp(10.5px, 1.4dvh, 12.5px);
   font-weight: 700;
   text-align: center;
-  background: color-mix(in oklab, var(--primary) 20%, var(--card));
-  color: var(--primary);
   border-left: 1.5px solid var(--border);
   text-decoration: none;
   transition: all 0.2s ease;
   line-height: 1.2;
 }
-.auth-split-btn:hover {
-  background: var(--primary);
-  color: var(--primary-foreground);
+
+/* Unique Button on Create Account -> "Log In →" (Emerald Green) */
+.auth-split-btn-emerald {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+  border-left-color: rgba(16, 185, 129, 0.35);
+}
+.auth-split-btn-emerald:hover {
+  background: #10b981;
+  color: #ffffff;
 }
 
-:root:not(.dark) .auth-split-btn {
-  background: color-mix(in oklab, #e88d67 22%, #faf5ee);
-  color: #c75d38;
+/* Unique Button on Login -> "Register now →" (Warm Amber / Terracotta) */
+.auth-split-btn-register {
+  background: rgba(245, 158, 11, 0.16);
+  color: #fbbf24;
+  border-left-color: rgba(245, 158, 11, 0.35);
 }
-:root:not(.dark) .auth-split-btn:hover {
-  background: #e88d67;
-  color: #ffffff;
+.auth-split-btn-register:hover {
+  background: #f59e0b;
+  color: #1c1917;
 }
 
 /* ===== Fluid Screen Detection: Big Screens (Logo on Left, Form on Right) ===== */
@@ -2738,14 +2765,10 @@ body {
     border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
     border-radius: 20px;
     background: color-mix(in oklab, var(--card) 85%, transparent);
-    max-height: 100%;
-  }
-  .signup-form-heading {
-    text-align: start;
   }
 }
 
-/* Short height safeguard (e.g. 500px - 640px height): dynamically fits everything without scroll */
+/* Fluid Safeguard for Short/Landscape Tablets */
 @media (min-width: 768px) and (max-height: 640px) {
   .signup-benefits {
     display: none !important;
@@ -2772,7 +2795,7 @@ body {
   }
 }
 
-/* Light Theme Overrides (Warm Cream & Terracotta) */
+/* ===== Light Theme Overrides (Warm Cream, Crisp Cardboxes, Terracotta) ===== */
 :root:not(.dark) .signup-page {
   background-color: #faf5ee;
   color: #2b221b;
@@ -2802,20 +2825,61 @@ body {
 :root:not(.dark) .auth-btn-primary:hover {
   background-color: #d96f43;
 }
-:root:not(.dark) .signup-upload .logo-crop {
-  border-color: rgba(232, 141, 103, 0.5);
-  background: rgba(255, 255, 255, 0.6);
+
+/* Light Theme: Shaded Cardbox Inputs */
+:root:not(.dark) .signup-field-input,
+:root:not(.dark) .signup-currency-select,
+:root:not(.dark) .signup-col-picker button {
+  background: #ffffff;
+  border-color: #dfcfc2;
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.04),
+    0 1px 3px rgba(43, 34, 27, 0.06);
+  color: #2b221b;
 }
-:root:not(.dark) .auth-social-btn {
+:root:not(.dark) .signup-field-input:focus,
+:root:not(.dark) .signup-col-picker button:focus-visible {
+  border-color: #e88d67;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(232, 141, 103, 0.25);
+}
+:root:not(.dark) .signup-upload .logo-crop {
+  background: #ffffff;
+  border-color: rgba(232, 141, 103, 0.6);
+  box-shadow: inset 0 1px 2px rgba(43, 34, 27, 0.05);
+}
+:root:not(.dark) .auth-social-btn,
+:root:not(.dark) .auth-social-row button {
   background: #ffffff;
   border-color: #ecd9cb;
   color: #2b221b;
 }
 
+/* Light Theme: Emerald Green Split Button */
+:root:not(.dark) .auth-split-btn-emerald {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  border-left-color: rgba(16, 185, 129, 0.3);
+}
+:root:not(.dark) .auth-split-btn-emerald:hover {
+  background: #059669;
+  color: #ffffff;
+}
+
+/* Light Theme: Amber/Terracotta Split Button */
+:root:not(.dark) .auth-split-btn-register {
+  background: color-mix(in oklab, #e88d67 22%, #faf5ee);
+  color: #c75d38;
+  border-left-color: #ecd9cb;
+}
+:root:not(.dark) .auth-split-btn-register:hover {
+  background: #e88d67;
+  color: #ffffff;
+}
+
 /* -------------------------------------------------------
    Rotation Keyframes & Brand Orbit
 ------------------------------------------------------- */
-
 @keyframes spin {
   from {
     transform: rotate(0deg);
