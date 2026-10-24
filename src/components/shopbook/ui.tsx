@@ -427,16 +427,61 @@ export function Wordmark({ className }: { className?: string }) {
   );
 }
 
-/* Social sign-in entry points (styled; not yet connected) */
+//* -------------------------------------------------------
+   Social sign-in entry points (Connected to Cloud OAuth)
+------------------------------------------------------- */
+
+import { supabase } from "@/integrations/supabase/client";
+
 export function SocialButtons() {
   const { tr } = useLanguage();
-  const soon = () => toast(tr("Google and Apple sign-in are coming soon."));
+  const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
+
+  const handleOAuth = async (provider: "google" | "apple") => {
+    try {
+      setLoadingProvider(provider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      if (error) {
+        toast.error(error.message);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : tr("Authentication failed"));
+    } finally {
+      setLoadingProvider(null);
+    }
+  };
+
   return (
     <div className="auth-social">
-      <div className="auth-or"><span />{tr("OR")}<span /></div>
+      <div className="auth-or">
+        <span />
+        {tr("OR")}
+        <span />
+      </div>
       <div className="auth-social-row">
-        <button type="button" onClick={soon}><b className="auth-g">G</b>Google</button>
-        <button type="button" onClick={soon}><AppleIcon className="h-4 w-4" />Apple</button>
+        <button
+          type="button"
+          disabled={loadingProvider !== null}
+          onClick={() => handleOAuth("google")}
+          className="auth-social-btn"
+        >
+          <b className="auth-g">G</b>
+          {loadingProvider === "google" ? tr("Connecting...") : "Google"}
+        </button>
+        <button
+          type="button"
+          disabled={loadingProvider !== null}
+          onClick={() => handleOAuth("apple")}
+          className="auth-social-btn"
+        >
+          <AppleIcon className="h-4 w-4" />
+          {loadingProvider === "apple" ? tr("Connecting...") : "Apple"}
+        </button>
       </div>
     </div>
   );
