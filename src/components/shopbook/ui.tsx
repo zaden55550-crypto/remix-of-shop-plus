@@ -133,12 +133,7 @@ export function TopBar() {
 export function BrandRing({ size = 220 }: { size?: number }) {
   return (
     <div className="auth-brand-emblem" style={{ "--emblem-size": `${size}px` } as CSSProperties}>
-      <img
-        src={emblemAsset.url}
-        alt="SHOPBOOK ERP"
-        className="auth-brand-emblem-image"
-        draggable={false}
-      />
+      <img src={emblemAsset.url} alt="SHOPBOOK ERP" className="auth-brand-emblem-image" draggable={false} />
     </div>
   );
 }
@@ -427,11 +422,9 @@ export function Wordmark({ className }: { className?: string }) {
   );
 }
 
-//* -------------------------------------------------------
+/* -------------------------------------------------------
    Social sign-in entry points (Connected to Cloud OAuth)
 ------------------------------------------------------- */
-
-import { supabase } from "@/integrations/supabase/client";
 
 export function SocialButtons() {
   const { tr } = useLanguage();
