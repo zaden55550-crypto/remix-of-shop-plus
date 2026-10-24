@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { lovable } from "@/integrations/lovable/index";
 import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 import { useEffect, useState, type CSSProperties, type InputHTMLAttributes, type ReactNode, useId } from "react";
 import { Apple as AppleIcon, Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
@@ -433,14 +434,11 @@ export function SocialButtons() {
   const handleOAuth = async (provider: "google" | "apple") => {
     try {
       setLoadingProvider(provider);
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-        },
+      const result = await lovable.auth.signInWithOAuth(provider, {
+        redirect_uri: window.location.origin,
       });
-      if (error) {
-        toast.error(error.message);
+      if (result.error) {
+        toast.error(result.error.message);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : tr("Authentication failed"));
