@@ -816,6 +816,18 @@ export function Field({ icon, password, label, error, className, id: explicitId,
 }
 
 /* -------------------------------------------------------
+   SHOPBOOK Wordmark
+------------------------------------------------------- */
+
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
+      SHOP<span className="text-primary">BOOK</span>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------
    SocialButtons: Google, Apple & 6-Digit Admin Invite Code
 ------------------------------------------------------- */
 
@@ -859,14 +871,14 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
     }
   };
 
-    const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!pasted) return;
 
     const next = [...pinDigits];
     for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i] ?? "";
+      next[i] = pasted[i];
     }
     setPinDigits(next);
     const focusIdx = Math.min(pasted.length, 5);
@@ -1012,14 +1024,6 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-export function Wordmark({ className }: { className?: string }) {
-  return (
-    <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
-      SHOP<span className="text-primary">BOOK</span>
     </div>
   );
 }
