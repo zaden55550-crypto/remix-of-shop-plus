@@ -43,7 +43,8 @@ import {
 } from "@/lib/world-data";
 
 /* -------------------------------------------------------
-   Theme Hook & ThemeToggle
+   /* -------------------------------------------------------
+   Theme Hook & ThemeToggle (Sun & Moon Switcher)
 ------------------------------------------------------- */
 
 export function useTheme() {
@@ -51,11 +52,17 @@ export function useTheme() {
 
   useEffect(() => {
     const saved = localStorage.getItem("shopbook.theme");
-    setDark(saved ? saved === "dark" : true);
+    const isDark = saved ? saved === "dark" : true;
+    setDark(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === "shopbook.theme") {
-        setDark(e.newValue === "dark");
+        const nextDark = e.newValue === "dark";
+        setDark(nextDark);
+        document.documentElement.classList.toggle("dark", nextDark);
+        document.documentElement.setAttribute("data-theme", nextDark ? "dark" : "light");
       }
     };
     window.addEventListener("storage", onStorage);
@@ -66,6 +73,7 @@ export function useTheme() {
     const next = !dark;
     setDark(next);
     localStorage.setItem("shopbook.theme", next ? "dark" : "light");
+    document.documentElement.classList.toggle("dark", next);
     document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
   };
 
