@@ -2364,238 +2364,197 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  max-width: none;
-  padding-bottom: 0;
+  padding: clamp(4px, 1.2dvh, 12px) clamp(8px, 1.8vw, 20px);
+  background: var(--background);
+  color: var(--foreground);
+  box-sizing: border-box;
 }
+
 .signup-topbar {
-  flex: 0 0 auto;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: clamp(2px, 0.6dvh, 6px);
 }
+
 .signup-layout {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  gap: clamp(4px, 1.2dvh, 14px);
-  padding: 0 clamp(12px, 3.5vw, 48px) clamp(6px, 1.2dvh, 16px);
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-.signup-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(4px, 1.2dvh, 16px);
-  min-height: 0;
-}
-.signup-brand-ring .auth-brand-emblem {
-  width: clamp(70px, min(16dvh, 32vw), 180px) !important;
-  height: auto;
-}
-.auth-brand-emblem {
-  width: var(--emblem-size);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  overflow: hidden;
+  gap: clamp(6px, 1.4dvh, 14px);
+  width: 100%;
+  max-width: 520px;
   margin: 0 auto;
 }
-.auth-brand-emblem-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+
+.signup-hero {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: clamp(4px, 0.8dvh, 10px);
 }
-.signup-hero-brand {
-  display: none;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  font-size: clamp(16px, 2.2vw, 32px);
-  background: linear-gradient(90deg, var(--primary), oklch(0.75 0.15 220));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  gap: 0.3em;
+
+.signup-brand-ring {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
 .signup-benefits {
   display: none;
-  flex-direction: column;
-  gap: clamp(4px, 1dvh, 12px);
-  width: 100%;
-  max-width: 340px;
 }
-.signup-benefit {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: clamp(6px, 1.1dvh, 12px) 14px;
-  border: 1px solid color-mix(in oklab, var(--primary) 40%, transparent);
-  border-radius: 14px;
-  background: color-mix(in oklab, var(--card) 80%, transparent);
-}
-.signup-benefit-icon {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  flex: 0 0 auto;
-  border-radius: 10px;
-  background: color-mix(in oklab, var(--primary) 18%, transparent);
-  color: var(--primary);
-}
-.signup-benefit-icon svg {
-  width: 16px;
-  height: 16px;
-}
-.signup-benefit-copy {
-  display: flex;
-  flex-direction: column;
-  font-size: clamp(11px, 1.5dvh, 13.5px);
-  line-height: 1.2;
-  min-width: 0;
-}
-.signup-benefit-copy span {
-  color: var(--muted-foreground);
-}
+
 .signup-form-panel {
+  flex: 1 1 auto;
   min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: 100%;
-  max-width: 620px;
-  margin: 0 auto;
-  gap: clamp(4px, 1dvh, 10px);
 }
+
 .signup-form-heading {
   text-align: center;
+  margin-bottom: clamp(4px, 0.8dvh, 8px);
+  flex-shrink: 0;
 }
 .signup-form-heading h1 {
-  font-size: clamp(17px, 3.2dvh, 32px);
+  font-size: clamp(16px, 2.4dvh, 22px);
   font-weight: 800;
-  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  line-height: 1.15;
 }
 .signup-form-heading p {
-  font-size: clamp(10.5px, 1.5dvh, 14px);
+  font-size: clamp(10.5px, 1.4dvh, 12.5px);
   color: var(--muted-foreground);
+  margin-top: 1px;
+  line-height: 1.2;
 }
+
 .signup-form {
   display: flex;
   flex-direction: column;
-  gap: clamp(3px, 0.9dvh, 10px);
-  min-height: 0;
+  gap: clamp(4px, 0.9dvh, 8px);
+  width: 100%;
 }
+
+.login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.9dvh, 8px);
+}
+
+/* ===== 4-Row Form Grid with Logo Upload on the Right ===== */
 .signup-form-fields {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) clamp(70px, 18vw, 110px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) clamp(74px, 11vw, 96px);
   grid-template-areas:
     "a a u"
     "b b u"
     "p p p"
     "c c c";
-  gap: clamp(3px, 0.8dvh, 8px) clamp(6px, 1.2vw, 12px);
+  gap: clamp(4px, 0.8dvh, 7px);
+  align-items: stretch;
 }
-.signup-form-fields > :nth-child(1) {
+
+.signup-form-fields > div:nth-child(1) {
   grid-area: a;
 }
-.signup-form-fields > :nth-child(2) {
+.signup-form-fields > div:nth-child(2) {
   grid-area: b;
 }
-.signup-form-fields > :nth-child(3) {
+.signup-form-fields > div:nth-child(3) {
   grid-area: u;
 }
-.signup-form-fields > :nth-child(4) {
+.signup-form-fields > div:nth-child(4) {
   grid-area: p;
 }
-.signup-form-fields > :nth-child(5) {
+.signup-form-fields > div:nth-child(5) {
   grid-area: c;
 }
 
-/* 50% / 50% (1/2 and 1/2) Split Rows */
 .signup-row-split {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(6px, 1.2vw, 12px);
-  width: 100%;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(4px, 0.8dvh, 7px);
+  align-items: stretch;
 }
 
-.signup-col-picker {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(2px, 0.4dvh, 4px);
-  min-width: 0;
-}
-
-.signup-topbar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-.signup-topbar header {
-  justify-content: center !important;
-  position: relative;
-}
-
-.login-fields {
-  display: grid;
-  gap: clamp(4px, 1.2dvh, 12px);
-}
-.signup-form label,
-.signup-field-label {
-  font-size: clamp(10px, 1.5dvh, 13.5px);
-  font-weight: 600;
-  color: var(--muted-foreground);
-}
-
-/* ===== Shaded Cardboxed Fillable Fields (Login & Create Account) ===== */
+/* ===== Shaded Cardbox Form Field Inputs ===== */
 .signup-field-input,
 .signup-currency-select,
 .signup-col-picker button {
-  height: clamp(32px, 4.8dvh, 42px);
-  border-radius: 11px;
-  padding: 0 clamp(10px, 2.2vw, 14px);
-  font-size: clamp(11.5px, 1.6dvh, 13.5px);
-  background: color-mix(in oklab, var(--card) 75%, var(--foreground) 7%);
-  border: 1.5px solid color-mix(in oklab, var(--border) 85%, transparent);
-  box-shadow:
-    inset 0 1.5px 3px rgba(0, 0, 0, 0.16),
-    0 1px 2px rgba(0, 0, 0, 0.05);
-  color: var(--foreground);
-  transition: all 0.18s ease;
   width: 100%;
+  padding: clamp(6px, 1.2dvh, 10px) clamp(8px, 1.2vw, 12px);
+  font-size: clamp(11px, 1.5dvh, 13.5px);
+  border-radius: 10px;
+  border: 1.5px solid color-mix(in oklab, var(--border) 80%, var(--foreground) 10%);
+  background: color-mix(in oklab, var(--card) 60%, var(--foreground) 6%);
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.16);
+  color: var(--foreground);
+  transition: all 0.2s ease;
+  min-height: clamp(34px, 4.8dvh, 42px);
 }
-
 .signup-field-input:focus,
 .signup-col-picker button:focus-visible {
   outline: none;
   border-color: var(--primary);
-  background: color-mix(in oklab, var(--card) 90%, var(--primary) 8%);
   box-shadow:
-    0 0 0 3px color-mix(in oklab, var(--primary) 28%, transparent),
-    inset 0 1px 2px rgba(0, 0, 0, 0.1);
+    0 0 0 2px color-mix(in oklab, var(--primary) 30%, transparent),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 
-/* Shaded Cardbox for Logo Uploader */
-.signup-upload .logo-crop {
+/* ===== Shaded Cardbox for Logo Uploader ===== */
+.signup-upload-card {
   width: 100%;
   height: 100%;
-  min-height: clamp(64px, 10.5dvh, 92px);
-  border-radius: 12px;
-  border: 1.5px dashed color-mix(in oklab, var(--primary) 45%, var(--border));
-  background: color-mix(in oklab, var(--card) 75%, var(--foreground) 5%);
-  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
+  display: flex;
 }
-.signup-upload .logo-crop-label {
-  font-size: clamp(10px, 1.5dvh, 13px);
+.signup-upload-btn {
+  width: 100%;
+  height: 100%;
+  min-height: clamp(68px, 11dvh, 96px);
+  border-radius: 10px;
+  border: 1.5px dashed color-mix(in oklab, var(--primary) 50%, var(--border));
+  background: color-mix(in oklab, var(--card) 60%, var(--foreground) 6%);
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
-.signup-upload .logo-crop-hint {
-  font-size: clamp(8.5px, 1.2dvh, 11px);
+.signup-upload-btn:hover {
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--card) 50%, var(--primary) 14%);
 }
-.signup-upload .logo-crop svg {
-  height: clamp(18px, 3dvh, 26px);
-  width: clamp(18px, 3dvh, 26px);
+.signup-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px;
+  text-align: center;
+}
+.signup-upload-icon {
+  width: clamp(20px, 3.2dvh, 28px);
+  height: clamp(20px, 3.2dvh, 28px);
+  color: var(--primary);
+}
+.signup-upload-text {
+  font-size: clamp(10px, 1.4dvh, 12px);
+  font-weight: 700;
+  color: var(--foreground);
 }
 
 .signup-agreement,
@@ -2603,83 +2562,97 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: clamp(10px, 1.5dvh, 13px);
-  gap: 8px;
+  gap: 6px;
+  font-size: clamp(10px, 1.3dvh, 12px);
+  color: var(--muted-foreground);
+  margin-top: 1px;
+  flex-shrink: 0;
 }
 .signup-agreement-label {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--muted-foreground);
   cursor: pointer;
 }
-.signup-error {
-  color: var(--destructive);
-  font-size: 11px;
+.signup-agreement-label input {
+  accent-color: var(--primary);
+  height: clamp(12px, 1.6dvh, 15px);
+  width: clamp(12px, 1.6dvh, 15px);
 }
 .login-forgot {
+  background: none;
+  border: none;
   color: var(--primary);
-  white-space: nowrap;
-  font-size: clamp(10.5px, 1.5dvh, 13px);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
+.signup-error {
+  color: #ef4444;
+  font-size: 11px;
+}
+
 .signup-actions {
   display: flex;
   flex-direction: column;
-  gap: clamp(3px, 0.8dvh, 8px);
+  gap: clamp(4px, 0.8dvh, 7px);
+  margin-top: clamp(2px, 0.6dvh, 6px);
+  flex-shrink: 0;
 }
 
-/* ===== 3-in-1 Social Row (Google, Apple, 6-Digit in ONE ROW) ===== */
-.auth-social-row {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(6px, 1vw, 10px);
-}
-.auth-social-row button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(4px, 0.6vw, 6px);
-  height: clamp(30px, 4.2dvh, 40px);
-  padding: 0 clamp(4px, 0.8vw, 8px);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--card) 95%, transparent);
-  color: var(--foreground);
-  font-size: clamp(10.5px, 1.5dvh, 12.5px);
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-.auth-social-row button:hover:not(:disabled) {
-  background: var(--muted);
-  border-color: var(--primary);
-  transform: translateY(-1px);
-}
-.auth-social-row button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-.auth-g {
-  color: oklch(0.65 0.2 25);
-  font-weight: 800;
-}
-
-/* ===== Outstanding Full-Width Primary Buttons ===== */
 .auth-btn-primary {
-  height: clamp(36px, 5.2dvh, 46px);
-  border-radius: 999px;
+  width: 100%;
+  padding: clamp(7px, 1.4dvh, 11px) 14px;
+  font-size: clamp(12px, 1.6dvh, 14.5px);
   font-weight: 700;
-  font-size: clamp(12.5px, 1.8dvh, 15px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 14px color-mix(in oklab, var(--primary) 35%, transparent);
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--primary) 35%, transparent);
 }
 .auth-btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 18px color-mix(in oklab, var(--primary) 45%, transparent);
+}
+
+.auth-social-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(4px, 0.8dvh, 6px);
+  width: 100%;
+}
+.auth-social-btn,
+.auth-social-row button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: clamp(5px, 1dvh, 8px) 6px;
+  font-size: clamp(10.5px, 1.4dvh, 12px);
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  transition: all 0.2s ease;
+  min-height: clamp(30px, 4.2dvh, 36px);
+  cursor: pointer;
+}
+.auth-social-btn:hover,
+.auth-social-row button:hover {
+  border-color: var(--primary);
+  background: var(--muted);
+}
+.auth-social-icon {
+  width: clamp(13px, 1.8dvh, 16px);
+  height: clamp(13px, 1.8dvh, 16px);
+  flex-shrink: 0;
 }
 
 /* ===== 1/2 + 1/2 Bottom Card Box ===== */
@@ -2687,31 +2660,29 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: center;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1.5px solid var(--border);
-  background: color-mix(in oklab, var(--card) 85%, transparent);
+  background: var(--card);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  margin-top: clamp(2px, 0.6dvh, 6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 .auth-split-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(5px, 1dvh, 9px) 6px;
-  font-size: clamp(10px, 1.4dvh, 12px);
+  padding: clamp(6px, 1.2dvh, 10px) 8px;
+  font-size: clamp(10.5px, 1.4dvh, 12px);
+  font-weight: 600;
   color: var(--muted-foreground);
-  font-weight: 500;
   text-align: center;
   line-height: 1.2;
 }
+
+/* ===== Solid Filled Contrast Buttons in Split Card ===== */
 .auth-split-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(5px, 1dvh, 9px) 6px;
-  font-size: clamp(10.5px, 1.4dvh, 12.5px);
-  font-weight: 700;
+  padding: clamp(6px, 1.2dvh, 10px) 8px;
+  font-size: clamp(11px, 1.5dvh, 13px);
+  font-weight: 800;
   text-align: center;
   border-left: 1.5px solid var(--border);
   text-decoration: none;
@@ -2719,168 +2690,173 @@ body {
   line-height: 1.2;
 }
 
-/* Unique Button on Create Account -> "Log In →" (Emerald Green) */
+/* Create Account Page: "Log In →" (Solid Filled Vibrant Emerald) */
 .auth-split-btn-emerald {
-  background: rgba(16, 185, 129, 0.16);
-  color: #34d399;
-  border-left-color: rgba(16, 185, 129, 0.35);
+  background: #059669;
+  color: #ffffff !important;
+  border-left-color: #047857;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
 }
 .auth-split-btn-emerald:hover {
   background: #10b981;
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
-/* Unique Button on Login -> "Register now →" (Warm Amber / Terracotta) */
+/* Login Page: "Register now →" (Solid Filled Warm Amber / Terracotta) */
 .auth-split-btn-register {
-  background: rgba(245, 158, 11, 0.16);
-  color: #fbbf24;
-  border-left-color: rgba(245, 158, 11, 0.35);
+  background: #d97706;
+  color: #ffffff !important;
+  border-left-color: #b45309;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);
 }
 .auth-split-btn-register:hover {
   background: #f59e0b;
-  color: #1c1917;
+  color: #ffffff !important;
 }
 
 /* ===== Fluid Screen Detection: Big Screens (Logo on Left, Form on Right) ===== */
 @media (min-width: 768px) {
   .signup-layout {
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    display: grid;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(340px, 1.15fr);
+    max-width: 980px;
+    gap: clamp(16px, 3vw, 40px);
     align-items: center;
-    gap: clamp(14px, 3.5vw, 48px);
-    padding: 0 clamp(12px, 3vw, 40px) clamp(6px, 1.2dvh, 16px);
   }
   .signup-hero {
+    display: flex;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
+    gap: clamp(12px, 2dvh, 20px);
   }
-  .signup-brand-ring .auth-brand-emblem {
-    width: clamp(120px, min(32dvh, 22vw), 300px) !important;
-  }
-  .signup-hero-brand,
   .signup-benefits {
     display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1.2dvh, 10px);
+    width: 100%;
+    max-width: 280px;
+    margin-top: 4px;
+  }
+  .signup-benefit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: clamp(6px, 1dvh, 8px) 10px;
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--card) 60%, transparent);
+    border: 1px solid var(--border);
+  }
+  .signup-benefit-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: color-mix(in oklab, var(--primary) 15%, transparent);
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+  .signup-benefit-text h3 {
+    font-size: clamp(11px, 1.4dvh, 12.5px);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  .signup-benefit-text p {
+    font-size: clamp(9.5px, 1.2dvh, 11px);
+    color: var(--muted-foreground);
+    line-height: 1.15;
   }
   .signup-form-panel {
-    padding: clamp(10px, 2dvh, 24px) clamp(14px, 2vw, 30px);
-    border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
-    border-radius: 20px;
-    background: color-mix(in oklab, var(--card) 85%, transparent);
+    max-width: 500px;
   }
 }
 
-/* Fluid Safeguard for Short/Landscape Tablets */
 @media (min-width: 768px) and (max-height: 640px) {
   .signup-benefits {
-    display: none !important;
+    display: none;
   }
-  .signup-hero-brand {
-    font-size: clamp(14px, 1.8vw, 18px) !important;
-  }
-  .signup-brand-ring .auth-brand-emblem {
-    width: clamp(90px, 24dvh, 150px) !important;
-  }
-  .signup-form-panel {
-    padding: clamp(6px, 1.2dvh, 14px) clamp(10px, 1.5vw, 20px) !important;
-  }
-  .signup-form-heading h1 {
-    font-size: clamp(16px, 2.3dvh, 20px) !important;
-  }
-  .signup-form-heading p {
-    font-size: clamp(10px, 1.3dvh, 12px) !important;
-    margin-bottom: 2px !important;
-  }
-  .signup-form,
-  .signup-actions {
-    gap: clamp(2px, 0.6dvh, 5px) !important;
+  .signup-hero {
+    gap: 4px;
   }
 }
 
-/* ===== Light Theme Overrides (Warm Cream, Crisp Cardboxes, Terracotta) ===== */
+/* ===== Light Theme Overrides (Warm Cream & Terracotta) ===== */
 :root:not(.dark) .signup-page {
-  background-color: #faf5ee;
-  color: #2b221b;
+  background: #faf5ee;
+  color: #2b231d;
 }
 :root:not(.dark) .signup-hero-brand {
-  background: linear-gradient(90deg, #d96f43, #2b221b);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  border-color: #e8dcd0;
+  background: rgba(255, 255, 255, 0.7);
 }
 :root:not(.dark) .signup-benefit {
-  border-color: rgba(232, 141, 103, 0.4);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.75);
+  border-color: #e8dcd0;
 }
 :root:not(.dark) .signup-benefit-icon {
   background: rgba(232, 141, 103, 0.15);
-  color: #d96f43;
+  color: #c75d38;
 }
 :root:not(.dark) .signup-form-panel {
-  background: rgba(255, 255, 255, 0.7);
-  border-color: rgba(232, 141, 103, 0.4);
+  background: transparent;
 }
 :root:not(.dark) .auth-btn-primary {
-  background-color: #e88d67;
+  background: #e88d67;
   color: #ffffff;
+  box-shadow: 0 4px 14px rgba(232, 141, 103, 0.35);
 }
 :root:not(.dark) .auth-btn-primary:hover {
-  background-color: #d96f43;
+  background: #d67953;
 }
-
-/* Light Theme: Shaded Cardbox Inputs */
 :root:not(.dark) .signup-field-input,
 :root:not(.dark) .signup-currency-select,
 :root:not(.dark) .signup-col-picker button {
   background: #ffffff;
   border-color: #dfcfc2;
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(43, 34, 27, 0.06);
-  color: #2b221b;
+  color: #2b231d;
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.05);
 }
 :root:not(.dark) .signup-field-input:focus,
 :root:not(.dark) .signup-col-picker button:focus-visible {
   border-color: #e88d67;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(232, 141, 103, 0.25);
+  box-shadow: 0 0 0 2px rgba(232, 141, 103, 0.25);
 }
-:root:not(.dark) .signup-upload .logo-crop {
-  background: #ffffff;
-  border-color: rgba(232, 141, 103, 0.6);
-  box-shadow: inset 0 1px 2px rgba(43, 34, 27, 0.05);
+:root:not(.dark) .signup-upload-btn {
+  background: #f4eee5;
+  border-color: #dfcfc2;
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.06);
 }
 :root:not(.dark) .auth-social-btn,
 :root:not(.dark) .auth-social-row button {
   background: #ffffff;
-  border-color: #ecd9cb;
-  color: #2b221b;
+  border-color: #dfcfc2;
+  color: #2b231d;
 }
-
-/* Light Theme: Emerald Green Split Button */
+:root:not(.dark) .auth-split-card {
+  background: #ffffff;
+  border-color: #dfcfc2;
+}
 :root:not(.dark) .auth-split-btn-emerald {
-  background: rgba(16, 185, 129, 0.14);
-  color: #047857;
-  border-left-color: rgba(16, 185, 129, 0.3);
+  background: #047857;
+  color: #ffffff !important;
+  border-left-color: #065f46;
 }
 :root:not(.dark) .auth-split-btn-emerald:hover {
   background: #059669;
-  color: #ffffff;
 }
-
-/* Light Theme: Amber/Terracotta Split Button */
 :root:not(.dark) .auth-split-btn-register {
-  background: color-mix(in oklab, #e88d67 22%, #faf5ee);
-  color: #c75d38;
-  border-left-color: #ecd9cb;
+  background: #c2410c;
+  color: #ffffff !important;
+  border-left-color: #9a3412;
 }
 :root:not(.dark) .auth-split-btn-register:hover {
-  background: #e88d67;
-  color: #ffffff;
+  background: #ea580c;
 }
 
-/* -------------------------------------------------------
-   Rotation Keyframes & Brand Orbit
-------------------------------------------------------- */
-@keyframes spin {
+/* ===== Orbit Keyframes ===== */
+@keyframes spin-slow {
   from {
     transform: rotate(0deg);
   }
@@ -2888,54 +2864,17 @@ body {
     transform: rotate(360deg);
   }
 }
-
-.auth-brand-emblem {
-  position: relative;
-  width: var(--emblem-size);
-  aspect-ratio: 1;
-  margin: 0 auto;
-  display: grid;
-  place-items: center;
+@keyframes counter-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
 }
-
-/* Central 3D master emblem */
-.auth-brand-emblem-core {
-  position: relative;
-  width: 72%;
-  height: 72%;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 0 28px rgba(0, 230, 118, 0.35);
-  border: 2px solid rgba(0, 230, 118, 0.4);
-  z-index: 1;
+.animate-spin-slow {
+  animation: spin-slow 40s linear infinite;
 }
-
-.auth-brand-emblem-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Orbit track layer revolving 360 degrees */
-.auth-brand-orbit {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-
-/* Individual app icon centered on its coordinate with counter-rotation */
-.auth-orbit-icon {
-  position: absolute;
-  width: clamp(16px, 12%, 36px);
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  display: grid;
-  place-items: center;
-  border-radius: 26%;
-  background: color-mix(in oklab, var(--card) 85%, transparent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-  padding: clamp(2px, 0.6vw, 4px);
-  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+.animate-counter-spin {
+  animation: counter-spin 40s linear infinite;
 }
