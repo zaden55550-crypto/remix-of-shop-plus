@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Lock, Store } from "lucide-react";
 import { toast } from "sonner";
-import { BrandRing, Field, TopBar } from "@/components/shopbook/ui";
+import { BrandRing, Field, SocialButtons, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
@@ -41,24 +41,36 @@ function Login() {
   };
 
   return (
-    <main dir={dir} className="app-screen pb-8">
-      <TopBar />
-      <div className="mt-4"><BrandRing /></div>
-      <h1 className="mt-3 text-center text-3xl font-bold">{tr("Log In")}</h1>
-      <p className="text-center text-sm text-muted-foreground">{tr("Sign in to your shop account")}</p>
-      <form onSubmit={submit} className="mt-5 space-y-3 px-5">
-        <Field icon={<Store className="h-5 w-5" />} label={tr("Shop Name or Phone Number")} placeholder={tr("Enter shop name or phone number")} autoComplete="username" value={id} onChange={(e) => setId(e.target.value)} required />
-        <Field icon={<Lock className="h-5 w-5" />} password label={tr("Password")} placeholder={tr("Enter your password")} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
-        <div className="flex items-start justify-between gap-2 text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 accent-primary" /> {tr("Remember me")}
-          </label>
-          <ShopButton variant="bare" type="button" className="h-auto w-auto p-0 text-start text-sm text-primary" onClick={() => toast(tr("Ask your shop admin to reset your password."))}>{tr("Forgot Password?")}</ShopButton>
-        </div>
-        <ShopButton type="submit">{tr("Log In")}</ShopButton>
-        <div className="flex items-center gap-3 text-xs text-muted-foreground"><span className="h-px flex-1 bg-border" />{tr("OR")}<span className="h-px flex-1 bg-border" /></div>
-        <Link to="/signup" className="block"><ShopButton type="button" variant="outline">{tr("Create Account")}</ShopButton></Link>
-      </form>
+    <main dir={dir} className="app-screen signup-page auth-login">
+      <div className="signup-topbar"><TopBar /></div>
+      <div className="signup-layout">
+        <section className="signup-hero" aria-label="SHOPBOOK ERP">
+          <div className="signup-brand-ring"><BrandRing size={180} /></div>
+        </section>
+        <section className="signup-form-panel">
+          <header className="signup-form-heading">
+            <h1>{tr("Log In")}</h1>
+            <p>{tr("Sign in to your shop account")}</p>
+          </header>
+          <form onSubmit={submit} className="signup-form">
+            <div className="login-fields">
+              <Field icon={<Store className="h-5 w-5" />} label={tr("Shop Name or Phone Number")} placeholder={tr("Enter shop name or phone number")} autoComplete="username" value={id} onChange={(e) => setId(e.target.value)} required />
+              <Field icon={<Lock className="h-5 w-5" />} password label={tr("Password")} placeholder={tr("Enter your password")} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
+            </div>
+            <div className="signup-agreement login-row">
+              <label className="signup-agreement-label">
+                <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} /> <span>{tr("Remember me")}</span>
+              </label>
+              <button type="button" className="login-forgot" onClick={() => toast(tr("Ask your shop admin to reset your password."))}>{tr("Forgot Password?")}</button>
+            </div>
+            <div className="signup-actions">
+              <ShopButton type="submit">{tr("Log In")}</ShopButton>
+              <SocialButtons />
+              <p className="signup-login-link">{tr("Don't have an account?")} <Link to="/signup">{tr("Create Account")}</Link></p>
+            </div>
+          </form>
+        </section>
+      </div>
     </main>
   );
 }

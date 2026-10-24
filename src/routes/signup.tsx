@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Lock, Phone, Store, ShieldCheck, MonitorSmartphone, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
-import { BrandRing, Field, LogoCropPicker, TopBar } from "@/components/shopbook/ui";
+import { BrandRing, Field, LogoCropPicker, SocialButtons, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
@@ -234,6 +234,7 @@ function Signup() {
 
             <div className="signup-actions">
               <ShopButton type="submit">{tr("Create Account")} →</ShopButton>
+              <SocialButtons />
 
               <p className="signup-login-link">
                 {tr("Already have an account?")} <Link to="/">{tr("Log In")}</Link>
