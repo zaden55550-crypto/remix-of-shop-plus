@@ -859,18 +859,14 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+    const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!pasted) return;
 
     const next = [...pinDigits];
     for (let i = 0; i < pasted.length; i++) {
-      const validCodes: string[] = [
-        "123456",
-        "999999",
-        ...(currentShop?.password ? [currentShop.password.slice(0, 6)] : []),
-      ];
+      next[i] = pasted[i];
     }
     setPinDigits(next);
     const focusIdx = Math.min(pasted.length, 5);
@@ -885,6 +881,23 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
     }
 
     const currentShop = store.get();
+    const validCodes: string[] = [
+      "123456",
+      "999999",
+      ...(currentShop?.password ? [currentShop.password.slice(0, 6)] : []),
+    ];
+
+    if (validCodes.includes(code)) {
+      toast.success(tr("Admin code accepted! Welcome to the shop."));
+      setShowPinModal(false);
+      store.signIn();
+      onCodeSuccess?.();
+    } else {
+      toast.error(tr("Invalid 6-digit code. Please contact your shop administrator."));
+    }
+  };
+
+    const currentShop = store.get();
     const validCodes = ["123456", "999999", currentShop?.password?.slice(0, 6)].filter(Boolean);
 
     if (validCodes.includes(code)) {
@@ -896,6 +909,7 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
       toast.error(tr("Invalid 6-digit code. Please contact your shop administrator."));
     }
   };
+<svg className="h-4 w-4 shrink-0" width="16" height="16" viewBox="0 0 24 24">
 
   return (
     <div className="auth-social-wrap">
