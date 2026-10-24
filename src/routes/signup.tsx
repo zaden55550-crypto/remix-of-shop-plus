@@ -258,6 +258,13 @@ function Signup() {
               {/* 1/2 + 1/2 Bottom Card Box */}
               <div className="auth-split-card">
                 <span className="auth-split-label">{tr("Already have an account?")}</span>
+                {/* 1/2 + 1/2 Bottom Card Box */}
+                <div className="auth-split-card">
+                  <span className="auth-split-label">{tr("Already have an account?")}</span>
+                  <Link to="/" className="auth-split-btn auth-split-btn-emerald">
+                    {tr("Log In")} →
+                  </Link>
+                </div>
                 <Link to="/" className="auth-split-btn">
                   {tr("Log In")} →
                 </Link>
