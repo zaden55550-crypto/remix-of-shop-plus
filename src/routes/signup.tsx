@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Phone, Store, ShieldCheck, MonitorSmartphone, BriefcaseBusiness } from "lucide-react";
+import { Lock, Mail, Store, ShieldCheck, MonitorSmartphone, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, LogoCropPicker, SocialButtons, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -33,7 +33,7 @@ function Signup() {
 
   const [f, setF] = useState({
     shopName: "",
-    phone: "",
+    email: "",
     password: "",
     confirm: "",
     currency: "KSh",
@@ -78,8 +78,8 @@ function Signup() {
       store.save({
         language,
         shopName: f.shopName.trim(),
-        phone: f.phone.trim(),
-        email: "",
+        email: f.email.trim(),
+        phone: "",
         password: f.password,
         currency: f.currency,
         logo: f.logo || undefined,
@@ -161,14 +161,14 @@ function Signup() {
               />
 
               <Field
-                icon={<Phone className="h-5 w-5" />}
-                inputMode="tel"
-                label={tr("Phone Number")}
-                placeholder={tr("Enter your phone number")}
-                type="tel"
-                autoComplete="tel"
-                value={f.phone}
-                onChange={set("phone")}
+                icon={<Mail className="h-5 w-5" />}
+                inputMode="email"
+                label={tr("Email")}
+                placeholder={tr("Enter your email address")}
+                type="email"
+                autoComplete="email"
+                value={f.email}
+                onChange={set("email")}
                 required
               />
 
@@ -233,12 +233,17 @@ function Signup() {
             </div>
 
             <div className="signup-actions">
-              <ShopButton type="submit">{tr("Create Account")} →</ShopButton>
-              <SocialButtons />
+              <div className="auth-dual-actions">
+                <ShopButton type="submit" className="auth-btn-primary">
+                  {tr("Create Account")} →
+                </ShopButton>
 
-              <p className="signup-login-link">
-                {tr("Already have an account?")} <Link to="/">{tr("Log In")}</Link>
-              </p>
+                <Link to="/" className="auth-btn-secondary">
+                  {tr("Log In")}
+                </Link>
+              </div>
+
+              <SocialButtons />
             </div>
           </form>
         </section>
