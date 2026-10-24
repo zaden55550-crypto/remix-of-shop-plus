@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { LANGS, NATIVE } from "@/lib/i18n";
+import { LANGS, NATIVE, type Lang } from "@/lib/i18n";
 import { RING_ICONS, store } from "@/lib/shopbook";
 import { ShopButton } from "@/components/ui/shop-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -81,8 +81,7 @@ export function ThemeToggle() {
     <div className="flex items-center rounded-full border border-border bg-card/60 p-0.5">
       <ShopButton
         type="button"
-        size="icon"
-        variant={!dark ? "default" : "ghost"}
+        variant={!dark ? "primary" : "bare"}
         onClick={() => setDark(false)}
         className="h-7 w-7 rounded-full"
         title={tr("Light mode")}
@@ -92,8 +91,7 @@ export function ThemeToggle() {
       </ShopButton>
       <ShopButton
         type="button"
-        size="icon"
-        variant={dark ? "default" : "ghost"}
+        variant={dark ? "primary" : "bare"}
         onClick={() => setDark(true)}
         className="h-7 w-7 rounded-full"
         title={tr("Dark mode")}
@@ -110,13 +108,14 @@ export function ThemeToggle() {
 ------------------------------------------------------- */
 
 export function TopBar() {
-  const { lang, setLang } = useLanguage();
+  const { language, setLanguage } = useLanguage();
 
   return (
     <header className="flex w-full items-center justify-between gap-2 px-1 py-1">
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Globe className="h-4 w-4" />
-        <Select value={lang} onValueChange={setLang}>
+        <Select value={language} onValueChange={(v) => setLanguage(v as Lang)}>
+
           <SelectTrigger className="h-8 border-border bg-card/60 text-xs">
             <SelectValue />
           </SelectTrigger>
