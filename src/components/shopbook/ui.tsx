@@ -26,7 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { LANGS, NATIVE } from "@/lib/i18n";
+import { LANGS, NATIVE, type Lang } from "@/lib/i18n";
 import { RING_ICONS, store } from "@/lib/shopbook";
 import { ShopButton } from "@/components/ui/shop-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
