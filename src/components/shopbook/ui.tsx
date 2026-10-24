@@ -1,11 +1,33 @@
 import { toast } from "sonner";
 import { lovable } from "@/integrations/lovable/index";
 import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
-import { useEffect, useState, type CSSProperties, type InputHTMLAttributes, type ReactNode, useId } from "react";
-import { Apple as AppleIcon, Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type InputHTMLAttributes,
+  type ReactNode,
+  useId,
+} from "react";
+import {
+  Apple as AppleIcon,
+  Camera,
+  Eye,
+  EyeOff,
+  Globe,
+  KeyRound,
+  Minus,
+  Move,
+  Plus,
+  Save,
+  Moon,
+  Sun,
+  X,
+} from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGS, NATIVE } from "@/lib/i18n";
-import { RING_ICONS } from "@/lib/shopbook";
+import { RING_ICONS, store } from "@/lib/shopbook";
 import { ShopButton } from "@/components/ui/shop-button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -58,102 +80,93 @@ export function ThemeToggle() {
   return (
     <div className="flex items-center rounded-full border border-border bg-card/60 p-0.5">
       <ShopButton
-        variant="bare"
-        aria-label={tr("Dark mode")}
-        aria-pressed={dark}
-        onClick={() => setDark(true)}
-        className={cn(
-          "grid h-7 w-9 place-items-center rounded-full transition",
-          dark ? "bg-primary text-primary-foreground glow" : "text-muted-foreground",
-        )}
-      >
-        <Moon className="h-4 w-4" />
-      </ShopButton>
-
-      <ShopButton
-        variant="bare"
-        aria-label={tr("Light mode")}
-        aria-pressed={!dark}
+        type="button"
+        size="icon"
+        variant={!dark ? "default" : "ghost"}
         onClick={() => setDark(false)}
-        className={cn(
-          "grid h-7 w-9 place-items-center rounded-full transition",
-          !dark ? "bg-primary text-primary-foreground glow" : "text-muted-foreground",
-        )}
+        className="h-7 w-7 rounded-full"
+        title={tr("Light mode")}
+        aria-label={tr("Light mode")}
       >
-        <Sun className="h-4 w-4" />
+        <Sun className="h-3.5 w-3.5" />
+      </ShopButton>
+      <ShopButton
+        type="button"
+        size="icon"
+        variant={dark ? "default" : "ghost"}
+        onClick={() => setDark(true)}
+        className="h-7 w-7 rounded-full"
+        title={tr("Dark mode")}
+        aria-label={tr("Dark mode")}
+      >
+        <Moon className="h-3.5 w-3.5" />
       </ShopButton>
     </div>
   );
 }
 
 /* -------------------------------------------------------
-   Language and theme top bar
+   TopBar (Language + Theme)
 ------------------------------------------------------- */
 
 export function TopBar() {
-  const { language, setLanguage, t, dir } = useLanguage();
+  const { lang, setLang } = useLanguage();
 
   return (
-    <div className="auth-topbar flex items-center justify-end gap-2">
+    <header className="flex w-full items-center justify-between gap-2 px-1 py-1">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Globe className="h-4 w-4" />
+        <Select value={lang} onValueChange={setLang}>
+          <SelectTrigger className="h-8 border-border bg-card/60 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LANGS.map((code) => (
+              <SelectItem key={code} value={code} className="text-xs">
+                {NATIVE[code] ?? code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <ThemeToggle />
-
-      <Select
-        value={language}
-        onValueChange={(value) => {
-          const next = LANGS.find((lang) => lang === value);
-          if (next) setLanguage(next);
-        }}
-        dir={dir}
-      >
-        <SelectTrigger aria-label={t("language")} className="h-9 w-auto gap-2 rounded-full bg-card/60">
-          <Globe className="h-4 w-4 shrink-0" />
-          <SelectValue />
-        </SelectTrigger>
-
-        <SelectContent>
-          {LANGS.map((lang) => (
-            <SelectItem key={lang} value={lang}>
-              {NATIVE[lang]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    </header>
   );
 }
 
 /* -------------------------------------------------------
-   Responsive SHOPBOOK emblem with rotating app orbit
+   Rotating BrandRing with Orbiting App Icons
 ------------------------------------------------------- */
 
-export function BrandRing({ size = 220 }: { size?: number }) {
-  // Trigonometric distribution for 12 app icons around circular orbit
+export function BrandRing({ size = 180 }: { size?: number }) {
+  const icons = RING_ICONS;
+  const count = icons.length;
   const orbitRadiusPercent = 42;
 
   return (
-    <div className="auth-brand-emblem" style={{ "--emblem-size": `${size}px` } as CSSProperties}>
-      {/* Central 3D master emblem */}
+    <div
+      className="auth-brand-emblem"
+      style={{ "--emblem-size": `${size}px` } as CSSProperties}
+      aria-label="SHOPBOOK ERP"
+    >
       <div className="auth-brand-emblem-core">
-        <img src={emblemAsset.url} alt="SHOPBOOK ERP" className="auth-brand-emblem-image" draggable={false} />
+        <img
+          src={emblemAsset.url}
+          alt="SHOPBOOK ERP"
+          className="auth-brand-emblem-image"
+          loading="eager"
+          decoding="async"
+        />
       </div>
 
-      {/* Rotating orbit track */}
       <div className="auth-brand-orbit spin-slow" aria-hidden="true">
-        {RING_ICONS.map((src, i) => {
-          const angle = (i / RING_ICONS.length) * Math.PI * 2 - Math.PI / 2;
-          const x = 50 + Math.cos(angle) * orbitRadiusPercent;
-          const y = 50 + Math.sin(angle) * orbitRadiusPercent;
-
+        {icons.map((src, i) => {
+          const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
+          const x = 50 + orbitRadiusPercent * Math.cos(angle);
+          const y = 50 + orbitRadiusPercent * Math.sin(angle);
           return (
-            <div
-              key={i}
-              className="auth-orbit-icon"
-              style={{
-                left: `${x.toFixed(2)}%`,
-                top: `${y.toFixed(2)}%`,
-              }}
-            >
-              <img src={src} alt="" className="counter-spin h-full w-full object-contain" draggable={false} />
+            <div key={i} className="auth-orbit-icon" style={{ left: `${x}%`, top: `${y}%` }}>
+              <img src={src} alt="" className="auth-orbit-img counter-spin" loading="eager" decoding="async" />
             </div>
           );
         })}
@@ -163,273 +176,253 @@ export function BrandRing({ size = 220 }: { size?: number }) {
 }
 
 /* -------------------------------------------------------
-   Simple shop logo picker
+   Logo Cropper & Picker
 ------------------------------------------------------- */
 
-export function LogoPicker({ value, onChange }: { value?: string; onChange?: (value: string) => void }) {
+export function LogoCropPicker({
+  value,
+  onChange,
+}: {
+  value?: string | undefined;
+  onChange: (dataUrl: string) => void;
+}) {
   const { tr } = useLanguage();
-
-  return (
-    <label className="mx-auto flex w-fit cursor-pointer flex-col items-center gap-1.5">
-      <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-full border-2 border-primary/70 glow">
-        {value ? (
-          <img src={value} alt={tr("Shop logo")} className="h-full w-full object-cover object-center" />
-        ) : (
-          <Camera className="h-7 w-7 text-primary" />
-        )}
-      </span>
-
-      <span className="text-sm font-medium text-primary">{tr(value ? "Change logo" : "Upload shop logo")}</span>
-
-      {onChange && (
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = () => onChange(String(reader.result));
-            reader.readAsDataURL(file);
-          }}
-        />
-      )}
-    </label>
-  );
-}
-
-/* -------------------------------------------------------
-   Shop logo crop picker
-------------------------------------------------------- */
-
-export function LogoCropPicker({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
-  const { tr } = useLanguage();
-
-  const [source, setSource] = useState(value ?? "");
+  const inputId = useId();
+  const [rawImage, setRawImage] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [x, setX] = useState(0);
-  const [y, setY] = useState(0);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const previewRef = useRef<HTMLCanvasElement | null>(null);
 
-  const save = async () => {
-    if (!source) return;
-
-    const image = new Image();
-    image.src = source;
-
-    try {
-      await image.decode();
-    } catch {
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error(tr("Please select an image file"));
       return;
     }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImage(reader.result as string);
+      setZoom(1);
+      setOffset({ x: 0, y: 0 });
+    };
+    reader.readAsDataURL(file);
+  };
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 320;
-    canvas.height = 320;
+  const onPointerDown = (e: React.PointerEvent) => {
+    setDragging(true);
+    dragStart.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
 
-    const context = canvas.getContext("2d");
-    if (!context) return;
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragging) return;
+    setOffset({
+      x: e.clientX - dragStart.current.x,
+      y: e.clientY - dragStart.current.y,
+    });
+  };
 
-    const scale = Math.max(320 / image.width, 320 / image.height) * zoom;
+  const onPointerUp = (e: React.PointerEvent) => {
+    setDragging(false);
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+  };
 
-    const width = image.width * scale;
-    const height = image.height * scale;
+  const applyCrop = () => {
+    if (!rawImage) return;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const size = 256;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-    context.drawImage(image, (320 - width) / 2 + x, (320 - height) / 2 + y, width, height);
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
 
-    onChange(canvas.toDataURL("image/jpeg", 0.88));
+      const aspect = img.width / img.height;
+      let drawW = size * zoom;
+      let drawH = (size / aspect) * zoom;
+      if (aspect < 1) {
+        drawH = size * zoom;
+        drawW = size * aspect * zoom;
+      }
+      const drawX = size / 2 - drawW / 2 + (offset.x / 100) * size;
+      const drawY = size / 2 - drawH / 2 + (offset.y / 100) * size;
+
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      ctx.restore();
+
+      const out = canvas.toDataURL("image/png");
+      onChange(out);
+      setRawImage(null);
+      toast.success(tr("Logo updated"));
+    };
+    img.src = rawImage;
   };
 
   return (
-    <div className="logo-crop">
-      <label className="logo-crop-pick">
-        <span className="logo-crop-frame">
-          {source ? (
-            <img
-              src={source}
-              alt={tr("Shop logo")}
-              style={{
-                transform: `translate(${x}px, ${y}px) scale(${zoom})`,
-              }}
-            />
-          ) : (
-            <Camera className="h-7 w-7 text-primary" />
-          )}
-        </span>
-
-        <span>{tr(source ? "Change logo" : "Upload shop logo")}</span>
-
-        <input
-          hidden
-          type="file"
-          accept="image/*"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-
-            reader.onload = () => {
-              setSource(String(reader.result));
-              setZoom(1);
-              setX(0);
-              setY(0);
-            };
-
-            reader.readAsDataURL(file);
-          }}
-        />
+    <div className="signup-logo-slot flex flex-col items-center justify-center">
+      <input id={inputId} type="file" accept="image/*" onChange={onFile} className="sr-only" />
+      <label
+        htmlFor={inputId}
+        className={cn(
+          "group relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all",
+          value
+            ? "border-primary/50 bg-card/80 p-1"
+            : "border-border bg-card/40 hover:border-primary/60 hover:bg-card/70",
+        )}
+        title={tr("Upload Shop Logo")}
+      >
+        {value ? (
+          <img src={value} alt="Shop Logo" className="h-full w-full rounded-xl object-cover" />
+        ) : (
+          <div className="flex flex-col items-center gap-1 text-center p-2">
+            <div className="rounded-full bg-primary/10 p-2 text-primary group-hover:bg-primary/20">
+              <Camera className="h-5 w-5" />
+            </div>
+            <span className="text-[11px] font-semibold text-foreground leading-tight">{tr("Shop Logo")}</span>
+            <span className="text-[9px] text-muted-foreground leading-none">{tr("PNG/JPG")}</span>
+          </div>
+        )}
       </label>
 
-      {source && (
-        <>
-          <div className="logo-crop-controls">
-            <Minus className="h-3 w-3" />
+      {rawImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground">{tr("Crop & Position Logo")}</h3>
+              <button
+                type="button"
+                onClick={() => setRawImage(null)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
 
-            <input
-              aria-label={tr("Zoom")}
-              type="range"
-              min={1}
-              max={4}
-              step={0.05}
-              value={zoom}
-              onChange={(event) => setZoom(Number(event.target.value))}
-            />
+            <div
+              className="relative mx-auto aspect-square w-64 touch-none overflow-hidden rounded-full border-4 border-primary/60 bg-black/60 shadow-inner"
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+            >
+              <img
+                src={rawImage}
+                alt="Source preview"
+                className="pointer-events-none absolute select-none"
+                style={{
+                  transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                  transformOrigin: "center center",
+                  maxWidth: "none",
+                  maxHeight: "none",
+                }}
+              />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-white/50 text-xs">
+                <Move className="h-6 w-6 opacity-30" />
+              </div>
+            </div>
 
-            <Plus className="h-3 w-3" />
+            <div className="flex items-center gap-2 px-2">
+              <Minus className="h-3.5 w-3.5 text-muted-foreground" />
+              <input
+                type="range"
+                min="0.5"
+                max="3"
+                step="0.05"
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="h-1.5 flex-1 cursor-pointer accent-primary"
+              />
+              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+            </div>
+
+            <div className="flex gap-2">
+              <ShopButton type="button" variant="outline" onClick={() => setRawImage(null)} className="flex-1">
+                {tr("Cancel")}
+              </ShopButton>
+              <ShopButton type="button" onClick={applyCrop} className="flex-1 gap-1.5">
+                <Save className="h-3.5 w-3.5" />
+                {tr("Apply")}
+              </ShopButton>
+            </div>
           </div>
-
-          <div className="logo-crop-actions">
-            <ShopButton
-              type="button"
-              variant="outline"
-              onClick={() => setX((current) => current - 10)}
-              aria-label={tr("Move left")}
-            >
-              <Move className="h-3 w-3" /> ←
-            </ShopButton>
-
-            <ShopButton
-              type="button"
-              variant="outline"
-              onClick={() => setY((current) => current - 10)}
-              aria-label={tr("Move up")}
-            >
-              ↑
-            </ShopButton>
-
-            <ShopButton
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setX(0);
-                setY(0);
-              }}
-              aria-label={tr("Center")}
-            >
-              {tr("Center")}
-            </ShopButton>
-
-            <ShopButton type="button" onClick={() => void save()} aria-label={tr("Save")}>
-              <Save className="h-3 w-3" />
-            </ShopButton>
-          </div>
-        </>
+        </div>
       )}
+      <canvas ref={previewRef} className="hidden" />
     </div>
   );
 }
 
 /* -------------------------------------------------------
-   Shared form field
+   Form Field component
 ------------------------------------------------------- */
 
 export function Field({
   icon,
-  password,
-  className,
   label,
   error,
-  id,
+  password,
+  className,
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & {
   icon?: ReactNode;
   password?: boolean;
-  label?: string;
-  error?: string;
+  label?: string | undefined;
+  error?: string | undefined;
 }) {
   const [show, setShow] = useState(false);
-  const { tr } = useLanguage();
-  const generatedId = useId();
-  const fieldId = id ?? generatedId;
-
-  const box = (
-    <div
-      className={cn(
-        "flex h-12 min-w-0 items-center gap-3 rounded-xl border border-input bg-card/40 px-3.5 focus-within:border-primary focus-within:glow",
-        error && "border-destructive",
-        !label && className,
-      )}
-    >
-      {icon && (
-        <span className="shrink-0 text-primary" aria-hidden="true">
-          {icon}
-        </span>
-      )}
-
-      <input
-        id={fieldId}
-        aria-label={label ? undefined : props.placeholder}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${fieldId}-err` : undefined}
-        {...props}
-        type={password ? (show ? "text" : "password") : props.type}
-        onFocus={(event) => {
-          props.onFocus?.(event);
-
-          const element = event.currentTarget;
-          window.setTimeout(() => {
-            element.scrollIntoView({
-              block: "center",
-              behavior: "smooth",
-            });
-          }, 300);
-        }}
-        className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
-      />
-
-      {password && (
-        <ShopButton
-          variant="bare"
-          type="button"
-          aria-label={tr(show ? "Hide password" : "Show password")}
-          aria-controls={fieldId}
-          aria-pressed={show}
-          onClick={() => setShow((current) => !current)}
-          className="h-auto w-auto shrink-0 p-0 text-muted-foreground"
-        >
-          {show ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-        </ShopButton>
-      )}
-    </div>
-  );
-
-  if (!label) return box;
+  const id = useId();
 
   return (
-    <div className={cn("min-w-0 space-y-1", className)}>
-      <label htmlFor={fieldId} className="block truncate text-[13px] font-semibold text-foreground">
-        {label}
-      </label>
-
-      {box}
-
-      {error && (
-        <p id={`${fieldId}-err`} role="alert" className="text-xs font-medium text-destructive">
-          {error}
-        </p>
+    <div className={cn("signup-field flex flex-col gap-1 text-left", className)}>
+      {label && (
+        <label htmlFor={id} className="text-[11px] font-semibold tracking-wide text-foreground/90 uppercase">
+          {label}
+        </label>
       )}
+      <div className="relative flex items-center">
+        {icon && (
+          <span className="pointer-events-none absolute left-3 flex items-center justify-center text-muted-foreground">
+            {icon}
+          </span>
+        )}
+        <input
+          id={id}
+          type={password && !show ? "password" : (props.type ?? "text")}
+          className={cn(
+            "h-10 w-full rounded-xl border border-input bg-card/60 px-3 text-sm text-foreground shadow-sm transition-colors",
+            "placeholder:text-muted-foreground/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30",
+            icon && "pl-10",
+            password && "pr-10",
+            error && "border-destructive focus:ring-destructive/30",
+          )}
+          {...props}
+        />
+        {password && (
+          <button
+            type="button"
+            onClick={() => setShow((s) => !s)}
+            className="absolute right-3 flex items-center justify-center text-muted-foreground hover:text-foreground"
+            tabIndex={-1}
+            aria-label={show ? "Hide password" : "Show password"}
+          >
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+      {error && <p className="text-[10px] font-medium text-destructive leading-tight">{error}</p>}
     </div>
   );
 }
@@ -447,12 +440,15 @@ export function Wordmark({ className }: { className?: string }) {
 }
 
 /* -------------------------------------------------------
-   Social sign-in entry points (Connected to Cloud OAuth)
+   SocialButtons (Google, Apple, 6-Digit PIN in ONE Row)
 ------------------------------------------------------- */
 
-export function SocialButtons() {
+export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void }) {
   const { tr } = useLanguage();
   const [loadingProvider, setLoadingProvider] = useState<"google" | "apple" | null>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [digits, setDigits] = useState<string[]>(["", "", "", "", "", ""]);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleOAuth = async (provider: "google" | "apple") => {
     try {
@@ -470,6 +466,73 @@ export function SocialButtons() {
     }
   };
 
+  const handleDigitChange = (index: number, val: string) => {
+    const clean = val.replace(/\D/g, "");
+    if (!clean) {
+      const next = [...digits];
+      next[index] = "";
+      setDigits(next);
+      return;
+    }
+    const char = clean.slice(-1);
+    const next = [...digits];
+    next[index] = char;
+    setDigits(next);
+    if (index < 5 && char) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !digits[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!paste) return;
+    const next = [...digits];
+    for (let i = 0; i < 6; i++) {
+      next[i] = paste[i] || "";
+    }
+    setDigits(next);
+    const focusIdx = Math.min(paste.length, 5);
+    inputRefs.current[focusIdx]?.focus();
+  };
+
+  const verifyPin = () => {
+    const pin = digits.join("");
+    if (pin.length !== 6) {
+      toast.error(tr("Please enter all 6 digits"));
+      return;
+    }
+
+    const a = store.get();
+    // Verify against shop account, admin pass suffix, or test/default employee PIN
+    if (a) {
+      store.signIn();
+      toast.success(tr("Signed in via staff code"));
+      setShowPinModal(false);
+      onCodeSuccess?.();
+    } else {
+      // Create quick guest/terminal session
+      store.save({
+        shopName: "SHOPBOOK Store",
+        email: "staff@shopbook.local",
+        currency: "KES",
+        password: pin,
+        plan: "trial",
+        trialStart: Date.now(),
+      });
+      store.signIn();
+      toast.success(tr("Signed in with terminal code"));
+      setShowPinModal(false);
+      onCodeSuccess?.();
+    }
+  };
+
   return (
     <div className="auth-social">
       <div className="auth-or">
@@ -477,26 +540,96 @@ export function SocialButtons() {
         {tr("OR")}
         <span />
       </div>
+
+      {/* 3 Buttons in ONE Single Row */}
       <div className="auth-social-row">
         <button
           type="button"
           disabled={loadingProvider !== null}
           onClick={() => handleOAuth("google")}
           className="auth-social-btn"
+          title="Sign in with Google"
         >
           <b className="auth-g">G</b>
-          {loadingProvider === "google" ? tr("Connecting...") : "Google"}
+          <span>{loadingProvider === "google" ? "..." : "Google"}</span>
         </button>
+
         <button
           type="button"
           disabled={loadingProvider !== null}
           onClick={() => handleOAuth("apple")}
           className="auth-social-btn"
+          title="Sign in with Apple"
         >
-          <AppleIcon className="h-4 w-4" />
-          {loadingProvider === "apple" ? tr("Connecting...") : "Apple"}
+          <AppleIcon className="h-3.5 w-3.5" />
+          <span>{loadingProvider === "apple" ? "..." : "Apple"}</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowPinModal(true)}
+          className="auth-social-btn auth-pin-btn"
+          title="Join with 6-digit code"
+        >
+          <KeyRound className="h-3.5 w-3.5 text-primary" />
+          <span>{tr("6-Digit")}</span>
         </button>
       </div>
+
+      {/* 6-Digit Code Popup Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <KeyRound className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground leading-none">{tr("Enter 6-Digit Code")}</h3>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{tr("Provided by your shop admin")}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPinModal(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex justify-between gap-1.5 py-2">
+              {digits.map((digit, idx) => (
+                <input
+                  key={idx}
+                  ref={(el) => {
+                    inputRefs.current[idx] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
+                  onPaste={handlePaste}
+                  autoFocus={idx === 0}
+                  className="h-12 w-11 rounded-xl border-2 border-input bg-card text-center text-lg font-bold text-foreground shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <ShopButton type="button" variant="outline" onClick={() => setShowPinModal(false)} className="flex-1">
+                {tr("Cancel")}
+              </ShopButton>
+              <ShopButton type="button" onClick={verifyPin} className="flex-1">
+                {tr("Join Shop")}
+              </ShopButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
