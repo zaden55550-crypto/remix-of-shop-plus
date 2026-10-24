@@ -1,3 +1,4 @@
+import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 import { useEffect, useState, type CSSProperties, type InputHTMLAttributes, type ReactNode, useId } from "react";
 import { Camera, Eye, EyeOff, Globe, Minus, Move, Plus, Save, Moon, Sun } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
@@ -132,7 +133,7 @@ export function BrandRing({ size = 220 }: { size?: number }) {
   return (
     <div className="auth-brand-emblem" style={{ "--emblem-size": `${size}px` } as CSSProperties}>
       <img
-        src="/shopbook/auth-brand-emblem.jpg"
+        src={emblemAsset.url}
         alt="SHOPBOOK ERP"
         className="auth-brand-emblem-image"
         draggable={false}
