@@ -233,17 +233,21 @@ function Signup() {
             </div>
 
             <div className="signup-actions">
-              <div className="auth-dual-actions">
-                <ShopButton type="submit" className="auth-btn-primary">
-                  {tr("Create Account")} →
-                </ShopButton>
+              {/* Full-width Create Account button */}
+              <ShopButton type="submit" className="auth-btn-primary w-full">
+                {tr("Create Account")} →
+              </ShopButton>
 
-                <Link to="/" className="auth-btn-secondary">
-                  {tr("Log In")}
+              {/* 3-in-1 Single Row: Google, Apple, 6-Digit */}
+              <SocialButtons />
+
+              {/* 1/2 + 1/2 Card Box */}
+              <div className="auth-split-card">
+                <span className="auth-split-label">{tr("Already have an account?")}</span>
+                <Link to="/" className="auth-split-btn">
+                  {tr("Log In")} →
                 </Link>
               </div>
-
-              <SocialButtons />
             </div>
           </form>
         </section>
