@@ -125,12 +125,12 @@ function Plans() {
       return;
     }
     const detected = detectUserCountry();
-    if (detected?.currency) {
-      setCurrency(detected.currency);
+    if (detected?.currencyCode) {
+      setCurrency(detected.currencyCode);
     }
   }, []);
 
-  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) ?? PLANS[1], [chosenPlanId]);
+  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) ?? PLANS[1]!, [chosenPlanId]);
 
   const currentPrice = useMemo(
     () => convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency),
