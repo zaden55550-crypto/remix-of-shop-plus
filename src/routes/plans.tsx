@@ -33,21 +33,21 @@ const tone: Record<PlanId, { border: string; activeBorder: string; text: string;
     activeBorder: "border-2 border-emerald-500",
     text: "text-emerald-500 dark:text-emerald-400",
     surface: "bg-emerald-950/25",
-    shadow: "shadow-2xl shadow-emerald-500/25",
+    shadow: "shadow-2xl shadow-emerald-500/30",
   },
   plus: {
     border: "border-blue-500/40",
     activeBorder: "border-2 border-blue-500",
     text: "text-blue-500 dark:text-blue-400",
     surface: "bg-blue-950/30",
-    shadow: "shadow-2xl shadow-blue-500/35",
+    shadow: "shadow-2xl shadow-blue-500/40",
   },
   business: {
     border: "border-orange-500/40",
     activeBorder: "border-2 border-orange-500",
     text: "text-orange-500 dark:text-orange-400",
     surface: "bg-orange-950/20",
-    shadow: "shadow-2xl shadow-orange-500/35",
+    shadow: "shadow-2xl shadow-orange-500/40",
   },
 };
 
@@ -56,8 +56,8 @@ function Plans() {
   const { tr, t, dir } = useLanguage();
   const router = useRouter();
   const [yearly, setYearly] = useState(false);
-  const [selected, setSelected] = useState<PlanId | null>(null);
   const [hovered, setHovered] = useState<PlanId | null>(null);
+  const [chosenPlanId, setChosenPlanId] = useState<PlanId>("plus");
   const [paying, setPaying] = useState(false);
   const [phone, setPhone] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -75,8 +75,8 @@ function Plans() {
   }, []);
 
   const plan = useMemo(
-    () => (PLANS.find((item) => item.id === (selected ?? "plus")) ?? PLANS[1]) as (typeof PLANS)[number],
-    [selected],
+    () => (PLANS.find((item) => item.id === chosenPlanId) ?? PLANS[1]) as (typeof PLANS)[number],
+    [chosenPlanId],
   );
 
   const currentMonthlyUsd = yearly ? plan.yearlyUsd / 12 : plan.monthlyUsd;
@@ -94,16 +94,8 @@ function Plans() {
   };
 
   const handleSelectPlan = (id: PlanId) => {
-    setSelected(id);
+    setChosenPlanId(id);
     setPaying(true);
-  };
-
-  const handleCardClick = (id: PlanId) => {
-    if (selected === id) {
-      handleSelectPlan(id);
-    } else {
-      setSelected(id);
-    }
   };
 
   const handleRestorePurchases = async () => {
@@ -138,7 +130,7 @@ function Plans() {
       toast.error(tr("Enter your payment phone number"));
       return;
     }
-    store.update({ plan: selected ?? "plus" });
+    store.update({ plan: chosenPlanId });
     toast.success(tr(`Payment request sent to ${phone}. Plan activated upon confirmation!`));
     nav({ to: "/apps" });
   };
@@ -199,9 +191,6 @@ function Plans() {
       </main>
     );
   }
-
-  // Active elevated card determination (hover takes priority, then explicit click selection)
-  const activeCardId = hovered ?? selected;
 
   return (
     <main
@@ -273,13 +262,12 @@ function Plans() {
         </button>
       </div>
 
-      {/* 3 Plans Columns Grid */}
+      {/* 3 Plans Columns Grid - All equal by default, only hovered card elevates */}
       <div className="grid grid-cols-3 gap-1.5 md:gap-2.5 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
         {PLANS.map((item) => {
           const isMid = item.id === "plus";
           const isBest = item.id === "business";
-          const isElevated = activeCardId === item.id;
-          const hasAnyActive = activeCardId !== null;
+          const isHovered = hovered === item.id;
           const itemTone = tone[item.id];
 
           const monthlyEquivalentUsd = yearly ? item.yearlyUsd / 12 : item.monthlyUsd;
@@ -291,21 +279,17 @@ function Plans() {
               key={item.id}
               onMouseEnter={() => setHovered(item.id)}
               onMouseLeave={() => setHovered(null)}
-              onClick={() => handleCardClick(item.id)}
+              onClick={() => handleSelectPlan(item.id)}
               className={cn(
-                "relative flex flex-col justify-between rounded-lg p-2 text-start transition-all duration-200 ease-out cursor-pointer select-none",
-                isElevated
+                "relative flex flex-col justify-between rounded-lg p-2 text-start transition-all duration-200 ease-out cursor-pointer select-none border opacity-100",
+                itemTone.surface,
+                isHovered
                   ? cn(
-                      "-translate-y-1.5 md:-translate-y-2.5 scale-[1.02] md:scale-[1.025] z-30 opacity-100",
+                      "-translate-y-1.5 md:-translate-y-2.5 scale-[1.02] md:scale-[1.025] z-30",
                       itemTone.activeBorder,
                       itemTone.shadow,
                     )
-                  : cn(
-                      "translate-y-0 z-10 border",
-                      hasAnyActive ? "opacity-85 scale-[0.99]" : "opacity-100 scale-100",
-                      itemTone.border,
-                    ),
-                itemTone.surface,
+                  : cn("translate-y-0 scale-100 z-10", itemTone.border),
               )}
             >
               {/* RECOMMENDED Badge for Middle Plan */}
@@ -351,7 +335,7 @@ function Plans() {
                   {tr(item.tagline)}
                 </div>
 
-                {/* Optional Tier Lead Chip (e.g. "✦ Basic plus:", "✦ Plus plus:") */}
+                {/* Optional Tier Lead Chip */}
                 {item.intro && (
                   <div className="mb-1 text-center">
                     <span
