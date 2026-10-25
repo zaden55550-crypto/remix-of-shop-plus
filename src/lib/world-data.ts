@@ -1273,6 +1273,16 @@ export const USD_RATES: Record<string, { rate: number; symbol: string; prefix?: 
   LKR: { rate: 300, symbol: "Rs", prefix: true },
 };
 
+/**
+ * Custom rounding rule: if the decimal fraction is 0.4 or higher,
+ * round up to the nearest whole number. Otherwise round down.
+ */
+export function roundPointFour(val: number): number {
+  const floor = Math.floor(val);
+  const frac = val - floor;
+  return frac >= 0.4 - 1e-9 ? floor + 1 : floor;
+}
+
 export function convertUsdToCurrency(
   usdAmount: number,
   currencyCode: string = "USD",
@@ -1285,12 +1295,16 @@ export function convertUsdToCurrency(
   const code = (currencyCode || "USD").toUpperCase();
   const info = USD_RATES[code] || { rate: 1, symbol: code, prefix: true };
   const raw = usdAmount * info.rate;
-  const amount = info.rate >= 10 ? Math.round(raw) : Number(raw.toFixed(raw % 1 === 0 ? 0 : 2));
+
+  // Apply .4 and above round-up rule
+  const amount = raw % 1 === 0 ? raw : roundPointFour(raw);
   const numStr = amount.toLocaleString("en-US");
+
   const formatted = info.prefix
     ? info.symbol === "$" || info.symbol === "€" || info.symbol === "£" || info.symbol === "¥"
       ? `${info.symbol}${numStr}`
       : `${info.symbol} ${numStr}`
     : `${numStr} ${info.symbol}`;
+
   return { amount, formatted, symbol: info.symbol, currency: code };
 }
