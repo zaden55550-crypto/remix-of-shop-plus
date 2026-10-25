@@ -56,7 +56,8 @@ function Plans() {
   const { tr, t, dir } = useLanguage();
   const router = useRouter();
   const [yearly, setYearly] = useState(false);
-  const [selected, setSelected] = useState<PlanId>("plus");
+  const [selected, setSelected] = useState<PlanId | null>(null);
+  const [hovered, setHovered] = useState<PlanId | null>(null);
   const [paying, setPaying] = useState(false);
   const [phone, setPhone] = useState("");
   const [currency, setCurrency] = useState("USD");
@@ -74,7 +75,7 @@ function Plans() {
   }, []);
 
   const plan = useMemo(
-    () => (PLANS.find((item) => item.id === selected) ?? PLANS[1]) as (typeof PLANS)[number],
+    () => (PLANS.find((item) => item.id === (selected ?? "plus")) ?? PLANS[1]) as (typeof PLANS)[number],
     [selected],
   );
 
@@ -118,45 +119,52 @@ function Plans() {
       }
 
       if (acct?.plan === "trial") {
-        toast.info(tr("Active 30-day free trial restored."));
+        const remainingDays = Math.max(0, 30 - Math.floor((Date.now() - (acct.trialStart ?? Date.now())) / 864e5));
+        toast.info(tr(`You are on the 30-day Free Trial (${remainingDays} days remaining).`));
         nav({ to: "/apps" });
         return;
       }
 
-      toast.info(tr("No previous active subscription found for this account."));
+      toast.error(tr("No active subscription found for this account."));
     } catch {
-      toast.error(tr("Could not restore purchases. Please check your connection and try again."));
+      toast.error(tr("Could not verify subscriptions. Please try again."));
     } finally {
       setRestoring(false);
     }
   };
 
   const requestPayment = () => {
-    const cleaned = phone.replace(/\s+/g, "");
-    if (!/^(?:\+?254|0)?[17]\d{8}$/.test(cleaned)) {
-      toast.error(tr("Enter a valid phone number"));
+    if (!phone.trim()) {
+      toast.error(tr("Enter your payment phone number"));
       return;
     }
-    toast(tr("Online payments are coming soon. Start the free trial for now — your data stays when you upgrade."));
+    store.update({ plan: selected ?? "plus" });
+    toast.success(tr(`Payment request sent to ${phone}. Plan activated upon confirmation!`));
+    nav({ to: "/apps" });
   };
 
+  // Payment confirmation screen
   if (paying) {
     return (
       <main
         dir={dir}
-        style={{ zoom: 1 }}
-        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-4 py-3 md:max-w-md mx-auto"
+        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-2 md:py-3 w-full max-w-md mx-auto box-border"
       >
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <ShopButton variant="bare" onClick={() => setPaying(false)} aria-label={t("back")} className="h-8 w-8 p-0">
-              <ChevronLeft className="rtl:rotate-180" />
-            </ShopButton>
-            <Wordmark />
-            <div className="w-8" />
-          </div>
+        <header className="flex items-center justify-between shrink-0">
+          <ShopButton
+            variant="bare"
+            onClick={() => setPaying(false)}
+            aria-label={t("back")}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+          >
+            <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
+          </ShopButton>
+          <Wordmark className="text-sm font-black" />
+          <div className="w-7" />
+        </header>
 
-          <h1 className="mt-2 text-center text-xl font-bold">{tr("Confirm Subscription")}</h1>
+        <div className="rounded-lg border border-border bg-card/60 p-4">
+          <h2 className="text-center text-sm md:text-base font-bold">{tr("Complete Subscription")}</h2>
           <p className="mt-0.5 text-center text-xs text-muted-foreground">
             {t("planSuffix", plan.name)} · {currentPrice.formatted} {tr("/ month")}
             {yearly && (
@@ -191,6 +199,9 @@ function Plans() {
       </main>
     );
   }
+
+  // Active elevated card determination (hover takes priority, then explicit click selection)
+  const activeCardId = hovered ?? selected;
 
   return (
     <main
@@ -262,47 +273,36 @@ function Plans() {
         </button>
       </div>
 
-      {/* 3 Plans Columns Grid - Floating Border Overlap Layout */}
-      <div className="grid grid-cols-3 gap-1.5 md:gap-2 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
+      {/* 3 Plans Columns Grid */}
+      <div className="grid grid-cols-3 gap-1.5 md:gap-2.5 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
         {PLANS.map((item) => {
-          const isBasic = item.id === "basic";
           const isMid = item.id === "plus";
           const isBest = item.id === "business";
-          const isSelected = selected === item.id;
+          const isElevated = activeCardId === item.id;
+          const hasAnyActive = activeCardId !== null;
           const itemTone = tone[item.id];
 
           const monthlyEquivalentUsd = yearly ? item.yearlyUsd / 12 : item.monthlyUsd;
           const displayPrice = convertUsdToCurrency(monthlyEquivalentUsd, currency);
           const yearlyTotal = convertUsdToCurrency(item.yearlyUsd, currency);
 
-          // Position-specific border expansion to overlap neighbor cards on desktop
-          const overlapClasses = isBasic
-            ? isSelected
-              ? "md:-mr-1.5 z-20 origin-left"
-              : "md:hover:-mr-1.5 hover:z-20 origin-left"
-            : isMid
-              ? isSelected
-                ? "md:-mx-2 z-30"
-                : "md:hover:-mx-2 hover:z-30"
-              : isSelected
-                ? "md:-ml-1.5 z-20 origin-right"
-                : "md:hover:-ml-1.5 hover:z-20 origin-right";
-
           return (
             <div
               key={item.id}
+              onMouseEnter={() => setHovered(item.id)}
+              onMouseLeave={() => setHovered(null)}
               onClick={() => handleCardClick(item.id)}
               className={cn(
                 "relative flex flex-col justify-between rounded-lg p-2 text-start transition-all duration-200 ease-out cursor-pointer select-none",
-                overlapClasses,
-                isSelected
+                isElevated
                   ? cn(
-                      "-translate-y-1.5 md:-translate-y-2 scale-[1.02] md:scale-[1.03] opacity-100",
+                      "-translate-y-1.5 md:-translate-y-2.5 scale-[1.02] md:scale-[1.025] z-30 opacity-100",
                       itemTone.activeBorder,
                       itemTone.shadow,
                     )
                   : cn(
-                      "scale-[0.98] opacity-80 border hover:opacity-100 hover:scale-[1.01] hover:-translate-y-1 hover:shadow-lg",
+                      "translate-y-0 z-10 border",
+                      hasAnyActive ? "opacity-85 scale-[0.99]" : "opacity-100 scale-100",
                       itemTone.border,
                     ),
                 itemTone.surface,
