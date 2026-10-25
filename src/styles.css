@@ -2925,7 +2925,13 @@ body {
 }
 
 /* ===== Zero-Scroll Safeguard for Short Screens (e.g. 777×529) ===== */
-/* ===== Responsive Scaling & Zero-Scroll for Mobile and Short Screens ===== */
+/* 1. Prevent desktop zoom from pushing auth pages past 100vh */
+.app-screen.signup-page,
+.signup-page {
+  zoom: 1 !important;
+}
+
+/* 2. Phone screens (< 768px): Keep the compact emblem that works well in Image 14 */
 @media (max-width: 767px) {
   .signup-hero {
     gap: 0 !important;
@@ -2952,13 +2958,50 @@ body {
   }
 }
 
-@media (max-height: 600px) {
+/* 3. Big screens (≥ 768px): Make emblem & orbiting icons prominent on the left */
+@media (min-width: 768px) {
+  .signup-layout {
+    display: grid !important;
+    grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.15fr) !important;
+    max-width: 1040px !important;
+    width: 100% !important;
+    gap: clamp(20px, 3.5vw, 48px) !important;
+    align-items: center !important;
+    margin: auto !important;
+  }
+  .signup-hero {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+  }
   .auth-brand-emblem {
-    --emblem-size: clamp(54px, 11dvh, 74px) !important;
+    --emblem-size: clamp(200px, min(34vw, 42dvh), 320px) !important;
     width: var(--emblem-size) !important;
+    height: var(--emblem-size) !important;
+    margin: 0 auto !important;
   }
   .auth-orbit-icon {
-    width: clamp(9px, 1.6dvh, 13px) !important;
+    width: clamp(22px, 3.6vw, 36px) !important;
+    padding: 2px !important;
+  }
+  .auth-orbit-img {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* 4. Short-height laptops / tablets (e.g. 777×529): Balanced scaling without scroll */
+@media (min-width: 768px) and (max-height: 600px) {
+  .auth-brand-emblem {
+    --emblem-size: clamp(160px, 38dvh, 210px) !important;
+    width: var(--emblem-size) !important;
+    height: var(--emblem-size) !important;
+  }
+  .auth-orbit-icon {
+    width: clamp(18px, 4.2dvh, 26px) !important;
+    padding: 2px !important;
   }
   .signup-field-input,
   .signup-col-picker-btn {
@@ -2969,6 +3012,22 @@ body {
     font-size: clamp(9px, 1.3dvh, 10.5px) !important;
     margin-bottom: 1px !important;
   }
+  .signup-upload-btn {
+    height: clamp(62px, 10dvh, 76px) !important;
+  }
+  .auth-btn-primary {
+    height: clamp(28px, 4.6dvh, 34px) !important;
+    font-size: clamp(11.5px, 1.8dvh, 13px) !important;
+  }
+  .auth-social-btn {
+    height: clamp(24px, 4dvh, 28px) !important;
+    font-size: clamp(10px, 1.4dvh, 11.5px) !important;
+  }
+  .auth-split-card {
+    height: clamp(24px, 4dvh, 28px) !important;
+  }
+}
+
   .signup-upload-btn {
     height: clamp(62px, 10dvh, 76px) !important;
   }
