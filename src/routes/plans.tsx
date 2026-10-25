@@ -27,21 +27,27 @@ export const Route = createFileRoute("/plans")({
   component: Plans,
 });
 
-const tone: Record<PlanId, { border: string; text: string; surface: string }> = {
+const tone: Record<PlanId, { border: string; activeBorder: string; text: string; surface: string; shadow: string }> = {
   basic: {
-    border: "border-emerald-500/60",
+    border: "border-emerald-500/40",
+    activeBorder: "border-2 border-emerald-500",
     text: "text-emerald-400",
-    surface: "bg-emerald-950/20",
+    surface: "bg-emerald-950/25",
+    shadow: "shadow-xl shadow-emerald-500/20",
   },
   plus: {
-    border: "border-blue-500",
+    border: "border-blue-500/40",
+    activeBorder: "border-2 border-blue-500",
     text: "text-blue-400",
     surface: "bg-blue-950/30",
+    shadow: "shadow-2xl shadow-blue-500/30",
   },
   business: {
-    border: "border-purple-500/60",
-    text: "text-purple-400",
-    surface: "bg-purple-950/20",
+    border: "border-orange-500/40",
+    activeBorder: "border-2 border-orange-500",
+    text: "text-orange-400",
+    surface: "bg-orange-950/20",
+    shadow: "shadow-2xl shadow-orange-500/30",
   },
 };
 
@@ -248,11 +254,12 @@ function Plans() {
         </button>
       </div>
 
-      {/* 3 Plans Columns Grid - Fills available screen space */}
-      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0 items-stretch my-1 w-full">
+      {/* 3 Plans Columns Grid - Finelo Floating Layout */}
+      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
         {PLANS.map((item) => {
           const isMid = item.id === "plus";
           const isBest = item.id === "business";
+          const isSelected = selected === item.id;
           const itemTone = tone[item.id];
 
           const monthlyEquivalentUsd = yearly ? item.yearlyUsd / 12 : item.monthlyUsd;
@@ -262,26 +269,33 @@ function Plans() {
           return (
             <div
               key={item.id}
+              onClick={() => setSelected(item.id)}
               className={cn(
-                "relative flex flex-col justify-between rounded-lg border p-2 text-start transition-all overflow-hidden",
-                isMid
-                  ? "border-2 border-blue-500 shadow-md shadow-blue-500/10"
-                  : isBest
-                    ? "border-2 border-orange-500/80 shadow-md shadow-orange-500/10"
-                    : itemTone.border,
+                "relative flex flex-col justify-between rounded-lg p-2 text-start transition-all duration-200 ease-out cursor-pointer select-none",
+                // Floating styles when selected vs unselected
+                isSelected
+                  ? cn(
+                      "-translate-y-1.5 md:-translate-y-2 scale-[1.02] md:scale-[1.03] z-20 opacity-100",
+                      itemTone.activeBorder,
+                      itemTone.shadow,
+                    )
+                  : cn(
+                      "scale-[0.98] opacity-80 border hover:opacity-100 hover:scale-[1.01] hover:-translate-y-1 hover:z-15 hover:shadow-lg",
+                      itemTone.border,
+                    ),
                 itemTone.surface,
               )}
             >
               {/* RECOMMENDED Badge for Middle Plan */}
               {isMid && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 rounded-full bg-blue-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
                   RECOMMENDED
                 </span>
               )}
 
               {/* BEST Badge in Orange for Business Plan */}
               {isBest && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
                   BEST
                 </span>
               )}
@@ -315,7 +329,7 @@ function Plans() {
                   {tr(item.tagline)}
                 </div>
 
-                {/* Features Bullets (Scrolls cleanly if height is limited) */}
+                {/* Features Bullets */}
                 <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] md:text-[9px] leading-tight text-foreground/90 pr-0.5">
                   {item.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-1">
@@ -326,11 +340,14 @@ function Plans() {
                 </ul>
               </div>
 
-              {/* Action Button: Height added (h-7/h-8), pinned shrink-0, thin/normal font */}
+              {/* Action Button */}
               <ShopButton
                 type="button"
                 className="mt-1.5 w-full shrink-0 flex items-center justify-center gap-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-normal py-1 px-2 text-[8.5px] md:text-[9.5px] shadow-xs transition-all h-6.5 md:h-7"
-                onClick={() => handleSelectPlan(item.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectPlan(item.id);
+                }}
               >
                 <span>{tr("Continue with {x}", item.name)}</span>
                 <ArrowRight className="h-2.5 w-2.5 shrink-0" />
@@ -340,7 +357,7 @@ function Plans() {
         })}
       </div>
 
-      {/* Bottom Free Trial: Expanded to fill screen width nicely */}
+      {/* Bottom Free Trial */}
       <footer className="shrink-0 pt-1.5 w-full text-center">
         <ShopButton
           variant="success"
