@@ -79,27 +79,53 @@ export function useTheme() {
 
   return { dark, toggle };
 }
-
+/* -------------------------------------------------------
+   Dual Sun & Moon Switcher (Both Icons Always Visible)
+-------------------------------------------------------- */
 export function ThemeToggle() {
   const { dark, toggle } = useTheme();
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      className="flex h-7 w-7 items-center justify-center rounded-full border border-border/80 bg-card/80 text-foreground shadow-sm backdrop-blur-sm transition-all hover:bg-muted"
-      title={dark ? "Switch to light theme" : "Switch to dark theme"}
-      aria-label="Toggle theme"
+    <div
+      className="inline-flex items-center gap-0.5 rounded-full border border-border/80 bg-card/80 p-0.5 shadow-xs backdrop-blur-sm"
+      role="group"
+      aria-label="Theme switcher"
     >
-      {dark ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-indigo-500" />}
-    </button>
+      <button
+        type="button"
+        onClick={() => { if (dark) toggle(); }}
+        className={cn(
+          "flex h-6 w-6 items-center justify-center rounded-full transition-all",
+          !dark
+            ? "bg-amber-500/20 text-amber-500 shadow-xs"
+            : "text-muted-foreground/60 hover:text-foreground"
+        )}
+        title="Light theme"
+        aria-label="Light theme"
+      >
+        <Sun className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => { if (!dark) toggle(); }}
+        className={cn(
+          "flex h-6 w-6 items-center justify-center rounded-full transition-all",
+          dark
+            ? "bg-indigo-500/25 text-indigo-400 shadow-xs"
+            : "text-muted-foreground/60 hover:text-foreground"
+        )}
+        title="Dark theme"
+        aria-label="Dark theme"
+      >
+        <Moon className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }
 
 /* -------------------------------------------------------
-   Centered TopBar with Easy Search for All World Languages
-------------------------------------------------------- */
-
+   TopBar: Language on Far-Left, Sun & Moon on Far-Right
+-------------------------------------------------------- */
 export function TopBar() {
   const { language, setLanguage, tr } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -130,23 +156,75 @@ export function TopBar() {
   };
 
   return (
-    <header className="relative flex w-full items-center justify-center px-1 py-1">
-      {/* Centered Language Selector Button with Easy Search */}
+    <header className="relative flex w-full items-center justify-between px-2 py-1">
+      {/* Top Left: Language Selector */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-3 py-1 text-xs font-semibold text-foreground shadow-sm backdrop-blur-sm transition-all hover:border-primary/50 hover:bg-card"
+        className="flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-2.5 py-1 text-xs font-semibold text-foreground shadow-xs backdrop-blur-sm transition-all hover:border-primary/50 hover:bg-card"
         title={tr("Change language")}
       >
         <Globe className="h-3.5 w-3.5 text-primary" />
-        <span className="truncate max-w-[130px]">{currentLang.native}</span>
+        <span className="truncate max-w-[120px]">{currentLang.native}</span>
         <Search className="ml-0.5 h-3 w-3 text-muted-foreground opacity-60" />
       </button>
 
-      {/* Theme Toggle Anchored to Right */}
-      <div className="absolute right-1">
-        <ThemeToggle />
-      </div>
+      {/* Top Right: Dual Sun & Moon */}
+      <ThemeToggle />
+
+      {/* Language Search Modal */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 pt-12 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-foreground">{tr("Select Language")}</h2>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={tr("Search 130+ languages...")}
+                className="w-full rounded-lg border border-border bg-background py-1.5 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
+              />
+            </div>
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {filtered.length === 0 ? (
+                <p className="py-4 text-center text-xs text-muted-foreground">{tr("No languages found")}</p>
+              ) : (
+                filtered.map((item) => (
+                  <button
+                    key={item.code + item.name}
+                    type="button"
+                    onClick={() => handlePickLanguage(item.name, item.dir)}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs transition-colors",
+                      language === item.name
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "hover:bg-muted text-foreground"
+                    )}
+                  >
+                    <span>{item.native}</span>
+                    <span className="text-[10px] opacity-70">{item.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
 
       {/* Easy-Search Modal for All World Languages */}
       {open && (
