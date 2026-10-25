@@ -31,8 +31,7 @@ import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { AnnouncementBanner } from "@/components/shopbook/announcement-banner";
 import { useLanguage } from "@/hooks/use-language";
-import { getT, TKey, ALL_LANGUAGES, LanguageCode } from "@/lib/i18n";
-import { ALL_WORLD_LANGUAGES } from "@/lib/world-data";
+import { getT, LANGS, NATIVE, type Lang } from "@/lib/i18n";
 
 export const Route = createFileRoute("/apps")({
   head: () => ({
@@ -206,10 +205,10 @@ function Apps() {
       {acct.plan === "trial" && (
         <div className="mt-2 flex items-center justify-between rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs">
           <span>
-            {days} {t("trialDaysRemaining")}
+            {days} {tr("days left in free trial")}
           </span>
           <ShopButton size="sm" onClick={() => nav({ to: "/plans" })}>
-            {t("choosePlan")}
+            {tr("Choose plan")}
           </ShopButton>
         </div>
       )}
@@ -292,7 +291,7 @@ function Apps() {
                   nav({ to: "/plans" });
                 }}
               >
-                {t("changePlan")}
+                {tr("Change plan")}
               </ShopButton>
             </div>
 
@@ -302,7 +301,7 @@ function Apps() {
                 className="justify-start gap-2"
                 onClick={() => setPanel(panel === "profile" ? null : "profile")}
               >
-                <UserRound className="h-4 w-4" /> {t("businessProfile")}
+                <UserRound className="h-4 w-4" /> {tr("Profile & Business")}
               </ShopButton>
               {panel === "profile" && (
                 <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs space-y-1.5">
@@ -314,7 +313,7 @@ function Apps() {
                   </div>
                   {acct.phone && (
                     <div>
-                      <strong>{t("phone")}:</strong> {acct.phone}
+                      <strong>{tr("Phone")}:</strong> {acct.phone}
                     </div>
                   )}
                   <div>
@@ -329,21 +328,19 @@ function Apps() {
                 onClick={() => setPanel(panel === "language" ? null : "language")}
               >
                 <Globe className="h-4 w-4" /> {t("language")} (
-                {ALL_WORLD_LANGUAGES.find((l) => l.code === (acct.language ?? language))?.name ??
-                  acct.language ??
-                  language}
+                {NATIVE[language]}
                 )
               </ShopButton>
               {panel === "language" && (
                 <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-lg border border-border bg-muted/40 p-2 text-xs">
-                  {ALL_WORLD_LANGUAGES.map((l) => (
+                  {LANGS.map((code) => ({ code, name: NATIVE[code] })).map((l) => (
                     <ShopButton
                       key={l.code}
                       size="sm"
-                      variant={(acct.language ?? language) === l.code ? "default" : "outline"}
+                      variant={language === l.code ? "default" : "outline"}
                       className="justify-start text-[11px]"
                       onClick={() => {
-                        setLanguage(l.code as LanguageCode);
+                        setLanguage(l.code as Lang);
                         pick({ language: l.code });
                       }}
                     >
@@ -384,7 +381,7 @@ function Apps() {
                   setChat(true);
                 }}
               >
-                <HelpCircle className="h-4 w-4" /> {t("helpSupport")}
+                <HelpCircle className="h-4 w-4" /> {tr("Help & Support")}
               </ShopButton>
 
               <ShopButton

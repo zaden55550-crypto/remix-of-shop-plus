@@ -136,7 +136,7 @@ function Plans() {
       setCurrency(acct.currency.toUpperCase());
     } else {
       const detected = detectUserCountry();
-      setCurrency(detected.currency.toUpperCase());
+      setCurrency(detected.currencyCode.toUpperCase());
     }
 
     const matchedCountry = COUNTRY_DIAL_OPTIONS.find(
@@ -153,7 +153,7 @@ function Plans() {
     }
   }, []);
 
-  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) || PLANS[1], [chosenPlanId]);
+  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!, [chosenPlanId]);
 
   const currentPrice = useMemo(() => {
     const usd = yearly ? plan.yearlyUsd : plan.monthlyUsd;
