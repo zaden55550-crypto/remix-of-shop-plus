@@ -156,11 +156,17 @@ export const store = {
       return null;
     }
   },
+  register(a: Account) {
+    const freshAccount: Account = {
+      ...a,
+      businessId: a.businessId || crypto.randomUUID(),
+    };
+    localStorage.setItem(KEY, JSON.stringify(freshAccount));
+    store.signIn();
+    return freshAccount;
+  },
   save(a: Account) {
     const old = store.get();
-    if (old && !a.businessId && (old.password !== a.password || old.shopName !== a.shopName || old.phone !== a.phone)) {
-      throw new Error("Sign in to the existing shop or export and clear this device before changing businesses.");
-    }
     localStorage.setItem(
       KEY,
       JSON.stringify({
