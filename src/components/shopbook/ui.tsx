@@ -226,97 +226,6 @@ export function TopBar() {
   );
 }
 
-      {/* Easy-Search Modal for All World Languages */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Globe className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground leading-none">{tr("Select Language")}</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{tr("All world languages supported")}</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Search Input Box */}
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={tr("Search by language or code...")}
-                className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-8 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Scrollable Language List */}
-            <div className="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
-              {filtered.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">{tr("No language found")}</p>
-              ) : (
-                filtered.map((lang) => {
-                  const isSelected = lang.name === language || lang.native === language;
-                  return (
-                    <button
-                      key={lang.code + lang.name}
-                      type="button"
-                      onClick={() => handlePickLanguage(lang.name, lang.dir)}
-                      className={cn(
-                        "flex items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors",
-                        isSelected ? "bg-primary/15 font-semibold text-primary" : "hover:bg-muted text-foreground",
-                      )}
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">{lang.native}</span>
-                        <span className="text-[10.5px] text-muted-foreground">
-                          {lang.name} ({lang.code.toUpperCase()})
-                        </span>
-                      </div>
-                      {lang.dir === "rtl" && (
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[9.5px] font-mono text-muted-foreground">
-                          RTL
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </header>
-  );
-}
-
 /* -------------------------------------------------------
    Searchable 3-Character Currency Picker (Half Column)
 ------------------------------------------------------- */
@@ -634,8 +543,8 @@ export function BrandRing({ size = 180 }: { size?: number }) {
       <div className="auth-brand-orbit spin-slow" aria-hidden="true">
         {icons.map((src, i) => {
           const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
-          const x = 50 + orbitRadiusPercent * Math.cos(angle);
-          const y = 50 + orbitRadiusPercent * Math.sin(angle);
+          const x = (50 + orbitRadiusPercent * Math.cos(angle)).toFixed(3);
+          const y = (50 + orbitRadiusPercent * Math.sin(angle)).toFixed(3);
           return (
             <div key={i} className="auth-orbit-icon" style={{ left: `${x}%`, top: `${y}%` }}>
               <img src={src} alt="" className="auth-orbit-img counter-spin" loading="eager" decoding="async" />

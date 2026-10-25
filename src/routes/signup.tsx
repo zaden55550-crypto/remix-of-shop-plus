@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, Mail, Store, ShieldCheck, MonitorSmartphone, BriefcaseBusiness } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -37,17 +37,25 @@ function Signup() {
   const nav = useNavigate();
   const { tr, dir, language } = useLanguage();
 
-  const detected = typeof window !== "undefined" ? detectUserCountry() : { countryCode: "KEN", currencyCode: "KSH" };
-
   const [f, setF] = useState({
     shopName: "",
     email: "",
     password: "",
     confirm: "",
-    currency: detected.currencyCode,
-    country: detected.countryCode,
+    currency: "KSH",
+    country: "KEN",
     logo: "",
   });
+
+  // Detect the visitor's country after the page appears, so server and browser agree.
+  useEffect(() => {
+    const detected = detectUserCountry();
+    setF((prev) =>
+      prev.currency === "KSH" && prev.country === "KEN"
+        ? { ...prev, currency: detected.currencyCode, country: detected.countryCode }
+        : prev,
+    );
+  }, []);
 
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState<{
