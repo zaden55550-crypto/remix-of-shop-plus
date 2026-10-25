@@ -1,203 +1,161 @@
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Check,
-  ChevronLeft,
-  Smartphone,
-  CreditCard,
-  Lock,
   CheckCircle2,
-  ShieldCheck,
-  Info,
-  Store,
+  ChevronLeft,
+  CreditCard,
   Receipt,
-  X,
   RotateCcw,
+  Smartphone,
+  Store,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Field, Wordmark } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
+import { Wordmark } from "@/components/shopbook/ui";
 import { PLANS, store, type PlanId } from "@/lib/shopbook";
-import { convertUsdToCurrency, detectUserCountry } from "@/lib/world-data";
-import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
+import { convertUsdToCurrency } from "@/lib/world-data";
+import { useLanguage } from "@/hooks/use-language";
 
 export const Route = createFileRoute("/plans")({
   head: () => ({
     meta: [
-      { title: "Choose Your Plan — SHOPBOOK ERP" },
-      {
-        name: "description",
-        content:
-          "Compare Basic ($11), Plus ($22) and Business ($40) SHOPBOOK plans, or start a free 30-day full ERP trial.",
-      },
-      { property: "og:title", content: "Choose Your Plan — SHOPBOOK ERP" },
-      { property: "og:description", content: "Compare SHOPBOOK plans or start a free 30-day trial." },
+      { title: "Subscription Plans — SHOPBOOK ERP" },
+      { name: "description", content: "Choose the SHOPBOOK ERP plan that fits your business." },
+      { property: "og:title", content: "Subscription Plans — SHOPBOOK ERP" },
+      { property: "og:description", content: "Transparent pricing for African small and medium businesses." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Plans,
 });
 
-const tone: Record<
-  PlanId,
-  {
-    border: string;
-    text: string;
-  }
-> = {
-  basic: {
-    border: "border-emerald-500/40",
-    text: "text-emerald-500 dark:text-emerald-400",
-  },
-  plus: {
-    border: "border-2 border-blue-500/80 shadow-md shadow-blue-500/20",
-    text: "text-blue-500 dark:text-blue-400",
-  },
-  business: {
-    border: "border-amber-500/40",
-    text: "text-amber-500 dark:text-amber-400",
-  },
-};
+// African mobile money networks: Safaricom M-Pesa active, others coming soon
+const MOBILE_NETWORKS = [
+  { id: "safaricom", name: "Safaricom M-Pesa", country: "Kenya", active: true },
+  { id: "airtel_ke", name: "Airtel Money (Kenya)", country: "Kenya", active: false },
+  { id: "mtn_ug", name: "MTN MoMo (Uganda)", country: "Uganda", active: false },
+  { id: "airtel_ug", name: "Airtel Money (Uganda)", country: "Uganda", active: false },
+  { id: "evc_plus", name: "EVC Plus / Hormuud", country: "Somalia", active: false },
+  { id: "zaad", name: "Zaad / Telesom", country: "Somaliland", active: false },
+  { id: "sahal", name: "Sahal / Golis", country: "Puntland", active: false },
+  { id: "mpesa_tz", name: "Vodacom M-Pesa (Tanzania)", country: "Tanzania", active: false },
+  { id: "airtel_tz", name: "Airtel Money (Tanzania)", country: "Tanzania", active: false },
+  { id: "telebirr", name: "Telebirr (Ethiopia)", country: "Ethiopia", active: false },
+  { id: "mtn_rw", name: "MTN Mobile Money (Rwanda)", country: "Rwanda", active: false },
+];
 
-type PaymentMethod = "mobile" | "card";
+const COUNTRY_DIAL_OPTIONS = [
+  { code: "+254", country: "Kenya (KEN)" },
+  { code: "+252", country: "Somalia (SOM)" },
+  { code: "+256", country: "Uganda (UGA)" },
+  { code: "+255", country: "Tanzania (TZA)" },
+  { code: "+250", country: "Rwanda (RWA)" },
+  { code: "+251", country: "Ethiopia (ETH)" },
+  { code: "+257", country: "Burundi (BDI)" },
+  { code: "+211", country: "South Sudan (SSD)" },
+  { code: "+234", country: "Nigeria (NGA)" },
+  { code: "+233", country: "Ghana (GHA)" },
+  { code: "+27", country: "South Africa (ZAF)" },
+  { code: "+1", country: "USA / Canada" },
+  { code: "+44", country: "United Kingdom" },
+  { code: "+971", country: "UAE (Dubai)" },
+];
 
-type MobileNetwork =
-  "mpesa" | "airtel" | "mtn" | "telebirr" | "evc" | "zaad" | "orange" | "tigo" | "vodafone" | "ecocash";
-
-interface CountryDialOption {
-  code: string;
-  dial: string;
-  name: string;
-  defaultNet: MobileNetwork;
+function getDialByCountry(countryCode?: string): string {
+  const c = (countryCode || "").toUpperCase();
+  if (c === "KEN" || c === "KENYA") return "+254";
+  if (c === "SOM" || c === "SOMALIA") return "+252";
+  if (c === "UGA" || c === "UGANDA") return "+256";
+  if (c === "TZA" || c === "TANZANIA") return "+255";
+  if (c === "RWA" || c === "RWANDA") return "+250";
+  if (c === "ETH" || c === "ETHIOPIA") return "+251";
+  if (c === "BDI" || c === "BURUNDI") return "+257";
+  if (c === "SSD") return "+211";
+  if (c === "NGA" || c === "NIGERIA") return "+234";
+  if (c === "GHA" || c === "GHANA") return "+233";
+  if (c === "ZAF") return "+27";
+  if (c === "USA") return "+1";
+  if (c === "GBR") return "+44";
+  if (c === "ARE") return "+971";
+  return "+254";
 }
 
-const COUNTRY_DIAL_OPTIONS: CountryDialOption[] = [
-  { code: "KEN", dial: "+254", name: "Kenya (+254)", defaultNet: "mpesa" },
-  { code: "SOM", dial: "+252", name: "Somalia (+252)", defaultNet: "mpesa" },
-  { code: "UGA", dial: "+256", name: "Uganda (+256)", defaultNet: "mpesa" },
-  { code: "TZA", dial: "+255", name: "Tanzania (+255)", defaultNet: "mpesa" },
-  { code: "RWA", dial: "+250", name: "Rwanda (+250)", defaultNet: "mpesa" },
-  { code: "ETH", dial: "+251", name: "Ethiopia (+251)", defaultNet: "mpesa" },
-  { code: "SSD", dial: "+211", name: "South Sudan (+211)", defaultNet: "mpesa" },
-  { code: "DJI", dial: "+253", name: "Djibouti (+253)", defaultNet: "mpesa" },
-  { code: "NGA", dial: "+234", name: "Nigeria (+234)", defaultNet: "mpesa" },
-  { code: "GHA", dial: "+233", name: "Ghana (+233)", defaultNet: "mpesa" },
-  { code: "ZAF", dial: "+27", name: "South Africa (+27)", defaultNet: "mpesa" },
-  { code: "USA", dial: "+1", name: "United States (+1)", defaultNet: "mpesa" },
-  { code: "GBR", dial: "+44", name: "United Kingdom (+44)", defaultNet: "mpesa" },
-  { code: "ARE", dial: "+971", name: "UAE (+971)", defaultNet: "mpesa" },
-];
-
-const MOBILE_NETWORKS: { id: MobileNetwork; name: string; country: string; active: boolean }[] = [
-  { id: "mpesa", name: "Safaricom M-Pesa", country: "Kenya / East Africa", active: true },
-  { id: "airtel", name: "Airtel Money", country: "East & Central Africa", active: false },
-  { id: "mtn", name: "MTN Mobile Money", country: "Uganda, Ghana, Nigeria", active: false },
-  { id: "evc", name: "EVC Plus / Hormuud", country: "Somalia", active: false },
-  { id: "zaad", name: "Zaad / Telesom", country: "Somalia & Somaliland", active: false },
-  { id: "telebirr", name: "Telebirr", country: "Ethiopia", active: false },
-  { id: "orange", name: "Orange Money", country: "Francophone Africa", active: false },
-  { id: "tigo", name: "Tigo Pesa", country: "Tanzania", active: false },
-  { id: "vodafone", name: "Vodafone Cash", country: "Egypt & Ghana", active: false },
-  { id: "ecocash", name: "EcoCash", country: "Zimbabwe", active: false },
-];
-
 function Plans() {
-  const { t, tr, dir } = useLanguage();
   const nav = useNavigate();
-  const router = useRouter();
+  const { tr, t, dir } = useLanguage();
 
   const [yearly, setYearly] = useState(false);
-  const [paying, setPaying] = useState(false);
   const [chosenPlanId, setChosenPlanId] = useState<PlanId>("plus");
+  const [paying, setPaying] = useState(false);
   const [restoring, setRestoring] = useState(false);
-  const [currency, setCurrency] = useState<string>("KSH");
 
-  const [selectedDial, setSelectedDial] = useState<string>("+254");
-  const [method, setMethod] = useState<PaymentMethod>("mobile");
-  const [mobileNetwork, setMobileNetwork] = useState<MobileNetwork>("mpesa");
+  // Payment form state
+  const [method, setMethod] = useState<"mobile" | "card">("mobile");
+  const [mobileNetwork, setMobileNetwork] = useState("safaricom");
+  const [selectedDial, setSelectedDial] = useState("+254");
   const [phone, setPhone] = useState("+254 ");
-
-  const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
 
+  // Payment execution state
   const [payStatus, setPayStatus] = useState<"idle" | "stk_waiting" | "processing" | "success">("idle");
-  const [processStep, setProcessStep] = useState(0);
+  const [processStep, setProcessStep] = useState(1);
   const [confirmedDate, setConfirmedDate] = useState("");
   const [stkSecondsLeft, setStkSecondsLeft] = useState(45);
 
+  const acct = store.get();
+  const currency = acct?.currency || "KSH";
+
   useEffect(() => {
-    const acct = store.get();
-    if (acct?.currency) {
-      setCurrency(acct.currency.toUpperCase());
+    const defaultDial = getDialByCountry(acct?.country);
+    setSelectedDial(defaultDial);
+
+    if (acct?.phone) {
+      const clean = acct.phone.trim();
+      if (clean.startsWith("+")) {
+        setPhone(clean);
+        const match = COUNTRY_DIAL_OPTIONS.find((opt) => clean.startsWith(opt.code));
+        if (match) setSelectedDial(match.code);
+      } else {
+        const withoutZero = clean.replace(/^0+/, "");
+        setPhone(`${defaultDial} ${withoutZero}`);
+      }
     } else {
-      const detected = detectUserCountry();
-      setCurrency(detected.currencyCode.toUpperCase());
+      setPhone(`${defaultDial} `);
     }
+  }, [acct?.country, acct?.phone]);
 
-    const matchedCountry = COUNTRY_DIAL_OPTIONS.find(
-      (c) => c.code.toUpperCase() === (acct?.country || "").toUpperCase(),
-    );
-    if (matchedCountry) {
-      setSelectedDial(matchedCountry.dial);
-      setPhone(`${matchedCountry.dial} `);
-      setMobileNetwork(matchedCountry.defaultNet);
-    } else {
-      setSelectedDial("+254");
-      setPhone("+254 ");
-      setMobileNetwork("mpesa");
+  const handlePhoneChange = (inputVal: string) => {
+    let raw = inputVal;
+    if (!raw.startsWith(selectedDial)) {
+      raw = selectedDial + " " + raw.replace(/^\+?\d*/, "").trim();
     }
-  }, []);
+    const rest = raw.slice(selectedDial.length).replace(/^[ \t0]+/, "");
+    setPhone(`${selectedDial} ${rest}`);
+  };
 
-  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!, [chosenPlanId]);
-
-  const currentPrice = useMemo(() => {
-    const usd = yearly ? plan.yearlyUsd : plan.monthlyUsd;
-    return convertUsdToCurrency(usd, currency);
-  }, [plan, yearly, currency]);
-
-  const kshEquivalent = useMemo(() => {
-    const usd = yearly ? plan.yearlyUsd : plan.monthlyUsd;
-    return convertUsdToCurrency(usd, "KSH");
-  }, [plan, yearly]);
+  const plan = PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!;
+  const currentPrice = convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency);
+  const kshEquivalent = convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, "KSH");
 
   const startTrial = () => {
-    store.update({ plan: "trial" });
-    toast.success(tr("30-day free trial started! Full access unlocked."));
+    store.update({ plan: "trial", trialStart: Date.now() });
+    toast.success(tr("30-day free trial activated! Welcome to SHOPBOOK ERP."));
     nav({ to: "/apps" });
   };
 
-  const handlePhoneChange = (val: string) => {
-    const requiredPrefix = `${selectedDial} `;
-    if (!val.startsWith(selectedDial)) {
-      setPhone(requiredPrefix);
-      return;
-    }
-    const afterDial = val.slice(selectedDial.length).replace(/^[^\d]+/, "");
-    const cleanNumbers = afterDial.replace(/^0+/, "");
-    setPhone(`${selectedDial} ${cleanNumbers}`);
+  const tone: Record<PlanId, { text: string; ring: string }> = {
+    basic: { text: "text-emerald-500", ring: "ring-emerald-500/20" },
+    plus: { text: "text-blue-500", ring: "ring-blue-500/30" },
+    business: { text: "text-amber-500", ring: "ring-amber-500/20" },
   };
 
-  const handleCardNumberChange = (val: string) => {
-    const digits = val.replace(/\D/g, "").slice(0, 16);
-    const parts = digits.match(/.{1,4}/g);
-    setCardNumber(parts ? parts.join(" ") : digits);
-  };
-
-  const handleExpiryChange = (val: string) => {
-    const digits = val.replace(/\D/g, "").slice(0, 4);
-    if (digits.length >= 3) {
-      setCardExpiry(`${digits.slice(0, 2)}/${digits.slice(2)}`);
-    } else {
-      setCardExpiry(digits);
-    }
-  };
-
-  // STK Timer Countdown
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (payStatus === "stk_waiting" && stkSecondsLeft > 0) {
@@ -214,12 +172,13 @@ function Plans() {
     return () => clearInterval(timer);
   }, [payStatus, stkSecondsLeft]);
 
+  // Payment workflow with auto-redirect to /apps
   const runPaymentWorkflow = (sourceName?: string) => {
     setPayStatus("processing");
     setProcessStep(1);
 
-    setTimeout(() => setProcessStep(2), 650);
-    setTimeout(() => setProcessStep(3), 1350);
+    setTimeout(() => setProcessStep(2), 500);
+    setTimeout(() => setProcessStep(3), 1100);
     setTimeout(() => {
       setProcessStep(4);
       setConfirmedDate(
@@ -232,10 +191,14 @@ function Plans() {
         }),
       );
       store.update({ plan: chosenPlanId });
-      setPayStatus("success");
       const label = sourceName || method.toUpperCase();
       toast.success(tr(`Payment confirmed via ${label}! ${plan.name} plan is now active.`));
-    }, 2200);
+
+      // Automatically move straight to the business apps screen
+      setTimeout(() => {
+        nav({ to: "/apps" });
+      }, 700);
+    }, 1800);
   };
 
   const handlePayNow = () => {
@@ -256,10 +219,10 @@ function Plans() {
       setStkSecondsLeft(45);
       setPayStatus("stk_waiting");
 
-      // Auto-confirm after PIN entry simulation
+      // Auto-confirm after simulated PIN entry (snappy 2.5 seconds)
       setTimeout(() => {
         runPaymentWorkflow("SAFARICOM M-PESA");
-      }, 4200);
+      }, 2500);
     } else if (method === "card") {
       const cleanCard = cardNumber.replace(/\s/g, "");
       if (cleanCard.length < 15) {
@@ -286,11 +249,11 @@ function Plans() {
   const handleRestorePurchases = async () => {
     setRestoring(true);
     try {
-      const acct = store.get();
+      const a = store.get();
       await new Promise((res) => setTimeout(res, 600));
 
-      if (acct?.plan && acct.plan !== "trial") {
-        toast.success(tr(`Active ${acct.plan.toUpperCase()} subscription restored!`));
+      if (a?.plan && a.plan !== "trial") {
+        toast.success(tr(`Active ${a.plan.toUpperCase()} subscription restored!`));
         nav({ to: "/apps" });
       } else {
         toast.info(tr("No active paid subscription found on this account."));
@@ -437,13 +400,13 @@ function Plans() {
                   className={cn("h-3.5 w-3.5", processStep >= 4 ? "text-emerald-400" : "text-muted-foreground")}
                 />
                 <span className={processStep >= 4 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Confirming active SHOPBOOK session")}
+                  {tr("Redirecting to your apps...")}
                 </span>
               </div>
             </div>
           </div>
         ) : payStatus === "success" ? (
-          /* 3. SUCCESS SCREEN */
+          /* 3. SUCCESS SCREEN (FALLBACK) */
           <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
             <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20">
               <Check className="h-7 w-7 stroke-[3]" />
@@ -529,187 +492,181 @@ function Plans() {
                 type="button"
                 onClick={() => setMethod("mobile")}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border transition-all text-center cursor-pointer",
+                  "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer",
                   method === "mobile"
-                    ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400 font-bold"
-                    : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                    ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm"
+                    : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Smartphone className="h-3.5 w-3.5" />
-                <span className="text-[11px] leading-tight">{tr("Mobile Money")}</span>
+                <Smartphone className="h-3.5 w-3.5 text-blue-400" />
+                <span>{tr("Mobile Money")}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setMethod("card")}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg border transition-all text-center cursor-pointer",
+                  "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer",
                   method === "card"
-                    ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400 font-bold"
-                    : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                    ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm"
+                    : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground",
                 )}
               >
-                <CreditCard className="h-3.5 w-3.5" />
-                <span className="text-[11px] leading-tight">{tr("Card")}</span>
+                <CreditCard className="h-3.5 w-3.5 text-blue-400" />
+                <span>{tr("Card")}</span>
               </button>
             </div>
 
-            {/* 3. FORM CONTENT BOX */}
-            <div className="rounded-xl border border-border/80 bg-[#0B1528] p-3 space-y-2 shadow-md flex-1 flex flex-col justify-between">
-              {/* TAB 1: Mobile Payment (Safaricom M-Pesa Active) */}
-              {method === "mobile" && (
-                <div className="space-y-2">
+            {/* 3. CONDITIONAL FORM FIELDS */}
+            <div className="flex-1 flex flex-col justify-center min-h-0">
+              {method === "mobile" ? (
+                <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
+                  {/* African Network Dropdown */}
                   <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
-                      {tr("Select Mobile Network")}
+                    <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                      {tr("Select African Network")}
                     </label>
                     <select
                       value={mobileNetwork}
-                      onChange={(e) => setMobileNetwork(e.target.value as MobileNetwork)}
-                      className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
+                      onChange={(e) => setMobileNetwork(e.target.value)}
+                      className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     >
                       {MOBILE_NETWORKS.map((net) => (
                         <option key={net.id} value={net.id} disabled={!net.active}>
-                          {net.name} {net.active ? "— Active" : "— (Coming Soon)"}
+                          {net.name} {net.active ? `(${tr("Active")})` : `(${tr("Coming soon")})`}
                         </option>
                       ))}
                     </select>
                   </div>
 
+                  {/* Phone Input with Mandatory Auto-Selected Country Dial Code */}
                   <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
-                      {tr("M-Pesa Phone Number (Prefilled Country Code)")}
+                    <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                      {tr("Phone Number (Auto-detected Country Code)")}
                     </label>
-
-                    {/* TWO-COLUMN PHONE ROW: AUTO-SELECTED COUNTRY CODE + LOCAL NUMBER */}
                     <div className="flex gap-1.5">
+                      {/* Compact Dial Code Selector */}
                       <select
                         value={selectedDial}
                         onChange={(e) => handleDialChange(e.target.value)}
-                        className="h-8 w-28 text-xs px-1.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-blue-500 font-semibold cursor-pointer shrink-0"
-                        title={tr("Country Dial Code")}
+                        className="h-8 px-2 rounded-lg border border-border bg-background text-foreground text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary shrink-0 cursor-pointer"
                       >
-                        {COUNTRY_DIAL_OPTIONS.map((c) => (
-                          <option key={c.code} value={c.dial}>
-                            {c.dial} ({c.code})
+                        {COUNTRY_DIAL_OPTIONS.map((opt) => (
+                          <option key={opt.code} value={opt.code}>
+                            {opt.code} — {opt.country}
                           </option>
                         ))}
                       </select>
 
-                      <div className="flex-1">
-                        <Field
-                          icon={<Smartphone className="h-3.5 w-3.5 text-muted-foreground" />}
-                          type="tel"
-                          placeholder={`${selectedDial} 7...`}
-                          value={phone}
-                          onChange={(e) => handlePhoneChange(e.target.value)}
-                        />
-                      </div>
+                      {/* Locked Prefix Mobile Number Input */}
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        placeholder={`${selectedDial} 712 345 678`}
+                        className="flex-1 min-w-0 h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                      />
                     </div>
                   </div>
 
-                  {/* CROSS-BORDER CURRENCY CONVERSION NOTICE */}
-                  {currency !== "KSH" && (
-                    <div className="rounded-md bg-amber-950/30 border border-amber-500/30 p-2 flex items-start gap-1.5 text-[10px] text-amber-300">
-                      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
-                      <span>
-                        {tr("Safaricom M-Pesa processes in KSh equivalent")} (
-                        <span className="font-bold">~{kshEquivalent.formatted}</span>).{" "}
-                        {tr(`For direct ${currency} settlement, switch to Card.`)}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="rounded-md bg-blue-950/40 border border-blue-500/30 p-2 flex items-start gap-1.5 text-[10px] text-blue-300">
-                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-400" />
+                  {/* Safaricom STK Push Notice */}
+                  <div className="bg-muted/40 border border-border/60 rounded-lg p-2 text-[10.5px] text-muted-foreground flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
                     <span>
-                      {mobileNetwork === "mpesa"
-                        ? tr("You will receive an STK Push prompt on this phone. Enter your M-Pesa PIN to complete.")
-                        : tr("This network is coming soon. Please select Safaricom M-Pesa or use Card.")}
+                      {tr("An instant STK PIN prompt will be sent directly to your phone to authorize settlement.")}
                     </span>
                   </div>
+
+                  {/* Cross-border note if paying in non-KSH currency with M-Pesa */}
+                  {currency !== "KSH" && (
+                    <p className="text-[10px] text-amber-500/90 font-medium px-1">
+                      {tr("Note: Safaricom M-Pesa settles in KSh equivalent")} (~{kshEquivalent.formatted}).{" "}
+                      {tr("For exact")} {currency} {tr("settlement, switch to Card.")}
+                    </p>
+                  )}
                 </div>
-              )}
-
-              {/* TAB 2: Card Payment */}
-              {method === "card" && (
-                <div className="space-y-2">
+              ) : (
+                /* Card Input Fields */
+                <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
                   <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
-                      {tr("Cardholder Name")}
-                    </label>
-                    <Field
-                      type="text"
-                      placeholder="e.g. John Doe"
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
+                    <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                       {tr("Card Number")}
                     </label>
-                    <Field
-                      icon={<CreditCard className="h-3.5 w-3.5 text-muted-foreground" />}
+                    <input
                       type="text"
-                      placeholder="4000 1234 5678 9010"
+                      maxLength={19}
                       value={cardNumber}
-                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                          .replace(/\D/g, "")
+                          .replace(/(.{4})/g, "$1 ")
+                          .trim();
+                        setCardNumber(val);
+                      }}
+                      placeholder="4000 1234 5678 9010"
+                      className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
+                      <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                         {tr("Expiry (MM/YY)")}
                       </label>
-                      <Field
+                      <input
                         type="text"
-                        placeholder="MM/YY"
+                        maxLength={5}
                         value={cardExpiry}
-                        onChange={(e) => handleExpiryChange(e.target.value)}
+                        onChange={(e) => {
+                          let v = e.target.value.replace(/\D/g, "");
+                          if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2, 4);
+                          setCardExpiry(v);
+                        }}
+                        placeholder="MM/YY"
+                        className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
-                        {tr("CVV")}
+                      <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                        {tr("CVV / CVC")}
                       </label>
-                      <Field
-                        icon={<Lock className="h-3 w-3 text-muted-foreground" />}
+                      <input
                         type="password"
-                        placeholder="123"
+                        maxLength={4}
                         value={cardCvc}
-                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123"
+                        className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
                       />
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* BOTTOM ACTIONS: TOTAL DUE DIRECTLY ABOVE PAY BUTTON */}
-              <div className="pt-2 border-t border-border/60 flex flex-col items-center gap-1.5 w-full">
-                <div className="flex items-center justify-between w-full px-1 text-xs">
-                  <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
-                    {tr("Total Due:")}
-                  </span>
-                  <span className="font-extrabold text-foreground text-sm text-blue-400">{currentPrice.formatted}</span>
-                </div>
-
-                <ShopButton
-                  onClick={handlePayNow}
-                  className="w-full h-8.5 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
-                </ShopButton>
-              </div>
             </div>
 
-            {/* 4. FOOTER NOTE */}
-            <p className="text-[9.5px] text-muted-foreground text-center shrink-0">
-              {tr("Secured with 256-bit encryption. Cancel or modify anytime.")}
-            </p>
+            {/* 4. TOTAL DUE DIRECTLY ABOVE THE PAY BUTTON */}
+            <div className="shrink-0 pt-1 space-y-1.5">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                <span>{tr("Total Due:")}</span>
+                <span className="font-extrabold text-foreground text-sm tracking-tight">{currentPrice.formatted}</span>
+              </div>
+
+              <ShopButton
+                onClick={handlePayNow}
+                className="w-full h-8 sm:h-9 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/30 rounded-xl cursor-pointer"
+              >
+                <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              </ShopButton>
+
+              <button
+                type="button"
+                onClick={startTrial}
+                className="w-full text-center text-[10px] sm:text-[11px] font-semibold text-emerald-500 hover:text-emerald-400 cursor-pointer pt-0.5 transition-colors"
+              >
+                {tr("Use 30-day free trial instead")}
+              </button>
+            </div>
           </div>
         )}
       </main>
@@ -717,36 +674,20 @@ function Plans() {
   }
 
   // =========================================================================
-  // VIEW: MAIN THREE-PLAN COMPARISON SCREEN
+  // VIEW: 3-COLUMN PLANS OVERVIEW — ZERO-SCROLL
   // =========================================================================
   return (
     <main
       dir={dir}
-      className="app-screen relative flex flex-col justify-between px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-8 md:py-3 max-w-6xl mx-auto w-full select-none"
+      className="app-screen relative flex flex-col justify-between px-2.5 py-2 sm:px-4 md:px-8 max-w-6xl mx-auto w-full"
       style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
     >
-      {/* 1. TOP BAR: TITLE + SUBTITLE + RESTORE LINK */}
-      <header className="flex items-center justify-between shrink-0 py-0.5">
-        <button
-          type="button"
-          onClick={() => {
-            if (window.history.length > 1) {
-              router.history.back();
-            } else {
-              nav({ to: "/apps" });
-            }
-          }}
-          aria-label={t("back")}
-          className="p-1 -m-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-        >
-          <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
-        </button>
-
-        <div className="text-center min-w-0 px-2 flex-1 flex flex-col sm:flex-row items-center justify-center sm:gap-2">
-          <h1 className="text-xs sm:text-sm font-black tracking-tight text-foreground whitespace-nowrap">
-            {tr("Choose Your Plan")}
+      {/* 1. HEADER: ONE ROW TITLE + SUBTITLE + RESTORE */}
+      <header className="flex items-center justify-between shrink-0 py-0.5 gap-2">
+        <div className="min-w-0 flex items-baseline gap-2">
+          <h1 className="text-sm sm:text-base md:text-lg font-black text-foreground whitespace-nowrap">
+            {tr("Choose your plan")}
           </h1>
-          <span className="hidden sm:inline text-muted-foreground text-xs">•</span>
           <p className="text-[9.5px] sm:text-[11px] text-muted-foreground truncate">
             {tr("Unlock more features and grow your business with SHOPBOOK")}
           </p>
@@ -831,7 +772,11 @@ function Plans() {
               {/* CARD HEADER */}
               <div className="text-center pt-0.5 sm:pt-1">
                 <h3 className={cn("text-[10px] sm:text-sm md:text-base font-black truncate", tColor.text)}>{p.name}</h3>
-                {(p as { desc?: string }).desc && <p className="text-[7.5px] sm:text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tr((p as { desc?: string }).desc!)}</p>}
+                {(p as { desc?: string }).desc && (
+                  <p className="text-[7.5px] sm:text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
+                    {tr((p as { desc?: string }).desc!)}
+                  </p>
+                )}
 
                 {/* PRICE ROW */}
                 <div className="mt-1 flex items-baseline justify-center gap-0.5">
@@ -879,7 +824,7 @@ function Plans() {
         })}
       </div>
 
-      {/* 4. BOTTOM TRIAL CTA */}
+      {/* 4. BOTTOM TRIAL CTA IN SOLID EMERALD GREEN */}
       <div className="shrink-0 pt-1">
         <button
           type="button"
