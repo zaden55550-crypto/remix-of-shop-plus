@@ -13,6 +13,7 @@ import {
   Store,
   Receipt,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
@@ -90,7 +91,6 @@ const COUNTRY_DIAL_OPTIONS: CountryDialOption[] = [
   { code: "ARE", dial: "+971", name: "UAE (+971)", defaultNet: "mpesa" },
 ];
 
-// ONLY Safaricom M-Pesa is active. All others are marked (Coming Soon).
 const MOBILE_NETWORKS: { id: MobileNetwork; name: string; country: string; active: boolean }[] = [
   { id: "mpesa", name: "Safaricom M-Pesa", country: "Kenya / East Africa", active: true },
   { id: "airtel", name: "Airtel Money", country: "East & Central Africa", active: false },
@@ -115,63 +115,81 @@ function Plans() {
   const [restoring, setRestoring] = useState(false);
   const [currency, setCurrency] = useState<string>("KSH");
 
-  // Country Dial Code Auto-Selected From Login
   const [selectedDial, setSelectedDial] = useState<string>("+254");
-
-  // Payment Form States
   const [method, setMethod] = useState<PaymentMethod>("mobile");
   const [mobileNetwork, setMobileNetwork] = useState<MobileNetwork>("mpesa");
   const [phone, setPhone] = useState("+254 ");
+
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
 
-  // Status Lifecycle: "idle" -> "processing" -> "success"
-  const [payStatus, setPayStatus] = useState<"idle" | "processing" | "success">("idle");
-  const [processStep, setProcessStep] = useState(1);
+  const [payStatus, setPayStatus] = useState<"idle" | "stk_waiting" | "processing" | "success">("idle");
+  const [processStep, setProcessStep] = useState(0);
   const [confirmedDate, setConfirmedDate] = useState("");
+  const [stkSecondsLeft, setStkSecondsLeft] = useState(45);
 
   useEffect(() => {
     const acct = store.get();
     if (acct?.currency) {
-      setCurrency(acct.currency);
+      setCurrency(acct.currency.toUpperCase());
     } else {
       const detected = detectUserCountry();
-      if (detected?.currencyCode) {
-        setCurrency(detected.currencyCode);
-      }
+      setCurrency(detected.currency.toUpperCase());
     }
 
-    // Auto-select dial code from account country (default KEN -> +254)
-    const match = COUNTRY_DIAL_OPTIONS.find((c) => c.code === (acct?.country || "KEN"));
-    const dial = match ? match.dial : "+254";
-    setSelectedDial(dial);
-    setMobileNetwork("mpesa");
-    setPhone(`${dial} `);
+    const matchedCountry = COUNTRY_DIAL_OPTIONS.find(
+      (c) => c.code.toUpperCase() === (acct?.country || "").toUpperCase(),
+    );
+    if (matchedCountry) {
+      setSelectedDial(matchedCountry.dial);
+      setPhone(`${matchedCountry.dial} `);
+      setMobileNetwork(matchedCountry.defaultNet);
+    } else {
+      setSelectedDial("+254");
+      setPhone("+254 ");
+      setMobileNetwork("mpesa");
+    }
   }, []);
 
-  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) ?? PLANS[1]!, [chosenPlanId]);
+  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) || PLANS[1], [chosenPlanId]);
 
-  const currentPrice = useMemo(
-    () => convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency),
-    [yearly, plan.yearlyUsd, plan.monthlyUsd, currency],
-  );
+  const currentPrice = useMemo(() => {
+    const usd = yearly ? plan.yearlyUsd : plan.monthlyUsd;
+    return convertUsdToCurrency(usd, currency);
+  }, [plan, yearly, currency]);
+
+  const kshEquivalent = useMemo(() => {
+    const usd = yearly ? plan.yearlyUsd : plan.monthlyUsd;
+    return convertUsdToCurrency(usd, "KSH");
+  }, [plan, yearly]);
 
   const startTrial = () => {
-    store.update({ plan: "trial", trialStart: Date.now() });
+    store.update({ plan: "trial" });
     toast.success(tr("30-day free trial started! Full access unlocked."));
     nav({ to: "/apps" });
   };
 
-  const handleCardNumberChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 16);
+  const handlePhoneChange = (val: string) => {
+    const requiredPrefix = `${selectedDial} `;
+    if (!val.startsWith(selectedDial)) {
+      setPhone(requiredPrefix);
+      return;
+    }
+    const afterDial = val.slice(selectedDial.length).replace(/^[^\d]+/, "");
+    const cleanNumbers = afterDial.replace(/^0+/, "");
+    setPhone(`${selectedDial} ${cleanNumbers}`);
+  };
+
+  const handleCardNumberChange = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 16);
     const parts = digits.match(/.{1,4}/g);
     setCardNumber(parts ? parts.join(" ") : digits);
   };
 
-  const handleExpiryChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").slice(0, 4);
+  const handleExpiryChange = (val: string) => {
+    const digits = val.replace(/\D/g, "").slice(0, 4);
     if (digits.length >= 3) {
       setCardExpiry(`${digits.slice(0, 2)}/${digits.slice(2)}`);
     } else {
@@ -179,19 +197,22 @@ function Plans() {
     }
   };
 
-  const handlePhoneChange = (inputVal: string) => {
-    // Keep the country code always prefilled
-    const prefix = `${selectedDial} `;
-    if (!inputVal.startsWith(selectedDial)) {
-      setPhone(prefix);
-      return;
+  // STK Timer Countdown
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (payStatus === "stk_waiting" && stkSecondsLeft > 0) {
+      timer = setInterval(() => {
+        setStkSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     }
-
-    const rest = inputVal.slice(selectedDial.length).replace(/[^\d\s]/g, "");
-    // Remove accidental leading 0 (e.g. 0722 -> 722)
-    const cleanRest = rest.replace(/^\s*0+/, " ");
-    setPhone(`${selectedDial}${cleanRest.startsWith(" ") ? cleanRest : ` ${cleanRest}`}`);
-  };
+    return () => clearInterval(timer);
+  }, [payStatus, stkSecondsLeft]);
 
   const runPaymentWorkflow = (sourceName?: string) => {
     setPayStatus("processing");
@@ -230,6 +251,15 @@ function Plans() {
         toast.error(tr("Enter your mobile number following the prefilled country code (e.g. +254 7...)"));
         return;
       }
+
+      // Launch STK push countdown simulation
+      setStkSecondsLeft(45);
+      setPayStatus("stk_waiting");
+
+      // Auto-confirm after PIN entry simulation
+      setTimeout(() => {
+        runPaymentWorkflow("SAFARICOM M-PESA");
+      }, 4200);
     } else if (method === "card") {
       const cleanCard = cardNumber.replace(/\s/g, "");
       if (cleanCard.length < 15) {
@@ -244,8 +274,13 @@ function Plans() {
         toast.error(tr("Enter CVV security code"));
         return;
       }
+      runPaymentWorkflow("CARD");
     }
-    runPaymentWorkflow();
+  };
+
+  const handleResendStk = () => {
+    setStkSecondsLeft(45);
+    toast.success(tr(`Fresh STK push prompt resent to ${phone.trim()}`));
   };
 
   const handleRestorePurchases = async () => {
@@ -311,8 +346,54 @@ function Plans() {
           </ShopButton>
         </header>
 
-        {payStatus === "processing" ? (
-          /* PROCESSING SCREEN */
+        {/* 1. STK PUSH WAITING SCREEN */}
+        {payStatus === "stk_waiting" ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
+            <div className="relative w-16 h-16 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border-3 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+              <Smartphone className="h-7 w-7 text-emerald-400 animate-pulse" />
+            </div>
+
+            <div>
+              <h2 className="text-base font-black text-foreground">{tr("STK Push Sent to Your Phone")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {tr("Please check screen on")} <span className="font-bold text-foreground">{phone.trim()}</span>
+              </p>
+            </div>
+
+            <div className="w-full max-w-xs md:max-w-md bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-3 text-xs space-y-1.5 text-left">
+              <p className="text-emerald-300 font-semibold text-[11.5px]">
+                {tr("1. Check for the Safaricom SIM prompt on your phone.")}
+              </p>
+              <p className="text-emerald-300 font-semibold text-[11.5px]">
+                {tr("2. Enter your M-Pesa PIN to complete payment.")}
+              </p>
+              <p className="text-muted-foreground text-[10.5px]">
+                {tr("Amount:")}{" "}
+                <span className="font-bold text-foreground">
+                  {currency === "KSH"
+                    ? currentPrice.formatted
+                    : `${kshEquivalent.formatted} (~${currentPrice.formatted})`}
+                </span>
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <span className="text-[11px] font-bold text-muted-foreground">
+                {tr("Prompt expires in:")} <span className="text-emerald-400 font-mono text-xs">{stkSecondsLeft}s</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleResendStk}
+                className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>{tr("Resend STK")}</span>
+              </button>
+            </div>
+          </div>
+        ) : payStatus === "processing" ? (
+          /* 2. PROCESSING SCREEN */
           <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
             <div className="relative w-14 h-14 flex items-center justify-center">
               <div className="absolute inset-0 rounded-full border-3 border-blue-500/20 border-t-blue-500 animate-spin" />
@@ -362,7 +443,7 @@ function Plans() {
             </div>
           </div>
         ) : payStatus === "success" ? (
-          /* SUCCESS SCREEN */
+          /* 3. SUCCESS SCREEN */
           <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
             <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20">
               <Check className="h-7 w-7 stroke-[3]" />
@@ -388,7 +469,9 @@ function Plans() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{tr("Payment Channel")}:</span>
-                <span className="font-semibold text-foreground">{method === "mobile" ? "Mobile Money" : "Card"}</span>
+                <span className="font-semibold text-foreground">
+                  {method === "mobile" ? "Safaricom M-Pesa" : "Card"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">{tr("Date")}:</span>
@@ -411,7 +494,7 @@ function Plans() {
             </div>
           </div>
         ) : (
-          /* MAIN UNIFIED CHECKOUT FORM — ZERO-SCROLL */
+          /* 4. MAIN UNIFIED CHECKOUT FORM — ZERO-SCROLL */
           <div className="flex-1 flex flex-col justify-between py-1 space-y-2 min-h-0">
             {/* 1. SINGLE-ROW SUMMARY */}
             <div className="rounded-lg border border-blue-500/30 bg-[#0E1A32] px-3 py-2 flex items-center justify-between shadow-sm shrink-0">
@@ -525,6 +608,18 @@ function Plans() {
                     </div>
                   </div>
 
+                  {/* CROSS-BORDER CURRENCY CONVERSION NOTICE */}
+                  {currency !== "KSH" && (
+                    <div className="rounded-md bg-amber-950/30 border border-amber-500/30 p-2 flex items-start gap-1.5 text-[10px] text-amber-300">
+                      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      <span>
+                        {tr("Safaricom M-Pesa processes in KSh equivalent")} (
+                        <span className="font-bold">~{kshEquivalent.formatted}</span>).{" "}
+                        {tr(`For direct ${currency} settlement, switch to Card.`)}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="rounded-md bg-blue-950/40 border border-blue-500/30 p-2 flex items-start gap-1.5 text-[10px] text-blue-300">
                     <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-blue-400" />
                     <span>
@@ -592,7 +687,7 @@ function Plans() {
                 </div>
               )}
 
-              {/* BOTTOM ACTIONS INSIDE BOX: TOTAL DUE DIRECTLY ABOVE THE PAY BUTTON */}
+              {/* BOTTOM ACTIONS: TOTAL DUE DIRECTLY ABOVE PAY BUTTON */}
               <div className="pt-2 border-t border-border/60 flex flex-col items-center gap-1.5 w-full">
                 <div className="flex items-center justify-between w-full px-1 text-xs">
                   <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
@@ -667,7 +762,7 @@ function Plans() {
         </button>
       </header>
 
-      {/* 2. BILLING CYCLE TOGGLE (MONTHLY / YEARLY SAVE 10%) */}
+      {/* 2. BILLING CYCLE TOGGLE */}
       <div className="flex justify-center shrink-0 my-0.5 sm:my-1">
         <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-muted/60 border border-border/80 shadow-inner w-full max-w-xs sm:max-w-sm justify-between">
           <button
@@ -784,7 +879,7 @@ function Plans() {
         })}
       </div>
 
-      {/* 4. BOTTOM TRIAL CALL-TO-ACTION */}
+      {/* 4. BOTTOM TRIAL CTA */}
       <div className="shrink-0 pt-1">
         <button
           type="button"
