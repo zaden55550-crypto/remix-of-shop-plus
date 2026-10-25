@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, ChevronLeft, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
-import { PLANS, fmtKsh, store, type PlanId } from "@/lib/shopbook";
+import { PLANS, store, type PlanId } from "@/lib/shopbook";
+import { convertUsdToCurrency, detectUserCountry } from "@/lib/world-data";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +15,8 @@ export const Route = createFileRoute("/plans")({
       { title: "Choose Your Plan — SHOPBOOK ERP" },
       {
         name: "description",
-        content: "Compare Basic, Plus and Business SHOPBOOK plans, or start a free 30-day full ERP trial.",
+        content:
+          "Compare Basic ($11), Plus ($22) and Business ($40) SHOPBOOK plans, or start a free 30-day full ERP trial.",
       },
       { property: "og:title", content: "Choose Your Plan — SHOPBOOK ERP" },
       { property: "og:description", content: "Compare SHOPBOOK plans or start a free 30-day trial." },
@@ -25,24 +27,21 @@ export const Route = createFileRoute("/plans")({
   component: Plans,
 });
 
-const tone: Record<PlanId, { border: string; text: string; surface: string; headerBg: string }> = {
+const tone: Record<PlanId, { border: string; text: string; surface: string }> = {
   basic: {
     border: "border-emerald-500/60",
     text: "text-emerald-400",
     surface: "bg-emerald-950/20",
-    headerBg: "bg-emerald-500/10",
   },
   plus: {
     border: "border-blue-500",
     text: "text-blue-400",
     surface: "bg-blue-950/30",
-    headerBg: "bg-blue-500/15",
   },
   business: {
     border: "border-purple-500/60",
     text: "text-purple-400",
     surface: "bg-purple-950/20",
-    headerBg: "bg-purple-500/10",
   },
 };
 
@@ -54,9 +53,24 @@ function Plans() {
   const [selected, setSelected] = useState<PlanId>("plus");
   const [paying, setPaying] = useState(false);
   const [phone, setPhone] = useState("");
-  const plan = useMemo(() => PLANS.find((item) => item.id === selected) ?? PLANS[1], [selected]);
+  const [currency, setCurrency] = useState("USD");
 
-  const price = yearly ? plan.yearly : plan.monthly;
+  // Read stored account currency, with fallback to detected country
+  useEffect(() => {
+    const acct = store.get();
+    if (acct?.currency) {
+      setCurrency(acct.currency.toUpperCase());
+    } else {
+      const detected = detectUserCountry();
+      setCurrency(detected.currencyCode || "USD");
+    }
+  }, []);
+
+  const plan = useMemo(() => PLANS.find((item) => item.id === selected) ?? PLANS[1], [selected])!;
+
+  const currentMonthlyUsd = yearly ? plan.yearlyUsd / 12 : plan.monthlyUsd;
+  const currentPrice = convertUsdToCurrency(currentMonthlyUsd, currency);
+  const currentYearlyTotal = convertUsdToCurrency(plan.yearlyUsd, currency);
 
   const startTrial = () => {
     const a = store.get();
@@ -76,7 +90,7 @@ function Plans() {
   const requestPayment = () => {
     const cleaned = phone.replace(/\s+/g, "");
     if (!/^(?:\+?254|0)?[17]\d{8}$/.test(cleaned)) {
-      toast.error(tr("Enter a valid Kenyan M-Pesa phone number"));
+      toast.error(tr("Enter a valid phone number"));
       return;
     }
     toast(tr("Online payments are coming soon. Start the free trial for now — your data stays when you upgrade."));
@@ -86,6 +100,7 @@ function Plans() {
     return (
       <main
         dir={dir}
+        style={{ zoom: 1 }}
         className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-4 py-3 md:max-w-md mx-auto"
       >
         <div>
@@ -97,13 +112,13 @@ function Plans() {
             <div className="w-8" />
           </div>
 
-          <h1 className="mt-2 text-center text-xl font-bold">{tr("Pay with M-Pesa")}</h1>
+          <h1 className="mt-2 text-center text-xl font-bold">{tr("Confirm Subscription")}</h1>
           <p className="mt-0.5 text-center text-xs text-muted-foreground">
-            {t("planSuffix", plan.name)} · {fmtKsh(price)} {tr("/ month")}
+            {t("planSuffix", plan.name)} · {currentPrice.formatted} {tr("/ month")}
             {yearly && (
               <>
                 {" "}
-                · {tr("Billed yearly")}: {fmtKsh(price * 12)}
+                · {tr("Billed yearly")}: {currentYearlyTotal.formatted}
               </>
             )}
           </p>
@@ -113,7 +128,7 @@ function Plans() {
               icon={<Smartphone className="h-4 w-4" />}
               type="tel"
               inputMode="tel"
-              placeholder={tr("M-Pesa phone number")}
+              placeholder={tr("Payment phone number (M-Pesa / Mobile Money)")}
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
@@ -136,9 +151,10 @@ function Plans() {
   return (
     <main
       dir={dir}
+      style={{ zoom: 1 }}
       className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-2.5 py-1.5 md:py-2.5 md:max-w-4xl mx-auto box-border"
     >
-      {/* Top Header: Back + Wordmark */}
+      {/* Top Header: Back + Wordmark + Currency Pill */}
       <header className="flex items-center justify-between shrink-0">
         <ShopButton
           variant="bare"
@@ -149,7 +165,14 @@ function Plans() {
           <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
         </ShopButton>
         <Wordmark className="text-sm font-black" />
-        <div className="w-7" />
+        <button
+          type="button"
+          onClick={() => setCurrency((c) => (c === "USD" ? store.get()?.currency || "KSH" : "USD"))}
+          className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-border bg-card/70 text-foreground/80 hover:bg-card"
+          title={tr("Switch currency display")}
+        >
+          {currency}
+        </button>
       </header>
 
       {/* Title & Subtitle */}
@@ -188,15 +211,23 @@ function Plans() {
       <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 items-stretch my-0.5">
         {PLANS.map((item) => {
           const isMid = item.id === "plus";
+          const isBest = item.id === "business";
           const itemTone = tone[item.id];
-          const shownPrice = yearly ? item.yearly : item.monthly;
+
+          const monthlyEquivalentUsd = yearly ? item.yearlyUsd / 12 : item.monthlyUsd;
+          const displayPrice = convertUsdToCurrency(monthlyEquivalentUsd, currency);
+          const yearlyTotal = convertUsdToCurrency(item.yearlyUsd, currency);
 
           return (
             <div
               key={item.id}
               className={cn(
                 "relative flex flex-col justify-between rounded-lg border p-1.5 text-start transition-all",
-                isMid ? "border-2 border-blue-500 shadow-md shadow-blue-500/10" : itemTone.border,
+                isMid
+                  ? "border-2 border-blue-500 shadow-md shadow-blue-500/10"
+                  : isBest
+                    ? "border-2 border-orange-500/80 shadow-md shadow-orange-500/10"
+                    : itemTone.border,
                 itemTone.surface,
               )}
             >
@@ -207,22 +238,35 @@ function Plans() {
                 </span>
               )}
 
+              {/* BEST Badge in Orange for Business Plan */}
+              {isBest && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-orange-500 px-2 py-0.2 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
+                  BEST
+                </span>
+              )}
+
               {/* Card Header Content */}
               <div className="flex-1 min-h-0 flex flex-col">
                 <div
                   className={cn(
                     "text-center text-[10px] md:text-xs font-black uppercase tracking-wider",
-                    isMid && "mt-1",
-                    itemTone.text,
+                    (isMid || isBest) && "mt-1",
+                    isBest ? "text-orange-400" : itemTone.text,
                   )}
                 >
                   {item.name}
                 </div>
 
-                <div className="mt-0.5 text-center text-xs md:text-sm font-black leading-tight">
-                  {fmtKsh(shownPrice)}
+                {/* Price and / month on ONE ROW */}
+                <div className="mt-0.5 flex items-baseline justify-center gap-1 leading-tight text-center">
+                  <span className="text-xs md:text-sm font-black tracking-tight">{displayPrice.formatted}</span>
+                  <span className="text-[8px] md:text-[9px] text-muted-foreground font-medium">{tr("/ month")}</span>
                 </div>
-                <div className="text-center text-[8px] text-muted-foreground leading-none">{tr("/ month")}</div>
+
+                {/* Yearly Save 10% Calculation Row */}
+                <div className="text-center text-[7.5px] md:text-[8px] text-emerald-600 dark:text-emerald-400 font-semibold leading-none mt-0.5 truncate">
+                  {yearly ? `${tr("Save 10%")}: ${yearlyTotal.formatted}/${tr("yr")}` : `${tr("Yearly: save 10%")}`}
+                </div>
 
                 <div className="my-1 border-t border-border/40" />
 
@@ -234,21 +278,21 @@ function Plans() {
                 <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] leading-tight text-foreground/90 pr-0.5">
                   {item.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-1">
-                      <span className={cn("shrink-0 font-bold", itemTone.text)}>•</span>
+                      <span className={cn("shrink-0 font-bold", isBest ? "text-orange-400" : itemTone.text)}>•</span>
                       <span className="truncate">{tr(feature)}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Individual Blue Continue Button with Arrow */}
+              {/* Compact, Not Bold Action Button with Arrow (Half Size) */}
               <ShopButton
                 type="button"
-                className="mt-1.5 w-full flex items-center justify-center gap-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold py-1.5 px-0.5 text-[9px] shadow-sm transition-all"
+                className="mt-1 w-full flex items-center justify-center gap-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-normal py-0.5 px-1 text-[7.5px] md:text-[8px] shadow-xs transition-all h-auto min-h-0"
                 onClick={() => handleSelectPlan(item.id)}
               >
                 <span>{tr("Continue with {x}", item.name)}</span>
-                <ArrowRight className="h-2.5 w-2.5 shrink-0" />
+                <ArrowRight className="h-2 w-2 shrink-0" />
               </ShopButton>
             </div>
           );
