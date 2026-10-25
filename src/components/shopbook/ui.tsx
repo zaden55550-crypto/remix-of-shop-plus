@@ -543,8 +543,8 @@ export function BrandRing({ size = 180 }: { size?: number }) {
       <div className="auth-brand-orbit spin-slow" aria-hidden="true">
         {icons.map((src, i) => {
           const angle = (i / count) * 2 * Math.PI - Math.PI / 2;
-          const x = 50 + orbitRadiusPercent * Math.cos(angle);
-          const y = 50 + orbitRadiusPercent * Math.sin(angle);
+          const x = (50 + orbitRadiusPercent * Math.cos(angle)).toFixed(3);
+          const y = (50 + orbitRadiusPercent * Math.sin(angle)).toFixed(3);
           return (
             <div key={i} className="auth-orbit-icon" style={{ left: `${x}%`, top: `${y}%` }}>
               <img src={src} alt="" className="auth-orbit-img counter-spin" loading="eager" decoding="async" />
