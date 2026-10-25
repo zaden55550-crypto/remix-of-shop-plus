@@ -109,7 +109,7 @@ function Signup() {
     }
 
     try {
-      store.save({
+      store.register({
         language,
         shopName: shopTrimmed,
         email: emailTrimmed,
@@ -124,7 +124,6 @@ function Signup() {
       return;
     }
 
-    store.signIn();
     nav({ to: "/plans" });
   };
 
