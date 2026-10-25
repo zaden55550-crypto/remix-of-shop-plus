@@ -64,7 +64,7 @@ const tone: Record<
 type PaymentMethod = "mobile" | "card";
 
 type MobileNetwork =
-  "mpesa" | "evc" | "zaad" | "airtel" | "mtn" | "orange" | "tigo" | "vodafone" | "telebirr" | "ecocash";
+  "mpesa" | "airtel" | "mtn" | "telebirr" | "evc" | "zaad" | "orange" | "tigo" | "vodafone" | "ecocash";
 
 interface CountryDialOption {
   code: string;
@@ -75,31 +75,32 @@ interface CountryDialOption {
 
 const COUNTRY_DIAL_OPTIONS: CountryDialOption[] = [
   { code: "KEN", dial: "+254", name: "Kenya (+254)", defaultNet: "mpesa" },
-  { code: "SOM", dial: "+252", name: "Somalia (+252)", defaultNet: "evc" },
-  { code: "UGA", dial: "+256", name: "Uganda (+256)", defaultNet: "mtn" },
-  { code: "TZA", dial: "+255", name: "Tanzania (+255)", defaultNet: "tigo" },
-  { code: "RWA", dial: "+250", name: "Rwanda (+250)", defaultNet: "mtn" },
-  { code: "ETH", dial: "+251", name: "Ethiopia (+251)", defaultNet: "telebirr" },
-  { code: "SSD", dial: "+211", name: "South Sudan (+211)", defaultNet: "mtn" },
-  { code: "DJI", dial: "+253", name: "Djibouti (+253)", defaultNet: "orange" },
-  { code: "NGA", dial: "+234", name: "Nigeria (+234)", defaultNet: "mtn" },
-  { code: "GHA", dial: "+233", name: "Ghana (+233)", defaultNet: "mtn" },
-  { code: "ZAF", dial: "+27", name: "South Africa (+27)", defaultNet: "vodafone" },
+  { code: "SOM", dial: "+252", name: "Somalia (+252)", defaultNet: "mpesa" },
+  { code: "UGA", dial: "+256", name: "Uganda (+256)", defaultNet: "mpesa" },
+  { code: "TZA", dial: "+255", name: "Tanzania (+255)", defaultNet: "mpesa" },
+  { code: "RWA", dial: "+250", name: "Rwanda (+250)", defaultNet: "mpesa" },
+  { code: "ETH", dial: "+251", name: "Ethiopia (+251)", defaultNet: "mpesa" },
+  { code: "SSD", dial: "+211", name: "South Sudan (+211)", defaultNet: "mpesa" },
+  { code: "DJI", dial: "+253", name: "Djibouti (+253)", defaultNet: "mpesa" },
+  { code: "NGA", dial: "+234", name: "Nigeria (+234)", defaultNet: "mpesa" },
+  { code: "GHA", dial: "+233", name: "Ghana (+233)", defaultNet: "mpesa" },
+  { code: "ZAF", dial: "+27", name: "South Africa (+27)", defaultNet: "mpesa" },
   { code: "USA", dial: "+1", name: "United States (+1)", defaultNet: "mpesa" },
   { code: "GBR", dial: "+44", name: "United Kingdom (+44)", defaultNet: "mpesa" },
   { code: "ARE", dial: "+971", name: "UAE (+971)", defaultNet: "mpesa" },
 ];
 
+// ONLY Safaricom M-Pesa is active. All others are marked (Coming Soon).
 const MOBILE_NETWORKS: { id: MobileNetwork; name: string; country: string; active: boolean }[] = [
   { id: "mpesa", name: "Safaricom M-Pesa", country: "Kenya / East Africa", active: true },
-  { id: "evc", name: "EVC Plus / Hormuud", country: "Somalia", active: true },
-  { id: "zaad", name: "Zaad / Telesom", country: "Somalia & Somaliland", active: true },
   { id: "airtel", name: "Airtel Money", country: "East & Central Africa", active: false },
   { id: "mtn", name: "MTN Mobile Money", country: "Uganda, Ghana, Nigeria", active: false },
+  { id: "evc", name: "EVC Plus / Hormuud", country: "Somalia", active: false },
+  { id: "zaad", name: "Zaad / Telesom", country: "Somalia & Somaliland", active: false },
+  { id: "telebirr", name: "Telebirr", country: "Ethiopia", active: false },
   { id: "orange", name: "Orange Money", country: "Francophone Africa", active: false },
   { id: "tigo", name: "Tigo Pesa", country: "Tanzania", active: false },
   { id: "vodafone", name: "Vodafone Cash", country: "Egypt & Ghana", active: false },
-  { id: "telebirr", name: "Telebirr", country: "Ethiopia", active: false },
   { id: "ecocash", name: "EcoCash", country: "Zimbabwe", active: false },
 ];
 
@@ -120,7 +121,7 @@ function Plans() {
   // Payment Form States
   const [method, setMethod] = useState<PaymentMethod>("mobile");
   const [mobileNetwork, setMobileNetwork] = useState<MobileNetwork>("mpesa");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState("+254 ");
   const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
@@ -142,12 +143,12 @@ function Plans() {
       }
     }
 
-    // Auto-select dial code from account country (e.g. KEN -> +254, SOM -> +252)
+    // Auto-select dial code from account country (default KEN -> +254)
     const match = COUNTRY_DIAL_OPTIONS.find((c) => c.code === (acct?.country || "KEN"));
-    if (match) {
-      setSelectedDial(match.dial);
-      setMobileNetwork(match.defaultNet);
-    }
+    const dial = match ? match.dial : "+254";
+    setSelectedDial(dial);
+    setMobileNetwork("mpesa");
+    setPhone(`${dial} `);
   }, []);
 
   const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) ?? PLANS[1]!, [chosenPlanId]);
@@ -178,6 +179,20 @@ function Plans() {
     }
   };
 
+  const handlePhoneChange = (inputVal: string) => {
+    // Keep the country code always prefilled
+    const prefix = `${selectedDial} `;
+    if (!inputVal.startsWith(selectedDial)) {
+      setPhone(prefix);
+      return;
+    }
+
+    const rest = inputVal.slice(selectedDial.length).replace(/[^\d\s]/g, "");
+    // Remove accidental leading 0 (e.g. 0722 -> 722)
+    const cleanRest = rest.replace(/^\s*0+/, " ");
+    setPhone(`${selectedDial}${cleanRest.startsWith(" ") ? cleanRest : ` ${cleanRest}`}`);
+  };
+
   const runPaymentWorkflow = (sourceName?: string) => {
     setPayStatus("processing");
     setProcessStep(1);
@@ -206,18 +221,13 @@ function Plans() {
     if (method === "mobile") {
       const activeNet = MOBILE_NETWORKS.find((n) => n.id === mobileNetwork);
       if (!activeNet?.active) {
-        toast.info(tr("Direct integration for this network is coming soon. Please choose an active network or Card."));
+        toast.info(tr("Direct integration for this network is coming soon. Please choose Safaricom M-Pesa or Card."));
         return;
       }
 
-      // Mandatory validation: number must include country code (e.g. +254..., +252...)
-      const fullPhone = phone.trim().startsWith("+")
-        ? phone.trim()
-        : `${selectedDial}${phone.trim().replace(/^0+/, "")}`;
-      const cleanPhone = fullPhone.replace(/[\s-]/g, "");
-
+      const cleanPhone = phone.replace(/[\s-]/g, "");
       if (!cleanPhone.startsWith("+") || cleanPhone.length < 10) {
-        toast.error(tr("Enter a valid mobile number with 3-digit country code (e.g. +254... or +252...)"));
+        toast.error(tr("Enter your mobile number following the prefilled country code (e.g. +254 7...)"));
         return;
       }
     } else if (method === "card") {
@@ -257,10 +267,8 @@ function Plans() {
 
   const handleDialChange = (newDial: string) => {
     setSelectedDial(newDial);
-    const match = COUNTRY_DIAL_OPTIONS.find((c) => c.dial === newDial);
-    if (match) {
-      setMobileNetwork(match.defaultNet);
-    }
+    const existingRest = phone.slice(selectedDial.length).trim();
+    setPhone(`${newDial} ${existingRest}`);
   };
 
   // =========================================================================
@@ -432,7 +440,7 @@ function Plans() {
               </button>
             </div>
 
-            {/* 2. PAYMENT METHOD TABS (MOBILE MONEY & CARD) */}
+            {/* 2. PAYMENT METHOD TABS (MOBILE MONEY & CARD ONLY) */}
             <div className="grid grid-cols-2 gap-2 shrink-0">
               <button
                 type="button"
@@ -465,7 +473,7 @@ function Plans() {
 
             {/* 3. FORM CONTENT BOX */}
             <div className="rounded-xl border border-border/80 bg-[#0B1528] p-3 space-y-2 shadow-md flex-1 flex flex-col justify-between">
-              {/* TAB 1: Mobile Payment */}
+              {/* TAB 1: Mobile Payment (Safaricom M-Pesa Active) */}
               {method === "mobile" && (
                 <div className="space-y-2">
                   <div>
@@ -478,8 +486,8 @@ function Plans() {
                       className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-blue-500 font-medium cursor-pointer"
                     >
                       {MOBILE_NETWORKS.map((net) => (
-                        <option key={net.id} value={net.id}>
-                          {net.name} ({net.country}) {net.active ? `— Active` : `— Coming soon`}
+                        <option key={net.id} value={net.id} disabled={!net.active}>
+                          {net.name} {net.active ? "— Active" : "— (Coming Soon)"}
                         </option>
                       ))}
                     </select>
@@ -487,7 +495,7 @@ function Plans() {
 
                   <div>
                     <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
-                      {tr("Mobile Number (With Country Code)")}
+                      {tr("M-Pesa Phone Number (Prefilled Country Code)")}
                     </label>
 
                     {/* TWO-COLUMN PHONE ROW: AUTO-SELECTED COUNTRY CODE + LOCAL NUMBER */}
@@ -511,7 +519,7 @@ function Plans() {
                           type="tel"
                           placeholder={`${selectedDial} 7...`}
                           value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          onChange={(e) => handlePhoneChange(e.target.value)}
                         />
                       </div>
                     </div>
@@ -522,9 +530,7 @@ function Plans() {
                     <span>
                       {mobileNetwork === "mpesa"
                         ? tr("You will receive an STK Push prompt on this phone. Enter your M-Pesa PIN to complete.")
-                        : mobileNetwork === "evc" || mobileNetwork === "zaad"
-                          ? tr("You will receive an automated USSD prompt on this phone. Confirm payment to activate.")
-                          : tr("Enter your registered mobile money phone number to receive payment authorization.")}
+                        : tr("This network is coming soon. Please select Safaricom M-Pesa or use Card.")}
                     </span>
                   </div>
                 </div>
@@ -586,23 +592,21 @@ function Plans() {
                 </div>
               )}
 
-              {/* BOTTOM ACTIONS INSIDE BOX */}
-              <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
-                <div className="text-[11px] leading-tight">
-                  <span className="text-muted-foreground block text-[9.5px] uppercase">{tr("Total Due")}</span>
-                  <span className="font-extrabold text-foreground text-xs sm:text-sm">{currentPrice.formatted}</span>
+              {/* BOTTOM ACTIONS INSIDE BOX: TOTAL DUE DIRECTLY ABOVE THE PAY BUTTON */}
+              <div className="pt-2 border-t border-border/60 flex flex-col items-center gap-1.5 w-full">
+                <div className="flex items-center justify-between w-full px-1 text-xs">
+                  <span className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">
+                    {tr("Total Due:")}
+                  </span>
+                  <span className="font-extrabold text-foreground text-sm text-blue-400">{currentPrice.formatted}</span>
                 </div>
 
                 <ShopButton
                   onClick={handlePayNow}
-                  className="h-8 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
+                  className="w-full h-8.5 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99]"
                 >
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  <span>
-                    {method === "mobile"
-                      ? tr(`Pay with ${MOBILE_NETWORKS.find((n) => n.id === mobileNetwork)?.name || "Mobile"}`)
-                      : tr("Pay with Card")}
-                  </span>
+                  <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
                 </ShopButton>
               </div>
             </div>
@@ -618,68 +622,60 @@ function Plans() {
   }
 
   // =========================================================================
-  // VIEW: MAIN OVERVIEW PLANS (3 COLUMNS ON MOBILE, STRICT ZERO-SCROLL)
+  // VIEW: MAIN THREE-PLAN COMPARISON SCREEN
   // =========================================================================
   return (
     <main
       dir={dir}
-      className="app-screen relative flex flex-col justify-between px-2 sm:px-4 md:px-6 py-1 sm:py-2 select-none"
+      className="app-screen relative flex flex-col justify-between px-2.5 py-1.5 sm:px-4 sm:py-2 md:px-8 md:py-3 max-w-6xl mx-auto w-full select-none"
       style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
     >
-      {/* Header */}
+      {/* 1. TOP BAR: TITLE + SUBTITLE + RESTORE LINK */}
       <header className="flex items-center justify-between shrink-0 py-0.5">
-        <ShopButton
-          variant="ghost"
-          onClick={() => router.history.back()}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) {
+              router.history.back();
+            } else {
+              nav({ to: "/apps" });
+            }
+          }}
           aria-label={t("back")}
-          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+          className="p-1 -m-1 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
         >
           <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
-        </ShopButton>
-        <Wordmark className="text-sm font-black" />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={restoring}
-            onClick={handleRestorePurchases}
-            className="text-[9.5px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50 whitespace-nowrap cursor-pointer"
-            title={tr("Check and restore your previous active subscription")}
-          >
-            {restoring ? tr("Restoring...") : tr("Restore Purchases")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setCurrency((c) => (c === "USD" ? store.get()?.currency || "KSH" : "USD"))}
-            className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full border border-border bg-card/70 text-foreground/80 hover:bg-card cursor-pointer"
-            title={tr("Switch currency display")}
-          >
-            {currency}
-          </button>
+        </button>
+
+        <div className="text-center min-w-0 px-2 flex-1 flex flex-col sm:flex-row items-center justify-center sm:gap-2">
+          <h1 className="text-xs sm:text-sm font-black tracking-tight text-foreground whitespace-nowrap">
+            {tr("Choose Your Plan")}
+          </h1>
+          <span className="hidden sm:inline text-muted-foreground text-xs">•</span>
+          <p className="text-[9.5px] sm:text-[11px] text-muted-foreground truncate">
+            {tr("Unlock more features and grow your business with SHOPBOOK")}
+          </p>
         </div>
+
+        <button
+          type="button"
+          onClick={handleRestorePurchases}
+          disabled={restoring}
+          className="text-[10px] sm:text-xs font-semibold text-primary hover:underline whitespace-nowrap cursor-pointer transition-opacity disabled:opacity-50"
+        >
+          {restoring ? tr("Restoring...") : tr("Restore Purchases")}
+        </button>
       </header>
 
-      {/* Title & Subtitle IN ONE ROW */}
-      <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 shrink-0 my-0.5 text-center">
-        <h1 className="text-sm md:text-base font-bold tracking-tight text-foreground whitespace-nowrap">
-          {tr("Choose Your Plan")}
-        </h1>
-        <span className="hidden sm:inline text-xs text-muted-foreground font-light">•</span>
-        <p className="text-[11px] md:text-xs text-muted-foreground">
-          {tr("Unlock more features and grow your business with SHOPBOOK")}
-        </p>
-      </div>
-
-      {/* Monthly / Yearly Billing Toggle */}
-      <div className="flex items-center justify-center shrink-0 my-0.5 w-full">
-        <div className="grid grid-cols-2 rounded-xl border border-border bg-card/80 p-0.5 text-xs w-full max-w-sm sm:max-w-md shadow-sm">
+      {/* 2. BILLING CYCLE TOGGLE (MONTHLY / YEARLY SAVE 10%) */}
+      <div className="flex justify-center shrink-0 my-0.5 sm:my-1">
+        <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-muted/60 border border-border/80 shadow-inner w-full max-w-xs sm:max-w-sm justify-between">
           <button
             type="button"
             onClick={() => setYearly(false)}
             className={cn(
-              "py-1.5 px-3 rounded-lg text-xs font-semibold transition-all text-center cursor-pointer",
-              !yearly
-                ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+              "flex-1 px-3 py-1 text-[10px] sm:text-xs font-bold rounded-full transition-all cursor-pointer text-center",
+              !yearly ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
             {tr("Monthly")}
@@ -688,25 +684,23 @@ function Plans() {
             type="button"
             onClick={() => setYearly(true)}
             className={cn(
-              "py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all text-center cursor-pointer",
-              yearly
-                ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+              "flex-1 px-3 py-1 text-[10px] sm:text-xs font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1",
+              yearly ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
             )}
           >
             <span>{tr("Yearly")}</span>
-            <span className="text-[9.5px] font-extrabold uppercase tracking-wide text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-1.5 py-0.5 rounded-full">
-              {tr("save 10%")}
+            <span className="text-[8.5px] sm:text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+              {tr("Save 10%")}
             </span>
           </button>
         </div>
       </div>
 
-      {/* 3 Pricing Cards Side-by-Side (3 Columns On All Screens) */}
-      <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 my-0.5 items-stretch relative">
+      {/* 3. THREE PLANS CARDS GRID (3 COLUMNS ON ALL SCREENS) */}
+      <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 items-stretch my-1">
         {PLANS.map((p) => {
-          const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
           const tColor = tone[p.id];
+          const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
           const isPlus = p.id === "plus";
 
           return (
@@ -717,101 +711,85 @@ function Plans() {
                 setPaying(true);
               }}
               className={cn(
-                "relative rounded-xl border bg-card/95 transition-all duration-300 flex flex-col justify-between overflow-visible cursor-pointer",
-                "px-1.5 py-1.5 sm:px-3 sm:py-2.5",
+                "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible text-left",
                 isPlus
-                  ? "border-2 border-blue-500 shadow-lg shadow-blue-500/20 z-10"
-                  : "border-border/80 hover:border-foreground/40",
-                "hover:-translate-y-1 hover:shadow-xl hover:z-20 hover:border-2",
-                p.id === "basic" && "hover:border-emerald-500 hover:shadow-emerald-500/20",
-                p.id === "plus" && "hover:border-blue-400 hover:shadow-blue-500/30",
-                p.id === "business" && "hover:border-amber-500 hover:shadow-amber-500/20",
+                  ? "bg-card/90 shadow-xl border-blue-500/80 hover:border-blue-400 hover:scale-[1.02] z-20"
+                  : "bg-card/60 shadow-md border-border/70 hover:border-foreground/40 hover:scale-[1.01] z-10",
               )}
             >
-              {/* Badges */}
+              {/* TOP BADGES */}
               {p.recommended && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-1.5 py-0.2 sm:px-2 sm:py-0.5 text-[7px] sm:text-[9.5px] font-extrabold uppercase tracking-wide text-white shadow-sm whitespace-nowrap z-30">
-                  {tr("RECOMMENDED")}
-                </span>
-              )}
-              {p.best && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-1.5 py-0.2 sm:px-2 sm:py-0.5 text-[7px] sm:text-[9.5px] font-extrabold uppercase tracking-wide text-slate-950 shadow-sm whitespace-nowrap z-30">
-                  {tr("BEST")}
-                </span>
-              )}
-
-              {/* Card Header */}
-              <div className="shrink-0 text-center pt-0.5">
-                <h3 className="text-[10px] sm:text-xs md:text-sm font-bold truncate text-foreground">{p.name}</h3>
-                <div className="flex items-baseline justify-center gap-0.5 mt-0.5">
-                  <span className="text-xs sm:text-lg md:text-2xl font-black text-foreground whitespace-nowrap">
-                    {priceObj.formatted}
-                  </span>
-                  <span className="text-[8px] sm:text-[10px] text-muted-foreground whitespace-nowrap">
-                    / {yearly ? tr("yr") : tr("mo")}
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[9px] font-extrabold uppercase tracking-wider bg-blue-600 text-white shadow-md shadow-blue-600/40 border border-blue-400/40 whitespace-nowrap">
+                    {tr("RECOMMENDED")}
                   </span>
                 </div>
-                {yearly && (
-                  <p className="text-[7px] sm:text-[9px] text-emerald-400 font-medium truncate mt-0.2">
-                    {tr("yearly save 10%")}
+              )}
+              {p.best && (
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[9px] font-extrabold uppercase tracking-wider bg-amber-500 text-black shadow-md shadow-amber-500/40 border border-amber-300 whitespace-nowrap">
+                    {tr("BEST")}
+                  </span>
+                </div>
+              )}
+
+              {/* CARD HEADER */}
+              <div className="text-center pt-0.5 sm:pt-1">
+                <h3 className={cn("text-[10px] sm:text-sm md:text-base font-black truncate", tColor.text)}>{p.name}</h3>
+                <p className="text-[7.5px] sm:text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tr(p.desc)}</p>
+
+                {/* PRICE ROW */}
+                <div className="mt-1 flex items-baseline justify-center gap-0.5">
+                  <span className="text-xs sm:text-lg md:text-2xl font-black text-foreground tracking-tight">
+                    {priceObj.formatted}
+                  </span>
+                  <span className="text-[7px] sm:text-[10px] text-muted-foreground font-medium">/{tr("mo")}</span>
+                </div>
+              </div>
+
+              {/* FEATURES LIST */}
+              <div className="flex-1 my-1.5 space-y-1 overflow-hidden">
+                {p.intro && (
+                  <p className="text-[7.5px] sm:text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5">
+                    {tr(p.intro)}
                   </p>
                 )}
+                <ul className="space-y-0.5 sm:space-y-1">
+                  {p.features.map((f, idx) => (
+                    <li key={idx} className="flex items-start gap-1 text-[7.5px] sm:text-[9.5px] leading-tight">
+                      <Check className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 mt-0.5", tColor.text)} />
+                      <span className="text-foreground/90 line-clamp-2">{tr(f)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              {/* Action Button */}
-              <div className="my-1 shrink-0 px-0.5">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setChosenPlanId(p.id);
-                    setPaying(true);
-                  }}
-                  className={cn(
-                    "w-full rounded-md text-[8px] sm:text-[11px] font-semibold transition-all flex items-center justify-center gap-0.5 cursor-pointer",
-                    "py-1 px-1 sm:py-1.5 sm:px-2",
-                    isPlus
-                      ? "bg-blue-600 hover:bg-blue-500 text-white shadow-sm shadow-blue-600/30 font-bold"
-                      : "border border-border/80 bg-background/80 hover:bg-accent text-foreground",
-                  )}
-                >
-                  <span className="truncate">{tr(`Continue with ${p.name}`)}</span>
-                  <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3 shrink-0" />
-                </button>
-              </div>
-
-              {/* Features List */}
-              <div className="space-y-0.5 sm:space-y-1 text-[8px] sm:text-[9.5px] border-t border-border/60 pt-1 flex-1 overflow-hidden">
-                {p.intro && (
-                  <div className="text-[7px] sm:text-[8.5px] font-bold text-muted-foreground uppercase tracking-wide truncate">
-                    {p.intro}
-                  </div>
+              {/* ACTION BUTTON */}
+              <ShopButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setChosenPlanId(p.id);
+                  setPaying(true);
+                }}
+                className={cn(
+                  "w-full h-6 sm:h-7.5 md:h-8 text-[8px] sm:text-[10.5px] md:text-xs font-semibold cursor-pointer shadow-sm mt-1",
+                  isPlus ? "bg-blue-600 hover:bg-blue-500 text-white" : "",
                 )}
-                {p.features.map((f, i) => (
-                  <div key={i} className="flex items-start gap-1 leading-tight">
-                    <Check
-                      className={cn(
-                        "h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0 mt-0.5",
-                        p.id === "basic" && "text-emerald-400",
-                        p.id === "plus" && "text-blue-400",
-                        p.id === "business" && "text-amber-400",
-                      )}
-                    />
-                    <span className="line-clamp-2 text-foreground/90">{f}</span>
-                  </div>
-                ))}
-              </div>
+              >
+                <span>{tr(`Continue with ${p.name}`)}</span>
+                <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1" />
+              </ShopButton>
             </div>
           );
         })}
       </div>
 
-      {/* Solid Emerald Green Free Trial Button */}
-      <div className="shrink-0 my-0.5 pt-0.5">
+      {/* 4. BOTTOM TRIAL CALL-TO-ACTION */}
+      <div className="shrink-0 pt-1">
         <button
           type="button"
           onClick={startTrial}
-          className="w-full py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all text-center bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 cursor-pointer"
+          className="w-full h-8 sm:h-9 text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white shadow-md shadow-emerald-600/30 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <span>{tr("Start with 30-day free trial")}</span>
           <ArrowRight className="h-3.5 w-3.5" />
