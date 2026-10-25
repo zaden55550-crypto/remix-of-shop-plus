@@ -811,15 +811,15 @@ function Plans() {
         })}
       </div>
 
-      {/* Bottom 30-Day Free Trial Banner */}
+      {/* Bottom 30-Day Free Trial Banner — Solid Emerald Green */}
       <div className="shrink-0 pt-0.5 text-center">
         <button
           type="button"
           onClick={startTrial}
-          className="w-full max-w-lg mx-auto py-1 px-2.5 rounded-lg border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-950/50 text-emerald-400 text-[9.5px] sm:text-[10.5px] font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          className="w-full max-w-lg mx-auto py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white text-[9.5px] sm:text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors shadow-md shadow-emerald-600/30 active:scale-[0.99]"
         >
-          <span>{tr("Not ready yet? Start your 30-day free trial")}</span>
-          <ArrowRight className="h-3 w-3" />
+          <span>{tr("Start with 30-day free trial")}</span>
+          <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5 stroke-[2.5]" />
         </button>
       </div>
 
