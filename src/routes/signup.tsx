@@ -33,6 +33,9 @@ export const Route = createFileRoute("/signup")({
   component: Signup,
 });
 
+// Requires a real domain extension like .com, .co, .org, .net, .io, .ke, etc.
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 function Signup() {
   const nav = useNavigate();
   const { tr, dir, language } = useLanguage();
@@ -59,6 +62,8 @@ function Signup() {
 
   const [agree, setAgree] = useState(false);
   const [err, setErr] = useState<{
+    shopName?: string;
+    email?: string;
     password?: string;
     confirm?: string;
     agree?: string;
@@ -72,6 +77,18 @@ function Signup() {
 
     const next: typeof err = {};
 
+    const shopTrimmed = f.shopName.trim();
+    if (!shopTrimmed) {
+      next.shopName = tr("Shop name is required");
+    }
+
+    const emailTrimmed = f.email.trim();
+    if (!emailTrimmed) {
+      next.email = tr("Email address is required");
+    } else if (!EMAIL_REGEX.test(emailTrimmed)) {
+      next.email = tr("Please enter a valid email address ending in .com, .co, etc. (e.g. name@gmail.com)");
+    }
+
     if (f.password.length < 6) {
       next.password = tr("Password must be at least 6 characters");
     } else if (f.password !== f.confirm) {
@@ -84,7 +101,7 @@ function Signup() {
 
     setErr(next);
 
-    const first = next.password || next.confirm || next.agree;
+    const first = next.shopName || next.email || next.password || next.confirm || next.agree;
 
     if (first) {
       toast.error(first);
@@ -94,8 +111,8 @@ function Signup() {
     try {
       store.save({
         language,
-        shopName: f.shopName.trim(),
-        email: f.email.trim(),
+        shopName: shopTrimmed,
+        email: emailTrimmed,
         phone: "",
         password: f.password,
         currency: f.currency,
@@ -169,6 +186,7 @@ function Signup() {
                 label={tr("Shop Name")}
                 placeholder={tr("Enter shop name")}
                 value={f.shopName}
+                error={err.shopName}
                 onChange={set("shopName")}
                 required
               />
@@ -178,10 +196,11 @@ function Signup() {
                 icon={<Mail className="h-5 w-5" />}
                 inputMode="email"
                 label={tr("Email")}
-                placeholder={tr("Enter email address")}
+                placeholder={tr("Enter email address (e.g. name@gmail.com)")}
                 type="email"
                 autoComplete="email"
                 value={f.email}
+                error={err.email}
                 onChange={set("email")}
                 required
               />
