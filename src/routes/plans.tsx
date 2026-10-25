@@ -1,19 +1,21 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronLeft, Smartphone } from "lucide-react";
+import { ArrowRight, ChevronLeft, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
 import { PLANS, fmtKsh, store, type PlanId } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
-import { APPS } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/plans")({
   head: () => ({
     meta: [
       { title: "Choose Your Plan — SHOPBOOK ERP" },
-      { name: "description", content: "Compare Basic, Plus and Business SHOPBOOK plans, or start a free 30-day full ERP trial." },
+      {
+        name: "description",
+        content: "Compare Basic, Plus and Business SHOPBOOK plans, or start a free 30-day full ERP trial.",
+      },
       { property: "og:title", content: "Choose Your Plan — SHOPBOOK ERP" },
       { property: "og:description", content: "Compare SHOPBOOK plans or start a free 30-day trial." },
       { property: "og:type", content: "website" },
@@ -23,24 +25,24 @@ export const Route = createFileRoute("/plans")({
   component: Plans,
 });
 
-const tone: Record<PlanId, { border: string; text: string; surface: string; badge: string }> = {
+const tone: Record<PlanId, { border: string; text: string; surface: string; headerBg: string }> = {
   basic: {
-    border: "border-plan-basic",
-    text: "text-plan-basic",
-    surface: "bg-plan-basic/8",
-    badge: "bg-plan-basic text-plan-contrast",
+    border: "border-emerald-500/60",
+    text: "text-emerald-400",
+    surface: "bg-emerald-950/20",
+    headerBg: "bg-emerald-500/10",
   },
   plus: {
-    border: "border-plan-plus",
-    text: "text-plan-plus",
-    surface: "bg-plan-plus/8",
-    badge: "bg-plan-plus text-primary-foreground",
+    border: "border-blue-500",
+    text: "text-blue-400",
+    surface: "bg-blue-950/30",
+    headerBg: "bg-blue-500/15",
   },
   business: {
-    border: "border-plan-business",
-    text: "text-plan-business",
-    surface: "bg-plan-business/8",
-    badge: "bg-plan-business text-primary-foreground",
+    border: "border-purple-500/60",
+    text: "text-purple-400",
+    surface: "bg-purple-950/20",
+    headerBg: "bg-purple-500/10",
   },
 };
 
@@ -49,21 +51,28 @@ function Plans() {
   const { tr, t, dir } = useLanguage();
   const router = useRouter();
   const [yearly, setYearly] = useState(false);
-  const [selected, setSelected] = useState<PlanId>("business");
+  const [selected, setSelected] = useState<PlanId>("plus");
   const [paying, setPaying] = useState(false);
   const [phone, setPhone] = useState("");
-  const plan = useMemo(() => PLANS.find((item) => item.id === selected) ?? PLANS[0], [selected]);
-
-  if (!plan) return null;
+  const plan = useMemo(() => PLANS.find((item) => item.id === selected) ?? PLANS[1], [selected]);
 
   const price = yearly ? plan.yearly : plan.monthly;
+
   const startTrial = () => {
     const a = store.get();
-    // One 30-day trial per shop: reopening plans never restarts the clock.
-    if (a?.trialStart && Date.now() - a.trialStart >= 30 * 864e5) { toast.error(tr("Your 30-day free trial has ended. Choose a plan to continue.")); return; }
+    if (a?.trialStart && Date.now() - a.trialStart >= 30 * 864e5) {
+      toast.error(tr("Your 30-day free trial has ended. Choose a plan to continue."));
+      return;
+    }
     store.update({ plan: "trial", trialStart: a?.trialStart ?? Date.now() });
     nav({ to: "/apps" });
   };
+
+  const handleSelectPlan = (id: PlanId) => {
+    setSelected(id);
+    setPaying(true);
+  };
+
   const requestPayment = () => {
     const cleaned = phone.replace(/\s+/g, "");
     if (!/^(?:\+?254|0)?[17]\d{8}$/.test(cleaned)) {
@@ -75,96 +84,191 @@ function Plans() {
 
   if (paying) {
     return (
-      <main dir={dir} className="app-screen px-5 pb-8 pt-4">
-        <ShopButton variant="bare" onClick={() => setPaying(false)} aria-label={t("back")} className="mb-2 h-10 w-10 p-0">
-          <ChevronLeft className="rtl:rotate-180" />
-        </ShopButton>
-        <Wordmark />
-        <h1 className="mt-5 text-2xl font-bold">{tr("Pay with M-Pesa")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("planSuffix", plan.name)} · {fmtKsh(price)} {tr("/ month")}{yearly && <> · {tr("Billed yearly")}: {fmtKsh(price * 12)}</>}
-        </p>
-        <div className="mt-6 space-y-3">
-          <Field icon={<Smartphone className="h-5 w-5" />} type="tel" inputMode="tel" placeholder={tr("M-Pesa phone number")} value={phone} onChange={(event) => setPhone(event.target.value)} />
-          <ShopButton variant="success" className="h-auto min-h-12 py-3 text-sm" onClick={requestPayment}>{tr("Send payment request")}</ShopButton>
-          <ShopButton variant="outline" className="h-auto min-h-12 py-3 text-sm" onClick={startTrial}>{tr("Use the 30-day free trial instead")}</ShopButton>
+      <main
+        dir={dir}
+        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-4 py-3 md:max-w-md mx-auto"
+      >
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <ShopButton variant="bare" onClick={() => setPaying(false)} aria-label={t("back")} className="h-8 w-8 p-0">
+              <ChevronLeft className="rtl:rotate-180" />
+            </ShopButton>
+            <Wordmark />
+            <div className="w-8" />
+          </div>
+
+          <h1 className="mt-2 text-center text-xl font-bold">{tr("Pay with M-Pesa")}</h1>
+          <p className="mt-0.5 text-center text-xs text-muted-foreground">
+            {t("planSuffix", plan.name)} · {fmtKsh(price)} {tr("/ month")}
+            {yearly && (
+              <>
+                {" "}
+                · {tr("Billed yearly")}: {fmtKsh(price * 12)}
+              </>
+            )}
+          </p>
+
+          <div className="mt-4 space-y-2.5">
+            <Field
+              icon={<Smartphone className="h-4 w-4" />}
+              type="tel"
+              inputMode="tel"
+              placeholder={tr("M-Pesa phone number")}
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+            <ShopButton variant="success" className="w-full py-2.5 text-xs font-semibold" onClick={requestPayment}>
+              {tr("Send payment request")}
+            </ShopButton>
+            <ShopButton variant="outline" className="w-full py-2.5 text-xs font-semibold" onClick={startTrial}>
+              {tr("Use the 30-day free trial instead")}
+            </ShopButton>
+          </div>
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">{tr("Your plan is only activated after payment is confirmed.")}</p>
+
+        <p className="text-center text-[10px] text-muted-foreground pb-2">
+          {tr("Your plan is only activated after payment is confirmed.")}
+        </p>
       </main>
     );
   }
 
   return (
-    <main dir={dir} className="app-screen px-3 pb-7 pt-4 md:max-w-5xl">
-      <div className="relative">
-        <ShopButton variant="bare" onClick={() => router.history.back()} aria-label={t("back")} className="absolute left-0 top-[-0.45rem] h-10 w-10 p-0">
-          <ChevronLeft className="rtl:rotate-180" />
+    <main
+      dir={dir}
+      className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-2.5 py-1.5 md:py-2.5 md:max-w-4xl mx-auto box-border"
+    >
+      {/* Top Header: Back + Wordmark */}
+      <header className="flex items-center justify-between shrink-0">
+        <ShopButton
+          variant="bare"
+          onClick={() => router.history.back()}
+          aria-label={t("back")}
+          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
         </ShopButton>
-        <Wordmark />
+        <Wordmark className="text-sm font-black" />
+        <div className="w-7" />
+      </header>
+
+      {/* Title & Subtitle */}
+      <div className="text-center shrink-0 my-0.5">
+        <h1 className="text-sm md:text-base font-bold leading-tight">{tr("Choose Your Plan")}</h1>
+        <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
+          {tr("Unlock more features and grow your business with SHOPBOOK")}
+        </p>
       </div>
 
-      <h1 className="mt-3 text-center text-[26px] font-bold leading-tight">{tr("Choose Your Plan")}</h1>
-      <p className="mx-auto mt-1 max-w-xs text-center text-sm leading-snug text-muted-foreground">
-        {tr("Unlock more features and grow your business with SHOPBOOK")}
-      </p>
-
-      <div className="mx-auto mt-4 grid w-full max-w-[300px] grid-cols-2 rounded-full border border-border bg-card/60 p-1 text-[12px]">
-        <ShopButton variant="bare" onClick={() => setYearly(false)} className={cn("h-auto min-h-8 rounded-full px-2 py-1 text-xs", !yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
+      {/* Monthly / Yearly Switch */}
+      <div className="mx-auto shrink-0 mb-1 grid w-full max-w-[210px] grid-cols-2 rounded-full border border-border bg-card/70 p-0.5 text-[10px]">
+        <button
+          type="button"
+          onClick={() => setYearly(false)}
+          className={cn(
+            "rounded-full py-0.5 px-2 font-bold transition-all",
+            !yearly ? "bg-emerald-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
           {tr("Monthly")}
-        </ShopButton>
-        <ShopButton variant="bare" onClick={() => setYearly(true)} className={cn("h-auto min-h-8 rounded-full px-2 py-1 text-xs", yearly ? "bg-success text-success-foreground plan-switch-glow" : "text-muted-foreground")}>
+        </button>
+        <button
+          type="button"
+          onClick={() => setYearly(true)}
+          className={cn(
+            "rounded-full py-0.5 px-2 font-bold transition-all",
+            yearly ? "bg-emerald-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
           {tr("Yearly (Save 10%)")}
-        </ShopButton>
+        </button>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 items-stretch gap-1.5">
+      {/* 3 Plans Columns Grid */}
+      <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 items-stretch my-0.5">
         {PLANS.map((item) => {
-          const active = selected === item.id;
+          const isMid = item.id === "plus";
           const itemTone = tone[item.id];
           const shownPrice = yearly ? item.yearly : item.monthly;
+
           return (
-            <ShopButton
+            <div
               key={item.id}
-              variant="bare"
-              onClick={() => setSelected(item.id)}
-              aria-pressed={active}
               className={cn(
-                "relative h-auto min-h-[350px] w-full flex-col items-stretch justify-start gap-0 rounded-lg border-2 px-2 py-3 text-start",
-                itemTone.border,
+                "relative flex flex-col justify-between rounded-lg border p-1.5 text-start transition-all",
+                isMid ? "border-2 border-blue-500 shadow-md shadow-blue-500/10" : itemTone.border,
                 itemTone.surface,
-                active && "plan-card-active",
               )}
             >
-              {yearly && <span className={cn("absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[9px] font-extrabold", itemTone.badge)}>{tr("Save 10%")}</span>}
-              {item.best && <span className="absolute -right-0.5 -top-3 whitespace-nowrap rounded-full bg-badge-gold px-2 py-0.5 text-[8px] font-extrabold text-plan-contrast">{tr("BEST OPTION")}</span>}
-              <div className={cn("text-center text-[15px] font-extrabold uppercase", itemTone.text)}>{item.name}</div>
-              <div className="mt-1 whitespace-nowrap text-center text-[17px] font-extrabold leading-none">{fmtKsh(shownPrice)}</div>
-              <div className="mt-1 text-center text-[10px] font-medium">{tr("/ month")}</div>
-              <div className={cn("mt-2 min-h-10 rounded-md border px-1 py-1.5 text-center text-[9px] leading-tight", itemTone.border)}>
-                {yearly ? <><span className="block">{tr("Billed yearly")}</span><span>({fmtKsh(shownPrice * 12)} {tr("/ year")})</span></> : <span>{fmtKsh(item.yearly)} {tr("/ month")}<br />({tr("Billed yearly")})</span>}
+              {/* RECOMMENDED Badge for Middle Plan */}
+              {isMid && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-2 py-0.2 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
+                  RECOMMENDED
+                </span>
+              )}
+
+              {/* Card Header Content */}
+              <div className="flex-1 min-h-0 flex flex-col">
+                <div
+                  className={cn(
+                    "text-center text-[10px] md:text-xs font-black uppercase tracking-wider",
+                    isMid && "mt-1",
+                    itemTone.text,
+                  )}
+                >
+                  {item.name}
+                </div>
+
+                <div className="mt-0.5 text-center text-xs md:text-sm font-black leading-tight">
+                  {fmtKsh(shownPrice)}
+                </div>
+                <div className="text-center text-[8px] text-muted-foreground leading-none">{tr("/ month")}</div>
+
+                <div className="my-1 border-t border-border/40" />
+
+                <div className="text-center text-[8.5px] text-muted-foreground leading-tight truncate mb-1">
+                  {tr(item.tagline)}
+                </div>
+
+                {/* Features Bullets */}
+                <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] leading-tight text-foreground/90 pr-0.5">
+                  {item.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-1">
+                      <span className={cn("shrink-0 font-bold", itemTone.text)}>•</span>
+                      <span className="truncate">{tr(feature)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="min-h-14 py-3 text-center text-[11px] font-medium leading-tight">{tr(item.tagline)}</p>
-              <span className={cn("mb-2 h-px w-full", item.id === "basic" ? "bg-plan-basic" : item.id === "plus" ? "bg-plan-plus" : "bg-plan-business")} />
-              {item.intro && <span className="mb-1 text-[9px] font-semibold leading-tight">{tr(item.intro)}</span>}
-              <ul className="space-y-1 text-[9px] font-normal leading-tight">
-                {item.features.map((feature) => <li key={feature}>{APPS.some(a => a.name === feature) ? t(feature.toLowerCase() as Parameters<typeof t>[0]) : tr(feature)}</li>)}
-              </ul>
-              {active && <span className="absolute bottom-2 right-2 grid h-5 w-5 place-items-center rounded-full bg-success text-success-foreground"><Check className="h-3 w-3" /></span>}
-            </ShopButton>
+
+              {/* Individual Blue Continue Button with Arrow */}
+              <ShopButton
+                type="button"
+                className="mt-1.5 w-full flex items-center justify-center gap-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-semibold py-1.5 px-0.5 text-[9px] shadow-sm transition-all"
+                onClick={() => handleSelectPlan(item.id)}
+              >
+                <span>{tr("Continue with {x}", item.name)}</span>
+                <ArrowRight className="h-2.5 w-2.5 shrink-0" />
+              </ShopButton>
+            </div>
           );
         })}
       </div>
 
-      <ShopButton className="mt-4 h-auto min-h-12 whitespace-normal py-3 text-sm" onClick={() => setPaying(true)}>
-        {tr("Continue with {x} Plan", plan.name)} <ArrowRight className="h-4 w-4" />
-      </ShopButton>
-
-      <div className="my-3 flex items-center gap-3 text-xs font-semibold"><span className="h-px flex-1 bg-muted-foreground/60" />{tr("OR")}<span className="h-px flex-1 bg-muted-foreground/60" /></div>
-
-      <ShopButton variant="success" className="h-auto min-h-12 whitespace-normal py-3 text-sm" onClick={startTrial}>
-        {tr("Get Started with Your 30-Day Free Trial")} <ArrowRight className="h-4 w-4" />
-      </ShopButton>
-      <p className="mt-2 text-center text-[11px] text-muted-foreground">{tr("No payment required • Cancel anytime")}</p>
+      {/* Bottom Trial Action */}
+      <footer className="shrink-0 pt-1 text-center">
+        <ShopButton
+          variant="success"
+          className="w-full max-w-sm mx-auto flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[11px] font-bold shadow-md"
+          onClick={startTrial}
+        >
+          <span>{tr("Get Started with Your 30-Day Free Trial")}</span>
+          <ArrowRight className="h-3 w-3" />
+        </ShopButton>
+        <p className="mt-0.5 text-center text-[8.5px] text-muted-foreground leading-none">
+          {tr("No payment required • Cancel anytime")}
+        </p>
+      </footer>
     </main>
   );
 }
