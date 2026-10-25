@@ -3028,22 +3028,6 @@ body {
   }
 }
 
-  .signup-upload-btn {
-    height: clamp(62px, 10dvh, 76px) !important;
-  }
-  .auth-btn-primary {
-    height: clamp(28px, 4.6dvh, 34px) !important;
-    font-size: clamp(11.5px, 1.8dvh, 13px) !important;
-  }
-  .auth-social-btn {
-    height: clamp(24px, 4dvh, 28px) !important;
-    font-size: clamp(10px, 1.4dvh, 11.5px) !important;
-  }
-  .auth-split-card {
-    height: clamp(24px, 4dvh, 28px) !important;
-  }
-}
-
 /* Position icons inside the cardbox inputs */
 .signup-field-input-wrap {
   position: relative;
