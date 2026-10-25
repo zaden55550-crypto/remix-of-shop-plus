@@ -6,9 +6,7 @@ import {
   ChevronLeft,
   Smartphone,
   CreditCard,
-  Building2,
   Lock,
-  Copy,
   CheckCircle2,
   ShieldCheck,
   Info,
@@ -63,9 +61,20 @@ const tone: Record<
   },
 };
 
-type PaymentMethod = "mobile" | "card" | "bank" | "paypal";
-type MobileNetwork = "mpesa" | "airtel";
-type BankChoice = "kcb" | "equity" | "coop" | "stanbic";
+type PaymentMethod = "mobile" | "card" | "paypal";
+
+type MobileNetwork = "mpesa" | "airtel" | "mtn" | "orange" | "tigo" | "vodafone" | "telebirr" | "ecocash";
+
+const MOBILE_NETWORKS: { id: MobileNetwork; name: string; country: string; active: boolean }[] = [
+  { id: "mpesa", name: "Safaricom M-Pesa", country: "Kenya / East Africa", active: true },
+  { id: "airtel", name: "Airtel Money", country: "East & Central Africa", active: false },
+  { id: "mtn", name: "MTN Mobile Money", country: "Uganda, Ghana, Nigeria", active: false },
+  { id: "orange", name: "Orange Money", country: "Francophone Africa", active: false },
+  { id: "tigo", name: "Tigo Pesa", country: "Tanzania", active: false },
+  { id: "vodafone", name: "Vodafone Cash", country: "Egypt & Ghana", active: false },
+  { id: "telebirr", name: "Telebirr", country: "Ethiopia", active: false },
+  { id: "ecocash", name: "EcoCash", country: "Zimbabwe", active: false },
+];
 
 function Plans() {
   const { t, tr, dir } = useLanguage();
@@ -78,6 +87,22 @@ function Plans() {
   const [restoring, setRestoring] = useState(false);
   const [currency, setCurrency] = useState<string>("KSH");
 
+  // Device wallet detection (iPhone / Android)
+  const [deviceWallet, setDeviceWallet] = useState<"apple" | "google">("google");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const ua = navigator.userAgent || "";
+    const isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    const isApple = isIOS || /Macintosh|Mac OS X/i.test(ua) || typeof (window as any).ApplePaySession !== "undefined";
+
+    if (isApple) {
+      setDeviceWallet("apple");
+    } else {
+      setDeviceWallet("google");
+    }
+  }, []);
+
   // Payment Form States
   const [method, setMethod] = useState<PaymentMethod>("mobile");
   const [mobileNetwork, setMobileNetwork] = useState<MobileNetwork>("mpesa");
@@ -86,15 +111,12 @@ function Plans() {
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
-  const [selectedBank, setSelectedBank] = useState<BankChoice>("kcb");
-  const [copiedBank, setCopiedBank] = useState(false);
+  const [paypalEmail, setPaypalEmail] = useState("");
 
   // Status Lifecycle: "idle" -> "processing" -> "success"
   const [payStatus, setPayStatus] = useState<"idle" | "processing" | "success">("idle");
   const [processStep, setProcessStep] = useState(1);
   const [confirmedDate, setConfirmedDate] = useState("");
-
-  const bankReference = useMemo(() => `SB-${Math.floor(10000 + Math.random() * 90000)}`, []);
 
   useEffect(() => {
     const acct = store.get();
@@ -136,23 +158,12 @@ function Plans() {
     }
   };
 
-  const copyBankDetails = () => {
-    const bankDetails =
-      selectedBank === "kcb"
-        ? "Bank: KCB Bank, Account: 1234 5678 9012, Branch: Nairobi Branch, Name: Shopbook Ltd"
-        : "Bank: Equity Bank, Account: 0810 2938 4910, Branch: Upper Hill, Name: Shopbook Ltd";
-    navigator.clipboard?.writeText(`${bankDetails}, Ref: ${bankReference}`);
-    setCopiedBank(true);
-    toast.success(tr("Bank details and payment reference copied!"));
-    setTimeout(() => setCopiedBank(false), 2500);
-  };
-
-  const runPaymentWorkflow = () => {
+  const runPaymentWorkflow = (sourceName?: string) => {
     setPayStatus("processing");
     setProcessStep(1);
 
-    setTimeout(() => setProcessStep(2), 700);
-    setTimeout(() => setProcessStep(3), 1500);
+    setTimeout(() => setProcessStep(2), 650);
+    setTimeout(() => setProcessStep(3), 1350);
     setTimeout(() => {
       setProcessStep(4);
       setConfirmedDate(
@@ -166,15 +177,20 @@ function Plans() {
       );
       store.update({ plan: chosenPlanId });
       setPayStatus("success");
-      toast.success(tr(`Payment confirmed! ${plan.name} plan is now active.`));
-    }, 2300);
+      const label = sourceName || method.toUpperCase();
+      toast.success(tr(`Payment confirmed via ${label}! ${plan.name} plan is now active.`));
+    }, 2200);
   };
 
   const handlePayNow = () => {
     if (method === "mobile") {
+      if (mobileNetwork !== "mpesa") {
+        toast.info(tr("Direct integration for this network is coming soon. Please choose Safaricom M-Pesa."));
+        return;
+      }
       const cleanPhone = phone.replace(/[\s-]/g, "");
       if (cleanPhone.length < 9) {
-        toast.error(tr("Enter a valid phone number"));
+        toast.error(tr("Enter a valid phone number for M-Pesa STK Push"));
         return;
       }
     } else if (method === "card") {
@@ -189,6 +205,11 @@ function Plans() {
       }
       if (cardCvc.length < 3) {
         toast.error(tr("Enter CVV security code"));
+        return;
+      }
+    } else if (method === "paypal") {
+      if (!paypalEmail || !paypalEmail.includes("@")) {
+        toast.error(tr("Please enter a valid PayPal account email"));
         return;
       }
     }
@@ -223,16 +244,17 @@ function Plans() {
   };
 
   // -------------------------------------------------------------
-  // PAYMENT PAGE (Screen 1 to 5)
+  // PAYMENT PAGE (Screen 1 to 5) — ZERO SCROLL & SCREEN FITTED
   // -------------------------------------------------------------
   if (paying) {
     return (
       <main
         dir={dir}
-        className="app-screen min-h-[100dvh] max-h-[100dvh] overflow-y-auto flex flex-col justify-between px-3 py-2.5 md:py-3.5 w-full max-w-md mx-auto box-border"
+        style={{ zoom: 1 }}
+        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-1.5 md:py-2.5 w-full max-w-md mx-auto box-border"
       >
         {/* Top Header */}
-        <header className="flex items-center justify-between shrink-0 mb-2">
+        <header className="flex items-center justify-between shrink-0 h-6">
           <ShopButton
             variant="bare"
             onClick={() => {
@@ -244,51 +266,60 @@ function Plans() {
               }
             }}
             aria-label={t("back")}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
           >
-            <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
+            <ChevronLeft className="h-4.5 w-4.5 rtl:rotate-180" />
           </ShopButton>
-          <Wordmark className="text-sm font-black" />
-          <div className="w-7" />
+          <Wordmark className="text-xs font-black" />
+          <div className="w-6" />
         </header>
 
-        {/* PROCESSING & SUCCESS VIEW (Screen 5) */}
+        {/* PROCESSING & SUCCESS VIEW */}
         {payStatus === "processing" ? (
-          <div className="my-auto rounded-xl border border-blue-500/50 bg-[#0B1528] p-5 shadow-2xl flex flex-col items-center text-center space-y-4">
-            <div className="relative flex items-center justify-center w-20 h-20 rounded-full border-2 border-blue-500/40 bg-blue-950/40 animate-pulse">
+          <div className="my-auto rounded-xl border border-blue-500/50 bg-[#0B1528] p-4 shadow-2xl flex flex-col items-center text-center space-y-3">
+            <div className="relative flex items-center justify-center w-16 h-16 rounded-full border-2 border-blue-500/40 bg-blue-950/40 animate-pulse">
               <div className="absolute inset-0 rounded-full border-2 border-t-blue-400 border-transparent animate-spin" />
-              <Smartphone className="h-8 w-8 text-blue-400" />
+              <Smartphone className="h-7 w-7 text-blue-400" />
             </div>
 
             <div>
-              <h2 className="text-base font-bold text-foreground">{tr("Processing Payment")}</h2>
-              <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
+              <h2 className="text-sm font-bold text-foreground">{tr("Processing Payment")}</h2>
+              <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[260px]">
                 {method === "mobile"
-                  ? tr("Please check your phone and enter your PIN to complete the payment.")
-                  : tr("Verifying payment transaction with gateway...")}
+                  ? tr("Please check your phone and enter your PIN to complete.")
+                  : tr("Authorizing transaction with connected card / gateway...")}
               </p>
             </div>
 
-            <div className="w-full text-left space-y-2 py-2 text-xs">
+            <div className="w-full text-left space-y-1.5 py-1 text-[10.5px]">
               <div className="flex items-center gap-2">
                 <CheckCircle2
-                  className={cn("h-4 w-4 shrink-0", processStep >= 1 ? "text-blue-400" : "text-muted-foreground/40")}
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    processStep >= 1 ? "text-blue-400" : "text-muted-foreground/40",
+                  )}
                 />
                 <span className={processStep >= 1 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {method === "mobile" ? tr("Payment request sent to your phone") : tr("Payment initiated securely")}
+                  {method === "mobile" ? tr("Prompt sent to phone") : tr("Payment initiated securely")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2
-                  className={cn("h-4 w-4 shrink-0", processStep >= 2 ? "text-blue-400" : "text-muted-foreground/40")}
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    processStep >= 2 ? "text-blue-400" : "text-muted-foreground/40",
+                  )}
                 />
                 <span className={processStep >= 2 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Waiting for confirmation...")}
+                  {tr("Waiting for user authorization...")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2
-                  className={cn("h-4 w-4 shrink-0", processStep >= 3 ? "text-blue-400" : "text-muted-foreground/40")}
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    processStep >= 3 ? "text-blue-400" : "text-muted-foreground/40",
+                  )}
                 />
                 <span className={processStep >= 3 ? "text-foreground font-medium" : "text-muted-foreground"}>
                   {tr("Verifying payment")}
@@ -296,7 +327,10 @@ function Plans() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2
-                  className={cn("h-4 w-4 shrink-0", processStep >= 4 ? "text-emerald-400" : "text-muted-foreground/40")}
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    processStep >= 4 ? "text-emerald-400" : "text-muted-foreground/40",
+                  )}
                 />
                 <span className={processStep >= 4 ? "text-foreground font-medium" : "text-muted-foreground"}>
                   {tr("Activating your subscription")}
@@ -307,25 +341,25 @@ function Plans() {
             <ShopButton
               variant="bare"
               onClick={() => setPayStatus("idle")}
-              className="text-xs text-muted-foreground hover:text-destructive underline py-1"
+              className="text-[10.5px] text-muted-foreground hover:text-destructive underline py-0.5"
             >
               {tr("Cancel Payment")}
             </ShopButton>
           </div>
         ) : payStatus === "success" ? (
-          <div className="my-auto rounded-xl border border-emerald-500/50 bg-[#0B1528] p-5 shadow-2xl flex flex-col items-center text-center space-y-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/30">
-              <Check className="h-8 w-8 stroke-[3]" />
+          <div className="my-auto rounded-xl border border-emerald-500/50 bg-[#0B1528] p-4 shadow-2xl flex flex-col items-center text-center space-y-3">
+            <div className="flex items-center justify-center w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/30">
+              <Check className="h-7 w-7 stroke-[3]" />
             </div>
 
             <div>
-              <h2 className="text-lg font-black text-foreground">{tr("Payment Successful!")}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <h2 className="text-base font-black text-foreground">{tr("Payment Successful!")}</h2>
+              <p className="text-[10.5px] text-muted-foreground mt-0.5">
                 {tr("Your")} {plan.name} {tr("Plan is now active.")}
               </p>
             </div>
 
-            <div className="w-full rounded-lg border border-border/80 bg-background/50 p-3 space-y-2 text-xs">
+            <div className="w-full rounded-lg border border-border/80 bg-background/50 p-2.5 space-y-1.5 text-[11px]">
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>{tr("Plan")}</span>
                 <span className="font-semibold text-foreground">
@@ -346,17 +380,17 @@ function Plans() {
               </div>
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>{tr("Status")}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+                <span className="text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40">
                   {tr("Active")}
                 </span>
               </div>
             </div>
 
-            <div className="w-full space-y-2 pt-1">
+            <div className="w-full space-y-1.5 pt-1">
               <ShopButton
                 variant="primary"
                 onClick={() => nav({ to: "/apps" })}
-                className="w-full py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 shadow-md"
+                className="w-full py-2 text-xs font-bold flex items-center justify-center gap-1.5 shadow-md"
               >
                 <span>{tr("Go to Apps")}</span>
                 <ArrowRight className="h-4 w-4" />
@@ -364,32 +398,27 @@ function Plans() {
               <ShopButton
                 variant="bare"
                 onClick={() => toast.info(tr("Receipt saved to account records."))}
-                className="w-full py-1 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5"
+                className="w-full py-0.5 text-[10.5px] text-muted-foreground hover:text-foreground flex items-center justify-center gap-1"
               >
-                <Receipt className="h-3.5 w-3.5" />
+                <Receipt className="h-3 w-3" />
                 <span>{tr("View Receipt")}</span>
               </ShopButton>
             </div>
           </div>
         ) : (
-          /* MAIN UNIFIED CHECKOUT FORM */
-          <div className="space-y-3 pb-2">
-            <div className="text-center">
-              <h1 className="text-base font-bold text-foreground">{tr("Complete Your Subscription")}</h1>
-              <p className="text-[11px] text-muted-foreground">{tr("Choose a payment method to activate your plan")}</p>
-            </div>
-
+          /* MAIN UNIFIED CHECKOUT FORM — ZERO-SCROLL */
+          <div className="flex-1 flex flex-col justify-between py-1 space-y-1.5 min-h-0">
             {/* 1. Compact Top Summary */}
-            <div className="rounded-lg border border-blue-500/30 bg-[#0E1A32] p-2.5 flex items-center justify-between shadow-sm">
-              <div className="flex items-center gap-2.5">
-                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-600/30 border border-blue-500/40 text-blue-400">
-                  <Store className="h-4 w-4" />
+            <div className="rounded-lg border border-blue-500/30 bg-[#0E1A32] px-2.5 py-1.5 flex items-center justify-between shadow-sm shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-blue-600/30 border border-blue-500/40 text-blue-400">
+                  <Store className="h-3.5 w-3.5" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-foreground">
+                  <div className="text-[11px] font-bold text-foreground">
                     {plan.name} {tr("Plan")}
                   </div>
-                  <div className="text-[10px] text-muted-foreground leading-tight">
+                  <div className="text-[9.5px] text-muted-foreground leading-tight">
                     {yearly ? tr("Yearly") : tr("Monthly")}
                   </div>
                 </div>
@@ -399,173 +428,155 @@ function Plans() {
                 <button
                   type="button"
                   onClick={() => setPaying(false)}
-                  className="text-[10.5px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
+                  className="text-[10px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   {tr("Change >")}
                 </button>
               </div>
             </div>
 
-            {/* 2. Four Categories in One Horizontal Row */}
-            <div>
-              <div className="text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 px-0.5">
-                {tr("Select Payment Method")}
-              </div>
-              <div className="grid grid-cols-4 gap-1.5">
+            {/* 2. Phone Wallet Fast Checkout (Apple Pay or Google Pay) */}
+            <div className="shrink-0 space-y-1">
+              {deviceWallet === "apple" ? (
                 <button
                   type="button"
-                  onClick={() => setMethod("mobile")}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
-                    method === "mobile"
-                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
-                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
-                  )}
+                  onClick={() => runPaymentWorkflow("Apple Pay (Linked Card)")}
+                  className="w-full h-8 rounded-lg bg-black hover:bg-neutral-900 border border-neutral-700 text-white flex items-center justify-center gap-2 text-xs font-semibold shadow-md transition-all active:scale-[0.99]"
                 >
-                  <Smartphone className="h-4 w-4 mb-1" />
-                  <span className="text-[10px] font-semibold leading-tight line-clamp-2">{tr("Mobile Payment")}</span>
+                  <span className="text-sm font-sans font-bold">Pay</span>
+                  <span className="text-[10.5px] opacity-90">• {tr("Pay with Apple Pay (Connected Card)")}</span>
                 </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => runPaymentWorkflow("Google Pay (Linked Card)")}
+                  className="w-full h-8 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 text-white flex items-center justify-center gap-2 text-xs font-semibold shadow-md transition-all active:scale-[0.99]"
+                >
+                  <span className="font-bold text-blue-400">G</span>
+                  <span className="font-bold text-red-400">P</span>
+                  <span className="font-bold text-amber-400">a</span>
+                  <span className="font-bold text-emerald-400">y</span>
+                  <span className="text-[10.5px] opacity-90">• {tr("Pay with Google Pay (Connected Card)")}</span>
+                </button>
+              )}
 
-                <button
-                  type="button"
-                  onClick={() => setMethod("card")}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
-                    method === "card"
-                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
-                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
-                  )}
-                >
-                  <CreditCard className="h-4 w-4 mb-1" />
-                  <span className="text-[10px] font-semibold leading-tight">{tr("Card")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMethod("bank")}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
-                    method === "bank"
-                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
-                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
-                  )}
-                >
-                  <Building2 className="h-4 w-4 mb-1" />
-                  <span className="text-[10px] font-semibold leading-tight line-clamp-2">{tr("Bank Transfer")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setMethod("paypal")}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
-                    method === "paypal"
-                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
-                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
-                  )}
-                >
-                  <span className="text-xs font-black italic mb-1 font-serif">P</span>
-                  <span className="text-[10px] font-semibold leading-tight">{tr("PayPal")}</span>
-                </button>
+              <div className="relative py-0.5 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border/60" />
+                </div>
+                <span className="relative bg-[#0B1528] px-2 text-[8.5px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  {tr("Or Choose Payment Method")}
+                </span>
               </div>
             </div>
 
-            {/* 3. Form Content */}
-            <div className="rounded-xl border border-border/80 bg-[#0B1528] p-3.5 space-y-3 shadow-md">
+            {/* 3. Three Categories in One Horizontal Row */}
+            <div className="grid grid-cols-3 gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMethod("mobile")}
+                className={cn(
+                  "flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition-all text-center",
+                  method === "mobile"
+                    ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                    : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                <Smartphone className="h-3.5 w-3.5 mb-0.5" />
+                <span className="text-[9.5px] font-semibold leading-tight">{tr("Mobile Money")}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMethod("card")}
+                className={cn(
+                  "flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition-all text-center",
+                  method === "card"
+                    ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                    : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                <CreditCard className="h-3.5 w-3.5 mb-0.5" />
+                <span className="text-[9.5px] font-semibold leading-tight">{tr("Card")}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMethod("paypal")}
+                className={cn(
+                  "flex flex-col items-center justify-center py-1.5 px-1 rounded-lg border transition-all text-center",
+                  method === "paypal"
+                    ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                    : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                )}
+              >
+                <span className="text-[11px] font-black italic mb-0.5 font-serif">P</span>
+                <span className="text-[9.5px] font-semibold leading-tight">{tr("PayPal")}</span>
+              </button>
+            </div>
+
+            {/* 4. Form Content Box */}
+            <div className="rounded-xl border border-border/80 bg-[#0B1528] p-2.5 space-y-2 shadow-md flex-1 flex flex-col justify-between">
               {/* TAB 1: Mobile Payment */}
               {method === "mobile" && (
-                <div className="space-y-2.5">
-                  <div className="flex items-start gap-2.5 pb-1">
-                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                      <Smartphone className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Mobile Payment")}</h2>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                        {tr("Pay with M-Pesa, Airtel Money, T-Kash and other mobile networks.")}
-                      </p>
-                    </div>
-                  </div>
-
+                <div className="space-y-1.5">
                   <div>
-                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
-                      {tr("Select Network")}
+                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
+                      {tr("Select Mobile Network")}
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setMobileNetwork("mpesa")}
-                        className={cn(
-                          "py-2 px-2.5 rounded-lg border text-left flex items-center justify-between text-xs transition-colors",
-                          mobileNetwork === "mpesa"
-                            ? "border-emerald-500 bg-emerald-950/30 font-bold text-emerald-400"
-                            : "border-border bg-card/60 text-foreground/80 hover:bg-card",
-                        )}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                          <span>M-Pesa</span>
+                    <select
+                      value={mobileNetwork}
+                      onChange={(e) => setMobileNetwork(e.target.value as MobileNetwork)}
+                      className="w-full h-7 text-xs px-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:border-blue-500 font-medium"
+                    >
+                      {MOBILE_NETWORKS.map((net) => (
+                        <option key={net.id} value={net.id}>
+                          {net.name} {net.active ? `(Active)` : `— Coming soon`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {mobileNetwork === "mpesa" ? (
+                    <>
+                      <div>
+                        <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
+                          {tr("M-Pesa Phone Number")}
+                        </label>
+                        <Field
+                          icon={<Smartphone className="h-3.5 w-3.5 text-muted-foreground" />}
+                          type="tel"
+                          placeholder="0712 345 678 / +254..."
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="rounded-md bg-blue-950/40 border border-blue-500/30 p-1.5 flex items-start gap-1.5 text-[9.5px] text-blue-300">
+                        <Info className="h-3 w-3 shrink-0 mt-0.5 text-blue-400" />
+                        <span>
+                          {tr("You will receive an STK Push prompt on this phone. Enter your PIN to complete payment.")}
                         </span>
-                        {mobileNetwork === "mpesa" && <Check className="h-3 w-3" />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setMobileNetwork("airtel")}
-                        className={cn(
-                          "py-2 px-2.5 rounded-lg border text-left flex items-center justify-between text-xs transition-colors",
-                          mobileNetwork === "airtel"
-                            ? "border-red-500 bg-red-950/30 font-bold text-red-400"
-                            : "border-border bg-card/60 text-foreground/80 hover:bg-card",
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-md bg-amber-950/30 border border-amber-500/30 p-2 flex items-start gap-1.5 text-[10px] text-amber-300">
+                      <Info className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-400" />
+                      <span>
+                        {tr(
+                          "Integration for this African network is coming soon. Please select Safaricom M-Pesa, Card, or PayPal.",
                         )}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-red-500" />
-                          <span>Airtel Money</span>
-                        </span>
-                        {mobileNetwork === "airtel" && <Check className="h-3 w-3" />}
-                      </button>
+                      </span>
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
-                      {tr("Phone Number")}
-                    </label>
-                    <Field
-                      icon={<Smartphone className="h-3.5 w-3.5 text-muted-foreground" />}
-                      type="tel"
-                      placeholder="0712 345 678"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="rounded-lg bg-blue-950/40 border border-blue-500/30 p-2 flex items-start gap-2 text-[10.5px] text-blue-300">
-                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
-                    <span>
-                      {tr("You will receive a payment prompt on this number. Enter your PIN to complete the payment.")}
-                    </span>
-                  </div>
+                  )}
                 </div>
               )}
 
               {/* TAB 2: Card Payment */}
               {method === "card" && (
-                <div className="space-y-2.5">
-                  <div className="flex items-start gap-2.5 pb-1">
-                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                      <CreditCard className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Card Payment")}</h2>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                        {tr("Pay with Visa, Mastercard and other cards.")}
-                      </p>
-                    </div>
-                  </div>
-
+                <div className="space-y-1.5">
                   <div>
-                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
                       {tr("Cardholder Name")}
                     </label>
                     <Field
@@ -577,7 +588,7 @@ function Plans() {
                   </div>
 
                   <div>
-                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
                       {tr("Card Number")}
                     </label>
                     <Field
@@ -592,7 +603,7 @@ function Plans() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
                         {tr("Expiry Date")}
                       </label>
                       <Field
@@ -604,7 +615,7 @@ function Plans() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
                         {tr("CVV")}
                       </label>
                       <Field
@@ -618,198 +629,100 @@ function Plans() {
                       />
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 pt-0.5">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-card/60 text-muted-foreground">
-                      VISA
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-card/60 text-muted-foreground">
-                      Mastercard
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-card/60 text-muted-foreground">
-                      AMEX
-                    </span>
-                  </div>
                 </div>
               )}
 
-              {/* TAB 3: Bank Transfer */}
-              {method === "bank" && (
-                <div className="space-y-2.5">
-                  <div className="flex items-start gap-2.5 pb-1">
-                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-                      <Building2 className="h-4 w-4" />
+              {/* TAB 3: PayPal with details entry */}
+              {method === "paypal" && (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 pb-0.5">
+                    <div className="w-6 h-6 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 font-serif font-black italic text-xs">
+                      P
                     </div>
                     <div>
-                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Bank Transfer")}</h2>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                        {tr("Transfer from your bank account.")}
+                      <h2 className="text-[11px] font-bold text-foreground leading-tight">{tr("PayPal Account")}</h2>
+                      <p className="text-[9.5px] text-muted-foreground leading-tight mt-0.5">
+                        {tr("Enter your PayPal email to authenticate and continue.")}
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
-                      {tr("Select Bank")}
+                    <label className="text-[10px] font-semibold text-muted-foreground mb-0.5 block">
+                      {tr("PayPal Account Email")}
                     </label>
-                    <select
-                      value={selectedBank}
-                      onChange={(e) => setSelectedBank(e.target.value as BankChoice)}
-                      className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background text-foreground"
-                    >
-                      <option value="kcb">KCB Bank (522522)</option>
-                      <option value="equity">Equity Bank (247247)</option>
-                      <option value="coop">Cooperative Bank (400200)</option>
-                      <option value="stanbic">Stanbic Bank (600100)</option>
-                    </select>
+                    <Field
+                      icon={<span className="font-serif font-black italic text-blue-400 text-xs">P</span>}
+                      type="email"
+                      placeholder="your-name@example.com"
+                      value={paypalEmail}
+                      onChange={(e) => setPaypalEmail(e.target.value)}
+                    />
                   </div>
 
-                  <div className="rounded-lg border border-border/80 bg-background/50 p-2.5 space-y-1.5 text-xs">
-                    <div className="flex justify-between items-center text-muted-foreground">
-                      <span>{tr("Account Name")}</span>
-                      <span className="font-semibold text-foreground">Shopbook Ltd</span>
-                    </div>
-                    <div className="flex justify-between items-center text-muted-foreground">
-                      <span>{tr("Account Number")}</span>
-                      <span className="font-mono font-bold text-foreground">
-                        {selectedBank === "kcb" ? "1234 5678 9012" : "0810 2938 4910"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-muted-foreground">
-                      <span>{tr("Bank Name")}</span>
-                      <span className="font-semibold text-foreground">
-                        {selectedBank === "kcb" ? "KCB Bank" : "Equity Bank"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-muted-foreground">
-                      <span>{tr("Payment Reference")}</span>
-                      <span className="font-mono font-bold text-blue-400">{bankReference}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={copyBankDetails}
-                    className="w-full flex items-center justify-center gap-1.5 py-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold transition-colors"
-                  >
-                    {copiedBank ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                    <span>{copiedBank ? tr("Copied to clipboard") : tr("Copy Details")}</span>
-                  </button>
-
-                  <div className="rounded-lg bg-blue-950/40 border border-blue-500/30 p-2 flex items-start gap-2 text-[10.5px] text-blue-300">
-                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
+                  <div className="rounded-md bg-blue-950/40 border border-blue-500/30 p-1.5 flex items-start gap-1.5 text-[9.5px] text-blue-300">
+                    <Info className="h-3 w-3 shrink-0 mt-0.5 text-blue-400" />
                     <span>
                       {tr(
-                        "Make the transfer and click 'I Have Paid' below. Your subscription will be activated once payment is verified.",
+                        "Click Continue to PayPal below to authorize the subscription via your PayPal account or linked cards.",
                       )}
                     </span>
                   </div>
                 </div>
               )}
 
-              {/* TAB 4: PayPal */}
-              {method === "paypal" && (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2.5 pb-1">
-                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 font-serif font-black italic">
-                      P
-                    </div>
-                    <div>
-                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Pay with PayPal")}</h2>
-                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                        {tr("You will be redirected to PayPal to complete the payment securely.")}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-blue-500/40 bg-gradient-to-br from-[#0c2044] to-[#081226] p-4 flex flex-col items-center justify-center text-center shadow-inner">
-                    <span className="text-2xl font-serif font-black italic text-blue-400 mb-1">PayPal</span>
-                    <span className="text-[11px] text-muted-foreground">{tr("Fast, secure global checkout")}</span>
-                  </div>
-
-                  <ul className="space-y-1.5 text-xs text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                      <span>{tr("Pay with your PayPal account")}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                      <span>{tr("Use your PayPal balance or linked card")}</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
-                      <span>{tr("Secure and encrypted payment")}</span>
-                    </li>
-                  </ul>
+              {/* Bottom Summary & Pay Button */}
+              <div className="space-y-1.5 pt-1 border-t border-border/70">
+                <div className="flex justify-between items-center text-[10.5px]">
+                  <span className="text-muted-foreground">{tr("Total Due")}:</span>
+                  <span className="font-extrabold text-foreground text-xs">{currentPrice.formatted}</span>
                 </div>
-              )}
 
-              {/* Summary Row */}
-              <div className="pt-2 border-t border-border/70 flex justify-between items-center text-xs">
-                <div>
-                  <span className="text-muted-foreground">{tr("Plan")}: </span>
-                  <span className="font-semibold text-foreground">
-                    {plan.name} ({yearly ? tr("Yearly") : tr("Monthly")})
-                  </span>
+                <ShopButton
+                  variant="primary"
+                  onClick={handlePayNow}
+                  className="w-full h-8 text-xs font-bold flex items-center justify-center gap-1.5 shadow-md bg-blue-600 hover:bg-blue-500"
+                >
+                  {method === "paypal" ? (
+                    <>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>{tr("Continue to PayPal ↗")}</span>
+                    </>
+                  ) : method === "mobile" && mobileNetwork === "mpesa" ? (
+                    <>
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>{tr("Pay Now with M-Pesa")}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>{tr("Pay Now")}</span>
+                    </>
+                  )}
+                </ShopButton>
+
+                <div className="flex items-center justify-center gap-1 text-[9px] text-muted-foreground">
+                  <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                  <span>{tr("Encrypted & Secure 256-bit Payment")}</span>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">{tr("Amount")}: </span>
-                  <span className="font-bold text-foreground">{currentPrice.formatted}</span>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <ShopButton
-                variant="primary"
-                onClick={handlePayNow}
-                className="w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-md bg-blue-600 hover:bg-blue-500"
-              >
-                {method === "bank" ? (
-                  <>
-                    <Check className="h-4 w-4" />
-                    <span>{tr("I Have Paid")}</span>
-                  </>
-                ) : method === "paypal" ? (
-                  <>
-                    <ExternalLink className="h-4 w-4" />
-                    <span>{tr("Pay with PayPal ↗")}</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-3.5 w-3.5" />
-                    <span>
-                      {method === "mobile" && mobileNetwork === "mpesa"
-                        ? tr("Pay Now with M-Pesa")
-                        : method === "mobile" && mobileNetwork === "airtel"
-                          ? tr("Pay Now with Airtel Money")
-                          : tr("Pay Now")}
-                    </span>
-                  </>
-                )}
-              </ShopButton>
-
-              {/* Trust Badge */}
-              <div className="flex items-center justify-center gap-1.5 pt-0.5 text-[10px] text-muted-foreground">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                <span>{tr("Secure Payment — Your payment is encrypted and secure")}</span>
               </div>
             </div>
           </div>
         )}
 
-        <div className="h-1" />
+        <div className="h-0.5" />
       </main>
     );
   }
 
   // -------------------------------------------------------------
-  // PLANS OVERVIEW GRID
+  // PLANS OVERVIEW GRID — ZERO SCROLL & SCREEN FITTED
   // -------------------------------------------------------------
   return (
     <main
       dir={dir}
       style={{ zoom: 1 }}
-      className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-2 md:py-3 w-full max-w-7xl mx-auto box-border"
+      className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-1.5 md:py-2.5 w-full max-w-7xl mx-auto box-border"
     >
       {/* Top Header */}
       <header className="flex items-center justify-between shrink-0">
@@ -885,7 +798,7 @@ function Plans() {
       </div>
 
       {/* 3 Pricing Cards Grid: Dominant Plus & High-Impact Hover */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-3 flex-1 min-h-0 mt-3 mb-1 items-stretch group">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-3 flex-1 min-h-0 mt-2.5 mb-1 items-stretch group">
         {PLANS.map((p) => {
           const tColors = tone[p.id];
           const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
