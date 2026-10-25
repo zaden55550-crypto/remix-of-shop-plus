@@ -615,7 +615,7 @@ function Plans() {
   }
 
   // -------------------------------------------------------------
-  // PLANS OVERVIEW GRID — ZERO SCROLL & SCREEN FITTED
+  // PLANS OVERVIEW GRID — ZERO SCROLL & SCREEN FITTED (3 COLUMNS)
   // -------------------------------------------------------------
   return (
     <main
@@ -699,8 +699,8 @@ function Plans() {
         </div>
       </div>
 
-      {/* 3 Pricing Cards Grid: Dominant Plus & High-Impact Hover */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-3 flex-1 min-h-0 mt-2 mb-1 items-stretch group">
+      {/* 3 Pricing Cards Grid: 3 columns on phone & desktop, zero scroll */}
+      <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 mt-1 sm:mt-2 mb-1 items-stretch group">
         {PLANS.map((p) => {
           const tColors = tone[p.id];
           const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
@@ -714,25 +714,26 @@ function Plans() {
                 setPaying(true);
               }}
               className={cn(
-                "relative rounded-xl border bg-card/85 p-3 md:p-3.5 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible",
+                "relative rounded-xl border bg-card/85 p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible",
                 p.id === "plus" ? "md:-translate-y-1 md:scale-[1.015] z-10" : "z-0",
                 tColors.border,
                 // Dominant high-contrast hover styles
-                "hover:!-translate-y-3.5 hover:!scale-[1.03] hover:!z-30 group-hover:opacity-75 hover:!opacity-100",
+                "hover:!-translate-y-2 sm:hover:!-translate-y-3.5 hover:!scale-[1.02] sm:hover:!scale-[1.03] hover:!z-30 group-hover:opacity-75 hover:!opacity-100",
                 p.id === "basic" &&
-                  "hover:border-2.5 hover:border-emerald-400 hover:shadow-2xl hover:shadow-emerald-500/40",
-                p.id === "plus" && "hover:border-3 hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-500/60",
+                  "hover:border-2 sm:hover:border-2.5 hover:border-emerald-400 hover:shadow-xl sm:hover:shadow-2xl hover:shadow-emerald-500/40",
+                p.id === "plus" &&
+                  "hover:border-2.5 sm:hover:border-3 hover:border-blue-400 hover:shadow-xl sm:hover:shadow-2xl hover:shadow-blue-500/60",
                 p.id === "business" &&
-                  "hover:border-2.5 hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-500/40",
+                  "hover:border-2 sm:hover:border-2.5 hover:border-amber-400 hover:shadow-xl sm:hover:shadow-2xl hover:shadow-amber-500/40",
               )}
             >
               {p.recommended && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/50 ring-2 ring-background">
+                <span className="absolute -top-2 sm:-top-2.5 left-1/2 -translate-x-1/2 z-20 text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1.5 sm:px-2.5 py-0.5 rounded-full bg-blue-600 text-white shadow-md sm:shadow-lg shadow-blue-500/50 ring-1 sm:ring-2 ring-background whitespace-nowrap">
                   {tr("RECOMMENDED")}
                 </span>
               )}
               {p.best && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-600 text-white shadow-lg shadow-amber-500/50 ring-2 ring-background">
+                <span className="absolute -top-2 sm:-top-2.5 left-1/2 -translate-x-1/2 z-20 text-[7px] sm:text-[9px] font-black uppercase tracking-wider px-1.5 sm:px-2.5 py-0.5 rounded-full bg-amber-600 text-white shadow-md sm:shadow-lg shadow-amber-500/50 ring-1 sm:ring-2 ring-background whitespace-nowrap">
                   {tr("BEST")}
                 </span>
               )}
@@ -740,45 +741,56 @@ function Plans() {
               {/* Card Header & Price */}
               <div>
                 <div className="flex items-center justify-between">
-                  <h2 className={cn("text-xs md:text-sm font-black uppercase tracking-wide", tColors.text)}>
+                  <h2
+                    className={cn(
+                      "text-[10px] sm:text-xs md:text-sm font-black uppercase tracking-wide truncate",
+                      tColors.text,
+                    )}
+                  >
                     {p.name}
                   </h2>
                 </div>
 
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-xl md:text-2xl font-black tracking-tight">{priceObj.formatted}</span>
-                  <span className="text-[10px] text-muted-foreground font-normal">{tr("/ month")}</span>
+                <div className="mt-0.5 sm:mt-1 flex items-baseline gap-0.5 sm:gap-1 flex-wrap">
+                  <span className="text-xs sm:text-lg md:text-2xl font-black tracking-tight">{priceObj.formatted}</span>
+                  <span className="text-[7.5px] sm:text-[10px] text-muted-foreground font-normal">{tr("/ month")}</span>
                 </div>
 
-                <div className="h-3.5 mt-0.5">
-                  {yearly && (
-                    <p className="text-[9.5px] font-medium text-emerald-500 dark:text-emerald-400 leading-tight">
-                      {tr("Billed yearly")}: {yearlyTotalObj.formatted} · {tr("save 10%")}
+                <div className="h-3 sm:h-3.5 mt-0.5">
+                  {yearly ? (
+                    <p className="text-[7px] sm:text-[9.5px] font-medium text-emerald-500 dark:text-emerald-400 leading-tight truncate">
+                      {tr("Billed yearly")}: {yearlyTotalObj.formatted}
+                    </p>
+                  ) : (
+                    <p className="text-[7px] sm:text-[9.5px] text-muted-foreground leading-tight truncate">
+                      {tr("Billed monthly")}
                     </p>
                   )}
                 </div>
 
                 {/* Features List */}
-                <ul className="mt-2 space-y-1 text-[10px] md:text-[10.5px]">
+                <ul className="mt-1 sm:mt-2 space-y-0.5 sm:space-y-1 text-[7.5px] sm:text-[9px] md:text-[10.5px]">
                   {p.intro && (
-                    <li className="font-semibold text-muted-foreground text-[9.5px] tracking-wide mb-1">{p.intro}</li>
+                    <li className="font-bold text-foreground/80 text-[7.5px] sm:text-[9px] tracking-wide mb-0.5 truncate">
+                      {p.intro}
+                    </li>
                   )}
                   {p.features.map((f, i) => (
-                    <li key={i} className="flex items-start gap-1.5 leading-tight">
+                    <li key={i} className="flex items-start gap-1 leading-tight">
                       <Check
                         className={cn(
-                          "h-3 w-3 shrink-0 mt-0.5 stroke-[2.5]",
+                          "h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 mt-0.5 stroke-[2.5]",
                           p.id === "basic" ? "text-emerald-400" : p.id === "plus" ? "text-blue-400" : "text-amber-400",
                         )}
                       />
-                      <span className="text-foreground/90">{f}</span>
+                      <span className="text-foreground/90 line-clamp-2">{f}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
               {/* Action Button: Non-bold, balanced */}
-              <div className="pt-2 mt-auto">
+              <div className="pt-1.5 sm:pt-2 mt-auto">
                 <ShopButton
                   variant="primary"
                   onClick={(e) => {
@@ -786,12 +798,12 @@ function Plans() {
                     setChosenPlanId(p.id);
                     setPaying(true);
                   }}
-                  className="w-full h-7 text-[11px] font-normal flex items-center justify-center gap-1.5 shadow-sm bg-blue-600 hover:bg-blue-500 text-white"
+                  className="w-full h-6 sm:h-7 text-[8.5px] sm:text-[11px] font-medium flex items-center justify-center gap-1 shadow-sm bg-blue-600 hover:bg-blue-500 text-white px-1"
                 >
-                  <span>
+                  <span className="truncate">
                     {tr("Continue with")} {p.name}
                   </span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5 shrink-0" />
                 </ShopButton>
               </div>
             </div>
@@ -804,7 +816,7 @@ function Plans() {
         <button
           type="button"
           onClick={startTrial}
-          className="w-full max-w-lg mx-auto py-1 px-3 rounded-lg border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-950/50 text-emerald-400 text-[10.5px] font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          className="w-full max-w-lg mx-auto py-1 px-2.5 rounded-lg border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-950/50 text-emerald-400 text-[9.5px] sm:text-[10.5px] font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm"
         >
           <span>{tr("Not ready yet? Start your 30-day free trial")}</span>
           <ArrowRight className="h-3 w-3" />
