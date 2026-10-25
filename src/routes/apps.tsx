@@ -1,28 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  Bell,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Clock,
-  Coins,
-  Crown,
-  Eye,
-  EyeOff,
-  Globe,
-  HelpCircle,
-  LayoutGrid,
-  Lock,
-  LogOut,
-  Mail,
-  MapPin,
-  Phone,
-  Power,
-  Store,
-  UserRound,
-  X,
-} from "lucide-react";
+import { Bell, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -34,7 +12,7 @@ import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { AnnouncementBanner } from "@/components/shopbook/announcement-banner";
 import { useLanguage } from "@/hooks/use-language";
-import { getT, LANGS, NATIVE, type Lang, type TKey } from "@/lib/i18n";
+import { type TKey } from "@/lib/i18n";
 import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 
 export const Route = createFileRoute("/apps")({
@@ -50,13 +28,6 @@ export const Route = createFileRoute("/apps")({
   }),
   component: Apps,
 });
-
-const CURRENCIES = [
-  ["KSh", "Kenyan Shilling"],
-  ["USh", "Ugandan Shilling"],
-  ["TSh", "Tanzanian Shilling"],
-  ["USD", "US Dollar"],
-] as const;
 
 const ROUTES: Record<
   string,
@@ -92,7 +63,7 @@ const SETTINGS_APP = APPS.find((a) => a.id === "settings");
 
 function Apps() {
   const nav = useNavigate();
-  const { t, dir, tr, language, setLanguage } = useLanguage();
+  const { t, dir, tr } = useLanguage();
   const { dark } = useTheme();
   const [acct, setAcct] = useState<Account | null>(null);
   const [cfg, setCfg] = useSettings();
@@ -101,15 +72,9 @@ function Apps() {
   const shown = APPS.filter((a) => a.id !== "settings" && !cfg.hiddenApps.includes(a.id));
   const [locked, setLocked] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [panel, setPanel] = useState<null | "profile" | "manageApps" | "language" | "currency">(null);
+  const [panel, setPanel] = useState<null | "profile" | "manageApps">(null);
   const [chat, setChat] = useState(false);
   const [businessAi, setBusinessAi] = useState(false);
-
-  const pick = (p: Partial<Account>) => {
-    store.update(p);
-    setAcct((a) => (a ? { ...a, ...p } : a));
-    toast.success(getT(p.language ?? acct?.language).t("saved"));
-  };
 
   useEffect(() => {
     const a = store.get();
@@ -298,17 +263,17 @@ function Apps() {
         )}
       </div>
 
-      {/* FLOATING SHOPBOT BUTTON */}
+      {/* FLOATING SHOPBOT BUTTON (ENLARGED & ELEVATED) */}
       <ShopButton
         variant="bare"
         aria-label="ShopBot"
         onClick={() => setBusinessAi(true)}
-        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center cursor-pointer z-30"
+        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center cursor-pointer z-30 group"
       >
         <img
           src={dark ? chatIcons.dark : chatIcons.light}
           alt=""
-          className="h-[min(11vw,6.5dvh,64px)] w-[min(11vw,6.5dvh,64px)] rounded-full shadow-lg"
+          className="h-[min(14vw,8.5dvh,76px)] w-[min(14vw,8.5dvh,76px)] rounded-full shadow-2xl transition-transform duration-200 group-hover:scale-105"
         />
       </ShopButton>
 
@@ -356,18 +321,18 @@ function Apps() {
               </ShopButton>
             </div>
 
-            {/* 1. SUBSCRIPTION PLAN CARD */}
-            <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/60 border border-border/80 p-3 text-xs">
-              <div>
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+            {/* 1. SUBSCRIPTION PLAN CARD - ONE SINGLE ROW */}
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-muted/60 border border-border/80 px-3 py-2.5 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] sm:text-xs text-muted-foreground uppercase font-bold tracking-wider shrink-0">
                   {t("plan")}
                 </span>
-                <strong className="text-primary font-black text-sm uppercase">{planLabel}</strong>
+                <strong className="text-primary font-black text-xs sm:text-sm uppercase truncate">{planLabel}</strong>
               </div>
               <ShopButton
                 size="sm"
                 variant="outline"
-                className="font-bold text-xs"
+                className="font-bold text-xs shrink-0"
                 onClick={() => {
                   setProfileOpen(false);
                   nav({ to: "/plans" });
@@ -425,7 +390,7 @@ function Apps() {
                 </div>
               )}
 
-              {/* 3. MANAGE APPS (ACTIVATE & DEACTIVATE APPS IN LAUNCHER) */}
+              {/* 3. MANAGE APPS (SLIDING TOGGLE SWITCH: GREEN/RIGHT FOR ACTIVE, GREY/LEFT FOR DEACTIVATE) */}
               <ShopButton
                 variant="ghost"
                 className="justify-between text-xs font-semibold py-2"
@@ -443,10 +408,11 @@ function Apps() {
                   </p>
                   {APPS.filter((a) => a.id !== "settings").map((app) => {
                     const isHidden = cfg.hiddenApps.includes(app.id);
+                    const isActive = !isHidden;
                     return (
                       <div
                         key={app.id}
-                        className="flex items-center justify-between p-1.5 rounded-lg bg-card/60 border border-border/60 hover:bg-card transition-colors"
+                        className="flex items-center justify-between p-1.5 px-2 rounded-lg bg-card/60 border border-border/60 hover:bg-card transition-colors"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <img
@@ -456,24 +422,25 @@ function Apps() {
                           />
                           <span className="font-semibold truncate text-[11px] text-foreground">{appName(app.id)}</span>
                         </div>
+
+                        {/* SLIDING TOGGLE SWITCH: RIGHT = GREEN (ACTIVE), LEFT = GREY (DEACTIVATE) */}
                         <button
                           type="button"
+                          role="switch"
+                          aria-checked={isActive}
+                          aria-label={`Toggle ${appName(app.id)}`}
                           onClick={() => toggleAppVisibility(app.id)}
                           className={cn(
-                            "px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1",
-                            !isHidden
-                              ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 hover:bg-emerald-500/30"
-                              : "bg-muted text-muted-foreground border border-border hover:text-foreground",
+                            "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none",
+                            isActive ? "bg-emerald-500" : "bg-muted-foreground/30 dark:bg-zinc-700",
                           )}
                         >
-                          {!isHidden ? (
-                            <>
-                              <Check className="h-2.5 w-2.5" />
-                              <span>{tr("Active")}</span>
-                            </>
-                          ) : (
-                            <span>{tr("Hidden")}</span>
-                          )}
+                          <span
+                            className={cn(
+                              "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-md transition-transform duration-200",
+                              isActive ? "translate-x-4.5" : "translate-x-1",
+                            )}
+                          />
                         </button>
                       </div>
                     );
@@ -481,58 +448,7 @@ function Apps() {
                 </div>
               )}
 
-              {/* 4. LANGUAGE SELECTOR */}
-              <ShopButton
-                variant="ghost"
-                className="justify-start gap-2 text-xs"
-                onClick={() => setPanel(panel === "language" ? null : "language")}
-              >
-                <Globe className="h-4 w-4" /> {t("language")} ({NATIVE[language]})
-              </ShopButton>
-              {panel === "language" && (
-                <div className="grid max-h-40 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-border bg-muted/40 p-2 text-xs">
-                  {LANGS.map((code) => ({ code, name: NATIVE[code] })).map((l) => (
-                    <ShopButton
-                      key={l.code}
-                      size="sm"
-                      variant={language === l.code ? "default" : "outline"}
-                      className="justify-start text-[11px]"
-                      onClick={() => {
-                        setLanguage(l.code as Lang);
-                        pick({ language: l.code });
-                      }}
-                    >
-                      {l.name}
-                    </ShopButton>
-                  ))}
-                </div>
-              )}
-
-              {/* 5. CURRENCY SELECTOR */}
-              <ShopButton
-                variant="ghost"
-                className="justify-start gap-2 text-xs"
-                onClick={() => setPanel(panel === "currency" ? null : "currency")}
-              >
-                <Coins className="h-4 w-4" /> {t("currency")} ({acct.currency})
-              </ShopButton>
-              {panel === "currency" && (
-                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-2 text-xs">
-                  {CURRENCIES.map(([code, label]) => (
-                    <ShopButton
-                      key={code}
-                      size="sm"
-                      variant={acct.currency === code ? "default" : "outline"}
-                      className="justify-start"
-                      onClick={() => pick({ currency: code })}
-                    >
-                      {code}
-                    </ShopButton>
-                  ))}
-                </div>
-              )}
-
-              {/* 6. HELP & SUPPORT */}
+              {/* 4. HELP & SUPPORT */}
               <ShopButton
                 variant="ghost"
                 className="justify-start gap-2 text-xs"
@@ -544,7 +460,7 @@ function Apps() {
                 <HelpCircle className="h-4 w-4 text-emerald-400" /> {tr("Help & Support")}
               </ShopButton>
 
-              {/* 7. SIGN OUT */}
+              {/* 5. SIGN OUT */}
               <ShopButton
                 variant="ghost"
                 className="justify-start gap-2 text-xs text-destructive hover:text-destructive mt-3"
