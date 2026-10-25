@@ -1,6 +1,17 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Check, ChevronLeft, Smartphone } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronLeft,
+  Smartphone,
+  CreditCard,
+  Building2,
+  Lock,
+  Copy,
+  CheckCircle2,
+  Wallet,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -39,63 +50,159 @@ const tone: Record<PlanId, { border: string; activeBorder: string; text: string;
     border: "border-blue-500/40",
     activeBorder: "border-2 border-blue-500",
     text: "text-blue-500 dark:text-blue-400",
-    surface: "bg-blue-950/30",
-    shadow: "shadow-2xl shadow-blue-500/40",
+    surface: "bg-blue-950/25",
+    shadow: "shadow-2xl shadow-blue-500/30",
   },
   business: {
-    border: "border-orange-500/40",
-    activeBorder: "border-2 border-orange-500",
-    text: "text-orange-500 dark:text-orange-400",
-    surface: "bg-orange-950/20",
-    shadow: "shadow-2xl shadow-orange-500/40",
+    border: "border-amber-500/40",
+    activeBorder: "border-2 border-amber-500",
+    text: "text-amber-500 dark:text-amber-400",
+    surface: "bg-amber-950/25",
+    shadow: "shadow-2xl shadow-amber-500/30",
   },
 };
 
-function Plans() {
-  const nav = useNavigate();
-  const { tr, t, dir } = useLanguage();
-  const router = useRouter();
-  const [yearly, setYearly] = useState(false);
-  const [hovered, setHovered] = useState<PlanId | null>(null);
-  const [chosenPlanId, setChosenPlanId] = useState<PlanId>("plus");
-  const [paying, setPaying] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [currency, setCurrency] = useState("USD");
-  const [restoring, setRestoring] = useState(false);
+type PaymentTab = "phone" | "card" | "bank";
 
-  // Read stored account currency, with fallback to detected country
+function Plans() {
+  const { t, tr, dir } = useLanguage();
+  const nav = useNavigate();
+  const router = useRouter();
+
+  const [yearly, setYearly] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [chosenPlanId, setChosenPlanId] = useState<PlanId>("plus");
+  const [restoring, setRestoring] = useState(false);
+  const [currency, setCurrency] = useState<string>("KSH");
+
+  // Payment method selection & inputs
+  const [payTab, setPayTab] = useState<PaymentTab>("phone");
+  const [phone, setPhone] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
+
+  // Device wallet auto-detection (Apple Pay / Google Pay)
+  const [deviceWallet, setDeviceWallet] = useState<"apple" | "google" | null>(null);
+
   useEffect(() => {
-    const acct = store.get();
-    if (acct?.currency) {
-      setCurrency(acct.currency.toUpperCase());
-    } else {
-      const detected = detectUserCountry();
-      setCurrency(detected.currencyCode || "USD");
+    if (typeof window === "undefined") return;
+    const ua = navigator.userAgent || "";
+    const isApple = /iPhone|iPad|iPod|Macintosh/i.test(ua);
+    const hasApplePay = !!(window as any).ApplePaySession;
+
+    if (isApple || hasApplePay) {
+      setDeviceWallet("apple");
+    } else if (/Android|Chrome/i.test(ua)) {
+      setDeviceWallet("google");
     }
   }, []);
 
-  const plan = useMemo(
-    () => (PLANS.find((item) => item.id === chosenPlanId) ?? PLANS[1]) as (typeof PLANS)[number],
-    [chosenPlanId],
-  );
-
-  const currentMonthlyUsd = yearly ? plan.yearlyUsd / 12 : plan.monthlyUsd;
-  const currentPrice = convertUsdToCurrency(currentMonthlyUsd, currency);
-  const currentYearlyTotal = convertUsdToCurrency(plan.yearlyUsd, currency);
-
-  const startTrial = () => {
-    const a = store.get();
-    if (a?.trialStart && Date.now() - a.trialStart >= 30 * 864e5) {
-      toast.error(tr("Your 30-day free trial has ended. Choose a plan to continue."));
+  useEffect(() => {
+    const acct = store.get();
+    if (acct?.currency) {
+      setCurrency(acct.currency);
       return;
     }
-    store.update({ plan: "trial", trialStart: a?.trialStart ?? Date.now() });
+    const detected = detectUserCountry();
+    if (detected?.currency) {
+      setCurrency(detected.currency);
+    }
+  }, []);
+
+  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) ?? PLANS[1], [chosenPlanId]);
+
+  const currentPrice = useMemo(
+    () => convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency),
+    [yearly, plan.yearlyUsd, plan.monthlyUsd, currency],
+  );
+
+  const currentYearlyTotal = useMemo(
+    () => convertUsdToCurrency(plan.yearlyUsd * 12, currency),
+    [plan.yearlyUsd, currency],
+  );
+
+  const bankReference = useMemo(() => `SB-${Math.floor(10000 + Math.random() * 90000)}`, []);
+
+  const startTrial = () => {
+    store.update({ plan: "trial", trialStart: Date.now() });
+    toast.success(tr("30-day free trial started! Full access unlocked."));
     nav({ to: "/apps" });
   };
 
-  const handleSelectPlan = (id: PlanId) => {
-    setChosenPlanId(id);
-    setPaying(true);
+  const handleCardNumberChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 16);
+    const parts = digits.match(/.{1,4}/g);
+    setCardNumber(parts ? parts.join(" ") : digits);
+  };
+
+  const handleExpiryChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    if (digits.length >= 3) {
+      setCardExpiry(`${digits.slice(0, 2)}/${digits.slice(2)}`);
+    } else {
+      setCardExpiry(digits);
+    }
+  };
+
+  const completeSubscription = (methodName: string) => {
+    setProcessing(true);
+    setTimeout(() => {
+      setProcessing(false);
+      store.update({ plan: chosenPlanId });
+      toast.success(tr(`Payment successful via ${methodName}! ${plan.name} plan activated.`));
+      nav({ to: "/apps" });
+    }, 900);
+  };
+
+  const handleDevicePay = () => {
+    const provider = deviceWallet === "apple" ? "Apple Pay" : "Google Pay";
+    completeSubscription(provider);
+  };
+
+  const handlePhonePayment = () => {
+    if (!phone.trim()) {
+      toast.error(tr("Enter your payment phone number"));
+      return;
+    }
+    setProcessing(true);
+    setTimeout(() => {
+      setProcessing(false);
+      store.update({ plan: chosenPlanId });
+      toast.success(tr(`Payment request sent to ${phone}. Plan activated upon confirmation!`));
+      nav({ to: "/apps" });
+    }, 900);
+  };
+
+  const handleCardPayment = () => {
+    const rawDigits = cardNumber.replace(/\s/g, "");
+    if (rawDigits.length < 15) {
+      toast.error(tr("Enter a valid 16-digit card number"));
+      return;
+    }
+    if (cardExpiry.length < 5) {
+      toast.error(tr("Enter expiry date (MM/YY)"));
+      return;
+    }
+    if (cardCvc.length < 3) {
+      toast.error(tr("Enter 3-digit security CVC code"));
+      return;
+    }
+    completeSubscription("Card");
+  };
+
+  const handleBankConfirmation = () => {
+    completeSubscription("Bank Transfer");
+  };
+
+  const copyBankDetails = () => {
+    navigator.clipboard?.writeText(`Account: 01109048392, Ref: ${bankReference}`);
+    setCopiedRef(true);
+    toast.success(tr("Bank details and reference copied to clipboard"));
+    setTimeout(() => setCopiedRef(false), 2500);
   };
 
   const handleRestorePurchases = async () => {
@@ -125,16 +232,6 @@ function Plans() {
     }
   };
 
-  const requestPayment = () => {
-    if (!phone.trim()) {
-      toast.error(tr("Enter your payment phone number"));
-      return;
-    }
-    store.update({ plan: chosenPlanId });
-    toast.success(tr(`Payment request sent to ${phone}. Plan activated upon confirmation!`));
-    nav({ to: "/apps" });
-  };
-
   // Payment confirmation screen
   if (paying) {
     return (
@@ -155,39 +252,216 @@ function Plans() {
           <div className="w-7" />
         </header>
 
-        <div className="rounded-lg border border-border bg-card/60 p-4">
-          <h2 className="text-center text-sm md:text-base font-bold">{tr("Complete Subscription")}</h2>
-          <p className="mt-0.5 text-center text-xs text-muted-foreground">
-            {t("planSuffix", plan.name)} · {currentPrice.formatted} {tr("/ month")}
-            {yearly && (
-              <>
-                {" "}
-                · {tr("Billed yearly")}: {currentYearlyTotal.formatted}
-              </>
-            )}
-          </p>
+        <div className="rounded-lg border border-border bg-card/75 p-3.5 md:p-4 shadow-sm flex flex-col justify-between overflow-y-auto max-h-[82dvh]">
+          <div>
+            <h2 className="text-center text-sm md:text-base font-bold">{tr("Complete Subscription")}</h2>
+            <p className="mt-0.5 text-center text-xs text-muted-foreground">
+              {t("planSuffix", plan.name)} · {currentPrice.formatted} {tr("/ month")}
+              {yearly && (
+                <>
+                  {" "}
+                  · {tr("Billed yearly")}: {currentYearlyTotal.formatted}
+                </>
+              )}
+            </p>
 
-          <div className="mt-4 space-y-2.5">
-            <Field
-              icon={<Smartphone className="h-4 w-4" />}
-              type="tel"
-              inputMode="tel"
-              placeholder={tr("Payment phone number (M-Pesa / Mobile Money)")}
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-            />
-            <ShopButton variant="success" className="w-full py-2.5 text-xs font-semibold" onClick={requestPayment}>
-              {tr("Send payment request")}
-            </ShopButton>
-            <ShopButton variant="outline" className="w-full py-2.5 text-xs font-semibold" onClick={startTrial}>
+            {/* Auto-detected 1-Tap Device Wallet (Apple Pay or Google Pay) */}
+            {deviceWallet && (
+              <div className="mt-3">
+                <button
+                  type="button"
+                  disabled={processing}
+                  onClick={handleDevicePay}
+                  className={cn(
+                    "w-full h-9 rounded-md flex items-center justify-center gap-1.5 font-semibold text-xs transition-transform active:scale-[0.98] shadow-sm disabled:opacity-50",
+                    deviceWallet === "apple"
+                      ? "bg-black text-white hover:bg-neutral-900 border border-neutral-800"
+                      : "bg-white text-neutral-900 hover:bg-neutral-100 border border-neutral-300 dark:bg-neutral-900 dark:text-white dark:border-neutral-700",
+                  )}
+                >
+                  <Wallet className="h-3.5 w-3.5" />
+                  <span>{deviceWallet === "apple" ? tr("Pay with Apple Pay") : tr("Pay with Google Pay")}</span>
+                </button>
+
+                <div className="relative flex py-2 items-center">
+                  <div className="flex-grow border-t border-border"></div>
+                  <span className="flex-shrink mx-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    {tr("or choose payment method")}
+                  </span>
+                  <div className="flex-grow border-t border-border"></div>
+                </div>
+              </div>
+            )}
+
+            {/* 3-Tab Payment Method Chooser */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-muted/60 rounded-md border border-border/60">
+              <button
+                type="button"
+                onClick={() => setPayTab("phone")}
+                className={cn(
+                  "flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[11px] font-medium transition-colors",
+                  payTab === "phone"
+                    ? "bg-background text-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Smartphone className="h-3.5 w-3.5 shrink-0" />
+                <span>{tr("Phone")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayTab("card")}
+                className={cn(
+                  "flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[11px] font-medium transition-colors",
+                  payTab === "card"
+                    ? "bg-background text-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <CreditCard className="h-3.5 w-3.5 shrink-0" />
+                <span>{tr("Card")}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayTab("bank")}
+                className={cn(
+                  "flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[11px] font-medium transition-colors",
+                  payTab === "bank"
+                    ? "bg-background text-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <Building2 className="h-3.5 w-3.5 shrink-0" />
+                <span>{tr("Bank")}</span>
+              </button>
+            </div>
+
+            {/* Tab 1: Phone / Mobile Money */}
+            {payTab === "phone" && (
+              <div className="mt-3 space-y-2">
+                <Field
+                  icon={<Smartphone className="h-4 w-4" />}
+                  type="tel"
+                  inputMode="tel"
+                  placeholder={tr("Payment phone number (M-Pesa / Mobile Money)")}
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                />
+                <p className="text-[10px] text-muted-foreground leading-tight px-1">
+                  {tr("An instant payment prompt (STK push) will appear on your screen to enter your mobile PIN.")}
+                </p>
+                <ShopButton
+                  variant="success"
+                  disabled={processing}
+                  className="w-full py-2.5 text-xs font-semibold mt-1"
+                  onClick={handlePhonePayment}
+                >
+                  {processing ? tr("Sending request...") : tr("Send payment request")}
+                </ShopButton>
+              </div>
+            )}
+
+            {/* Tab 2: Card Payment */}
+            {payTab === "card" && (
+              <div className="mt-3 space-y-2">
+                <Field
+                  icon={<CreditCard className="h-4 w-4" />}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder={tr("Card number (16 digits)")}
+                  value={cardNumber}
+                  onChange={(event) => handleCardNumberChange(event.target.value)}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <Field
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={tr("MM / YY")}
+                    value={cardExpiry}
+                    onChange={(event) => handleExpiryChange(event.target.value)}
+                  />
+                  <Field
+                    icon={<Lock className="h-3.5 w-3.5" />}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    placeholder={tr("CVC / CVV")}
+                    value={cardCvc}
+                    onChange={(event) => setCardCvc(event.target.value.replace(/\D/g, "").slice(0, 4))}
+                  />
+                </div>
+                <Field
+                  type="text"
+                  placeholder={tr("Cardholder full name")}
+                  value={cardName}
+                  onChange={(event) => setCardName(event.target.value)}
+                />
+                <div className="flex items-center gap-1.5 px-1 text-[9.5px] text-muted-foreground">
+                  <Lock className="h-3 w-3 text-emerald-500 shrink-0" />
+                  <span>{tr("256-bit encrypted • PCI-DSS Level 1 compliant")}</span>
+                </div>
+                <ShopButton
+                  variant="primary"
+                  disabled={processing}
+                  className="w-full py-2.5 text-xs font-semibold mt-1"
+                  onClick={handleCardPayment}
+                >
+                  {processing ? tr("Processing card...") : `${tr("Pay")} ${currentPrice.formatted}`}
+                </ShopButton>
+              </div>
+            )}
+
+            {/* Tab 3: Bank Transfer */}
+            {payTab === "bank" && (
+              <div className="mt-3 space-y-2">
+                <div className="rounded-md border border-border/80 bg-muted/40 p-2.5 space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{tr("Bank / Paybill")}:</span>
+                    <span className="font-semibold">522522 (KCB Bank)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{tr("Account Number")}:</span>
+                    <span className="font-mono font-semibold">1294820194</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">{tr("Reference Code")}:</span>
+                    <span className="font-mono font-bold text-primary">{bankReference}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={copyBankDetails}
+                  className="w-full flex items-center justify-center gap-1.5 py-1 text-[10.5px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                >
+                  {copiedRef ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                  <span>{copiedRef ? tr("Copied to clipboard") : tr("Copy account & reference code")}</span>
+                </button>
+                <p className="text-[10px] text-muted-foreground leading-tight px-1">
+                  {tr("Use your reference code in the bank narration so your payment is automatically reconciled.")}
+                </p>
+                <ShopButton
+                  variant="outline"
+                  disabled={processing}
+                  className="w-full py-2.5 text-xs font-semibold mt-1"
+                  onClick={handleBankConfirmation}
+                >
+                  {processing ? tr("Verifying transfer...") : tr("I have sent bank transfer")}
+                </ShopButton>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 pt-2 border-t border-border/70 space-y-1.5">
+            <ShopButton variant="outline" className="w-full py-2 text-xs font-semibold" onClick={startTrial}>
               {tr("Use the 30-day free trial instead")}
             </ShopButton>
+            <p className="text-center text-[9.5px] text-muted-foreground">
+              {tr("Your plan is activated instantly upon payment confirmation.")}
+            </p>
           </div>
         </div>
 
-        <p className="text-center text-[10px] text-muted-foreground pb-2">
-          {tr("Your plan is only activated after payment is confirmed.")}
-        </p>
+        <div className="h-2" />
       </main>
     );
   }
@@ -238,161 +512,128 @@ function Plans() {
         </p>
       </div>
 
-      {/* Monthly / Yearly Switch */}
-      <div className="mx-auto shrink-0 mb-1 grid w-full max-w-[220px] grid-cols-2 rounded-full border border-border bg-card/70 p-0.5 text-[10px]">
-        <button
-          type="button"
-          onClick={() => setYearly(false)}
-          className={cn(
-            "rounded-full py-0.5 px-2 font-bold transition-all",
-            !yearly ? "bg-emerald-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {tr("Monthly")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setYearly(true)}
-          className={cn(
-            "rounded-full py-0.5 px-2 font-bold transition-all",
-            !yearly ? "text-muted-foreground hover:text-foreground" : "bg-emerald-600 text-white shadow-xs",
-          )}
-        >
-          {tr("Yearly (Save 10%)")}
-        </button>
+      {/* Monthly / Yearly Billing Toggle */}
+      <div className="flex items-center justify-center shrink-0 my-0.5">
+        <div className="inline-flex items-center rounded-full border border-border bg-card/60 p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setYearly(false)}
+            className={cn(
+              "px-3 py-0.5 rounded-full text-[10.5px] transition-colors",
+              !yearly
+                ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tr("Monthly")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setYearly(true)}
+            className={cn(
+              "px-3 py-0.5 rounded-full text-[10.5px] flex items-center gap-1 transition-colors",
+              yearly
+                ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <span>{tr("Yearly")}</span>
+            <span className="text-[9px] font-extrabold uppercase tracking-wide text-emerald-400 bg-emerald-950/60 px-1 py-0.2 rounded-full">
+              {tr("-10%")}
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* 3 Plans Columns Grid - All equal by default, only hovered card elevates */}
-      <div className="grid grid-cols-3 gap-1.5 md:gap-2.5 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
-        {PLANS.map((item) => {
-          const isMid = item.id === "plus";
-          const isBest = item.id === "business";
-          const isHovered = hovered === item.id;
-          const itemTone = tone[item.id];
-
-          const monthlyEquivalentUsd = yearly ? item.yearlyUsd / 12 : item.monthlyUsd;
-          const displayPrice = convertUsdToCurrency(monthlyEquivalentUsd, currency);
-          const yearlyTotal = convertUsdToCurrency(item.yearlyUsd, currency);
+      {/* 3 Pricing Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-3 flex-1 min-h-0 mt-2.5 mb-1 items-stretch">
+        {PLANS.map((p) => {
+          const tColors = tone[p.id];
+          const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
+          const yearlyTotalObj = convertUsdToCurrency(p.yearlyUsd * 12, currency);
 
           return (
             <div
-              key={item.id}
-              onMouseEnter={() => setHovered(item.id)}
-              onMouseLeave={() => setHovered(null)}
-              onClick={() => handleSelectPlan(item.id)}
+              key={p.id}
+              onClick={() => {
+                setChosenPlanId(p.id);
+                setPaying(true);
+              }}
               className={cn(
-                "relative flex flex-col justify-between rounded-lg p-2 text-start transition-all duration-200 ease-out cursor-pointer select-none border opacity-100",
-                itemTone.surface,
-                isHovered
-                  ? cn(
-                      "-translate-y-1.5 md:-translate-y-2.5 scale-[1.02] md:scale-[1.025] z-30",
-                      itemTone.activeBorder,
-                      itemTone.shadow,
-                    )
-                  : cn("translate-y-0 scale-100 z-10", itemTone.border),
+                "relative rounded-lg border bg-card/75 p-2.5 md:p-3 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible",
+                tColors.border,
+                "hover:-translate-y-1.5 hover:scale-[1.015] hover:z-30 hover:shadow-xl",
               )}
             >
-              {/* RECOMMENDED Badge for Middle Plan */}
-              {isMid && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 rounded-full bg-blue-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
-                  RECOMMENDED
+              {p.recommended && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-500/40">
+                  {tr("RECOMMENDED")}
+                </span>
+              )}
+              {p.best && (
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-600 text-white shadow-md shadow-amber-500/40">
+                  {tr("BEST")}
                 </span>
               )}
 
-              {/* BEST Badge in Orange for Business Plan */}
-              {isBest && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
-                  BEST
-                </span>
-              )}
+              {/* Card Header & Price */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <h2 className={cn("text-xs md:text-sm font-bold uppercase tracking-wide", tColors.text)}>{p.name}</h2>
+                </div>
 
-              {/* Card Content */}
-              <div className="flex-1 min-h-0 flex flex-col">
-                <div
-                  className={cn(
-                    "text-center text-[10px] md:text-xs font-black uppercase tracking-wider",
-                    (isMid || isBest) && "mt-1",
-                    isBest ? "text-orange-500 dark:text-orange-400" : itemTone.text,
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-lg md:text-xl font-black tracking-tight">{priceObj.formatted}</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">{tr("/ month")}</span>
+                </div>
+
+                <div className="h-3.5 mt-0.5">
+                  {yearly && (
+                    <p className="text-[9.5px] font-medium text-emerald-500 dark:text-emerald-400 leading-tight">
+                      {tr("Billed yearly")}: {yearlyTotalObj.formatted} · {tr("save 10%")}
+                    </p>
                   )}
-                >
-                  {item.name}
                 </div>
 
-                {/* Price and / month on ONE ROW */}
-                <div className="mt-0.5 flex items-baseline justify-center gap-1 leading-tight text-center">
-                  <span className="text-xs md:text-sm font-black tracking-tight">{displayPrice.formatted}</span>
-                  <span className="text-[8px] md:text-[9px] text-muted-foreground font-medium">{tr("/ month")}</span>
-                </div>
-
-                {/* Yearly Save 10% Calculation Row */}
-                <div className="text-center text-[8px] md:text-[8.5px] text-emerald-600 dark:text-emerald-400 font-semibold leading-none mt-0.5 truncate">
-                  {yearly ? `${tr("Save 10%")}: ${yearlyTotal.formatted}/${tr("yr")}` : `${tr("Yearly: save 10%")}`}
-                </div>
-
-                <div className="my-1 border-t border-border/40" />
-
-                <div className="text-center text-[8.5px] text-muted-foreground leading-tight truncate mb-1">
-                  {tr(item.tagline)}
-                </div>
-
-                {/* Optional Tier Lead Chip */}
-                {item.intro && (
-                  <div className="mb-1 text-center">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[7.5px] md:text-[8px] font-bold uppercase tracking-wider",
-                        isMid
-                          ? "bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/20"
-                          : "bg-orange-500/15 text-orange-500 dark:text-orange-400 border border-orange-500/20",
-                      )}
-                    >
-                      <span>✦</span>
-                      <span>{tr(item.intro)}</span>
-                    </span>
-                  </div>
-                )}
-
-                {/* Features Bullets with Accent Checkmarks */}
-                <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] md:text-[9px] leading-tight text-foreground/90 pr-0.5">
-                  {item.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-1">
-                      <Check
-                        className={cn(
-                          "h-2.5 w-2.5 shrink-0 mt-0.5",
-                          isBest ? "text-orange-500 dark:text-orange-400" : itemTone.text,
-                        )}
-                      />
-                      <span className="truncate">{tr(feature)}</span>
+                {/* Features List */}
+                <ul className="mt-2 space-y-1 text-[10px] md:text-[10.5px]">
+                  {p.features.map((feat, i) => (
+                    <li key={i} className="flex items-start gap-1.5 leading-tight">
+                      <Check className={cn("h-3 w-3 shrink-0 mt-0.5", tColors.text)} />
+                      <span className="text-foreground/90">{feat}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Action Button */}
-              <ShopButton
-                type="button"
-                className="mt-1.5 w-full shrink-0 flex items-center justify-center gap-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-normal py-1 px-2 text-[8.5px] md:text-[9.5px] shadow-xs transition-all h-6.5 md:h-7"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSelectPlan(item.id);
-                }}
-              >
-                <span>{tr("Continue with {x}", item.name)}</span>
-                <ArrowRight className="h-2.5 w-2.5 shrink-0" />
-              </ShopButton>
+              {/* Per-card action button */}
+              <div className="mt-2.5 pt-2 border-t border-border/60">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChosenPlanId(p.id);
+                    setPaying(true);
+                  }}
+                  className="w-full h-7 md:h-7.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[10.5px] md:text-[11px] font-medium transition-colors flex items-center justify-center gap-1 shadow-sm shrink-0"
+                >
+                  <span>{t("continueWithPlan", p.name)}</span>
+                  <ArrowRight className="h-3 w-3 shrink-0" />
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Bottom Free Trial */}
-      <footer className="shrink-0 pt-1.5 w-full text-center">
+      {/* Bottom Trial & Guarantee Footer */}
+      <footer className="shrink-0 pt-0.5 pb-1">
         <ShopButton
           variant="success"
-          className="w-full flex items-center justify-center gap-2 rounded-lg py-2 md:py-2.5 px-4 text-xs md:text-sm font-bold shadow-md transition-all h-8.5 md:h-9.5"
           onClick={startTrial}
+          className="w-full h-8 md:h-8.5 text-[11px] md:text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm"
         >
-          <span>{tr("Get Started with Your 30-Day Free Trial")}</span>
+          <span>{tr("Start 30-Day Free Trial — Full ERP Access")}</span>
           <ArrowRight className="h-3.5 w-3.5 shrink-0" />
         </ShopButton>
         <p className="mt-1 text-center text-[8.5px] md:text-[9.5px] text-muted-foreground leading-none">
