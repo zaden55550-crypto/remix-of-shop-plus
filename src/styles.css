@@ -2951,3 +2951,62 @@ body {
     padding: 6px 10px !important;
   }
 }
+/* Lock auth pages to 100% viewport without scaling */
+.signup-page,
+.auth-login {
+  zoom: 1 !important;
+}
+
+/* Position icons inside the cardbox inputs */
+.signup-field-input-wrap {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.signup-field-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.signup-field-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.signup-field-input.has-icon {
+  padding-left: clamp(28px, 4dvh, 32px) !important;
+}
+
+.signup-field-action {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.signup-field-action:hover {
+  color: var(--foreground);
+}
+
+.signup-field-input.has-action {
+  padding-right: clamp(30px, 4.2dvh, 34px) !important;
+}
