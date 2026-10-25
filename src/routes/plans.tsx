@@ -67,7 +67,10 @@ function Plans() {
     }
   }, []);
 
-  const plan = useMemo(() => PLANS.find((item) => item.id === selected) ?? PLANS[1], [selected])!;
+  const plan = useMemo(
+    () => (PLANS.find((item) => item.id === selected) ?? PLANS[1]) as (typeof PLANS)[number],
+    [selected],
+  );
 
   const currentMonthlyUsd = yearly ? plan.yearlyUsd / 12 : plan.monthlyUsd;
   const currentPrice = convertUsdToCurrency(currentMonthlyUsd, currency);
@@ -92,7 +95,6 @@ function Plans() {
     setRestoring(true);
     try {
       const acct = store.get();
-      // Brief check simulation for account and subscription verification
       await new Promise((res) => setTimeout(res, 600));
 
       if (acct?.plan && acct.plan !== "trial") {
@@ -180,7 +182,7 @@ function Plans() {
     <main
       dir={dir}
       style={{ zoom: 1 }}
-      className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-2.5 py-1.5 md:py-2.5 md:max-w-4xl mx-auto box-border"
+      className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-2 md:py-3 w-full max-w-7xl mx-auto box-border"
     >
       {/* Top Header: Back + Wordmark + Restore Purchases & Currency */}
       <header className="flex items-center justify-between shrink-0">
@@ -193,12 +195,12 @@ function Plans() {
           <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
         </ShopButton>
         <Wordmark className="text-sm font-black" />
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             disabled={restoring}
             onClick={handleRestorePurchases}
-            className="text-[9px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="text-[9.5px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50 whitespace-nowrap"
             title={tr("Check and restore your previous active subscription")}
           >
             {restoring ? tr("Restoring...") : tr("Restore Purchases")}
@@ -206,7 +208,7 @@ function Plans() {
           <button
             type="button"
             onClick={() => setCurrency((c) => (c === "USD" ? store.get()?.currency || "KSH" : "USD"))}
-            className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-border bg-card/70 text-foreground/80 hover:bg-card"
+            className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-full border border-border bg-card/70 text-foreground/80 hover:bg-card"
             title={tr("Switch currency display")}
           >
             {currency}
@@ -223,7 +225,7 @@ function Plans() {
       </div>
 
       {/* Monthly / Yearly Switch */}
-      <div className="mx-auto shrink-0 mb-1 grid w-full max-w-[210px] grid-cols-2 rounded-full border border-border bg-card/70 p-0.5 text-[10px]">
+      <div className="mx-auto shrink-0 mb-1 grid w-full max-w-[220px] grid-cols-2 rounded-full border border-border bg-card/70 p-0.5 text-[10px]">
         <button
           type="button"
           onClick={() => setYearly(false)}
@@ -246,8 +248,8 @@ function Plans() {
         </button>
       </div>
 
-      {/* 3 Plans Columns Grid */}
-      <div className="grid grid-cols-3 gap-1.5 flex-1 min-h-0 items-stretch my-0.5">
+      {/* 3 Plans Columns Grid - Fills available screen space */}
+      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0 items-stretch my-1 w-full">
         {PLANS.map((item) => {
           const isMid = item.id === "plus";
           const isBest = item.id === "business";
@@ -261,7 +263,7 @@ function Plans() {
             <div
               key={item.id}
               className={cn(
-                "relative flex flex-col justify-between rounded-lg border p-1.5 text-start transition-all",
+                "relative flex flex-col justify-between rounded-lg border p-2 text-start transition-all overflow-hidden",
                 isMid
                   ? "border-2 border-blue-500 shadow-md shadow-blue-500/10"
                   : isBest
@@ -272,19 +274,19 @@ function Plans() {
             >
               {/* RECOMMENDED Badge for Middle Plan */}
               {isMid && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-2 py-0.2 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-blue-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
                   RECOMMENDED
                 </span>
               )}
 
               {/* BEST Badge in Orange for Business Plan */}
               {isBest && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-orange-500 px-2 py-0.2 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-orange-500 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider text-white shadow-xs whitespace-nowrap">
                   BEST
                 </span>
               )}
 
-              {/* Card Header Content */}
+              {/* Card Content */}
               <div className="flex-1 min-h-0 flex flex-col">
                 <div
                   className={cn(
@@ -303,7 +305,7 @@ function Plans() {
                 </div>
 
                 {/* Yearly Save 10% Calculation Row */}
-                <div className="text-center text-[7.5px] md:text-[8px] text-emerald-600 dark:text-emerald-400 font-semibold leading-none mt-0.5 truncate">
+                <div className="text-center text-[8px] md:text-[8.5px] text-emerald-600 dark:text-emerald-400 font-semibold leading-none mt-0.5 truncate">
                   {yearly ? `${tr("Save 10%")}: ${yearlyTotal.formatted}/${tr("yr")}` : `${tr("Yearly: save 10%")}`}
                 </div>
 
@@ -313,8 +315,8 @@ function Plans() {
                   {tr(item.tagline)}
                 </div>
 
-                {/* Features Bullets */}
-                <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] leading-tight text-foreground/90 pr-0.5">
+                {/* Features Bullets (Scrolls cleanly if height is limited) */}
+                <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] md:text-[9px] leading-tight text-foreground/90 pr-0.5">
                   {item.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-1">
                       <span className={cn("shrink-0 font-bold", isBest ? "text-orange-400" : itemTone.text)}>•</span>
@@ -324,32 +326,32 @@ function Plans() {
                 </ul>
               </div>
 
-              {/* Compact, Not Bold Action Button with Arrow (Half Size) */}
+              {/* Action Button: Height added (h-7/h-8), pinned shrink-0, thin/normal font */}
               <ShopButton
                 type="button"
-                className="mt-1 w-full flex items-center justify-center gap-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-normal py-0.5 px-1 text-[7.5px] md:text-[8px] shadow-xs transition-all h-auto min-h-0"
+                className="mt-1.5 w-full shrink-0 flex items-center justify-center gap-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-normal py-1 px-2 text-[8.5px] md:text-[9.5px] shadow-xs transition-all h-6.5 md:h-7"
                 onClick={() => handleSelectPlan(item.id)}
               >
                 <span>{tr("Continue with {x}", item.name)}</span>
-                <ArrowRight className="h-2 w-2 shrink-0" />
+                <ArrowRight className="h-2.5 w-2.5 shrink-0" />
               </ShopButton>
             </div>
           );
         })}
       </div>
 
-      {/* Bottom Trial Action */}
-      <footer className="shrink-0 pt-1 text-center">
+      {/* Bottom Free Trial: Expanded to fill screen width nicely */}
+      <footer className="shrink-0 pt-1.5 w-full text-center">
         <ShopButton
           variant="success"
-          className="w-full max-w-sm mx-auto flex items-center justify-center gap-1.5 rounded-lg py-1.5 px-3 text-[11px] font-bold shadow-md"
+          className="w-full flex items-center justify-center gap-2 rounded-lg py-2 md:py-2.5 px-4 text-xs md:text-sm font-bold shadow-md transition-all h-8.5 md:h-9.5"
           onClick={startTrial}
         >
           <span>{tr("Get Started with Your 30-Day Free Trial")}</span>
-          <ArrowRight className="h-3 w-3" />
+          <ArrowRight className="h-3.5 w-3.5 shrink-0" />
         </ShopButton>
-        <p className="mt-0.5 text-center text-[8.5px] text-muted-foreground leading-none">
-          {tr("No payment required • Cancel anytime")}
+        <p className="mt-1 text-center text-[8.5px] md:text-[9.5px] text-muted-foreground leading-none">
+          {tr("No payment required • Cancel anytime • 100% data preserved upon upgrade")}
         </p>
       </footer>
     </main>
