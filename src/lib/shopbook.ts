@@ -63,6 +63,7 @@ export const PLANS: {
   tagline: string;
   intro?: string;
   features: string[];
+  recommended?: boolean;
   best?: boolean;
 }[] = [
   {
@@ -91,6 +92,7 @@ export const PLANS: {
     yearly: 237.6,
     tagline: "Manage your growing shop.",
     intro: "Basic plus:",
+    recommended: true,
     features: [
       "Customer Debtors & Contacts",
       "Double-entry Accounting",
