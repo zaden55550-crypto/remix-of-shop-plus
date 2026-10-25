@@ -31,7 +31,7 @@ import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { AnnouncementBanner } from "@/components/shopbook/announcement-banner";
 import { useLanguage } from "@/hooks/use-language";
-import { getT, LANGS, NATIVE, type Lang } from "@/lib/i18n";
+import { getT, LANGS, NATIVE, type Lang, type TKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/apps")({
   head: () => ({
