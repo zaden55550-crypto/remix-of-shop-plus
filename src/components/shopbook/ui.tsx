@@ -886,7 +886,7 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
 
     const next = [...pinDigits];
     for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i];
+      next[i] = pasted[i] ?? "";
     }
     setPinDigits(next);
     const focusIdx = Math.min(pasted.length, 5);
