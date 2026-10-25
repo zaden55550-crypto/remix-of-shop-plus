@@ -116,6 +116,7 @@ function Signup() {
         phone: "",
         password: f.password,
         currency: f.currency,
+        country: f.country,
         logo: f.logo || undefined,
       });
     } catch (e) {
@@ -191,7 +192,7 @@ function Signup() {
                 required
               />
 
-              {/* Row 2 Left: Email */}
+              {/* Row 2 Left: Email with Real Domain Validation */}
               <Field
                 icon={<Mail className="h-5 w-5" />}
                 inputMode="email"
