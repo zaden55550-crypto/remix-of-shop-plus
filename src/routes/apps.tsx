@@ -53,6 +53,7 @@ const CURRENCIES = [
   ["TSh", "Tanzanian Shilling"],
   ["USD", "US Dollar"],
 ] as const;
+
 const ROUTES: Record<
   string,
   | "/dashboard"
@@ -98,6 +99,7 @@ function Apps() {
   const [faq, setFaq] = useState<number | null>(null);
   const [chat, setChat] = useState(false);
   const [businessAi, setBusinessAi] = useState(false);
+
   const pick = (p: Partial<Account>) => {
     store.update(p);
     setAcct((a) => (a ? { ...a, ...p } : a));
@@ -146,7 +148,7 @@ function Apps() {
         variant="bare"
         key={app.id}
         onClick={() => (ok && ROUTES[app.id] ? nav({ to: ROUTES[app.id]! }) : openApp(ok, appName(app.id)))}
-        className="h-auto w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none p-0"
+        className="h-auto w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none p-0 cursor-pointer"
       >
         <span className="relative flex aspect-square w-full max-w-[min(16vw,9.5dvh,96px)] items-center justify-center">
           <span className="block h-full w-full">
@@ -186,9 +188,26 @@ function Apps() {
 
         <ConnectionStatus />
 
-        <h1 className="flex-1 truncate text-center text-sm sm:text-base font-bold tracking-wide text-foreground">
-          {acct.shopName}
-        </h1>
+        {/* SHOP NAME & ACTIVE PLAN BADGE */}
+        <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5">
+          <h1 className="truncate text-center text-sm sm:text-base font-bold tracking-wide text-foreground">
+            {acct.shopName}
+          </h1>
+          {acct.plan && acct.plan !== "trial" && (
+            <span
+              className={cn(
+                "px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shrink-0",
+                acct.plan === "business"
+                  ? "bg-amber-500/20 text-amber-500 border border-amber-500/40"
+                  : acct.plan === "plus"
+                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
+                    : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40",
+              )}
+            >
+              {acct.plan}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-1">
           <ThemeToggle />
@@ -213,7 +232,7 @@ function Apps() {
         </div>
       )}
 
-      {/* Launcher rows spread evenly over the remaining height so apps fill the screen top to bottom. */}
+      {/* Launcher rows spread evenly over the remaining height so apps fill the screen top to bottom */}
       <div className="flex min-h-0 flex-1 flex-col justify-evenly py-[clamp(0.25rem,1.5dvh,1rem)]">
         <div
           className="grid grid-cols-4 content-evenly gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.3rem,1.6dvh,1.25rem)]"
@@ -232,7 +251,7 @@ function Apps() {
         variant="bare"
         aria-label="ShopBot"
         onClick={() => setBusinessAi(true)}
-        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center"
+        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center cursor-pointer"
       >
         <img
           src={dark ? chatIcons.dark : chatIcons.light}
@@ -327,9 +346,7 @@ function Apps() {
                 className="justify-start gap-2"
                 onClick={() => setPanel(panel === "language" ? null : "language")}
               >
-                <Globe className="h-4 w-4" /> {t("language")} (
-                {NATIVE[language]}
-                )
+                <Globe className="h-4 w-4" /> {t("language")} ({NATIVE[language]})
               </ShopButton>
               {panel === "language" && (
                 <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-lg border border-border bg-muted/40 p-2 text-xs">
