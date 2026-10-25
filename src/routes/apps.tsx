@@ -4,18 +4,21 @@ import {
   Bell,
   Check,
   ChevronDown,
-  ChevronLeft,
-  Mail,
-  MessageCircle,
-  Phone,
+  ChevronUp,
   Clock,
   Coins,
   Crown,
+  Eye,
+  EyeOff,
   Globe,
   HelpCircle,
+  LayoutGrid,
   Lock,
   LogOut,
-  Menu,
+  Mail,
+  MapPin,
+  Phone,
+  Power,
   Store,
   UserRound,
   X,
@@ -32,6 +35,7 @@ import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { AnnouncementBanner } from "@/components/shopbook/announcement-banner";
 import { useLanguage } from "@/hooks/use-language";
 import { getT, LANGS, NATIVE, type Lang, type TKey } from "@/lib/i18n";
+import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 
 export const Route = createFileRoute("/apps")({
   head: () => ({
@@ -91,12 +95,13 @@ function Apps() {
   const { t, dir, tr, language, setLanguage } = useLanguage();
   const { dark } = useTheme();
   const [acct, setAcct] = useState<Account | null>(null);
-  const [cfg] = useSettings();
+  const [cfg, setCfg] = useSettings();
+
+  // Launcher apps: exclude settings and apps marked as hidden
   const shown = APPS.filter((a) => a.id !== "settings" && !cfg.hiddenApps.includes(a.id));
   const [locked, setLocked] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [panel, setPanel] = useState<null | "profile" | "language" | "currency" | "help">(null);
-  const [faq, setFaq] = useState<number | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [panel, setPanel] = useState<null | "profile" | "manageApps" | "language" | "currency">(null);
   const [chat, setChat] = useState(false);
   const [businessAi, setBusinessAi] = useState(false);
 
@@ -141,6 +146,18 @@ function Apps() {
     else setLocked(name);
   };
 
+  // Toggle app active/deactivated state in launcher
+  const toggleAppVisibility = (appId: string) => {
+    const isHidden = cfg.hiddenApps.includes(appId);
+    const nextHidden = isHidden ? cfg.hiddenApps.filter((id) => id !== appId) : [...cfg.hiddenApps, appId];
+    setCfg({ hiddenApps: nextHidden });
+    toast.success(
+      isHidden
+        ? tr(`Activated ${appName(appId)} on your home screen`)
+        : tr(`Deactivated ${appName(appId)} from home screen`),
+    );
+  };
+
   const renderApp = (app: (typeof APPS)[number]) => {
     const ok = canOpen(acct, app.tier);
     return (
@@ -174,46 +191,80 @@ function Apps() {
   return (
     <main
       dir={dir}
-      className="app-screen relative flex flex-col px-4 pb-[clamp(3rem,11dvh,5.5rem)] pt-[clamp(0.5rem,2dvh,1rem)] md:px-10"
+      className="app-screen relative flex flex-col px-3 pb-[clamp(3rem,11dvh,5.5rem)] pt-[clamp(0.5rem,2dvh,1rem)] sm:px-6 md:px-10"
       style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
     >
-      <header className="flex items-center justify-between gap-2">
-        <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card/60">
-          {acct.logo ? (
-            <img src={acct.logo} alt={acct.shopName} className="h-full w-full object-cover" />
-          ) : (
-            <Store className="h-5 w-5 text-primary" />
-          )}
-        </span>
+      {/* =========================================================================
+          HEADER: APP LOGO (LEFT) | CAPITAL SHOP NAME (CENTER) | AVATAR (RIGHT)
+         ========================================================================= */}
+      <header className="flex items-center justify-between gap-2 shrink-0">
+        {/* TOP LEFT: APP LOGO + APP NAME + ONLINE/OFFLINE INDICATOR */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-primary/40 bg-card/70 shadow-sm shrink-0 grid place-items-center p-0.5">
+            <img src={emblemAsset.url} alt="SHOPBOOK ERP" className="h-full w-full object-cover rounded-full" />
+          </div>
+          <span className="hidden min-[480px]:inline font-black text-xs sm:text-sm tracking-tight text-foreground whitespace-nowrap">
+            SHOP<span className="text-primary">BOOK</span>{" "}
+            <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-semibold">ERP</span>
+          </span>
+          <ConnectionStatus />
+        </div>
 
-        <ConnectionStatus />
-
-        {/* SHOP NAME & ACTIVE PLAN BADGE */}
-        <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5">
-          <h1 className="truncate text-center text-sm sm:text-base font-bold tracking-wide text-foreground">
-            {acct.shopName}
+        {/* CENTER: SHOP NAME IN CAPITAL LETTERS ALWAYS + SMALL PLAN BADGE */}
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1 text-center">
+          <h1 className="truncate text-center text-xs sm:text-sm md:text-base font-black tracking-wider text-foreground uppercase max-w-[170px] sm:max-w-xs md:max-w-md">
+            {(acct.shopName || "").toUpperCase()}
           </h1>
-          {acct.plan && acct.plan !== "trial" && (
+          <div className="flex items-center gap-1 mt-0.5">
             <span
               className={cn(
-                "px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider shrink-0",
+                "px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider shrink-0",
                 acct.plan === "business"
                   ? "bg-amber-500/20 text-amber-500 border border-amber-500/40"
                   : acct.plan === "plus"
                     ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
-                    : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40",
+                    : acct.plan === "trial"
+                      ? "bg-purple-500/20 text-purple-400 border border-purple-500/40"
+                      : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40",
               )}
             >
-              {acct.plan}
+              {acct.plan === "trial" ? tr("TRIAL") : acct.plan ? acct.plan.toUpperCase() : tr("BASIC")}
             </span>
-          )}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <ShopButton variant="ghost" size="icon" aria-label="Menu" onClick={() => setMenuOpen(true)}>
-            <Menu className="h-5 w-5" />
+        {/* TOP RIGHT: NOTIFICATION BELL | SUN/MOON THEME | SHOP LOGO / DEFAULT AVATAR PROFILE */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+          {/* Notification Button */}
+          <ShopButton
+            variant="ghost"
+            size="icon"
+            aria-label="Notifications"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer relative"
+            onClick={() => toast.info(tr("No new unread system notifications."))}
+          >
+            <Bell className="h-4 w-4" />
           </ShopButton>
+
+          {/* Sun & Moon Theme Toggle */}
+          <ThemeToggle />
+
+          {/* FAR RIGHT: SHOP LOGO (IF UPLOADED) OR DEFAULT AVATAR PROFILE ICON IN CIRCLE */}
+          <button
+            type="button"
+            aria-label="Business Profile & Settings"
+            onClick={() => {
+              setProfileOpen(true);
+              setPanel(null);
+            }}
+            className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer shadow-sm"
+          >
+            {acct.logo ? (
+              <img src={acct.logo} alt={acct.shopName} className="h-full w-full object-cover" />
+            ) : (
+              <UserRound className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary" />
+            )}
+          </button>
         </div>
       </header>
 
@@ -232,7 +283,7 @@ function Apps() {
         </div>
       )}
 
-      {/* Launcher rows spread evenly over the remaining height so apps fill the screen top to bottom */}
+      {/* Launcher rows spread evenly over the remaining height */}
       <div className="flex min-h-0 flex-1 flex-col justify-evenly py-[clamp(0.25rem,1.5dvh,1rem)]">
         <div
           className="grid grid-cols-4 content-evenly gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.3rem,1.6dvh,1.25rem)]"
@@ -247,50 +298,57 @@ function Apps() {
         )}
       </div>
 
+      {/* FLOATING SHOPBOT BUTTON */}
       <ShopButton
         variant="bare"
         aria-label="ShopBot"
         onClick={() => setBusinessAi(true)}
-        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center cursor-pointer"
+        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center cursor-pointer z-30"
       >
         <img
           src={dark ? chatIcons.dark : chatIcons.light}
           alt=""
-          className="h-[min(11vw,6.5dvh,64px)] w-[min(11vw,6.5dvh,64px)] rounded-full"
+          className="h-[min(11vw,6.5dvh,64px)] w-[min(11vw,6.5dvh,64px)] rounded-full shadow-lg"
         />
       </ShopButton>
 
-      {menuOpen && (
+      {/* =========================================================================
+          PROFILE & MANAGEMENT DRAWER (OPENED VIA TOP-RIGHT AVATAR ICON)
+         ========================================================================= */}
+      {profileOpen && (
         <div
           className="fixed inset-0 z-50 flex justify-end bg-background/60 backdrop-blur-sm"
           onClick={() => {
-            setMenuOpen(false);
+            setProfileOpen(false);
             setPanel(null);
           }}
         >
           <div
-            className="flex h-full w-full max-w-sm flex-col border-l border-border bg-card p-4 shadow-xl overflow-y-auto"
+            className="flex h-full w-full max-w-sm flex-col border-l border-border bg-card p-4 shadow-2xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* DRAWER HEADER WITH BUSINESS IDENTITY */}
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <span className="grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-primary/50 bg-muted">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-muted">
                   {acct.logo ? (
                     <img src={acct.logo} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <Store className="h-5 w-5 text-primary" />
+                    <UserRound className="h-5 w-5 text-primary" />
                   )}
                 </span>
-                <div>
-                  <div className="font-bold leading-tight">{acct.shopName}</div>
-                  <div className="text-xs text-muted-foreground">{acct.email}</div>
+                <div className="min-w-0">
+                  <div className="font-black text-sm uppercase tracking-wider truncate text-foreground">
+                    {(acct.shopName || "").toUpperCase()}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">{acct.email}</div>
                 </div>
               </div>
               <ShopButton
                 variant="ghost"
                 size="icon"
                 onClick={() => {
-                  setMenuOpen(false);
+                  setProfileOpen(false);
                   setPanel(null);
                 }}
               >
@@ -298,15 +356,20 @@ function Apps() {
               </ShopButton>
             </div>
 
-            <div className="mt-3 flex items-center justify-between rounded-lg bg-muted/60 p-2.5 text-xs">
-              <span className="font-medium">
-                {t("plan")}: <strong className="text-primary">{planLabel}</strong>
-              </span>
+            {/* 1. SUBSCRIPTION PLAN CARD */}
+            <div className="mt-3 flex items-center justify-between rounded-xl bg-muted/60 border border-border/80 p-3 text-xs">
+              <div>
+                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                  {t("plan")}
+                </span>
+                <strong className="text-primary font-black text-sm uppercase">{planLabel}</strong>
+              </div>
               <ShopButton
                 size="sm"
                 variant="outline"
+                className="font-bold text-xs"
                 onClick={() => {
-                  setMenuOpen(false);
+                  setProfileOpen(false);
                   nav({ to: "/plans" });
                 }}
               >
@@ -314,42 +377,120 @@ function Apps() {
               </ShopButton>
             </div>
 
-            <div className="mt-4 flex flex-1 flex-col gap-1">
+            {/* MENU ITEMS */}
+            <div className="mt-4 flex flex-1 flex-col gap-1.5">
+              {/* 2. PROFILE & BUSINESS DETAILS */}
               <ShopButton
                 variant="ghost"
-                className="justify-start gap-2"
+                className="justify-between text-xs font-semibold py-2"
                 onClick={() => setPanel(panel === "profile" ? null : "profile")}
               >
-                <UserRound className="h-4 w-4" /> {tr("Profile & Business")}
+                <span className="flex items-center gap-2">
+                  <UserRound className="h-4 w-4 text-primary" /> {tr("Profile & Shop Details")}
+                </span>
+                {panel === "profile" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </ShopButton>
               {panel === "profile" && (
-                <div className="rounded-lg border border-border bg-muted/40 p-3 text-xs space-y-1.5">
+                <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs space-y-2">
                   <div>
-                    <strong>{t("shopName")}:</strong> {acct.shopName}
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">{t("shopName")}</span>
+                    <span className="font-bold uppercase text-foreground">{acct.shopName}</span>
                   </div>
                   <div>
-                    <strong>{t("email")}:</strong> {acct.email}
+                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">{t("email")}</span>
+                    <span className="font-medium text-foreground">{acct.email}</span>
                   </div>
                   {acct.phone && (
                     <div>
-                      <strong>{tr("Phone")}:</strong> {acct.phone}
+                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">{tr("Phone")}</span>
+                      <span className="font-medium text-foreground">{acct.phone}</span>
                     </div>
                   )}
-                  <div>
-                    <strong>{t("currency")}:</strong> {acct.currency}
+                  <div className="flex justify-between">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                        {t("currency")}
+                      </span>
+                      <span className="font-bold text-foreground">{acct.currency}</span>
+                    </div>
+                    {acct.country && (
+                      <div>
+                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                          {tr("Country")}
+                        </span>
+                        <span className="font-bold text-foreground">{acct.country}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
+              {/* 3. MANAGE APPS (ACTIVATE & DEACTIVATE APPS IN LAUNCHER) */}
               <ShopButton
                 variant="ghost"
-                className="justify-start gap-2"
+                className="justify-between text-xs font-semibold py-2"
+                onClick={() => setPanel(panel === "manageApps" ? null : "manageApps")}
+              >
+                <span className="flex items-center gap-2">
+                  <LayoutGrid className="h-4 w-4 text-blue-400" /> {tr("Manage Apps (Active / Inactive)")}
+                </span>
+                {panel === "manageApps" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </ShopButton>
+              {panel === "manageApps" && (
+                <div className="rounded-xl border border-border bg-muted/40 p-2 text-xs space-y-1.5 max-h-60 overflow-y-auto">
+                  <p className="text-[10px] text-muted-foreground px-1 pb-1">
+                    {tr("Toggle modules on or off to customize your business launcher:")}
+                  </p>
+                  {APPS.filter((a) => a.id !== "settings").map((app) => {
+                    const isHidden = cfg.hiddenApps.includes(app.id);
+                    return (
+                      <div
+                        key={app.id}
+                        className="flex items-center justify-between p-1.5 rounded-lg bg-card/60 border border-border/60 hover:bg-card transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={dark ? app.iconDark : app.icon}
+                            alt=""
+                            className="h-5 w-5 object-contain shrink-0"
+                          />
+                          <span className="font-semibold truncate text-[11px] text-foreground">{appName(app.id)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => toggleAppVisibility(app.id)}
+                          className={cn(
+                            "px-2 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1",
+                            !isHidden
+                              ? "bg-emerald-500/20 text-emerald-500 border border-emerald-500/40 hover:bg-emerald-500/30"
+                              : "bg-muted text-muted-foreground border border-border hover:text-foreground",
+                          )}
+                        >
+                          {!isHidden ? (
+                            <>
+                              <Check className="h-2.5 w-2.5" />
+                              <span>{tr("Active")}</span>
+                            </>
+                          ) : (
+                            <span>{tr("Hidden")}</span>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 4. LANGUAGE SELECTOR */}
+              <ShopButton
+                variant="ghost"
+                className="justify-start gap-2 text-xs"
                 onClick={() => setPanel(panel === "language" ? null : "language")}
               >
                 <Globe className="h-4 w-4" /> {t("language")} ({NATIVE[language]})
               </ShopButton>
               {panel === "language" && (
-                <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-lg border border-border bg-muted/40 p-2 text-xs">
+                <div className="grid max-h-40 grid-cols-2 gap-1 overflow-y-auto rounded-xl border border-border bg-muted/40 p-2 text-xs">
                   {LANGS.map((code) => ({ code, name: NATIVE[code] })).map((l) => (
                     <ShopButton
                       key={l.code}
@@ -367,15 +508,16 @@ function Apps() {
                 </div>
               )}
 
+              {/* 5. CURRENCY SELECTOR */}
               <ShopButton
                 variant="ghost"
-                className="justify-start gap-2"
+                className="justify-start gap-2 text-xs"
                 onClick={() => setPanel(panel === "currency" ? null : "currency")}
               >
                 <Coins className="h-4 w-4" /> {t("currency")} ({acct.currency})
               </ShopButton>
               {panel === "currency" && (
-                <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-2 text-xs">
+                <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-2 text-xs">
                   {CURRENCIES.map(([code, label]) => (
                     <ShopButton
                       key={code}
@@ -390,24 +532,26 @@ function Apps() {
                 </div>
               )}
 
+              {/* 6. HELP & SUPPORT */}
               <ShopButton
                 variant="ghost"
-                className="justify-start gap-2"
+                className="justify-start gap-2 text-xs"
                 onClick={() => {
-                  setMenuOpen(false);
+                  setProfileOpen(false);
                   setChat(true);
                 }}
               >
-                <HelpCircle className="h-4 w-4" /> {tr("Help & Support")}
+                <HelpCircle className="h-4 w-4 text-emerald-400" /> {tr("Help & Support")}
               </ShopButton>
 
+              {/* 7. SIGN OUT */}
               <ShopButton
                 variant="ghost"
-                className="justify-start gap-2 text-destructive hover:text-destructive"
+                className="justify-start gap-2 text-xs text-destructive hover:text-destructive mt-3"
                 onClick={() => {
                   store.signOut();
-                  setMenuOpen(false);
-                  nav({ to: "/" });
+                  setProfileOpen(false);
+                  nav({ to: "/", replace: true });
                 }}
               >
                 <LogOut className="h-4 w-4" /> {t("signOut")}
@@ -417,6 +561,7 @@ function Apps() {
         </div>
       )}
 
+      {/* SUPPORT & ASSISTANT MODALS */}
       <HelpChat
         open={chat}
         onClose={() => setChat(false)}
