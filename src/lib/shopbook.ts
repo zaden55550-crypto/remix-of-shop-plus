@@ -32,7 +32,6 @@ import ShopbotDark from "@/assets/Shopbot_Dark.png.asset.json";
 export type PlanId = "basic" | "plus" | "business";
 export type Tier = PlanId;
 
-// Per the supplied assets: the dark ShopBot art is for light mode, the light art for dark mode.
 // ShopBot: light mode shows the black logo (Shopbot_Dark), dark mode the white logo (Shopbot_Light).
 export const chatIcons = { dark: ShopbotLight.url, light: ShopbotDark.url };
 
@@ -42,7 +41,7 @@ export const APPS: { id: string; name: string; icon: string; iconDark: string; t
   { id: "purchases", name: "Purchases", icon: Purchases.url, iconDark: PurchasesD.url, tier: "basic" },
   { id: "sales", name: "Sales", icon: Sales.url, iconDark: SalesD.url, tier: "basic" },
   { id: "pos", name: "POS", icon: POS.url, iconDark: POSD.url, tier: "basic" },
-  { id: "expenses", name: "Expenses", icon: Expenses.url, iconDark: ExpensesD.url, tier: "plus" },
+  { id: "expenses", name: "Expenses", icon: Expenses.url, iconDark: ExpensesD.url, tier: "basic" },
   { id: "contacts", name: "Contacts", icon: Contacts.url, iconDark: ContactsD.url, tier: "plus" },
   { id: "float", name: "Float", icon: Float.url, iconDark: FloatD.url, tier: "plus" },
   { id: "accounting", name: "Accounting", icon: Accounting.url, iconDark: AccountingD.url, tier: "plus" },
@@ -57,6 +56,8 @@ export const RING_ICONS = APPS.map((a) => a.iconDark);
 export const PLANS: {
   id: PlanId;
   name: string;
+  monthlyUsd: number;
+  yearlyUsd: number;
   monthly: number;
   yearly: number;
   tagline: string;
@@ -65,16 +66,67 @@ export const PLANS: {
   best?: boolean;
 }[] = [
   {
-    id: "basic", name: "Basic", monthly: 1050, yearly: 1000, tagline: "Start selling.",
-    features: ["Dashboard basic", "Inventory", "Purchases", "Sales", "POS", "Basic products", "Basic history", "Basic settings"],
+    id: "basic",
+    name: "Basic",
+    monthlyUsd: 11,
+    yearlyUsd: 118.8, // $11 * 12 * 0.9 = $118.80 / yr
+    monthly: 11,
+    yearly: 118.8,
+    tagline: "Start selling.",
+    features: [
+      "Dashboard basic",
+      "Inventory",
+      "Purchases",
+      "Sales",
+      "POS",
+      "Basic products",
+      "Basic history",
+      "Basic settings",
+    ],
   },
   {
-    id: "plus", name: "Plus", monthly: 2100, yearly: 2000, tagline: "Manage your growing shop.", intro: "Everything in Basic, plus:",
-    features: ["Inventory", "Contacts", "Accounting", "Float", "Returns", "Credit & partial", "Cash-up (end of day)", "Reports", "Settings (advanced)"],
+    id: "plus",
+    name: "Plus",
+    monthlyUsd: 22,
+    yearlyUsd: 237.6, // $22 * 12 * 0.9 = $237.60 / yr
+    monthly: 22,
+    yearly: 237.6,
+    tagline: "Manage your growing shop.",
+    intro: "Everything in Basic, plus:",
+    features: [
+      "Inventory",
+      "Contacts",
+      "Accounting",
+      "Float",
+      "Returns",
+      "Credit & partial",
+      "Cash-up (end of day)",
+      "Reports",
+      "Settings (advanced)",
+    ],
   },
   {
-    id: "business", name: "Business", monthly: 4200, yearly: 4000, tagline: "Run the whole business.", intro: "Everything in Plus, plus:", best: true,
-    features: ["Payroll", "Summary", "Advanced analytics", "Advanced AI", "Advanced permissions", "Multi-shop", "Advanced integrations", "Custom reports", "Priority support", "Full settings access"],
+    id: "business",
+    name: "Business",
+    monthlyUsd: 40,
+    yearlyUsd: 432, // $40 * 12 * 0.9 = $432 / yr
+    monthly: 40,
+    yearly: 432,
+    tagline: "Run the whole business.",
+    intro: "Everything in Plus, plus:",
+    best: true,
+    features: [
+      "Payroll",
+      "Summary",
+      "Advanced analytics",
+      "Advanced AI",
+      "Advanced permissions",
+      "Multi-shop",
+      "Advanced integrations",
+      "Custom reports",
+      "Priority support",
+      "Full settings access",
+    ],
   },
 ];
 
@@ -86,6 +138,7 @@ export type Account = {
   phone?: string;
   language?: string;
   currency: string;
+  country?: string;
   logo?: string | undefined;
   businessId?: string;
   password: string; // screens-only phase; replaced by real auth later
@@ -99,17 +152,40 @@ const SESSION = "shopbook.session";
 export const store = {
   get(): Account | null {
     if (typeof window === "undefined") return null;
-    try { return JSON.parse(localStorage.getItem(KEY) || "null"); } catch { return null; }
+    try {
+      return JSON.parse(localStorage.getItem(KEY) || "null");
+    } catch {
+      return null;
+    }
   },
   save(a: Account) {
     const old = store.get();
-    if (old && !a.businessId && (old.password !== a.password || old.shopName !== a.shopName || old.phone !== a.phone)) throw new Error("Sign in to the existing shop or export and clear this device before changing businesses.");
-    localStorage.setItem(KEY, JSON.stringify({ ...a, businessId: a.businessId ?? old?.businessId ?? crypto.randomUUID() }));
+    if (old && !a.businessId && (old.password !== a.password || old.shopName !== a.shopName || old.phone !== a.phone)) {
+      throw new Error("Sign in to the existing shop or export and clear this device before changing businesses.");
+    }
+    localStorage.setItem(
+      KEY,
+      JSON.stringify({
+        ...a,
+        businessId: a.businessId ?? old?.businessId ?? crypto.randomUUID(),
+      }),
+    );
   },
-  update(p: Partial<Account>) { const a = store.get(); if (a) store.save({ ...a, ...p }); },
-  signIn() { localStorage.setItem(SESSION, "1"); window.dispatchEvent(new Event("shopbook-session")); },
-  signOut() { localStorage.removeItem(SESSION); window.dispatchEvent(new Event("shopbook-session")); },
-  signedIn() { return typeof window !== "undefined" && localStorage.getItem(SESSION) === "1"; },
+  update(p: Partial<Account>) {
+    const a = store.get();
+    if (a) store.save({ ...a, ...p });
+  },
+  signIn() {
+    localStorage.setItem(SESSION, "1");
+    window.dispatchEvent(new Event("shopbook-session"));
+  },
+  signOut() {
+    localStorage.removeItem(SESSION);
+    window.dispatchEvent(new Event("shopbook-session"));
+  },
+  signedIn() {
+    return typeof window !== "undefined" && localStorage.getItem(SESSION) === "1";
+  },
 };
 
 export function trialDaysLeft(a: Account | null) {
