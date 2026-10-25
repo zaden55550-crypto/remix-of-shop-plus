@@ -136,7 +136,7 @@ function Plans() {
       setCurrency(acct.currency.toUpperCase());
     } else {
       const detected = detectUserCountry();
-      setCurrency(detected.currency.toUpperCase());
+      setCurrency(detected.currencyCode.toUpperCase());
     }
 
     const matchedCountry = COUNTRY_DIAL_OPTIONS.find(
@@ -153,7 +153,7 @@ function Plans() {
     }
   }, []);
 
-  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) || PLANS[1], [chosenPlanId]);
+  const plan = useMemo(() => PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!, [chosenPlanId]);
 
   const currentPrice = useMemo(() => {
     const usd = yearly ? plan.yearlyUsd : plan.monthlyUsd;
@@ -831,7 +831,7 @@ function Plans() {
               {/* CARD HEADER */}
               <div className="text-center pt-0.5 sm:pt-1">
                 <h3 className={cn("text-[10px] sm:text-sm md:text-base font-black truncate", tColor.text)}>{p.name}</h3>
-                <p className="text-[7.5px] sm:text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tr(p.desc)}</p>
+                {(p as { desc?: string }).desc && <p className="text-[7.5px] sm:text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{tr((p as { desc?: string }).desc!)}</p>}
 
                 {/* PRICE ROW */}
                 <div className="mt-1 flex items-baseline justify-center gap-0.5">

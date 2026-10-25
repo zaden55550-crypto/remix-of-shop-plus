@@ -619,6 +619,7 @@ Supplier not found|Msambazaji hakupatikana|Fournisseur introuvable|المورد 
 
 const dictionary = new Map(rows.map(row => [(row[0] ?? '').toLowerCase(), row]));
 export function translateText(lang: Lang, text: string, x?: string | number) {
+  if (typeof text !== 'string' || !text) return '';
   const patterns: [RegExp, string, string[]][] = [
     [/^Not enough stock for (.+) \(available (.+)\)$/, 'Not enough stock for {name} (available {qty})', ['name', 'qty']],
     [/^Insufficient stock: (.+) \(available (.+)\)$/, 'Insufficient stock: {name} (available {qty})', ['name', 'qty']],
