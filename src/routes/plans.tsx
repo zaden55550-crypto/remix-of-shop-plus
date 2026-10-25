@@ -238,14 +238,14 @@ function Plans() {
   };
 
   // -------------------------------------------------------------
-  // CHECKOUT SCREEN — STRICT ZERO SCROLL
+  // CHECKOUT SCREEN — STRICT ZERO SCROLL & EXPANDED FOR LARGE SCREENS
   // -------------------------------------------------------------
   if (paying) {
     return (
       <main
         dir={dir}
         style={{ zoom: 1 }}
-        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-1.5 md:py-2.5 w-full max-w-lg mx-auto box-border"
+        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-1.5 md:px-8 md:py-3 w-full max-w-lg md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto box-border"
       >
         {/* Top Navigation */}
         <header className="flex items-center justify-between shrink-0">
@@ -280,7 +280,7 @@ function Plans() {
               </p>
             </div>
 
-            <div className="w-full max-w-xs space-y-1.5 text-left text-[11px] bg-card/60 border border-border/80 rounded-xl p-3">
+            <div className="w-full max-w-xs md:max-w-md space-y-1.5 text-left text-[11px] bg-card/60 border border-border/80 rounded-xl p-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2
                   className={cn("h-3.5 w-3.5", processStep >= 1 ? "text-emerald-400" : "text-muted-foreground")}
@@ -338,7 +338,7 @@ function Plans() {
             </div>
 
             {/* Receipt Summary */}
-            <div className="w-full max-w-xs rounded-xl border border-border bg-card/80 p-2.5 space-y-1.5 text-[10.5px]">
+            <div className="w-full max-w-xs md:max-w-md rounded-xl border border-border bg-card/80 p-2.5 space-y-1.5 text-[10.5px]">
               <div className="flex justify-between items-center text-muted-foreground">
                 <span>{tr("Plan")}</span>
                 <span className="font-bold text-foreground">{plan.name}</span>
@@ -363,7 +363,7 @@ function Plans() {
               </div>
             </div>
 
-            <div className="w-full space-y-1.5 pt-1">
+            <div className="w-full max-w-xs md:max-w-md space-y-1.5 pt-1">
               <ShopButton
                 variant="primary"
                 onClick={() => nav({ to: "/apps" })}
