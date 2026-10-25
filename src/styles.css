@@ -2925,36 +2925,64 @@ body {
 }
 
 /* ===== Zero-Scroll Safeguard for Short Screens (e.g. 777×529) ===== */
-@media (min-width: 768px) and (max-height: 600px) {
-  .signup-layout {
-    gap: clamp(8px, 2vw, 24px) !important;
-  }
+/* ===== Responsive Scaling & Zero-Scroll for Mobile and Short Screens ===== */
+@media (max-width: 767px) {
   .signup-hero {
-    gap: 4px !important;
+    gap: 0 !important;
+    margin-bottom: 2px !important;
   }
-  .signup-form {
-    gap: 3px !important;
+  .auth-brand-emblem {
+    --emblem-size: clamp(56px, 11dvh, 76px) !important;
+    width: var(--emblem-size) !important;
+    margin: 0 auto !important;
   }
-  .signup-form-fields {
-    gap: 3px !important;
+  .auth-orbit-icon {
+    width: clamp(9px, 1.6dvh, 13px) !important;
+    padding: 1px !important;
   }
-  .signup-field-input,
-  .signup-col-picker button {
-    min-height: 30px !important;
-    padding: 4px 8px !important;
-    font-size: 11px !important;
+  .signup-form-heading {
+    margin-bottom: 2px !important;
   }
-  .signup-upload-btn {
-    min-height: 62px !important;
+  .signup-form-heading h1 {
+    font-size: clamp(14px, 2.2dvh, 18px) !important;
   }
-  .auth-btn-primary {
-    padding: 6px 10px !important;
+  .signup-form-heading p {
+    font-size: clamp(9.5px, 1.3dvh, 11px) !important;
+    margin-top: 0 !important;
   }
 }
-/* Lock auth pages to 100% viewport without scaling */
-.signup-page,
-.auth-login {
-  zoom: 1 !important;
+
+@media (max-height: 600px) {
+  .auth-brand-emblem {
+    --emblem-size: clamp(54px, 11dvh, 74px) !important;
+    width: var(--emblem-size) !important;
+  }
+  .auth-orbit-icon {
+    width: clamp(9px, 1.6dvh, 13px) !important;
+  }
+  .signup-field-input,
+  .signup-col-picker-btn {
+    height: clamp(26px, 4.4dvh, 32px) !important;
+    font-size: clamp(11px, 1.6dvh, 12.5px) !important;
+  }
+  .signup-field-label {
+    font-size: clamp(9px, 1.3dvh, 10.5px) !important;
+    margin-bottom: 1px !important;
+  }
+  .signup-upload-btn {
+    height: clamp(62px, 10dvh, 76px) !important;
+  }
+  .auth-btn-primary {
+    height: clamp(28px, 4.6dvh, 34px) !important;
+    font-size: clamp(11.5px, 1.8dvh, 13px) !important;
+  }
+  .auth-social-btn {
+    height: clamp(24px, 4dvh, 28px) !important;
+    font-size: clamp(10px, 1.4dvh, 11.5px) !important;
+  }
+  .auth-split-card {
+    height: clamp(24px, 4dvh, 28px) !important;
+  }
 }
 
 /* Position icons inside the cardbox inputs */
