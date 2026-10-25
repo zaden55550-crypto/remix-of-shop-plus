@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, ChevronLeft, Smartphone } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -31,23 +31,23 @@ const tone: Record<PlanId, { border: string; activeBorder: string; text: string;
   basic: {
     border: "border-emerald-500/40",
     activeBorder: "border-2 border-emerald-500",
-    text: "text-emerald-400",
+    text: "text-emerald-500 dark:text-emerald-400",
     surface: "bg-emerald-950/25",
-    shadow: "shadow-xl shadow-emerald-500/20",
+    shadow: "shadow-2xl shadow-emerald-500/25",
   },
   plus: {
     border: "border-blue-500/40",
     activeBorder: "border-2 border-blue-500",
-    text: "text-blue-400",
+    text: "text-blue-500 dark:text-blue-400",
     surface: "bg-blue-950/30",
-    shadow: "shadow-2xl shadow-blue-500/30",
+    shadow: "shadow-2xl shadow-blue-500/35",
   },
   business: {
     border: "border-orange-500/40",
     activeBorder: "border-2 border-orange-500",
-    text: "text-orange-400",
+    text: "text-orange-500 dark:text-orange-400",
     surface: "bg-orange-950/20",
-    shadow: "shadow-2xl shadow-orange-500/30",
+    shadow: "shadow-2xl shadow-orange-500/35",
   },
 };
 
@@ -95,6 +95,14 @@ function Plans() {
   const handleSelectPlan = (id: PlanId) => {
     setSelected(id);
     setPaying(true);
+  };
+
+  const handleCardClick = (id: PlanId) => {
+    if (selected === id) {
+      handleSelectPlan(id);
+    } else {
+      setSelected(id);
+    }
   };
 
   const handleRestorePurchases = async () => {
@@ -190,7 +198,7 @@ function Plans() {
       style={{ zoom: 1 }}
       className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-2 md:py-3 w-full max-w-7xl mx-auto box-border"
     >
-      {/* Top Header: Back + Wordmark + Restore Purchases & Currency */}
+      {/* Top Header */}
       <header className="flex items-center justify-between shrink-0">
         <ShopButton
           variant="bare"
@@ -247,16 +255,17 @@ function Plans() {
           onClick={() => setYearly(true)}
           className={cn(
             "rounded-full py-0.5 px-2 font-bold transition-all",
-            yearly ? "bg-emerald-600 text-white shadow-xs" : "text-muted-foreground hover:text-foreground",
+            !yearly ? "text-muted-foreground hover:text-foreground" : "bg-emerald-600 text-white shadow-xs",
           )}
         >
           {tr("Yearly (Save 10%)")}
         </button>
       </div>
 
-      {/* 3 Plans Columns Grid - Finelo Floating Layout */}
-      <div className="grid grid-cols-3 gap-2 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
+      {/* 3 Plans Columns Grid - Floating Border Overlap Layout */}
+      <div className="grid grid-cols-3 gap-1.5 md:gap-2 flex-1 min-h-0 items-stretch mt-3 mb-1.5 w-full">
         {PLANS.map((item) => {
+          const isBasic = item.id === "basic";
           const isMid = item.id === "plus";
           const isBest = item.id === "business";
           const isSelected = selected === item.id;
@@ -266,21 +275,34 @@ function Plans() {
           const displayPrice = convertUsdToCurrency(monthlyEquivalentUsd, currency);
           const yearlyTotal = convertUsdToCurrency(item.yearlyUsd, currency);
 
+          // Position-specific border expansion to overlap neighbor cards on desktop
+          const overlapClasses = isBasic
+            ? isSelected
+              ? "md:-mr-1.5 z-20 origin-left"
+              : "md:hover:-mr-1.5 hover:z-20 origin-left"
+            : isMid
+              ? isSelected
+                ? "md:-mx-2 z-30"
+                : "md:hover:-mx-2 hover:z-30"
+              : isSelected
+                ? "md:-ml-1.5 z-20 origin-right"
+                : "md:hover:-ml-1.5 hover:z-20 origin-right";
+
           return (
             <div
               key={item.id}
-              onClick={() => setSelected(item.id)}
+              onClick={() => handleCardClick(item.id)}
               className={cn(
                 "relative flex flex-col justify-between rounded-lg p-2 text-start transition-all duration-200 ease-out cursor-pointer select-none",
-                // Floating styles when selected vs unselected
+                overlapClasses,
                 isSelected
                   ? cn(
-                      "-translate-y-1.5 md:-translate-y-2 scale-[1.02] md:scale-[1.03] z-20 opacity-100",
+                      "-translate-y-1.5 md:-translate-y-2 scale-[1.02] md:scale-[1.03] opacity-100",
                       itemTone.activeBorder,
                       itemTone.shadow,
                     )
                   : cn(
-                      "scale-[0.98] opacity-80 border hover:opacity-100 hover:scale-[1.01] hover:-translate-y-1 hover:z-15 hover:shadow-lg",
+                      "scale-[0.98] opacity-80 border hover:opacity-100 hover:scale-[1.01] hover:-translate-y-1 hover:shadow-lg",
                       itemTone.border,
                     ),
                 itemTone.surface,
@@ -306,7 +328,7 @@ function Plans() {
                   className={cn(
                     "text-center text-[10px] md:text-xs font-black uppercase tracking-wider",
                     (isMid || isBest) && "mt-1",
-                    isBest ? "text-orange-400" : itemTone.text,
+                    isBest ? "text-orange-500 dark:text-orange-400" : itemTone.text,
                   )}
                 >
                   {item.name}
@@ -329,11 +351,33 @@ function Plans() {
                   {tr(item.tagline)}
                 </div>
 
-                {/* Features Bullets */}
+                {/* Optional Tier Lead Chip (e.g. "✦ Basic plus:", "✦ Plus plus:") */}
+                {item.intro && (
+                  <div className="mb-1 text-center">
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[7.5px] md:text-[8px] font-bold uppercase tracking-wider",
+                        isMid
+                          ? "bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/20"
+                          : "bg-orange-500/15 text-orange-500 dark:text-orange-400 border border-orange-500/20",
+                      )}
+                    >
+                      <span>✦</span>
+                      <span>{tr(item.intro)}</span>
+                    </span>
+                  </div>
+                )}
+
+                {/* Features Bullets with Accent Checkmarks */}
                 <ul className="flex-1 min-h-0 overflow-y-auto space-y-0.5 text-[8.5px] md:text-[9px] leading-tight text-foreground/90 pr-0.5">
                   {item.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-1">
-                      <span className={cn("shrink-0 font-bold", isBest ? "text-orange-400" : itemTone.text)}>•</span>
+                      <Check
+                        className={cn(
+                          "h-2.5 w-2.5 shrink-0 mt-0.5",
+                          isBest ? "text-orange-500 dark:text-orange-400" : itemTone.text,
+                        )}
+                      />
                       <span className="truncate">{tr(feature)}</span>
                     </li>
                   ))}
