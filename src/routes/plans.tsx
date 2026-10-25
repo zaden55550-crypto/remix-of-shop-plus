@@ -34,15 +34,15 @@ export const Route = createFileRoute("/plans")({
   component: Plans,
 });
 
-// African mobile money networks: Safaricom M-Pesa active, others coming soon
+// African mobile money networks: Safaricom M-Pesa active, Somali networks consolidated under Somalia
 const MOBILE_NETWORKS = [
   { id: "safaricom", name: "Safaricom M-Pesa", country: "Kenya", active: true },
   { id: "airtel_ke", name: "Airtel Money (Kenya)", country: "Kenya", active: false },
+  { id: "evc_plus", name: "EVC Plus / Hormuud", country: "Somalia", active: false },
+  { id: "zaad", name: "Zaad / Telesom", country: "Somalia", active: false },
+  { id: "sahal", name: "Sahal / Golis", country: "Somalia", active: false },
   { id: "mtn_ug", name: "MTN MoMo (Uganda)", country: "Uganda", active: false },
   { id: "airtel_ug", name: "Airtel Money (Uganda)", country: "Uganda", active: false },
-  { id: "evc_plus", name: "EVC Plus / Hormuud", country: "Somalia", active: false },
-  { id: "zaad", name: "Zaad / Telesom", country: "Somaliland", active: false },
-  { id: "sahal", name: "Sahal / Golis", country: "Puntland", active: false },
   { id: "mpesa_tz", name: "Vodacom M-Pesa (Tanzania)", country: "Tanzania", active: false },
   { id: "airtel_tz", name: "Airtel Money (Tanzania)", country: "Tanzania", active: false },
   { id: "telebirr", name: "Telebirr (Ethiopia)", country: "Ethiopia", active: false },
@@ -94,8 +94,12 @@ function Plans() {
   const [paying, setPaying] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  // Payment form state
-  const [method, setMethod] = useState<"mobile" | "card">("mobile");
+  const acct = store.get();
+  const currency = (acct?.currency || "KSH").toUpperCase();
+  const isKsh = currency === "KSH";
+
+  // When currency is not KSh, enforce Card only because M-Pesa only settles in KSh
+  const [method, setMethod] = useState<"mobile" | "card">(isKsh ? "mobile" : "card");
   const [mobileNetwork, setMobileNetwork] = useState("safaricom");
   const [selectedDial, setSelectedDial] = useState("+254");
   const [phone, setPhone] = useState("+254 ");
@@ -109,8 +113,12 @@ function Plans() {
   const [confirmedDate, setConfirmedDate] = useState("");
   const [stkSecondsLeft, setStkSecondsLeft] = useState(45);
 
-  const acct = store.get();
-  const currency = acct?.currency || "KSH";
+  useEffect(() => {
+    // If account currency is not KSh, switch to Card
+    if (!isKsh && method === "mobile") {
+      setMethod("card");
+    }
+  }, [isKsh, method]);
 
   useEffect(() => {
     const defaultDial = getDialByCountry(acct?.country);
@@ -172,7 +180,7 @@ function Plans() {
     return () => clearInterval(timer);
   }, [payStatus, stkSecondsLeft]);
 
-  // Payment workflow with auto-redirect to /apps
+  // Payment workflow with automatic instant redirection to /apps
   const runPaymentWorkflow = (sourceName?: string) => {
     setPayStatus("processing");
     setProcessStep(1);
@@ -194,7 +202,7 @@ function Plans() {
       const label = sourceName || method.toUpperCase();
       toast.success(tr(`Payment confirmed via ${label}! ${plan.name} plan is now active.`));
 
-      // Automatically move straight to the business apps screen
+      // Automatically move straight into the business apps screen
       setTimeout(() => {
         nav({ to: "/apps" });
       }, 700);
@@ -203,6 +211,12 @@ function Plans() {
 
   const handlePayNow = () => {
     if (method === "mobile") {
+      if (!isKsh) {
+        toast.error(tr("Mobile Money (M-Pesa) settles exclusively in KSh. Please switch to Card payment."));
+        setMethod("card");
+        return;
+      }
+
       const activeNet = MOBILE_NETWORKS.find((n) => n.id === mobileNetwork);
       if (!activeNet?.active) {
         toast.info(tr("Direct integration for this network is coming soon. Please choose Safaricom M-Pesa or Card."));
@@ -215,11 +229,9 @@ function Plans() {
         return;
       }
 
-      // Launch STK push countdown simulation
       setStkSecondsLeft(45);
       setPayStatus("stk_waiting");
 
-      // Auto-confirm after simulated PIN entry (snappy 2.5 seconds)
       setTimeout(() => {
         runPaymentWorkflow("SAFARICOM M-PESA");
       }, 2500);
@@ -279,104 +291,95 @@ function Plans() {
         className="app-screen relative flex flex-col justify-between px-3 py-2 sm:px-6 md:px-8 max-w-lg md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto w-full"
         style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
       >
-        {/* CHECKOUT HEADER WITH BACK ON LEFT AND ✕ EXIT ON RIGHT */}
-        <header className="flex items-center justify-between shrink-0 py-0.5">
-          <ShopButton
-            variant="ghost"
+        {/* CHECKOUT HEADER: BACK BUTTON + TITLE + EXIT (✕) */}
+        <header className="flex items-center justify-between shrink-0 py-1 border-b border-border/60">
+          <button
+            type="button"
             onClick={() => {
-              if (payStatus === "processing") return;
-              setPaying(false);
-              setPayStatus("idle");
+              if (payStatus === "idle") setPaying(false);
+              else setPayStatus("idle");
             }}
-            aria-label={t("back")}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
-            <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
-          </ShopButton>
+            <ChevronLeft className="h-4 w-4" />
+            <span>{tr("Back")}</span>
+          </button>
 
-          <Wordmark className="text-sm font-black" />
+          <h1 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider">
+            {tr("Complete Subscription")}
+          </h1>
 
-          <ShopButton
-            variant="ghost"
-            onClick={() => {
-              if (payStatus === "processing") return;
-              nav({ to: "/apps" });
-            }}
-            aria-label="Exit"
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground cursor-pointer"
+          <button
+            type="button"
+            onClick={() => nav({ to: "/apps" })}
+            aria-label="Exit to Apps"
+            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
           >
-            <X className="h-4.5 w-4.5" />
-          </ShopButton>
+            <X className="h-4 w-4" />
+          </button>
         </header>
 
-        {/* 1. STK PUSH WAITING SCREEN */}
         {payStatus === "stk_waiting" ? (
+          /* 1. STK PIN PROMPT SIMULATION SCREEN */
           <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
-            <div className="relative w-16 h-16 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-3 border-emerald-500/20 border-t-emerald-500 animate-spin" />
-              <Smartphone className="h-7 w-7 text-emerald-400 animate-pulse" />
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 animate-pulse">
+                <Smartphone className="h-8 w-8" />
+              </div>
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white">
+                {stkSecondsLeft}s
+              </span>
             </div>
 
             <div>
-              <h2 className="text-base font-black text-foreground">{tr("STK Push Sent to Your Phone")}</h2>
+              <h2 className="text-base font-black text-foreground">{tr("Check your phone")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {tr("Please check screen on")} <span className="font-bold text-foreground">{phone.trim()}</span>
+                {tr("Safaricom STK PIN prompt sent to")} <strong className="text-foreground">{phone.trim()}</strong>
               </p>
             </div>
 
-            <div className="w-full max-w-xs md:max-w-md bg-emerald-950/30 border border-emerald-500/40 rounded-xl p-3 text-xs space-y-1.5 text-left">
-              <p className="text-emerald-300 font-semibold text-[11.5px]">
-                {tr("1. Check for the Safaricom SIM prompt on your phone.")}
-              </p>
-              <p className="text-emerald-300 font-semibold text-[11.5px]">
-                {tr("2. Enter your M-Pesa PIN to complete payment.")}
-              </p>
-              <p className="text-muted-foreground text-[10.5px]">
-                {tr("Amount:")}{" "}
-                <span className="font-bold text-foreground">
-                  {currency === "KSH"
-                    ? currentPrice.formatted
-                    : `${kshEquivalent.formatted} (~${currentPrice.formatted})`}
-                </span>
-              </p>
+            <div className="w-full max-w-xs md:max-w-sm bg-card/80 border border-border rounded-xl p-3 text-xs space-y-2 text-left">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{tr("Merchant")}:</span>
+                <span className="font-bold text-foreground">SHOPBOOK ERP</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{tr("Amount")}:</span>
+                <span className="font-extrabold text-foreground">{currentPrice.formatted}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">{tr("Status")}:</span>
+                <span className="font-semibold text-emerald-400 animate-pulse">{tr("Awaiting PIN...")}</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-1">
-              <span className="text-[11px] font-bold text-muted-foreground">
-                {tr("Prompt expires in:")} <span className="text-emerald-400 font-mono text-xs">{stkSecondsLeft}s</span>
-              </span>
-              <button
-                type="button"
-                onClick={handleResendStk}
-                className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer transition-colors"
+            <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs md:max-w-sm pt-1">
+              <ShopButton variant="outline" className="flex-1 h-8 text-xs font-semibold" onClick={handleResendStk}>
+                <RotateCcw className="h-3 w-3 mr-1" />
+                <span>{tr("Resend Prompt")}</span>
+              </ShopButton>
+              <ShopButton
+                variant="ghost"
+                className="flex-1 h-8 text-xs text-muted-foreground"
+                onClick={() => setPayStatus("idle")}
               >
-                <RotateCcw className="h-3 w-3" />
-                <span>{tr("Resend STK")}</span>
-              </button>
+                {tr("Cancel")}
+              </ShopButton>
             </div>
           </div>
         ) : payStatus === "processing" ? (
-          /* 2. PROCESSING SCREEN */
+          /* 2. PROGRESS STEPPER SCREEN */
           <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
-            <div className="relative w-14 h-14 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-3 border-blue-500/20 border-t-blue-500 animate-spin" />
-              <Store className="h-6 w-6 text-blue-400 animate-pulse" />
-            </div>
+            <div className="w-12 h-12 rounded-full border-3 border-primary border-t-transparent animate-spin" />
+            <h2 className="text-sm sm:text-base font-bold text-foreground">{tr("Confirming Subscription...")}</h2>
 
-            <div>
-              <h2 className="text-sm font-bold text-foreground">{tr("Processing Subscription")}</h2>
-              <p className="text-[10.5px] text-muted-foreground mt-0.5">
-                {tr("Please do not close or refresh this page.")}
-              </p>
-            </div>
-
-            <div className="w-full max-w-xs md:max-w-md space-y-1.5 text-left text-[11px] bg-card/60 border border-border/80 rounded-xl p-3">
+            <div className="w-full max-w-xs md:max-w-sm bg-card/60 border border-border rounded-xl p-3 text-xs space-y-2 text-left">
               <div className="flex items-center gap-2">
                 <CheckCircle2
                   className={cn("h-3.5 w-3.5", processStep >= 1 ? "text-emerald-400" : "text-muted-foreground")}
                 />
                 <span className={processStep >= 1 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Validating subscription details")}
+                  {tr("Submitting payment request")}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -406,7 +409,7 @@ function Plans() {
             </div>
           </div>
         ) : payStatus === "success" ? (
-          /* 3. SUCCESS SCREEN (FALLBACK) */
+          /* 3. SUCCESS SCREEN */
           <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
             <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20">
               <Check className="h-7 w-7 stroke-[3]" />
@@ -486,20 +489,29 @@ function Plans() {
               </button>
             </div>
 
-            {/* 2. PAYMENT METHOD TABS (MOBILE MONEY & CARD ONLY) */}
+            {/* 2. PAYMENT METHOD TABS (MOBILE MONEY RESTRICTED TO KSH; CARD FOR ALL) */}
             <div className="grid grid-cols-2 gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => setMethod("mobile")}
+                disabled={!isKsh}
+                onClick={() => {
+                  if (isKsh) setMethod("mobile");
+                  else toast.info(tr("Direct Mobile Money requires KSh currency. Please pay using Card."));
+                }}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer",
-                  method === "mobile"
+                  "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all",
+                  method === "mobile" && isKsh
                     ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm"
-                    : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground",
+                    : !isKsh
+                      ? "bg-muted/40 border-border/40 text-muted-foreground/50 cursor-not-allowed opacity-60"
+                      : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground cursor-pointer",
                 )}
               >
                 <Smartphone className="h-3.5 w-3.5 text-blue-400" />
                 <span>{tr("Mobile Money")}</span>
+                {!isKsh && (
+                  <span className="text-[9px] uppercase text-amber-500/80 font-normal ml-0.5">(KSh Only)</span>
+                )}
               </button>
 
               <button
@@ -519,7 +531,7 @@ function Plans() {
 
             {/* 3. CONDITIONAL FORM FIELDS */}
             <div className="flex-1 flex flex-col justify-center min-h-0">
-              {method === "mobile" ? (
+              {method === "mobile" && isKsh ? (
                 <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
                   {/* African Network Dropdown */}
                   <div>
@@ -545,7 +557,6 @@ function Plans() {
                       {tr("Phone Number (Auto-detected Country Code)")}
                     </label>
                     <div className="flex gap-1.5">
-                      {/* Compact Dial Code Selector */}
                       <select
                         value={selectedDial}
                         onChange={(e) => handleDialChange(e.target.value)}
@@ -558,7 +569,6 @@ function Plans() {
                         ))}
                       </select>
 
-                      {/* Locked Prefix Mobile Number Input */}
                       <input
                         type="tel"
                         value={phone}
@@ -576,18 +586,17 @@ function Plans() {
                       {tr("An instant STK PIN prompt will be sent directly to your phone to authorize settlement.")}
                     </span>
                   </div>
-
-                  {/* Cross-border note if paying in non-KSH currency with M-Pesa */}
-                  {currency !== "KSH" && (
-                    <p className="text-[10px] text-amber-500/90 font-medium px-1">
-                      {tr("Note: Safaricom M-Pesa settles in KSh equivalent")} (~{kshEquivalent.formatted}).{" "}
-                      {tr("For exact")} {currency} {tr("settlement, switch to Card.")}
-                    </p>
-                  )}
                 </div>
               ) : (
                 /* Card Input Fields */
                 <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
+                  {!isKsh && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-[10.5px] text-amber-500">
+                      {tr("Safaricom M-Pesa settles only in KSh. Your business currency is")}{" "}
+                      <strong>{currency}</strong>, {tr("so your subscription is settled securely via Card.")}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                       {tr("Card Number")}
@@ -682,7 +691,7 @@ function Plans() {
       className="app-screen relative flex flex-col justify-between px-2.5 py-2 sm:px-4 md:px-8 max-w-6xl mx-auto w-full"
       style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
     >
-      {/* 1. HEADER: ONE ROW TITLE + SUBTITLE + RESTORE */}
+      {/* 1. HEADER: ONE ROW TITLE + SUBTITLE + RESTORE + CLOSE ✕ */}
       <header className="flex items-center justify-between shrink-0 py-0.5 gap-2">
         <div className="min-w-0 flex items-baseline gap-2">
           <h1 className="text-sm sm:text-base md:text-lg font-black text-foreground whitespace-nowrap">
@@ -693,17 +702,27 @@ function Plans() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleRestorePurchases}
-          disabled={restoring}
-          className="text-[10px] sm:text-xs font-semibold text-primary hover:underline whitespace-nowrap cursor-pointer transition-opacity disabled:opacity-50"
-        >
-          {restoring ? tr("Restoring...") : tr("Restore Purchases")}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleRestorePurchases}
+            disabled={restoring}
+            className="text-[10px] sm:text-xs font-semibold text-primary hover:underline whitespace-nowrap cursor-pointer transition-opacity disabled:opacity-50"
+          >
+            {restoring ? tr("Restoring...") : tr("Restore Purchases")}
+          </button>
+          <button
+            type="button"
+            onClick={() => nav({ to: "/apps" })}
+            aria-label="Close"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </header>
 
-      {/* 2. BILLING CYCLE TOGGLE */}
+      {/* 2. BILLING CYCLE TOGGLE IN SOLID EMERALD GREEN */}
       <div className="flex justify-center shrink-0 my-0.5 sm:my-1">
         <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-muted/60 border border-border/80 shadow-inner w-full max-w-xs sm:max-w-sm justify-between">
           <button
@@ -711,7 +730,9 @@ function Plans() {
             onClick={() => setYearly(false)}
             className={cn(
               "flex-1 px-3 py-1 text-[10px] sm:text-xs font-bold rounded-full transition-all cursor-pointer text-center",
-              !yearly ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              !yearly
+                ? "bg-emerald-600 text-white font-extrabold shadow-md shadow-emerald-600/30"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             {tr("Monthly")}
@@ -721,18 +742,27 @@ function Plans() {
             onClick={() => setYearly(true)}
             className={cn(
               "flex-1 px-3 py-1 text-[10px] sm:text-xs font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1",
-              yearly ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              yearly
+                ? "bg-emerald-600 text-white font-extrabold shadow-md shadow-emerald-600/30"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <span>{tr("Yearly")}</span>
-            <span className="text-[8.5px] sm:text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+            <span
+              className={cn(
+                "text-[8.5px] sm:text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded-full border transition-colors",
+                yearly
+                  ? "bg-white/20 text-white border-white/30"
+                  : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+              )}
+            >
               {tr("Save 10%")}
             </span>
           </button>
         </div>
       </div>
 
-      {/* 3. THREE PLANS CARDS GRID (3 COLUMNS ON ALL SCREENS) */}
+      {/* 3. THREE PLANS CARDS GRID (ELEVATED 3D HOVER, BOLDER BORDERS) */}
       <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 items-stretch my-1">
         {PLANS.map((p) => {
           const tColor = tone[p.id];
@@ -747,10 +777,13 @@ function Plans() {
                 setPaying(true);
               }}
               className={cn(
-                "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible text-left",
+                "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer overflow-visible text-left",
+                "hover:scale-[1.05] hover:-translate-y-2 hover:z-40 hover:shadow-2xl",
                 isPlus
-                  ? "bg-card/90 shadow-xl border-blue-500/80 hover:border-blue-400 hover:scale-[1.02] z-20"
-                  : "bg-card/60 shadow-md border-border/70 hover:border-foreground/40 hover:scale-[1.01] z-10",
+                  ? "bg-card/90 shadow-xl border-blue-500/80 hover:border-blue-400 hover:shadow-blue-500/30 z-20"
+                  : p.id === "business"
+                    ? "bg-card/75 shadow-md border-border/70 hover:border-amber-400 hover:shadow-amber-500/30 z-10"
+                    : "bg-card/75 shadow-md border-border/70 hover:border-slate-300 dark:hover:border-slate-200 hover:shadow-slate-500/20 z-10",
               )}
             >
               {/* TOP BADGES */}
