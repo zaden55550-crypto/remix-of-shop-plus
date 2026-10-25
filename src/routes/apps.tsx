@@ -418,15 +418,24 @@ function Apps() {
         icon={dark ? chatIcons.dark : chatIcons.light}
       />
 
+      {/* UPGRADE REQUIRED MODAL WITH TOP-RIGHT ✕ EXIT BUTTON */}
       {locked && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-background/70 px-6 backdrop-blur-sm"
           onClick={() => setLocked(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-center"
+            className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
+            <button
+              type="button"
+              onClick={() => setLocked(null)}
+              aria-label="Close"
+              className="absolute right-3.5 top-3.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
             <Lock className="mx-auto h-8 w-8 text-primary" />
             <h2 className="mt-2 text-lg font-bold">{t("upgradeRequired")}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{t("notIncluded", locked)}</p>
