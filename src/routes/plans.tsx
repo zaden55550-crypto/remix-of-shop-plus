@@ -10,7 +10,11 @@ import {
   Lock,
   Copy,
   CheckCircle2,
-  Wallet,
+  ShieldCheck,
+  Info,
+  Store,
+  ExternalLink,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Field, Wordmark } from "@/components/shopbook/ui";
@@ -38,31 +42,30 @@ export const Route = createFileRoute("/plans")({
   component: Plans,
 });
 
-const tone: Record<PlanId, { border: string; activeBorder: string; text: string; surface: string; shadow: string }> = {
+const tone: Record<
+  PlanId,
+  {
+    border: string;
+    text: string;
+  }
+> = {
   basic: {
     border: "border-emerald-500/40",
-    activeBorder: "border-2 border-emerald-500",
     text: "text-emerald-500 dark:text-emerald-400",
-    surface: "bg-emerald-950/25",
-    shadow: "shadow-2xl shadow-emerald-500/30",
   },
   plus: {
-    border: "border-blue-500/40",
-    activeBorder: "border-2 border-blue-500",
+    border: "border-2 border-blue-500/80 shadow-md shadow-blue-500/20",
     text: "text-blue-500 dark:text-blue-400",
-    surface: "bg-blue-950/25",
-    shadow: "shadow-2xl shadow-blue-500/30",
   },
   business: {
     border: "border-amber-500/40",
-    activeBorder: "border-2 border-amber-500",
     text: "text-amber-500 dark:text-amber-400",
-    surface: "bg-amber-950/25",
-    shadow: "shadow-2xl shadow-amber-500/30",
   },
 };
 
-type PaymentTab = "phone" | "card" | "bank";
+type PaymentMethod = "mobile" | "card" | "bank" | "paypal";
+type MobileNetwork = "mpesa" | "airtel";
+type BankChoice = "kcb" | "equity" | "coop" | "stanbic";
 
 function Plans() {
   const { t, tr, dir } = useLanguage();
@@ -75,31 +78,23 @@ function Plans() {
   const [restoring, setRestoring] = useState(false);
   const [currency, setCurrency] = useState<string>("KSH");
 
-  // Payment method selection & inputs
-  const [payTab, setPayTab] = useState<PaymentTab>("phone");
+  // Payment Form States
+  const [method, setMethod] = useState<PaymentMethod>("mobile");
+  const [mobileNetwork, setMobileNetwork] = useState<MobileNetwork>("mpesa");
   const [phone, setPhone] = useState("");
+  const [cardName, setCardName] = useState("");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvc, setCardCvc] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [processing, setProcessing] = useState(false);
-  const [copiedRef, setCopiedRef] = useState(false);
+  const [selectedBank, setSelectedBank] = useState<BankChoice>("kcb");
+  const [copiedBank, setCopiedBank] = useState(false);
 
-  // Device wallet auto-detection (Apple Pay / Google Pay)
-  const [deviceWallet, setDeviceWallet] = useState<"apple" | "google" | null>(null);
+  // Status Lifecycle: "idle" -> "processing" -> "success"
+  const [payStatus, setPayStatus] = useState<"idle" | "processing" | "success">("idle");
+  const [processStep, setProcessStep] = useState(1);
+  const [confirmedDate, setConfirmedDate] = useState("");
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const ua = navigator.userAgent || "";
-    const isApple = /iPhone|iPad|iPod|Macintosh/i.test(ua);
-    const hasApplePay = !!(window as any).ApplePaySession;
-
-    if (isApple || hasApplePay) {
-      setDeviceWallet("apple");
-    } else if (/Android|Chrome/i.test(ua)) {
-      setDeviceWallet("google");
-    }
-  }, []);
+  const bankReference = useMemo(() => `SB-${Math.floor(10000 + Math.random() * 90000)}`, []);
 
   useEffect(() => {
     const acct = store.get();
@@ -119,13 +114,6 @@ function Plans() {
     () => convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency),
     [yearly, plan.yearlyUsd, plan.monthlyUsd, currency],
   );
-
-  const currentYearlyTotal = useMemo(
-    () => convertUsdToCurrency(plan.yearlyUsd * 12, currency),
-    [plan.yearlyUsd, currency],
-  );
-
-  const bankReference = useMemo(() => `SB-${Math.floor(10000 + Math.random() * 90000)}`, []);
 
   const startTrial = () => {
     store.update({ plan: "trial", trialStart: Date.now() });
@@ -148,61 +136,63 @@ function Plans() {
     }
   };
 
-  const completeSubscription = (methodName: string) => {
-    setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      store.update({ plan: chosenPlanId });
-      toast.success(tr(`Payment successful via ${methodName}! ${plan.name} plan activated.`));
-      nav({ to: "/apps" });
-    }, 900);
-  };
-
-  const handleDevicePay = () => {
-    const provider = deviceWallet === "apple" ? "Apple Pay" : "Google Pay";
-    completeSubscription(provider);
-  };
-
-  const handlePhonePayment = () => {
-    if (!phone.trim()) {
-      toast.error(tr("Enter your payment phone number"));
-      return;
-    }
-    setProcessing(true);
-    setTimeout(() => {
-      setProcessing(false);
-      store.update({ plan: chosenPlanId });
-      toast.success(tr(`Payment request sent to ${phone}. Plan activated upon confirmation!`));
-      nav({ to: "/apps" });
-    }, 900);
-  };
-
-  const handleCardPayment = () => {
-    const rawDigits = cardNumber.replace(/\s/g, "");
-    if (rawDigits.length < 15) {
-      toast.error(tr("Enter a valid 16-digit card number"));
-      return;
-    }
-    if (cardExpiry.length < 5) {
-      toast.error(tr("Enter expiry date (MM/YY)"));
-      return;
-    }
-    if (cardCvc.length < 3) {
-      toast.error(tr("Enter 3-digit security CVC code"));
-      return;
-    }
-    completeSubscription("Card");
-  };
-
-  const handleBankConfirmation = () => {
-    completeSubscription("Bank Transfer");
-  };
-
   const copyBankDetails = () => {
-    navigator.clipboard?.writeText(`Account: 01109048392, Ref: ${bankReference}`);
-    setCopiedRef(true);
-    toast.success(tr("Bank details and reference copied to clipboard"));
-    setTimeout(() => setCopiedRef(false), 2500);
+    const bankDetails =
+      selectedBank === "kcb"
+        ? "Bank: KCB Bank, Account: 1234 5678 9012, Branch: Nairobi Branch, Name: Shopbook Ltd"
+        : "Bank: Equity Bank, Account: 0810 2938 4910, Branch: Upper Hill, Name: Shopbook Ltd";
+    navigator.clipboard?.writeText(`${bankDetails}, Ref: ${bankReference}`);
+    setCopiedBank(true);
+    toast.success(tr("Bank details and payment reference copied!"));
+    setTimeout(() => setCopiedBank(false), 2500);
+  };
+
+  const runPaymentWorkflow = () => {
+    setPayStatus("processing");
+    setProcessStep(1);
+
+    setTimeout(() => setProcessStep(2), 700);
+    setTimeout(() => setProcessStep(3), 1500);
+    setTimeout(() => {
+      setProcessStep(4);
+      setConfirmedDate(
+        new Date().toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      );
+      store.update({ plan: chosenPlanId });
+      setPayStatus("success");
+      toast.success(tr(`Payment confirmed! ${plan.name} plan is now active.`));
+    }, 2300);
+  };
+
+  const handlePayNow = () => {
+    if (method === "mobile") {
+      const cleanPhone = phone.replace(/[\s-]/g, "");
+      if (cleanPhone.length < 9) {
+        toast.error(tr("Enter a valid phone number"));
+        return;
+      }
+    } else if (method === "card") {
+      const cleanCard = cardNumber.replace(/\s/g, "");
+      if (cleanCard.length < 15) {
+        toast.error(tr("Enter a valid 16-digit card number"));
+        return;
+      }
+      if (cardExpiry.length < 5) {
+        toast.error(tr("Enter valid card expiry (MM/YY)"));
+        return;
+      }
+      if (cardCvc.length < 3) {
+        toast.error(tr("Enter CVV security code"));
+        return;
+      }
+    }
+    runPaymentWorkflow();
   };
 
   const handleRestorePurchases = async () => {
@@ -232,17 +222,27 @@ function Plans() {
     }
   };
 
-  // Payment confirmation screen
+  // -------------------------------------------------------------
+  // PAYMENT PAGE (Screen 1 to 5)
+  // -------------------------------------------------------------
   if (paying) {
     return (
       <main
         dir={dir}
-        className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-3 py-2 md:py-3 w-full max-w-md mx-auto box-border"
+        className="app-screen min-h-[100dvh] max-h-[100dvh] overflow-y-auto flex flex-col justify-between px-3 py-2.5 md:py-3.5 w-full max-w-md mx-auto box-border"
       >
-        <header className="flex items-center justify-between shrink-0">
+        {/* Top Header */}
+        <header className="flex items-center justify-between shrink-0 mb-2">
           <ShopButton
             variant="bare"
-            onClick={() => setPaying(false)}
+            onClick={() => {
+              if (payStatus === "processing") {
+                setPayStatus("idle");
+              } else {
+                setPaying(false);
+                setPayStatus("idle");
+              }
+            }}
             aria-label={t("back")}
             className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
           >
@@ -252,220 +252,559 @@ function Plans() {
           <div className="w-7" />
         </header>
 
-        <div className="rounded-lg border border-border bg-card/75 p-3.5 md:p-4 shadow-sm flex flex-col justify-between overflow-y-auto max-h-[82dvh]">
-          <div>
-            <h2 className="text-center text-sm md:text-base font-bold">{tr("Complete Subscription")}</h2>
-            <p className="mt-0.5 text-center text-xs text-muted-foreground">
-              {t("planSuffix", plan.name)} · {currentPrice.formatted} {tr("/ month")}
-              {yearly && (
-                <>
-                  {" "}
-                  · {tr("Billed yearly")}: {currentYearlyTotal.formatted}
-                </>
-              )}
-            </p>
-
-            {/* Auto-detected 1-Tap Device Wallet (Apple Pay or Google Pay) */}
-            {deviceWallet && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  disabled={processing}
-                  onClick={handleDevicePay}
-                  className={cn(
-                    "w-full h-9 rounded-md flex items-center justify-center gap-1.5 font-semibold text-xs transition-transform active:scale-[0.98] shadow-sm disabled:opacity-50",
-                    deviceWallet === "apple"
-                      ? "bg-black text-white hover:bg-neutral-900 border border-neutral-800"
-                      : "bg-white text-neutral-900 hover:bg-neutral-100 border border-neutral-300 dark:bg-neutral-900 dark:text-white dark:border-neutral-700",
-                  )}
-                >
-                  <Wallet className="h-3.5 w-3.5" />
-                  <span>{deviceWallet === "apple" ? tr("Pay with Apple Pay") : tr("Pay with Google Pay")}</span>
-                </button>
-
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-border"></div>
-                  <span className="flex-shrink mx-2 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
-                    {tr("or choose payment method")}
-                  </span>
-                  <div className="flex-grow border-t border-border"></div>
-                </div>
-              </div>
-            )}
-
-            {/* 3-Tab Payment Method Chooser */}
-            <div className="grid grid-cols-3 gap-1 p-1 bg-muted/60 rounded-md border border-border/60">
-              <button
-                type="button"
-                onClick={() => setPayTab("phone")}
-                className={cn(
-                  "flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[11px] font-medium transition-colors",
-                  payTab === "phone"
-                    ? "bg-background text-foreground shadow-sm font-semibold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Smartphone className="h-3.5 w-3.5 shrink-0" />
-                <span>{tr("Phone")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPayTab("card")}
-                className={cn(
-                  "flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[11px] font-medium transition-colors",
-                  payTab === "card"
-                    ? "bg-background text-foreground shadow-sm font-semibold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <CreditCard className="h-3.5 w-3.5 shrink-0" />
-                <span>{tr("Card")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPayTab("bank")}
-                className={cn(
-                  "flex items-center justify-center gap-1 py-1.5 px-2 rounded text-[11px] font-medium transition-colors",
-                  payTab === "bank"
-                    ? "bg-background text-foreground shadow-sm font-semibold"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Building2 className="h-3.5 w-3.5 shrink-0" />
-                <span>{tr("Bank")}</span>
-              </button>
+        {/* PROCESSING & SUCCESS VIEW (Screen 5) */}
+        {payStatus === "processing" ? (
+          <div className="my-auto rounded-xl border border-blue-500/50 bg-[#0B1528] p-5 shadow-2xl flex flex-col items-center text-center space-y-4">
+            <div className="relative flex items-center justify-center w-20 h-20 rounded-full border-2 border-blue-500/40 bg-blue-950/40 animate-pulse">
+              <div className="absolute inset-0 rounded-full border-2 border-t-blue-400 border-transparent animate-spin" />
+              <Smartphone className="h-8 w-8 text-blue-400" />
             </div>
 
-            {/* Tab 1: Phone / Mobile Money */}
-            {payTab === "phone" && (
-              <div className="mt-3 space-y-2">
-                <Field
-                  icon={<Smartphone className="h-4 w-4" />}
-                  type="tel"
-                  inputMode="tel"
-                  placeholder={tr("Payment phone number (M-Pesa / Mobile Money)")}
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                />
-                <p className="text-[10px] text-muted-foreground leading-tight px-1">
-                  {tr("An instant payment prompt (STK push) will appear on your screen to enter your mobile PIN.")}
-                </p>
-                <ShopButton
-                  variant="success"
-                  disabled={processing}
-                  className="w-full py-2.5 text-xs font-semibold mt-1"
-                  onClick={handlePhonePayment}
-                >
-                  {processing ? tr("Sending request...") : tr("Send payment request")}
-                </ShopButton>
-              </div>
-            )}
+            <div>
+              <h2 className="text-base font-bold text-foreground">{tr("Processing Payment")}</h2>
+              <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">
+                {method === "mobile"
+                  ? tr("Please check your phone and enter your PIN to complete the payment.")
+                  : tr("Verifying payment transaction with gateway...")}
+              </p>
+            </div>
 
-            {/* Tab 2: Card Payment */}
-            {payTab === "card" && (
-              <div className="mt-3 space-y-2">
-                <Field
-                  icon={<CreditCard className="h-4 w-4" />}
-                  type="text"
-                  inputMode="numeric"
-                  placeholder={tr("Card number (16 digits)")}
-                  value={cardNumber}
-                  onChange={(event) => handleCardNumberChange(event.target.value)}
+            <div className="w-full text-left space-y-2 py-2 text-xs">
+              <div className="flex items-center gap-2">
+                <CheckCircle2
+                  className={cn("h-4 w-4 shrink-0", processStep >= 1 ? "text-blue-400" : "text-muted-foreground/40")}
                 />
-                <div className="grid grid-cols-2 gap-2">
-                  <Field
-                    type="text"
-                    inputMode="numeric"
-                    placeholder={tr("MM / YY")}
-                    value={cardExpiry}
-                    onChange={(event) => handleExpiryChange(event.target.value)}
-                  />
-                  <Field
-                    icon={<Lock className="h-3.5 w-3.5" />}
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    placeholder={tr("CVC / CVV")}
-                    value={cardCvc}
-                    onChange={(event) => setCardCvc(event.target.value.replace(/\D/g, "").slice(0, 4))}
-                  />
-                </div>
-                <Field
-                  type="text"
-                  placeholder={tr("Cardholder full name")}
-                  value={cardName}
-                  onChange={(event) => setCardName(event.target.value)}
-                />
-                <div className="flex items-center gap-1.5 px-1 text-[9.5px] text-muted-foreground">
-                  <Lock className="h-3 w-3 text-emerald-500 shrink-0" />
-                  <span>{tr("256-bit encrypted • PCI-DSS Level 1 compliant")}</span>
-                </div>
-                <ShopButton
-                  variant="primary"
-                  disabled={processing}
-                  className="w-full py-2.5 text-xs font-semibold mt-1"
-                  onClick={handleCardPayment}
-                >
-                  {processing ? tr("Processing card...") : `${tr("Pay")} ${currentPrice.formatted}`}
-                </ShopButton>
+                <span className={processStep >= 1 ? "text-foreground font-medium" : "text-muted-foreground"}>
+                  {method === "mobile" ? tr("Payment request sent to your phone") : tr("Payment initiated securely")}
+                </span>
               </div>
-            )}
+              <div className="flex items-center gap-2">
+                <CheckCircle2
+                  className={cn("h-4 w-4 shrink-0", processStep >= 2 ? "text-blue-400" : "text-muted-foreground/40")}
+                />
+                <span className={processStep >= 2 ? "text-foreground font-medium" : "text-muted-foreground"}>
+                  {tr("Waiting for confirmation...")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2
+                  className={cn("h-4 w-4 shrink-0", processStep >= 3 ? "text-blue-400" : "text-muted-foreground/40")}
+                />
+                <span className={processStep >= 3 ? "text-foreground font-medium" : "text-muted-foreground"}>
+                  {tr("Verifying payment")}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2
+                  className={cn("h-4 w-4 shrink-0", processStep >= 4 ? "text-emerald-400" : "text-muted-foreground/40")}
+                />
+                <span className={processStep >= 4 ? "text-foreground font-medium" : "text-muted-foreground"}>
+                  {tr("Activating your subscription")}
+                </span>
+              </div>
+            </div>
 
-            {/* Tab 3: Bank Transfer */}
-            {payTab === "bank" && (
-              <div className="mt-3 space-y-2">
-                <div className="rounded-md border border-border/80 bg-muted/40 p-2.5 space-y-1.5 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{tr("Bank / Paybill")}:</span>
-                    <span className="font-semibold">522522 (KCB Bank)</span>
+            <ShopButton
+              variant="bare"
+              onClick={() => setPayStatus("idle")}
+              className="text-xs text-muted-foreground hover:text-destructive underline py-1"
+            >
+              {tr("Cancel Payment")}
+            </ShopButton>
+          </div>
+        ) : payStatus === "success" ? (
+          <div className="my-auto rounded-xl border border-emerald-500/50 bg-[#0B1528] p-5 shadow-2xl flex flex-col items-center text-center space-y-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400 shadow-lg shadow-emerald-500/30">
+              <Check className="h-8 w-8 stroke-[3]" />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-black text-foreground">{tr("Payment Successful!")}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {tr("Your")} {plan.name} {tr("Plan is now active.")}
+              </p>
+            </div>
+
+            <div className="w-full rounded-lg border border-border/80 bg-background/50 p-3 space-y-2 text-xs">
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>{tr("Plan")}</span>
+                <span className="font-semibold text-foreground">
+                  {plan.name} ({yearly ? tr("Yearly") : tr("Monthly")})
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>{tr("Amount Paid")}</span>
+                <span className="font-bold text-foreground">{currentPrice.formatted}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>{tr("Payment Method")}</span>
+                <span className="font-semibold text-foreground uppercase">{method}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>{tr("Date")}</span>
+                <span className="font-medium text-foreground">{confirmedDate}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground">
+                <span>{tr("Status")}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+                  {tr("Active")}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full space-y-2 pt-1">
+              <ShopButton
+                variant="primary"
+                onClick={() => nav({ to: "/apps" })}
+                className="w-full py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 shadow-md"
+              >
+                <span>{tr("Go to Apps")}</span>
+                <ArrowRight className="h-4 w-4" />
+              </ShopButton>
+              <ShopButton
+                variant="bare"
+                onClick={() => toast.info(tr("Receipt saved to account records."))}
+                className="w-full py-1 text-xs text-muted-foreground hover:text-foreground flex items-center justify-center gap-1.5"
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                <span>{tr("View Receipt")}</span>
+              </ShopButton>
+            </div>
+          </div>
+        ) : (
+          /* MAIN UNIFIED CHECKOUT FORM */
+          <div className="space-y-3 pb-2">
+            <div className="text-center">
+              <h1 className="text-base font-bold text-foreground">{tr("Complete Your Subscription")}</h1>
+              <p className="text-[11px] text-muted-foreground">{tr("Choose a payment method to activate your plan")}</p>
+            </div>
+
+            {/* 1. Compact Top Summary */}
+            <div className="rounded-lg border border-blue-500/30 bg-[#0E1A32] p-2.5 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2.5">
+                <div className="flex items-center justify-center w-8 h-8 rounded-md bg-blue-600/30 border border-blue-500/40 text-blue-400">
+                  <Store className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-foreground">
+                    {plan.name} {tr("Plan")}
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{tr("Account Number")}:</span>
-                    <span className="font-mono font-semibold">1294820194</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">{tr("Reference Code")}:</span>
-                    <span className="font-mono font-bold text-primary">{bankReference}</span>
+                  <div className="text-[10px] text-muted-foreground leading-tight">
+                    {yearly ? tr("Yearly") : tr("Monthly")}
                   </div>
                 </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs font-extrabold text-foreground">{currentPrice.formatted}</div>
                 <button
                   type="button"
-                  onClick={copyBankDetails}
-                  className="w-full flex items-center justify-center gap-1.5 py-1 text-[10.5px] text-muted-foreground hover:text-foreground font-medium transition-colors"
+                  onClick={() => setPaying(false)}
+                  className="text-[10.5px] font-semibold text-blue-400 hover:text-blue-300 transition-colors"
                 >
-                  {copiedRef ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
-                  <span>{copiedRef ? tr("Copied to clipboard") : tr("Copy account & reference code")}</span>
+                  {tr("Change >")}
                 </button>
-                <p className="text-[10px] text-muted-foreground leading-tight px-1">
-                  {tr("Use your reference code in the bank narration so your payment is automatically reconciled.")}
-                </p>
-                <ShopButton
-                  variant="outline"
-                  disabled={processing}
-                  className="w-full py-2.5 text-xs font-semibold mt-1"
-                  onClick={handleBankConfirmation}
-                >
-                  {processing ? tr("Verifying transfer...") : tr("I have sent bank transfer")}
-                </ShopButton>
               </div>
-            )}
-          </div>
+            </div>
 
-          <div className="mt-3 pt-2 border-t border-border/70 space-y-1.5">
-            <ShopButton variant="outline" className="w-full py-2 text-xs font-semibold" onClick={startTrial}>
-              {tr("Use the 30-day free trial instead")}
-            </ShopButton>
-            <p className="text-center text-[9.5px] text-muted-foreground">
-              {tr("Your plan is activated instantly upon payment confirmation.")}
-            </p>
-          </div>
-        </div>
+            {/* 2. Four Categories in One Horizontal Row */}
+            <div>
+              <div className="text-[10.5px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5 px-0.5">
+                {tr("Select Payment Method")}
+              </div>
+              <div className="grid grid-cols-4 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setMethod("mobile")}
+                  className={cn(
+                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
+                    method === "mobile"
+                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  <Smartphone className="h-4 w-4 mb-1" />
+                  <span className="text-[10px] font-semibold leading-tight line-clamp-2">{tr("Mobile Payment")}</span>
+                </button>
 
-        <div className="h-2" />
+                <button
+                  type="button"
+                  onClick={() => setMethod("card")}
+                  className={cn(
+                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
+                    method === "card"
+                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  <CreditCard className="h-4 w-4 mb-1" />
+                  <span className="text-[10px] font-semibold leading-tight">{tr("Card")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMethod("bank")}
+                  className={cn(
+                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
+                    method === "bank"
+                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  <Building2 className="h-4 w-4 mb-1" />
+                  <span className="text-[10px] font-semibold leading-tight line-clamp-2">{tr("Bank Transfer")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMethod("paypal")}
+                  className={cn(
+                    "flex flex-col items-center justify-center py-2 px-1 rounded-lg border transition-all text-center",
+                    method === "paypal"
+                      ? "border-blue-500 bg-blue-950/50 shadow-md shadow-blue-500/30 text-blue-400"
+                      : "border-border/70 bg-[#0C1629] text-muted-foreground hover:border-border hover:text-foreground",
+                  )}
+                >
+                  <span className="text-xs font-black italic mb-1 font-serif">P</span>
+                  <span className="text-[10px] font-semibold leading-tight">{tr("PayPal")}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 3. Form Content */}
+            <div className="rounded-xl border border-border/80 bg-[#0B1528] p-3.5 space-y-3 shadow-md">
+              {/* TAB 1: Mobile Payment */}
+              {method === "mobile" && (
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-2.5 pb-1">
+                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                      <Smartphone className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Mobile Payment")}</h2>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {tr("Pay with M-Pesa, Airtel Money, T-Kash and other mobile networks.")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      {tr("Select Network")}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setMobileNetwork("mpesa")}
+                        className={cn(
+                          "py-2 px-2.5 rounded-lg border text-left flex items-center justify-between text-xs transition-colors",
+                          mobileNetwork === "mpesa"
+                            ? "border-emerald-500 bg-emerald-950/30 font-bold text-emerald-400"
+                            : "border-border bg-card/60 text-foreground/80 hover:bg-card",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span>M-Pesa</span>
+                        </span>
+                        {mobileNetwork === "mpesa" && <Check className="h-3 w-3" />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMobileNetwork("airtel")}
+                        className={cn(
+                          "py-2 px-2.5 rounded-lg border text-left flex items-center justify-between text-xs transition-colors",
+                          mobileNetwork === "airtel"
+                            ? "border-red-500 bg-red-950/30 font-bold text-red-400"
+                            : "border-border bg-card/60 text-foreground/80 hover:bg-card",
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-red-500" />
+                          <span>Airtel Money</span>
+                        </span>
+                        {mobileNetwork === "airtel" && <Check className="h-3 w-3" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      {tr("Phone Number")}
+                    </label>
+                    <Field
+                      icon={<Smartphone className="h-3.5 w-3.5 text-muted-foreground" />}
+                      type="tel"
+                      placeholder="0712 345 678"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="rounded-lg bg-blue-950/40 border border-blue-500/30 p-2 flex items-start gap-2 text-[10.5px] text-blue-300">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
+                    <span>
+                      {tr("You will receive a payment prompt on this number. Enter your PIN to complete the payment.")}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: Card Payment */}
+              {method === "card" && (
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-2.5 pb-1">
+                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                      <CreditCard className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Card Payment")}</h2>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {tr("Pay with Visa, Mastercard and other cards.")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      {tr("Cardholder Name")}
+                    </label>
+                    <Field
+                      type="text"
+                      placeholder={tr("Enter cardholder name")}
+                      value={cardName}
+                      onChange={(e) => setCardName(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      {tr("Card Number")}
+                    </label>
+                    <Field
+                      icon={<CreditCard className="h-3.5 w-3.5 text-muted-foreground" />}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="1234 5678 9012 3456"
+                      value={cardNumber}
+                      onChange={(e) => handleCardNumberChange(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                        {tr("Expiry Date")}
+                      </label>
+                      <Field
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="MM / YY"
+                        value={cardExpiry}
+                        onChange={(e) => handleExpiryChange(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                        {tr("CVV")}
+                      </label>
+                      <Field
+                        icon={<Lock className="h-3 w-3 text-muted-foreground" />}
+                        type="password"
+                        inputMode="numeric"
+                        maxLength={4}
+                        placeholder="123"
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-card/60 text-muted-foreground">
+                      VISA
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-card/60 text-muted-foreground">
+                      Mastercard
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-border bg-card/60 text-muted-foreground">
+                      AMEX
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: Bank Transfer */}
+              {method === "bank" && (
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-2.5 pb-1">
+                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                      <Building2 className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Bank Transfer")}</h2>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {tr("Transfer from your bank account.")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10.5px] font-semibold text-muted-foreground mb-1 block">
+                      {tr("Select Bank")}
+                    </label>
+                    <select
+                      value={selectedBank}
+                      onChange={(e) => setSelectedBank(e.target.value as BankChoice)}
+                      className="w-full h-8 text-xs px-2 rounded-lg border border-border bg-background text-foreground"
+                    >
+                      <option value="kcb">KCB Bank (522522)</option>
+                      <option value="equity">Equity Bank (247247)</option>
+                      <option value="coop">Cooperative Bank (400200)</option>
+                      <option value="stanbic">Stanbic Bank (600100)</option>
+                    </select>
+                  </div>
+
+                  <div className="rounded-lg border border-border/80 bg-background/50 p-2.5 space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>{tr("Account Name")}</span>
+                      <span className="font-semibold text-foreground">Shopbook Ltd</span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>{tr("Account Number")}</span>
+                      <span className="font-mono font-bold text-foreground">
+                        {selectedBank === "kcb" ? "1234 5678 9012" : "0810 2938 4910"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>{tr("Bank Name")}</span>
+                      <span className="font-semibold text-foreground">
+                        {selectedBank === "kcb" ? "KCB Bank" : "Equity Bank"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>{tr("Payment Reference")}</span>
+                      <span className="font-mono font-bold text-blue-400">{bankReference}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={copyBankDetails}
+                    className="w-full flex items-center justify-center gap-1.5 py-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+                  >
+                    {copiedBank ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    <span>{copiedBank ? tr("Copied to clipboard") : tr("Copy Details")}</span>
+                  </button>
+
+                  <div className="rounded-lg bg-blue-950/40 border border-blue-500/30 p-2 flex items-start gap-2 text-[10.5px] text-blue-300">
+                    <Info className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
+                    <span>
+                      {tr(
+                        "Make the transfer and click 'I Have Paid' below. Your subscription will be activated once payment is verified.",
+                      )}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: PayPal */}
+              {method === "paypal" && (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2.5 pb-1">
+                    <div className="w-7 h-7 rounded-md bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 font-serif font-black italic">
+                      P
+                    </div>
+                    <div>
+                      <h2 className="text-xs font-bold text-foreground leading-tight">{tr("Pay with PayPal")}</h2>
+                      <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                        {tr("You will be redirected to PayPal to complete the payment securely.")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-blue-500/40 bg-gradient-to-br from-[#0c2044] to-[#081226] p-4 flex flex-col items-center justify-center text-center shadow-inner">
+                    <span className="text-2xl font-serif font-black italic text-blue-400 mb-1">PayPal</span>
+                    <span className="text-[11px] text-muted-foreground">{tr("Fast, secure global checkout")}</span>
+                  </div>
+
+                  <ul className="space-y-1.5 text-xs text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      <span>{tr("Pay with your PayPal account")}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      <span>{tr("Use your PayPal balance or linked card")}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-blue-400 shrink-0" />
+                      <span>{tr("Secure and encrypted payment")}</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Summary Row */}
+              <div className="pt-2 border-t border-border/70 flex justify-between items-center text-xs">
+                <div>
+                  <span className="text-muted-foreground">{tr("Plan")}: </span>
+                  <span className="font-semibold text-foreground">
+                    {plan.name} ({yearly ? tr("Yearly") : tr("Monthly")})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">{tr("Amount")}: </span>
+                  <span className="font-bold text-foreground">{currentPrice.formatted}</span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <ShopButton
+                variant="primary"
+                onClick={handlePayNow}
+                className="w-full py-2.5 text-xs font-bold flex items-center justify-center gap-2 shadow-md bg-blue-600 hover:bg-blue-500"
+              >
+                {method === "bank" ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>{tr("I Have Paid")}</span>
+                  </>
+                ) : method === "paypal" ? (
+                  <>
+                    <ExternalLink className="h-4 w-4" />
+                    <span>{tr("Pay with PayPal ↗")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-3.5 w-3.5" />
+                    <span>
+                      {method === "mobile" && mobileNetwork === "mpesa"
+                        ? tr("Pay Now with M-Pesa")
+                        : method === "mobile" && mobileNetwork === "airtel"
+                          ? tr("Pay Now with Airtel Money")
+                          : tr("Pay Now")}
+                    </span>
+                  </>
+                )}
+              </ShopButton>
+
+              {/* Trust Badge */}
+              <div className="flex items-center justify-center gap-1.5 pt-0.5 text-[10px] text-muted-foreground">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                <span>{tr("Secure Payment — Your payment is encrypted and secure")}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="h-1" />
       </main>
     );
   }
 
+  // -------------------------------------------------------------
+  // PLANS OVERVIEW GRID
+  // -------------------------------------------------------------
   return (
     <main
       dir={dir}
@@ -545,8 +884,8 @@ function Plans() {
         </div>
       </div>
 
-      {/* 3 Pricing Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-3 flex-1 min-h-0 mt-2.5 mb-1 items-stretch">
+      {/* 3 Pricing Cards Grid: Dominant Plus & High-Impact Hover */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 md:gap-3 flex-1 min-h-0 mt-3 mb-1 items-stretch group">
         {PLANS.map((p) => {
           const tColors = tone[p.id];
           const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
@@ -560,18 +899,25 @@ function Plans() {
                 setPaying(true);
               }}
               className={cn(
-                "relative rounded-lg border bg-card/75 p-2.5 md:p-3 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible",
+                "relative rounded-xl border bg-card/85 p-3 md:p-3.5 flex flex-col justify-between transition-all duration-200 cursor-pointer overflow-visible",
+                p.id === "plus" ? "md:-translate-y-1 md:scale-[1.015] z-10" : "z-0",
                 tColors.border,
-                "hover:-translate-y-1.5 hover:scale-[1.015] hover:z-30 hover:shadow-xl",
+                // Dominant high-contrast hover styles
+                "hover:!-translate-y-3.5 hover:!scale-[1.03] hover:!z-30 group-hover:opacity-75 hover:!opacity-100",
+                p.id === "basic" &&
+                  "hover:border-2.5 hover:border-emerald-400 hover:shadow-2xl hover:shadow-emerald-500/40",
+                p.id === "plus" && "hover:border-3 hover:border-blue-400 hover:shadow-2xl hover:shadow-blue-500/60",
+                p.id === "business" &&
+                  "hover:border-2.5 hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-500/40",
               )}
             >
               {p.recommended && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-md shadow-blue-500/40">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/50 ring-2 ring-background">
                   {tr("RECOMMENDED")}
                 </span>
               )}
               {p.best && (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 z-10 text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-600 text-white shadow-md shadow-amber-500/40">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-600 text-white shadow-lg shadow-amber-500/50 ring-2 ring-background">
                   {tr("BEST")}
                 </span>
               )}
@@ -579,11 +925,13 @@ function Plans() {
               {/* Card Header & Price */}
               <div>
                 <div className="flex items-center justify-between">
-                  <h2 className={cn("text-xs md:text-sm font-bold uppercase tracking-wide", tColors.text)}>{p.name}</h2>
+                  <h2 className={cn("text-xs md:text-sm font-black uppercase tracking-wide", tColors.text)}>
+                    {p.name}
+                  </h2>
                 </div>
 
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-lg md:text-xl font-black tracking-tight">{priceObj.formatted}</span>
+                  <span className="text-xl md:text-2xl font-black tracking-tight">{priceObj.formatted}</span>
                   <span className="text-[10px] text-muted-foreground font-normal">{tr("/ month")}</span>
                 </div>
 
@@ -599,7 +947,7 @@ function Plans() {
                 <ul className="mt-2 space-y-1 text-[10px] md:text-[10.5px]">
                   {p.features.map((feat, i) => (
                     <li key={i} className="flex items-start gap-1.5 leading-tight">
-                      <Check className={cn("h-3 w-3 shrink-0 mt-0.5", tColors.text)} />
+                      <Check className={cn("h-3 w-3 shrink-0 mt-0.5 stroke-[2.5]", tColors.text)} />
                       <span className="text-foreground/90">{feat}</span>
                     </li>
                   ))}
@@ -615,9 +963,11 @@ function Plans() {
                     setChosenPlanId(p.id);
                     setPaying(true);
                   }}
-                  className="w-full h-7 md:h-7.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[10.5px] md:text-[11px] font-medium transition-colors flex items-center justify-center gap-1 shadow-sm shrink-0"
+                  className="w-full h-7 md:h-7.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-[10.5px] md:text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 shadow-sm shrink-0"
                 >
-                  <span>{t("continueWithPlan", p.name)}</span>
+                  <span>
+                    {tr("Continue with")} {p.name}
+                  </span>
                   <ArrowRight className="h-3 w-3 shrink-0" />
                 </button>
               </div>
