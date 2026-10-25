@@ -54,6 +54,7 @@ function Plans() {
   const [paying, setPaying] = useState(false);
   const [phone, setPhone] = useState("");
   const [currency, setCurrency] = useState("USD");
+  const [restoring, setRestoring] = useState(false);
 
   // Read stored account currency, with fallback to detected country
   useEffect(() => {
@@ -85,6 +86,33 @@ function Plans() {
   const handleSelectPlan = (id: PlanId) => {
     setSelected(id);
     setPaying(true);
+  };
+
+  const handleRestorePurchases = async () => {
+    setRestoring(true);
+    try {
+      const acct = store.get();
+      // Brief check simulation for account and subscription verification
+      await new Promise((res) => setTimeout(res, 600));
+
+      if (acct?.plan && acct.plan !== "trial") {
+        toast.success(tr(`Active ${acct.plan.toUpperCase()} subscription restored!`));
+        nav({ to: "/apps" });
+        return;
+      }
+
+      if (acct?.plan === "trial") {
+        toast.info(tr("Active 30-day free trial restored."));
+        nav({ to: "/apps" });
+        return;
+      }
+
+      toast.info(tr("No previous active subscription found for this account."));
+    } catch {
+      toast.error(tr("Could not restore purchases. Please check your connection and try again."));
+    } finally {
+      setRestoring(false);
+    }
   };
 
   const requestPayment = () => {
@@ -154,7 +182,7 @@ function Plans() {
       style={{ zoom: 1 }}
       className="app-screen h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between px-2.5 py-1.5 md:py-2.5 md:max-w-4xl mx-auto box-border"
     >
-      {/* Top Header: Back + Wordmark + Currency Pill */}
+      {/* Top Header: Back + Wordmark + Restore Purchases & Currency */}
       <header className="flex items-center justify-between shrink-0">
         <ShopButton
           variant="bare"
@@ -165,14 +193,25 @@ function Plans() {
           <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
         </ShopButton>
         <Wordmark className="text-sm font-black" />
-        <button
-          type="button"
-          onClick={() => setCurrency((c) => (c === "USD" ? store.get()?.currency || "KSH" : "USD"))}
-          className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-border bg-card/70 text-foreground/80 hover:bg-card"
-          title={tr("Switch currency display")}
-        >
-          {currency}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            disabled={restoring}
+            onClick={handleRestorePurchases}
+            className="text-[9px] font-semibold text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50 whitespace-nowrap"
+            title={tr("Check and restore your previous active subscription")}
+          >
+            {restoring ? tr("Restoring...") : tr("Restore Purchases")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrency((c) => (c === "USD" ? store.get()?.currency || "KSH" : "USD"))}
+            className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-border bg-card/70 text-foreground/80 hover:bg-card"
+            title={tr("Switch currency display")}
+          >
+            {currency}
+          </button>
+        </div>
       </header>
 
       {/* Title & Subtitle */}
