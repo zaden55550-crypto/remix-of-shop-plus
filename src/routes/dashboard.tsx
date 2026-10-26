@@ -36,7 +36,7 @@ import { performance, position } from "@/lib/summary";
 import { floatBalances, purchaseTotals } from "@/lib/finance";
 import { profitAndLoss } from "@/lib/accounting";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
-import { METHOD_LABEL, type Method, type Sale, type ErpState } from "@/lib/erp";
+import { METHOD_LABEL, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
 import { chartSeries } from "@/lib/chart-data";
 import { cn } from "@/lib/utils";
 
@@ -217,23 +217,17 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
   // Defensive normalization against undefined collections or corrupted state
-  const s: ErpState = useMemo(
-    () => ({
-      products: Array.isArray(rawState?.products) ? rawState.products : [],
-      sales: Array.isArray(rawState?.sales) ? rawState.sales : [],
-      purchases: Array.isArray(rawState?.purchases) ? rawState.purchases : [],
-      cash: Array.isArray(rawState?.cash) ? rawState.cash : [],
-      customers: Array.isArray(rawState?.customers) ? rawState.customers : [],
-      suppliers: Array.isArray(rawState?.suppliers) ? rawState.suppliers : [],
-      floatMoves: Array.isArray(rawState?.floatMoves) ? rawState.floatMoves : [],
-      employees: Array.isArray(rawState?.employees) ? rawState.employees : [],
-      transfers: Array.isArray(rawState?.transfers) ? rawState.transfers : [],
-      audit: Array.isArray(rawState?.audit) ? rawState.audit : [],
-      seq: rawState?.seq ?? {},
-      activeShopId: rawState?.activeShopId ?? "",
-    }),
-    [rawState],
-  );
+  const s: ErpState = useMemo(() => {
+    const base = empty();
+    const raw = (rawState ?? {}) as Partial<ErpState>;
+    const out = { ...base } as Record<string, unknown>;
+    for (const k of Object.keys(base) as (keyof ErpState)[]) {
+      const v = raw[k];
+      if (Array.isArray(base[k])) out[k] = Array.isArray(v) ? v : [];
+      else out[k] = v && typeof v === "object" ? v : base[k];
+    }
+    return out as ErpState;
+  }, [rawState]);
 
   // Financial summary metrics calculated safely
   const perf = performance(s, dateRangeOffset);
