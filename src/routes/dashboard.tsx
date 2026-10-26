@@ -205,9 +205,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
   // 1. Money Position Data
   const moneyPositionData = useMemo(() => {
-    const cash = floats.Cash ?? 0;
-    const mpesa = floats["M-Pesa"] ?? 0;
-    const bank = floats.Bank ?? 0;
+    const cash = floats.cash ?? 0;
+    const mpesa = floats.mpesa ?? 0;
+    const bank = floats.bank ?? 0;
     const credit = s.customers.reduce((sum, c) => sum + (c.balance || 0), 0);
     const total = Math.max(0, cash) + Math.max(0, mpesa) + Math.max(0, bank) + Math.max(0, credit);
 
@@ -279,11 +279,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
   // Needs Attention Counts
   const attention = useMemo(() => {
-    const lowStockCount = s.inventory.filter((p) => p.qty <= (p.minStock ?? 5)).length;
+    const lowStockCount = s.products.filter((p) => p.qty <= (p.minStock ?? 5)).length;
     const receivablesCount = s.customers.filter((c) => (c.balance || 0) > 0).length;
     const payablesCount = s.suppliers.filter((sup) => (sup.balance || 0) > 0).length;
     const todayStr = new Date().toISOString().slice(0, 10);
-    const hasCashedUp = s.cash.some((c) => c.type === "CASH UP" && c.at.startsWith(todayStr));
+    const hasCashedUp = s.cash.some((c) => c.type === "CASH UP" && new Date(c.at).toISOString().slice(0, 10) === todayStr);
 
     return {
       lowStock: lowStockCount,
@@ -291,7 +291,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       payables: payablesCount,
       cashedUp: hasCashedUp,
     };
-  }, [s.inventory, s.customers, s.suppliers, s.cash]);
+  }, [s.products, s.customers, s.suppliers, s.cash]);
 
   // Dynamic Date Display
   const dateRangeLabel = useMemo(() => {
@@ -304,7 +304,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   const shopInitials = useMemo(() => {
     const name = account.shopName || "Shop";
     const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    if (parts.length >= 2) return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
   }, [account.shopName]);
 
@@ -339,7 +339,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               {account.shopName || "SHOPBOOK ERP"}
             </h1>
             <span className="truncate text-[clamp(8px,1.8vw,9.5px)] font-medium text-muted-foreground tracking-tight">
-              {tr(account.businessType || "Retail Shop")}
+              {tr("Retail Shop")}
             </span>
           </div>
 
@@ -789,7 +789,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                 <div className="text-right shrink-0">
                   <Amt value={sale.total} size="xs" />
                   <span className="block text-[9px] text-muted-foreground uppercase">
-                    {METHOD_LABEL[sale.payments?.[0]?.method as Method] || tr("Cash")}
+                    {METHOD_LABEL[(Object.keys(sale.pay) as Method[]).find((m) => sale.pay[m] > 0) ?? "cash"]}
                   </span>
                 </div>
               </div>
@@ -839,13 +839,12 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       {/* Sale Receipt Modal */}
       {selectedSale && (
         <ReceiptSheet
-          open={!!selectedSale}
-          onOpenChange={(open) => !open && setSelectedSale(null)}
+          onClose={() => setSelectedSale(null)}
           sale={selectedSale}
           s={s}
           money={money}
           tr={tr}
-          shop={account}
+          shop={account.shopName}
         />
       )}
     </div>
