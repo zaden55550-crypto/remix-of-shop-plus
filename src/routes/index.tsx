@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Lock, Mail } from "lucide-react";
+import { Lock, Mail, CheckCircle2, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing, Field, SocialButtons, TopBar } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/")({
   component: Login,
 });
 
-function Login() {
+export default function Login() {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
   const [id, setId] = useState("");
@@ -56,12 +56,34 @@ function Login() {
       </div>
 
       <div className="signup-layout">
+        {/* Option 2 Left Column on Desktop / Top on Mobile */}
         <section className="signup-hero" aria-label="SHOPBOOK ERP">
           <div className="signup-brand-ring">
             <BrandRing size={180} />
           </div>
+
+          {/* Desktop-only Option 2 Brand Tagline & Highlights */}
+          <div className="auth-desktop-hero-meta">
+            <h2 className="auth-hero-title">SHOPBOOK ERP</h2>
+            <p className="auth-hero-tagline">{tr("Complete Cloud POS & Business Suite for Modern Retail")}</p>
+            <div className="auth-hero-badges">
+              <span className="auth-hero-pill">
+                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                {tr("Fast POS Checkout")}
+              </span>
+              <span className="auth-hero-pill">
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                {tr("Live Stock Audits")}
+              </span>
+              <span className="auth-hero-pill">
+                <ShieldCheck className="h-3.5 w-3.5 text-cyan-500" />
+                {tr("Offline-Ready")}
+              </span>
+            </div>
+          </div>
         </section>
 
+        {/* Right Column: Form Panel */}
         <section className="signup-form-panel">
           <header className="signup-form-heading">
             <h1>{tr("Log In")}</h1>
@@ -71,7 +93,7 @@ function Login() {
           <form onSubmit={submit} className="signup-form">
             <div className="login-fields">
               <Field
-                icon={<Mail className="h-5 w-5" />}
+                icon={<Mail className="h-4 w-4" />}
                 label={tr("Shop Name or Email")}
                 placeholder={tr("Enter shop name or email")}
                 autoComplete="username"
@@ -82,7 +104,7 @@ function Login() {
               />
 
               <Field
-                icon={<Lock className="h-5 w-5" />}
+                icon={<Lock className="h-4 w-4" />}
                 password
                 label={tr("Password")}
                 placeholder={tr("Enter your password")}
@@ -117,7 +139,7 @@ function Login() {
               {/* 3-in-1 Social Row: Google, Apple, 6-Digit */}
               <SocialButtons onCodeSuccess={onCodeSuccess} />
 
-              {/* 1/2 + 1/2 Bottom Card Box */}
+              {/* 1/2 + 1/2 Bottom Split Box */}
               <div className="auth-split-card">
                 <span className="auth-split-label">{tr("Don't have an account?")}</span>
                 <Link to="/signup" className="auth-split-btn auth-split-btn-register">
