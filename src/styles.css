@@ -296,3 +296,73 @@
     margin-top: 1px !important;
   }
 }
+/* ===== Circular Orbit & Emblem for Login / Signup ===== */
+.auth-hero-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto clamp(4px, 1dvh, 12px);
+}
+
+.auth-brand-emblem {
+  position: relative;
+  width: clamp(70px, 12dvh, 92px);
+  height: clamp(70px, 12dvh, 92px);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.auth-orbit-ring {
+  position: absolute;
+  inset: -22px;
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: spin-slow 28s linear infinite;
+}
+
+.auth-orbit-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(20px, 3.2dvh, 26px);
+  height: clamp(20px, 3.2dvh, 26px);
+  margin: -12px 0 0 -12px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.auth-orbit-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes counter-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-orbit-ring {
+    animation: none;
+  }
+}
