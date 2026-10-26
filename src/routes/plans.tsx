@@ -34,7 +34,7 @@ export const Route = createFileRoute("/plans")({
   component: Plans,
 });
 
-// African mobile money networks: Safaricom M-Pesa active, Somali networks consolidated under Somalia
+// African mobile money networks: Only Safaricom M-Pesa is active. All others are Coming Soon.
 const MOBILE_NETWORKS = [
   { id: "safaricom", name: "Safaricom M-Pesa", country: "Kenya", active: true },
   { id: "airtel_ke", name: "Airtel Money (Kenya)", country: "Kenya", active: false },
@@ -49,42 +49,6 @@ const MOBILE_NETWORKS = [
   { id: "mtn_rw", name: "MTN Mobile Money (Rwanda)", country: "Rwanda", active: false },
 ];
 
-const COUNTRY_DIAL_OPTIONS = [
-  { code: "+254", country: "Kenya (KEN)" },
-  { code: "+252", country: "Somalia (SOM)" },
-  { code: "+256", country: "Uganda (UGA)" },
-  { code: "+255", country: "Tanzania (TZA)" },
-  { code: "+250", country: "Rwanda (RWA)" },
-  { code: "+251", country: "Ethiopia (ETH)" },
-  { code: "+257", country: "Burundi (BDI)" },
-  { code: "+211", country: "South Sudan (SSD)" },
-  { code: "+234", country: "Nigeria (NGA)" },
-  { code: "+233", country: "Ghana (GHA)" },
-  { code: "+27", country: "South Africa (ZAF)" },
-  { code: "+1", country: "USA / Canada" },
-  { code: "+44", country: "United Kingdom" },
-  { code: "+971", country: "UAE (Dubai)" },
-];
-
-function getDialByCountry(countryCode?: string): string {
-  const c = (countryCode || "").toUpperCase();
-  if (c === "KEN" || c === "KENYA") return "+254";
-  if (c === "SOM" || c === "SOMALIA") return "+252";
-  if (c === "UGA" || c === "UGANDA") return "+256";
-  if (c === "TZA" || c === "TANZANIA") return "+255";
-  if (c === "RWA" || c === "RWANDA") return "+250";
-  if (c === "ETH" || c === "ETHIOPIA") return "+251";
-  if (c === "BDI" || c === "BURUNDI") return "+257";
-  if (c === "SSD") return "+211";
-  if (c === "NGA" || c === "NIGERIA") return "+234";
-  if (c === "GHA" || c === "GHANA") return "+233";
-  if (c === "ZAF") return "+27";
-  if (c === "USA") return "+1";
-  if (c === "GBR") return "+44";
-  if (c === "ARE") return "+971";
-  return "+254";
-}
-
 function Plans() {
   const nav = useNavigate();
   const { tr, t, dir } = useLanguage();
@@ -96,12 +60,18 @@ function Plans() {
 
   const acct = store.get();
   const currency = (acct?.currency || "KSH").toUpperCase();
-  const isKsh = currency === "KSH";
+  const countryCode = (acct?.country || "KEN").toUpperCase();
 
-  // When currency is not KSh, enforce Card only because M-Pesa only settles in KSh
-  const [method, setMethod] = useState<"mobile" | "card">(isKsh ? "mobile" : "card");
+  // Strict check: Safaricom M-Pesa is ONLY available for Kenya (+254) in KSh
+  const isKenya = countryCode === "KEN" || countryCode === "KENYA";
+  const isKsh = currency === "KSH";
+  const canUseMpesa = isKenya && isKsh;
+
+  // If user is from another country or uses non-KSh currency, enforce Card only
+  const [method, setMethod] = useState<"mobile" | "card">(canUseMpesa ? "mobile" : "card");
   const [mobileNetwork, setMobileNetwork] = useState("safaricom");
-  const [selectedDial, setSelectedDial] = useState("+254");
+
+  // Mobile Money phone is strictly locked to Kenya (+254)
   const [phone, setPhone] = useState("+254 ");
   const [cardNumber, setCardNumber] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
@@ -114,43 +84,38 @@ function Plans() {
   const [stkSecondsLeft, setStkSecondsLeft] = useState(45);
 
   useEffect(() => {
-    // If account currency is not KSh, switch to Card
-    if (!isKsh && method === "mobile") {
+    if (!canUseMpesa && method === "mobile") {
       setMethod("card");
     }
-  }, [isKsh, method]);
+  }, [canUseMpesa, method]);
 
   useEffect(() => {
-    const defaultDial = getDialByCountry(acct?.country);
-    setSelectedDial(defaultDial);
-
-    if (acct?.phone) {
+    if (canUseMpesa && acct?.phone) {
       const clean = acct.phone.trim();
-      if (clean.startsWith("+")) {
-        setPhone(clean);
-        const match = COUNTRY_DIAL_OPTIONS.find((opt) => clean.startsWith(opt.code));
-        if (match) setSelectedDial(match.code);
+      if (clean.startsWith("+254")) {
+        const withoutCode = clean.slice(4).trim().replace(/^0+/, "");
+        setPhone(`+254 ${withoutCode}`);
       } else {
-        const withoutZero = clean.replace(/^0+/, "");
-        setPhone(`${defaultDial} ${withoutZero}`);
+        const withoutZero = clean.replace(/^0+/, "").replace(/\D/g, "");
+        setPhone(`+254 ${withoutZero}`);
       }
     } else {
-      setPhone(`${defaultDial} `);
+      setPhone("+254 ");
     }
-  }, [acct?.country, acct?.phone]);
+  }, [canUseMpesa, acct?.phone]);
 
+  // Restrict phone input so user cannot delete the mandatory +254 prefix
   const handlePhoneChange = (inputVal: string) => {
     let raw = inputVal;
-    if (!raw.startsWith(selectedDial)) {
-      raw = selectedDial + " " + raw.replace(/^\+?\d*/, "").trim();
+    if (!raw.startsWith("+254")) {
+      raw = "+254 " + raw.replace(/^\+?\d*/, "").trim();
     }
-    const rest = raw.slice(selectedDial.length).replace(/^[ \t0]+/, "");
-    setPhone(`${selectedDial} ${rest}`);
+    const rest = raw.slice(4).replace(/^[ \t0]+/, "");
+    setPhone(`+254 ${rest}`);
   };
 
   const plan = PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!;
   const currentPrice = convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency);
-  const kshEquivalent = convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, "KSH");
 
   const startTrial = () => {
     store.update({ plan: "trial", trialStart: Date.now() });
@@ -202,7 +167,6 @@ function Plans() {
       const label = sourceName || method.toUpperCase();
       toast.success(tr(`Payment confirmed via ${label}! ${plan.name} plan is now active.`));
 
-      // Automatically move straight into the business apps screen
       setTimeout(() => {
         nav({ to: "/apps" });
       }, 700);
@@ -211,8 +175,8 @@ function Plans() {
 
   const handlePayNow = () => {
     if (method === "mobile") {
-      if (!isKsh) {
-        toast.error(tr("Mobile Money (M-Pesa) settles exclusively in KSh. Please switch to Card payment."));
+      if (!canUseMpesa) {
+        toast.error(tr("Mobile Money (M-Pesa) settles exclusively in Kenya (+254 / KSh). Please pay with Card."));
         setMethod("card");
         return;
       }
@@ -223,9 +187,20 @@ function Plans() {
         return;
       }
 
-      const cleanPhone = phone.replace(/[\s-]/g, "");
-      if (!cleanPhone.startsWith("+") || cleanPhone.length < 10) {
-        toast.error(tr("Enter your mobile number following the prefilled country code (e.g. +254 7...)"));
+      // Strict Kenyan Mobile Number Validation (+254 7XX... or +254 1XX...)
+      const digits = phone.replace(/\D/g, "");
+      const localPart = digits.startsWith("254") ? digits.slice(3) : digits;
+
+      if (
+        !digits.startsWith("254") ||
+        localPart.length !== 9 ||
+        (!localPart.startsWith("7") && !localPart.startsWith("1"))
+      ) {
+        toast.error(
+          tr(
+            "Safaricom M-Pesa requires a valid 9-digit Kenyan mobile number starting with 07... or 01... (+254). For international numbers, please use Card.",
+          ),
+        );
         return;
       }
 
@@ -258,225 +233,131 @@ function Plans() {
     toast.success(tr(`Fresh STK push prompt resent to ${phone.trim()}`));
   };
 
-  const handleRestorePurchases = async () => {
+  const handleRestorePurchases = () => {
     setRestoring(true);
-    try {
-      const a = store.get();
-      await new Promise((res) => setTimeout(res, 600));
-
-      if (a?.plan && a.plan !== "trial") {
-        toast.success(tr(`Active ${a.plan.toUpperCase()} subscription restored!`));
-        nav({ to: "/apps" });
-      } else {
-        toast.info(tr("No active paid subscription found on this account."));
-      }
-    } finally {
+    setTimeout(() => {
       setRestoring(false);
-    }
-  };
-
-  const handleDialChange = (newDial: string) => {
-    setSelectedDial(newDial);
-    const existingRest = phone.slice(selectedDial.length).trim();
-    setPhone(`${newDial} ${existingRest}`);
+      toast.info(tr("No previous active subscription found for this account."));
+    }, 1200);
   };
 
   // =========================================================================
-  // VIEW: CHECKOUT SCREEN
+  // VIEW: PAYMENT WORKFLOW SCREENS
   // =========================================================================
   if (paying) {
     return (
       <main
         dir={dir}
-        className="app-screen relative flex flex-col justify-between px-3 py-2 sm:px-6 md:px-8 max-w-lg md:max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto w-full"
+        className="app-screen relative flex items-center justify-center p-2 sm:p-4"
         style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
       >
-        {/* CHECKOUT HEADER: BACK BUTTON + TITLE + EXIT (✕) */}
-        <header className="flex items-center justify-between shrink-0 py-1 border-b border-border/60">
-          <button
-            type="button"
-            onClick={() => {
-              if (payStatus === "idle") setPaying(false);
-              else setPayStatus("idle");
-            }}
-            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            <span>{tr("Back")}</span>
-          </button>
-
-          <h1 className="text-xs sm:text-sm font-black text-foreground uppercase tracking-wider">
-            {tr("Complete Subscription")}
-          </h1>
-
-          <button
-            type="button"
-            onClick={() => nav({ to: "/apps" })}
-            aria-label="Exit to Apps"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-
-        {payStatus === "stk_waiting" ? (
-          /* 1. STK PIN PROMPT SIMULATION SCREEN */
-          <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
+        {/* A. STK PUSH WAITING SCREEN */}
+        {payStatus === "stk_waiting" && (
+          <div className="w-full max-w-sm bg-card/95 border border-border/80 rounded-2xl p-5 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 animate-pulse">
-                <Smartphone className="h-8 w-8" />
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 grid place-items-center">
+                <Smartphone className="h-8 w-8 text-emerald-500 animate-pulse" />
               </div>
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white">
+              <div className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow">
                 {stkSecondsLeft}s
-              </span>
+              </div>
             </div>
 
             <div>
-              <h2 className="text-base font-black text-foreground">{tr("Check your phone")}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <h2 className="text-base font-extrabold text-foreground">{tr("Check your phone")}</h2>
+              <p className="text-xs text-muted-foreground mt-1">
                 {tr("Safaricom STK PIN prompt sent to")} <strong className="text-foreground">{phone.trim()}</strong>
               </p>
             </div>
 
-            <div className="w-full max-w-xs md:max-w-sm bg-card/80 border border-border rounded-xl p-3 text-xs space-y-2 text-left">
+            <div className="w-full bg-muted/50 rounded-xl p-3 border border-border/60 text-xs space-y-1.5 text-left">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Merchant")}:</span>
+                <span className="text-muted-foreground">{tr("Merchant:")}</span>
                 <span className="font-bold text-foreground">SHOPBOOK ERP</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Amount")}:</span>
+                <span className="text-muted-foreground">{tr("Amount:")}</span>
                 <span className="font-extrabold text-foreground">{currentPrice.formatted}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Status")}:</span>
-                <span className="font-semibold text-emerald-400 animate-pulse">{tr("Awaiting PIN...")}</span>
+                <span className="text-muted-foreground">{tr("Status:")}</span>
+                <span className="text-emerald-500 font-semibold">{tr("Awaiting PIN...")}</span>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs md:max-w-sm pt-1">
-              <ShopButton variant="outline" className="flex-1 h-8 text-xs font-semibold" onClick={handleResendStk}>
-                <RotateCcw className="h-3 w-3 mr-1" />
-                <span>{tr("Resend Prompt")}</span>
-              </ShopButton>
+            <div className="w-full space-y-2 pt-1">
               <ShopButton
                 variant="ghost"
-                className="flex-1 h-8 text-xs text-muted-foreground"
+                onClick={handleResendStk}
+                className="w-full h-8 text-xs font-semibold flex items-center justify-center gap-1.5"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>{tr("Resend Prompt")}</span>
+              </ShopButton>
+
+              <button
+                type="button"
                 onClick={() => setPayStatus("idle")}
+                className="w-full text-center text-xs text-muted-foreground hover:text-foreground cursor-pointer py-1"
               >
                 {tr("Cancel")}
-              </ShopButton>
+              </button>
             </div>
           </div>
-        ) : payStatus === "processing" ? (
-          /* 2. PROGRESS STEPPER SCREEN */
-          <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
-            <div className="w-12 h-12 rounded-full border-3 border-primary border-t-transparent animate-spin" />
-            <h2 className="text-sm sm:text-base font-bold text-foreground">{tr("Confirming Subscription...")}</h2>
+        )}
 
-            <div className="w-full max-w-xs md:max-w-sm bg-card/60 border border-border rounded-xl p-3 text-xs space-y-2 text-left">
-              <div className="flex items-center gap-2">
-                <CheckCircle2
-                  className={cn("h-3.5 w-3.5", processStep >= 1 ? "text-emerald-400" : "text-muted-foreground")}
-                />
-                <span className={processStep >= 1 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Submitting payment request")}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2
-                  className={cn("h-3.5 w-3.5", processStep >= 2 ? "text-emerald-400" : "text-muted-foreground")}
-                />
-                <span className={processStep >= 2 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Authorizing payment method")}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2
-                  className={cn("h-3.5 w-3.5", processStep >= 3 ? "text-emerald-400" : "text-muted-foreground")}
-                />
-                <span className={processStep >= 3 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Applying plan entitlements")}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2
-                  className={cn("h-3.5 w-3.5", processStep >= 4 ? "text-emerald-400" : "text-muted-foreground")}
-                />
-                <span className={processStep >= 4 ? "text-foreground font-medium" : "text-muted-foreground"}>
-                  {tr("Redirecting to your apps...")}
-                </span>
-              </div>
-            </div>
-          </div>
-        ) : payStatus === "success" ? (
-          /* 3. SUCCESS SCREEN */
-          <div className="flex-1 flex flex-col items-center justify-center p-3 text-center min-h-0 space-y-3">
-            <div className="w-14 h-14 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/20">
-              <Check className="h-7 w-7 stroke-[3]" />
-            </div>
+        {/* B. PROCESSING SPINNER SCREEN */}
+        {payStatus === "processing" && (
+          <div className="w-full max-w-sm bg-card/95 border border-border/80 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in duration-200">
+            <div className="h-14 w-14 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
 
             <div>
-              <h2 className="text-base font-black text-foreground">{tr("Subscription Confirmed!")}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {tr("Your business now has full unlimited access.")}
+              <h2 className="text-base font-extrabold text-foreground">{tr("Confirming Payment...")}</h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                {processStep === 1 && tr("Contacting settlement gateway...")}
+                {processStep === 2 && tr("Verifying payment authorization...")}
+                {processStep === 3 && tr("Activating subscription features...")}
+                {processStep === 4 && tr("Finalizing shop entitlements...")}
               </p>
             </div>
-
-            <div className="w-full max-w-xs md:max-w-md bg-card/80 border border-border rounded-xl p-3 text-xs space-y-1.5 text-left">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Plan Activated")}:</span>
-                <span className="font-bold text-foreground">
-                  {plan.name} ({yearly ? tr("Yearly") : tr("Monthly")})
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Amount Paid")}:</span>
-                <span className="font-extrabold text-foreground">{currentPrice.formatted}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Payment Channel")}:</span>
-                <span className="font-semibold text-foreground">
-                  {method === "mobile" ? "Safaricom M-Pesa" : "Card"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Date")}:</span>
-                <span className="font-medium text-foreground">{confirmedDate}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 w-full max-w-xs md:max-w-md pt-1">
-              <ShopButton className="flex-1 h-9 bg-primary font-bold" onClick={() => nav({ to: "/apps" })}>
-                {tr("Open My Business Apps")}
-              </ShopButton>
-              <ShopButton
-                variant="outline"
-                className="h-9 gap-1.5"
-                onClick={() => toast.info(tr("Receipt sent to registered email!"))}
-              >
-                <Receipt className="h-3 w-3" />
-                <span>{tr("View Receipt")}</span>
-              </ShopButton>
-            </div>
           </div>
-        ) : (
-          /* 4. MAIN UNIFIED CHECKOUT FORM — ZERO-SCROLL */
-          <div className="flex-1 flex flex-col justify-between py-1 space-y-2 min-h-0">
-            {/* 1. SINGLE-ROW SUMMARY */}
-            <div className="rounded-lg border border-blue-500/30 bg-[#0E1A32] px-3 py-2 flex items-center justify-between shadow-sm shrink-0">
+        )}
+
+        {/* C. CHECKOUT MODAL */}
+        {payStatus === "idle" && (
+          <div className="w-full max-w-md md:max-w-2xl bg-card/95 border border-border/80 rounded-2xl p-3 sm:p-5 shadow-2xl flex flex-col max-h-[96dvh] justify-between">
+            {/* 1. TOP HEADER & SUMMARY ROW */}
+            <div className="flex items-center justify-between shrink-0 pb-2 border-b border-border/60">
+              <button
+                type="button"
+                onClick={() => setPaying(false)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>{tr("Back")}</span>
+              </button>
+              <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-foreground">
+                {tr("Complete Subscription")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => nav({ to: "/apps" })}
+                aria-label="Close"
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Selected Plan Summary Banner */}
+            <div className="flex items-center justify-between bg-muted/50 border border-border/70 rounded-xl px-3 py-2 my-2 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="flex items-center justify-center w-6 h-6 rounded-md bg-blue-600/30 border border-blue-500/40 text-blue-400 shrink-0">
-                  <Store className="h-3 w-3" />
+                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 grid place-items-center shrink-0">
+                  <Store className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <div className="flex items-center gap-1.5 text-xs truncate">
-                  <span className="font-bold text-foreground whitespace-nowrap">
-                    {plan.name} {tr("Plan")}
-                  </span>
-                  <span className="text-muted-foreground font-medium">•</span>
-                  <span className="text-muted-foreground whitespace-nowrap">
-                    {yearly ? tr("Yearly") : tr("Monthly")}
-                  </span>
-                  <span className="text-muted-foreground font-medium">•</span>
+                <div className="text-xs truncate">
+                  <span className="font-extrabold text-foreground mr-1.5">{plan.name} Plan</span>
+                  <span className="text-muted-foreground mr-1.5">· {yearly ? tr("Yearly") : tr("Monthly")} ·</span>
                   <span className="font-extrabold text-foreground whitespace-nowrap">{currentPrice.formatted}</span>
                 </div>
               </div>
@@ -489,28 +370,33 @@ function Plans() {
               </button>
             </div>
 
-            {/* 2. PAYMENT METHOD TABS (MOBILE MONEY RESTRICTED TO KSH; CARD FOR ALL) */}
+            {/* 2. PAYMENT METHOD TABS (M-PESA STRICTLY FOR KENYA +254; CARD FOR ALL) */}
             <div className="grid grid-cols-2 gap-2 shrink-0">
               <button
                 type="button"
-                disabled={!isKsh}
+                disabled={!canUseMpesa}
                 onClick={() => {
-                  if (isKsh) setMethod("mobile");
-                  else toast.info(tr("Direct Mobile Money requires KSh currency. Please pay using Card."));
+                  if (canUseMpesa) setMethod("mobile");
+                  else
+                    toast.info(
+                      tr(
+                        "Mobile Money (M-Pesa) is currently available exclusively for Kenya (+254). Please pay with Card.",
+                      ),
+                    );
                 }}
                 className={cn(
                   "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all",
-                  method === "mobile" && isKsh
-                    ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm"
-                    : !isKsh
+                  method === "mobile" && canUseMpesa
+                    ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm cursor-pointer"
+                    : !canUseMpesa
                       ? "bg-muted/40 border-border/40 text-muted-foreground/50 cursor-not-allowed opacity-60"
                       : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground cursor-pointer",
                 )}
               >
                 <Smartphone className="h-3.5 w-3.5 text-blue-400" />
                 <span>{tr("Mobile Money")}</span>
-                {!isKsh && (
-                  <span className="text-[9px] uppercase text-amber-500/80 font-normal ml-0.5">(KSh Only)</span>
+                {!canUseMpesa && (
+                  <span className="text-[8.5px] uppercase text-amber-500/90 font-semibold ml-0.5">(+254 Only)</span>
                 )}
               </button>
 
@@ -530,10 +416,10 @@ function Plans() {
             </div>
 
             {/* 3. CONDITIONAL FORM FIELDS */}
-            <div className="flex-1 flex flex-col justify-center min-h-0">
-              {method === "mobile" && isKsh ? (
+            <div className="flex-1 flex flex-col justify-center min-h-0 my-2">
+              {method === "mobile" && canUseMpesa ? (
                 <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
-                  {/* African Network Dropdown */}
+                  {/* African Network Dropdown: Only Safaricom is active */}
                   <div>
                     <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
                       {tr("Select African Network")}
@@ -545,35 +431,27 @@ function Plans() {
                     >
                       {MOBILE_NETWORKS.map((net) => (
                         <option key={net.id} value={net.id} disabled={!net.active}>
-                          {net.name} {net.active ? `(${tr("Active")})` : `(${tr("Coming soon")})`}
+                          {net.name} {net.active ? `(${tr("Active")})` : `(${tr("Coming soon — Pay with Card")})`}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Phone Input with Mandatory Auto-Selected Country Dial Code */}
+                  {/* Phone Input with LOCKED +254 Kenyan Dial Code */}
                   <div>
                     <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
-                      {tr("Phone Number (Auto-detected Country Code)")}
+                      {tr("Phone Number (Kenya +254)")}
                     </label>
                     <div className="flex gap-1.5">
-                      <select
-                        value={selectedDial}
-                        onChange={(e) => handleDialChange(e.target.value)}
-                        className="h-8 px-2 rounded-lg border border-border bg-background text-foreground text-xs font-bold focus:outline-none focus:ring-1 focus:ring-primary shrink-0 cursor-pointer"
-                      >
-                        {COUNTRY_DIAL_OPTIONS.map((opt) => (
-                          <option key={opt.code} value={opt.code}>
-                            {opt.code} — {opt.country}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="h-8 px-2.5 rounded-lg border border-border bg-muted/50 text-foreground text-xs font-bold flex items-center justify-center shrink-0 select-none">
+                        +254 (Kenya)
+                      </div>
 
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder={`${selectedDial} 712 345 678`}
+                        placeholder="+254 712 345 678"
                         className="flex-1 min-w-0 h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
                       />
                     </div>
@@ -583,17 +461,20 @@ function Plans() {
                   <div className="bg-muted/40 border border-border/60 rounded-lg p-2 text-[10.5px] text-muted-foreground flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
                     <span>
-                      {tr("An instant STK PIN prompt will be sent directly to your phone to authorize settlement.")}
+                      {tr(
+                        "An instant Safaricom STK PIN prompt will be sent directly to your phone to authorize settlement.",
+                      )}
                     </span>
                   </div>
                 </div>
               ) : (
-                /* Card Input Fields */
+                /* Card Input Fields with International Notice */
                 <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
-                  {!isKsh && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-[10.5px] text-amber-500">
-                      {tr("Safaricom M-Pesa settles only in KSh. Your business currency is")}{" "}
-                      <strong>{currency}</strong>, {tr("so your subscription is settled securely via Card.")}
+                  {!canUseMpesa && (
+                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-[10.5px] text-amber-500 leading-snug">
+                      {tr(
+                        "Safaricom M-Pesa is currently exclusive to Kenya (+254). Direct mobile money for your region (e.g. Zaad, EVC Plus, MTN) is coming soon. Please settle your subscription securely via Card.",
+                      )}
                     </div>
                   )}
 
