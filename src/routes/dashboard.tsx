@@ -291,7 +291,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       payables: payablesCount,
       cashedUp: hasCashedUp,
     };
-  }, [s.inventory, s.customers, s.suppliers, s.cash]);
+  }, [s.products, s.customers, s.suppliers, s.cash]);
 
   // Dynamic Date Display
   const dateRangeLabel = useMemo(() => {
