@@ -544,3 +544,294 @@
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
     0 4px 20px 0 rgba(0, 0, 0, 0.25);
 }
+/* ==========================================================================
+   AUTH PAGES: STRICT 1-PAGE NO-SCROLL + RESPONSIVE OPTION 2
+   ========================================================================== */
+
+.signup-page {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(4px, 1dvh, 12px) clamp(8px, 2vw, 20px);
+  background: var(--background);
+  color: var(--foreground);
+  box-sizing: border-box;
+}
+
+.signup-topbar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: clamp(1px, 0.4dvh, 4px);
+}
+
+.signup-layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(3px, 0.8dvh, 8px);
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.signup-hero {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 2px;
+}
+
+/* Mobile: Compact Emblem */
+.signup-brand-ring .auth-brand-emblem {
+  --emblem-size: clamp(80px, 15dvh, 110px) !important;
+}
+
+/* Mobile: Hide desktop-only highlights so screen never scrolls */
+.auth-desktop-hero-meta,
+.signup-benefits {
+  display: none;
+}
+
+.signup-form-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.signup-form-heading {
+  text-align: center;
+  margin-bottom: clamp(2px, 0.6dvh, 6px);
+  flex-shrink: 0;
+}
+.signup-form-heading h1 {
+  font-size: clamp(16px, 2.4dvh, 22px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  line-height: 1.15;
+}
+.signup-form-heading p {
+  display: none;
+}
+
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.7dvh, 6px);
+  width: 100%;
+}
+
+.login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.8dvh, 6px);
+  width: 100%;
+}
+
+.signup-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(3px, 0.6dvh, 6px) clamp(4px, 1vw, 8px);
+  width: 100%;
+}
+
+.signup-col-left {
+  grid-column: span 1;
+}
+
+.signup-upload {
+  grid-column: span 1;
+}
+
+.signup-row-full {
+  grid-column: span 2;
+}
+
+.signup-row-split {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(4px, 1vw, 8px);
+}
+
+.signup-field-label {
+  font-size: clamp(10px, 1.4dvh, 11.5px);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.signup-field-input,
+.signup-currency-select,
+.signup-col-picker button {
+  width: 100%;
+  padding: clamp(5px, 0.9dvh, 8px) clamp(8px, 1.4vw, 10px);
+  font-size: clamp(11.5px, 1.6dvh, 13.5px);
+  border-radius: 8px;
+  border: 1.5px solid color-mix(in oklab, var(--border) 80%, var(--foreground) 10%);
+  background: color-mix(in oklab, var(--card) 60%, var(--foreground) 6%);
+  box-shadow: inset 0 1.5px 3px rgba(0, 0, 0, 0.16);
+  color: var(--foreground);
+  min-height: clamp(32px, 4.2dvh, 38px);
+}
+
+.signup-upload-btn {
+  min-height: clamp(50px, 6.8dvh, 64px);
+  padding: 4px;
+}
+.signup-upload-icon {
+  width: 18px;
+  height: 18px;
+}
+.signup-upload-text {
+  font-size: 10px;
+}
+
+.signup-agreement {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 1px 0;
+}
+.signup-agreement-label {
+  font-size: clamp(10px, 1.3dvh, 11.5px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.login-row {
+  justify-content: space-between;
+}
+.login-forgot {
+  font-size: clamp(10px, 1.3dvh, 11.5px);
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.signup-actions {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.7dvh, 6px);
+  width: 100%;
+}
+
+.auth-btn-primary {
+  min-height: clamp(34px, 4.5dvh, 42px);
+  font-size: clamp(12.5px, 1.6dvh, 14px);
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+.auth-split-card {
+  min-height: clamp(28px, 3.8dvh, 34px);
+  border-radius: 8px;
+}
+
+/* ==========================================================================
+   DESKTOP (≥ 768px): AUTO-DETECTED OPTION 2 (EMBLEM + TAGLINE ON LEFT)
+   ========================================================================== */
+@media (min-width: 768px) {
+  .signup-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.95fr) minmax(360px, 1.05fr);
+    max-width: 960px;
+    gap: clamp(24px, 4vw, 56px);
+    align-items: center;
+  }
+
+  .signup-hero {
+    gap: 16px;
+  }
+
+  .signup-brand-ring .auth-brand-emblem {
+    --emblem-size: clamp(180px, 24vw, 240px) !important;
+  }
+
+  /* Show Tagline and Highlights on Desktop */
+  .auth-desktop-hero-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+  .auth-hero-title {
+    font-size: clamp(18px, 2vw, 24px);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--foreground);
+  }
+  .auth-hero-tagline {
+    font-size: 13px;
+    color: var(--muted-foreground);
+    max-width: 280px;
+    line-height: 1.4;
+  }
+  .auth-hero-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .auth-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--card) 70%, var(--foreground) 5%);
+    border: 1px solid var(--border);
+  }
+
+  .signup-benefits {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+  }
+  .signup-benefit {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: color-mix(in oklab, var(--card) 60%, var(--foreground) 5%);
+    border: 1px solid var(--border);
+  }
+  .signup-benefit-icon {
+    color: var(--primary);
+  }
+  .signup-benefit-text h3 {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .signup-benefit-text p {
+    font-size: 10.5px;
+    color: var(--muted-foreground);
+  }
+
+  .signup-form-heading p {
+    display: block;
+  }
+}
