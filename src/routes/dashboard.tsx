@@ -127,14 +127,14 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   };
 
   const cashUp = useMemo(() => {
-    const last = s.cashUps[0];
+    const last = s.cash.find((e) => e.type === "CASH UP");
     if (!last) return "Pending";
     const sameDay = iso(last.at) === iso(Date.now());
     if (!sameDay) return "Pending";
-    return last.variance === 0 ? "Done" : "Variance";
-  }, [s.cashUps]);
+    return last.amount === 0 ? "Done" : "Variance";
+  }, [s.cash]);
 
-  const cashVariance = s.cashUps[0];
+  const cashVariance = s.cash.find((e) => e.type === "CASH UP");
 
   // 1. Money Position Data
   const moneyPositionData = useMemo(() => {
