@@ -62,7 +62,7 @@
   --color-plan-contrast: var(--plan-contrast);
 }
 
-/* Light mode palette */
+/* Light mode palette: Warm cream and peach */
 :root {
   --radius: 0.75rem;
   --background: #fff5e8;
@@ -96,7 +96,7 @@
   --surface-gradient: radial-gradient(120% 60% at 50% 0%, #f8ebdd, transparent 70%);
 }
 
-/* Dark mode palette */
+/* Dark mode palette: Deep navy */
 .dark {
   --background: oklch(0.14 0.04 265);
   --foreground: oklch(0.98 0.005 250);
@@ -144,6 +144,7 @@
 @utility app-screen {
   min-height: calc(100dvh / var(--fluid-scale, 1));
 }
+
 /* ===== Auth pages (login + create account): phone-friendly, clear & legible ===== */
 .signup-page {
   min-height: 100dvh;
@@ -223,7 +224,14 @@
   width: 100%;
 }
 
-/* Clear, comfortable form field inputs */
+.login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(6px, 1.1dvh, 10px);
+  width: 100%;
+}
+
+/* Clear form field inputs */
 .signup-field-label {
   font-size: clamp(12px, 1.6dvh, 13px);
   font-weight: 600;
@@ -247,15 +255,6 @@
   min-height: clamp(42px, 5.2dvh, 46px);
 }
 
-.signup-field-input.has-icon {
-  padding-left: clamp(34px, 4.6dvh, 40px) !important;
-}
-
-.signup-field-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
 .signup-upload-btn {
   min-height: 96px;
   height: 100%;
@@ -275,72 +274,82 @@
   font-size: 15px;
   font-weight: 700;
   border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px color-mix(in oklab, var(--primary) 35%, transparent);
+}
+.auth-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px color-mix(in oklab, var(--primary) 45%, transparent);
 }
 
-/* Phone screens (< 768px): balanced emblem and prominent fields */
-@media (max-width: 767px) {
-  .signup-hero {
-    gap: 0 !important;
-    margin-bottom: 2px !important;
+/* Responsive auth layout for desktop */
+@media (min-width: 768px) {
+  .signup-layout {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(340px, 1.15fr);
+    max-width: 980px;
+    gap: clamp(16px, 3vw, 40px);
+    align-items: center;
   }
-  .auth-brand-emblem {
-    --emblem-size: clamp(64px, 10dvh, 80px) !important;
-    width: var(--emblem-size) !important;
-    margin: 0 auto !important;
-  }
-  .signup-form-heading h1 {
-    font-size: clamp(19px, 2.8dvh, 23px) !important;
-  }
-  .signup-form-heading p {
-    font-size: clamp(11.5px, 1.5dvh, 13px) !important;
-    margin-top: 1px !important;
-  }
-}
-/* ===== Circular Orbit & Emblem for Login / Signup ===== */
-.auth-hero-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto clamp(4px, 1dvh, 12px);
 }
 
+/* ===== Brand Emblem & Rotating Circular Orbit ===== */
 .auth-brand-emblem {
   position: relative;
-  width: clamp(70px, 12dvh, 92px);
-  height: clamp(70px, 12dvh, 92px);
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
+  width: var(--emblem-size, clamp(90px, 18dvh, 180px));
+  aspect-ratio: 1;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
 }
 
-.auth-orbit-ring {
+.auth-brand-emblem-core {
+  position: relative;
+  width: 72%;
+  height: 72%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 22px rgba(0, 230, 118, 0.35);
+  border: 2px solid rgba(0, 230, 118, 0.4);
+  z-index: 1;
+}
+
+.auth-brand-emblem-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.auth-brand-orbit {
   position: absolute;
-  inset: -22px;
-  border-radius: 9999px;
+  inset: 0;
   pointer-events: none;
-  animation: spin-slow 28s linear infinite;
+  z-index: 2;
 }
 
 .auth-orbit-icon {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: clamp(20px, 3.2dvh, 26px);
-  height: clamp(20px, 3.2dvh, 26px);
-  margin: -12px 0 0 -12px;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  width: clamp(14px, 12%, 30px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 26%;
+  background: color-mix(in oklab, var(--card) 85%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  padding: clamp(2px, 0.5vw, 4px);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
 }
 
 .auth-orbit-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block;
+  object-fit: contain;
 }
 
 @keyframes spin-slow {
@@ -361,8 +370,177 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .auth-orbit-ring {
-    animation: none;
-  }
+.spin-slow,
+.animate-spin-slow {
+  animation: spin-slow 40s linear infinite;
+}
+
+.counter-spin,
+.animate-counter-spin {
+  animation: counter-spin 40s linear infinite;
+}
+
+/* ===== Login Row & Agreement ===== */
+.signup-agreement,
+.login-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: clamp(10.5px, 1.4dvh, 12.5px);
+  color: var(--muted-foreground);
+  margin-top: 2px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.signup-agreement-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.signup-agreement-label input {
+  accent-color: var(--primary);
+  height: clamp(12px, 1.6dvh, 15px);
+  width: clamp(12px, 1.6dvh, 15px);
+}
+
+.login-forgot {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ===== Social Buttons Row (Google / Apple / 6-Digit PIN) ===== */
+.auth-social-wrap {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.auth-social-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(4px, 0.8dvh, 8px);
+  width: 100%;
+}
+
+.auth-social-btn,
+.auth-social-row button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: clamp(6px, 1dvh, 9px) 8px;
+  font-size: clamp(11px, 1.4dvh, 12.5px);
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  transition: all 0.2s ease;
+  min-height: clamp(34px, 4.4dvh, 38px);
+  cursor: pointer;
+}
+
+.auth-social-btn:hover,
+.auth-social-row button:hover {
+  border-color: var(--primary);
+  background: var(--muted);
+}
+
+.auth-social-icon {
+  width: clamp(14px, 1.8dvh, 17px);
+  height: clamp(14px, 1.8dvh, 17px);
+  flex-shrink: 0;
+}
+
+/* ===== Bottom Split Card Box ===== */
+.auth-split-card {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  margin-top: 6px;
+}
+
+.auth-split-label {
+  padding: clamp(7px, 1.2dvh, 10px) 8px;
+  font-size: clamp(10.5px, 1.4dvh, 12px);
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-align: center;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-split-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(7px, 1.2dvh, 10px) 8px;
+  font-size: clamp(11px, 1.5dvh, 13px);
+  font-weight: 800;
+  text-align: center;
+  border-left: 1.5px solid var(--border);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+}
+
+.auth-split-btn-emerald {
+  background: #059669;
+  color: #ffffff !important;
+  border-left-color: #047857;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+}
+.auth-split-btn-emerald:hover {
+  background: #10b981;
+  color: #ffffff !important;
+}
+
+.auth-split-btn-register {
+  background: #d97706;
+  color: #ffffff !important;
+  border-left-color: #b45309;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.35);
+}
+.auth-split-btn-register:hover {
+  background: #f59e0b;
+  color: #ffffff !important;
+}
+
+/* ===== Glass effect utilities ===== */
+.dark .expo-glass-header {
+  background: color-mix(in srgb, var(--background) 78%, transparent) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+}
+
+.dark .expo-glass-pill {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.dark .expo-glass-card {
+  background: color-mix(in srgb, var(--card) 70%, transparent) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+    0 4px 20px 0 rgba(0, 0, 0, 0.25);
 }
