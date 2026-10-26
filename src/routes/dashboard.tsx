@@ -72,8 +72,13 @@ const compactFmt = (n: number) =>
   new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
 export default function Dashboard() {
-  const { s } = useErp();
-  const account = useAccount();
+  const account = useAccount("basic");
+  if (!account) return null;
+  return <DashboardView account={account} />;
+}
+
+function DashboardView({ account }: { account: NonNullable<ReturnType<typeof useAccount>> }) {
+  const s = useErp();
   const { tr, dir } = useLanguage();
   const nav = useNavigate();
   const money = moneyFor(account.currency);
@@ -122,14 +127,14 @@ export default function Dashboard() {
   };
 
   const cashUp = useMemo(() => {
-    const last = s.cashUps[0];
+    const last = s.cash.find((e) => e.type === "CASH UP");
     if (!last) return "Pending";
     const sameDay = iso(last.at) === iso(Date.now());
     if (!sameDay) return "Pending";
-    return last.variance === 0 ? "Done" : "Variance";
-  }, [s.cashUps]);
+    return last.amount === 0 ? "Done" : "Variance";
+  }, [s.cash]);
 
-  const cashVariance = s.cashUps[0];
+  const cashVariance = s.cash.find((e) => e.type === "CASH UP");
 
   // 1. Money Position Data
   const moneyPositionData = useMemo(() => {
@@ -895,7 +900,7 @@ function AttentionBox({
   color: string;
   label: string;
   value: string;
-  tone?: "good" | "warn" | "bad";
+  tone?: "good" | "warn" | "bad" | undefined;
   to?: string;
 }) {
   const inner = (
