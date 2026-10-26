@@ -279,7 +279,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
   // Needs Attention Counts
   const attention = useMemo(() => {
-    const lowStockCount = s.inventory.filter((p) => p.qty <= (p.minStock ?? 5)).length;
+    const lowStockCount = s.products.filter((p) => p.qty <= (p.minStock ?? 5)).length;
     const receivablesCount = s.customers.filter((c) => (c.balance || 0) > 0).length;
     const payablesCount = s.suppliers.filter((sup) => (sup.balance || 0) > 0).length;
     const todayStr = new Date().toISOString().slice(0, 10);
