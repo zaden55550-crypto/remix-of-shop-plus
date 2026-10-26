@@ -72,8 +72,13 @@ const compactFmt = (n: number) =>
   new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
 export default function Dashboard() {
-  const { s } = useErp();
-  const account = useAccount();
+  const account = useAccount("basic");
+  if (!account) return null;
+  return <DashboardView account={account} />;
+}
+
+function DashboardView({ account }: { account: NonNullable<ReturnType<typeof useAccount>> }) {
+  const s = useErp();
   const { tr, dir } = useLanguage();
   const nav = useNavigate();
   const money = moneyFor(account.currency);
@@ -895,7 +900,7 @@ function AttentionBox({
   color: string;
   label: string;
   value: string;
-  tone?: "good" | "warn" | "bad";
+  tone?: "good" | "warn" | "bad" | undefined;
   to?: string;
 }) {
   const inner = (
