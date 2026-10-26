@@ -790,54 +790,57 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           </div>
         </div>
 
-        {/* 5. RECENT ACTIVITY (3-Column Layout on Desktop, 1-Column on Phone, Hairline Borders) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-3 pt-1">
-          {/* Recent Sales Table */}
-          <Section title={tr("Recent Sales")} to="/sales" icon={ShoppingCart}>
-            {(s.sales || []).slice(0, 5).map((sale) => (
-              <div
-                key={sale.id}
-                onClick={() => setSelectedSale(sale)}
-                className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 cursor-pointer transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
-              >
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold truncate text-foreground">#{sale.id.slice(0, 8)}</span>
-                  <span className="text-[10px] text-muted-foreground truncate">
-                    {(s.customers || []).find((c) => c?.id === sale.customerId)?.name || tr("Walk-in")} •{" "}
-                    {sale?.at ? new Date(sale.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                  </span>
+        {/* 5. RECENT ACTIVITY: Sales & Purchases meet in 2 columns on big screens, stacked on small screens */}
+        <div className="space-y-2 sm:space-y-3 pt-1">
+          {/* Side-by-side 2-column grid on desktop (md: and lg:), 1-column on phones */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
+            {/* Recent Sales Table */}
+            <Section title={tr("Recent Sales")} to="/sales" icon={ShoppingCart}>
+              {(s.sales || []).slice(0, 5).map((sale) => (
+                <div
+                  key={sale.id}
+                  onClick={() => setSelectedSale(sale)}
+                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 cursor-pointer transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
+                >
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold truncate text-foreground">#{sale.id.slice(0, 8)}</span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {(s.customers || []).find((c) => c?.id === sale.customerId)?.name || tr("Walk-in")} •{" "}
+                      {sale?.at ? new Date(sale.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
+                    </span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <Amt value={sale.total} size="xs" />
+                    <span className="block text-[9px] text-muted-foreground uppercase">
+                      {sale.pay
+                        ? METHOD_LABEL[(Object.keys(sale.pay) as Method[]).find((m) => sale.pay[m] > 0) ?? "cash"]
+                        : "cash"}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <Amt value={sale.total} size="xs" />
-                  <span className="block text-[9px] text-muted-foreground uppercase">
-                    {sale.pay
-                      ? METHOD_LABEL[(Object.keys(sale.pay) as Method[]).find((m) => sale.pay[m] > 0) ?? "cash"]
-                      : "cash"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </Section>
+              ))}
+            </Section>
 
-          {/* Recent Purchases Table */}
-          <Section title={tr("Recent Purchases")} to="/purchases" icon={Receipt}>
-            {(s.purchases || []).slice(0, 5).map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
-              >
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold truncate text-foreground">
-                    {(s.suppliers || []).find((v) => v?.id === p.supplierId)?.name || tr("Supplier")}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground truncate">
-                    {p?.at ? new Date(p.at).toLocaleDateString() : ""}
-                  </span>
+            {/* Recent Purchases Table */}
+            <Section title={tr("Recent Purchases")} to="/purchases" icon={Receipt}>
+              {(s.purchases || []).slice(0, 5).map((p) => (
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
+                >
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold truncate text-foreground">
+                      {(s.suppliers || []).find((v) => v?.id === p.supplierId)?.name || tr("Supplier")}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate">
+                      {p?.at ? new Date(p.at).toLocaleDateString() : ""}
+                    </span>
+                  </div>
+                  <Amt value={p.total} tone="bad" size="xs" />
                 </div>
-                <Amt value={p.total} tone="bad" size="xs" />
-              </div>
-            ))}
-          </Section>
+              ))}
+            </Section>
+          </div>
 
           {/* Money Transfers / Float Movements */}
           <Section title={tr("Recent Cash Moves")} to="/float" icon={Wallet}>
