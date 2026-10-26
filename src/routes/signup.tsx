@@ -36,7 +36,7 @@ export const Route = createFileRoute("/signup")({
 // Requires a real domain extension like .com, .co, .org, .net, .io, .ke, etc.
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-function Signup() {
+export default function Signup() {
   const nav = useNavigate();
   const { tr, dir, language } = useLanguage();
 
@@ -50,7 +50,7 @@ function Signup() {
     logo: "",
   });
 
-  // Detect the visitor's country after the page appears, so server and browser agree.
+  // Detect visitor country on load
   useEffect(() => {
     const detected = detectUserCountry();
     setF((prev) =>
@@ -76,7 +76,6 @@ function Signup() {
     e.preventDefault();
 
     const next: typeof err = {};
-
     const shopTrimmed = f.shopName.trim();
     if (!shopTrimmed) {
       next.shopName = tr("Shop name is required");
@@ -100,7 +99,6 @@ function Signup() {
     }
 
     setErr(next);
-
     const first = next.shopName || next.email || next.password || next.confirm || next.agree;
 
     if (first) {
@@ -152,11 +150,13 @@ function Signup() {
       </div>
 
       <div className="signup-layout">
+        {/* Option 2: Left column on Desktop with emblem + benefit badges */}
         <section className="signup-hero" aria-label="SHOPBOOK ERP">
           <div className="signup-brand-ring">
             <BrandRing size={180} />
           </div>
 
+          {/* Desktop-only Option 2 Benefits */}
           <div className="signup-benefits">
             {benefits.map((b, i) => (
               <div key={i} className="signup-benefit">
@@ -172,6 +172,7 @@ function Signup() {
           </div>
         </section>
 
+        {/* Right column: Compact Form */}
         <section className="signup-form-panel">
           <header className="signup-form-heading">
             <h1>{tr("Create Account")}</h1>
@@ -180,40 +181,44 @@ function Signup() {
 
           <form onSubmit={submit} className="signup-form">
             <div className="signup-form-fields">
-              {/* Row 1 Left: Shop Name */}
-              <Field
-                icon={<Store className="h-5 w-5" />}
-                label={tr("Shop Name")}
-                placeholder={tr("Enter shop name")}
-                value={f.shopName}
-                error={err.shopName}
-                onChange={set("shopName")}
-                required
-              />
-
-              {/* Row 2 Left: Email with Real Domain Validation */}
-              <Field
-                icon={<Mail className="h-5 w-5" />}
-                inputMode="email"
-                label={tr("Email")}
-                placeholder={tr("Enter email address (e.g. name@gmail.com)")}
-                type="email"
-                autoComplete="email"
-                value={f.email}
-                error={err.email}
-                onChange={set("email")}
-                required
-              />
-
-              {/* Rows 1 & 2 Right: Logo Upload */}
-              <div className="signup-upload">
-                <LogoCropPicker value={f.logo} onChange={(logo) => setF((previous) => ({ ...previous, logo }))} />
+              {/* Shop Name */}
+              <div className="signup-col-left">
+                <Field
+                  icon={<Store className="h-4 w-4" />}
+                  label={tr("Shop Name")}
+                  placeholder={tr("Enter shop name")}
+                  value={f.shopName}
+                  error={err.shopName}
+                  onChange={set("shopName")}
+                  required
+                />
               </div>
 
-              {/* Row 3: Password (1/2) and Confirm Password (1/2) */}
+              {/* Logo Upload Card */}
+              <div className="signup-upload">
+                <LogoCropPicker value={f.logo} onChange={(logo) => setF((prev) => ({ ...prev, logo }))} />
+              </div>
+
+              {/* Email */}
+              <div className="signup-row-full">
+                <Field
+                  icon={<Mail className="h-4 w-4" />}
+                  inputMode="email"
+                  label={tr("Email")}
+                  placeholder={tr("Enter email address (e.g. name@gmail.com)")}
+                  type="email"
+                  autoComplete="email"
+                  value={f.email}
+                  error={err.email}
+                  onChange={set("email")}
+                  required
+                />
+              </div>
+
+              {/* Password & Confirm (1/2 + 1/2) */}
               <div className="signup-row-split signup-passwords-row">
                 <Field
-                  icon={<Lock className="h-5 w-5" />}
+                  icon={<Lock className="h-4 w-4" />}
                   password
                   label={tr("Password")}
                   placeholder={tr("Create password")}
@@ -225,7 +230,7 @@ function Signup() {
                 />
 
                 <Field
-                  icon={<Lock className="h-5 w-5" />}
+                  icon={<Lock className="h-4 w-4" />}
                   password
                   label={tr("Confirm Password")}
                   placeholder={tr("Re-enter password")}
@@ -237,7 +242,7 @@ function Signup() {
                 />
               </div>
 
-              {/* Row 4: Currency (1/2) and Country (1/2) Linked */}
+              {/* Currency & Country (1/2 + 1/2) */}
               <div className="signup-row-split signup-currency-row">
                 <SearchableCurrencyPicker
                   value={f.currency}
@@ -277,7 +282,7 @@ function Signup() {
             </div>
 
             <div className="signup-actions">
-              {/* Outstanding Full-Width Create Account Button */}
+              {/* Full-Width Create Account Button */}
               <ShopButton type="submit" className="auth-btn-primary w-full">
                 {tr("Create Account")}
               </ShopButton>
@@ -285,7 +290,7 @@ function Signup() {
               {/* 3-in-1 Social Row: Google, Apple, 6-Digit */}
               <SocialButtons />
 
-              {/* 1/2 + 1/2 Bottom Card Box */}
+              {/* 1/2 + 1/2 Bottom Split Box */}
               <div className="auth-split-card">
                 <span className="auth-split-label">{tr("Already have an account?")}</span>
                 <Link to="/" className="auth-split-btn auth-split-btn-emerald">
