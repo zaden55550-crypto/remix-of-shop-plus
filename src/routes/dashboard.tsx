@@ -179,11 +179,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     if (offsetDays === 0) return s.sales;
     const now = Date.now();
     const cutoff = now - offsetDays * 86_400_000;
-    return s.sales.filter((sale) => new Date(sale.date).getTime() >= cutoff);
+    return s.sales.filter((sale) => new Date(sale.at).getTime() >= cutoff);
   }, [s.sales, offsetDays]);
 
   const pnl = profitAndLoss(s);
-  const perf = performance(s);
+  const perf = performance(s, 0);
   const pos = position(s);
   const bal = floatBalances(s);
   const t = purchaseTotals(s);
@@ -193,7 +193,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     const cashUps = s.cash.filter((e) => e.type === "CASH UP");
     if (cashUps.length === 0) return "Done";
     const last = cashUps[cashUps.length - 1];
-    return last.amount === 0 ? "Done" : "Variance";
+    return !last || last.amount === 0 ? "Done" : "Variance";
   }, [s.cash]);
 
   // 1. Money Position Data
@@ -251,7 +251,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   // 4. Cash Flow Data
   const cashFlowData = useMemo(() => {
     const inflow = perf.sales;
-    const outflow = t.purchases + pnl.operatingExpenses;
+    const outflow = t.purchases + (pnl.expenses + pnl.salaries);
     const net = inflow - outflow;
     return {
       inflow,
@@ -262,10 +262,10 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
         { name: "Outflow", value: Math.max(0, outflow), color: "#f43f5e" },
       ],
     };
-  }, [perf.sales, t.purchases, pnl.operatingExpenses]);
+  }, [perf.sales, t.purchases, (pnl.expenses + pnl.salaries)]);
 
   // Needs Attention Counts
-  const lowStockCount = s.products.filter((p) => p.stock <= (p.minStock ?? 5)).length;
+  const lowStockCount = s.products.filter((p) => p.qty <= (p.minStock ?? 5)).length;
 
   return (
     <div className="relative min-h-dvh w-full overflow-x-hidden bg-background font-sans text-foreground pb-6">
@@ -296,7 +296,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           {/* Element 3: Centered Shop Name */}
           <div className="flex-1 px-2 text-center truncate">
             <h1 className="text-[clamp(12px,2.6vw,15px)] font-black uppercase tracking-wider text-foreground truncate">
-              {account.businessName || "SHOPBOOK"}
+              {account.shopName || "SHOPBOOK"}
             </h1>
           </div>
 
@@ -362,7 +362,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               aria-label="Shop Menu"
               className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-xs font-bold uppercase text-foreground shadow-xs hover:border-white/30 transition-all overflow-hidden"
             >
-              {account.businessName ? account.businessName.slice(0, 2) : "SB"}
+              {account.shopName ? account.shopName.slice(0, 2) : "SB"}
             </button>
 
             {/* Shop Action Menu */}
@@ -403,9 +403,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           {[
             { label: "Sales", value: perf.sales, tone: "good" as const },
             { label: "Purchases", value: t.purchases, tone: "bad" as const },
-            { label: "Expenses", value: pnl.operatingExpenses, tone: "warn" as const },
-            { label: "Profit", value: perf.profit, tone: perf.profit >= 0 ? ("good" as const) : ("bad" as const) },
-            { label: "Stock Value", value: pos.stockValue, tone: undefined },
+            { label: "Expenses", value: (pnl.expenses + pnl.salaries), tone: "warn" as const },
+            { label: "Profit", value: pnl.net, tone: pnl.net >= 0 ? ("good" as const) : ("bad" as const) },
+            { label: "Stock Value", value: pos.stock, tone: undefined },
           ].map((kpi) => (
             <div
               key={kpi.label}
@@ -742,9 +742,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   className="flex items-center justify-between p-2 hover:bg-white/5 cursor-pointer transition-colors"
                 >
                   <div className="min-w-0 pr-2">
-                    <div className="text-xs font-semibold truncate">{sale.buyer || tr("Walk-in customer")}</div>
+                    <div className="text-xs font-semibold truncate">{s.customers.find((c) => c.id === sale.customerId)?.name || tr("Walk-in customer")}</div>
                     <div className="text-[10px] text-muted-foreground">
-                      {new Date(sale.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(sale.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </div>
                   </div>
                   <Amt value={sale.total} tone="good" size="xs" />
@@ -762,8 +762,8 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               {s.purchases.slice(0, 5).map((p) => (
                 <div key={p.id} className="flex items-center justify-between p-2 hover:bg-white/5 transition-colors">
                   <div className="min-w-0 pr-2">
-                    <div className="text-xs font-semibold truncate">{p.supplier || tr("Direct Supplier")}</div>
-                    <div className="text-[10px] text-muted-foreground">{new Date(p.date).toLocaleDateString()}</div>
+                    <div className="text-xs font-semibold truncate">{s.suppliers.find((v) => v.id === p.supplierId)?.name || tr("Direct Supplier")}</div>
+                    <div className="text-[10px] text-muted-foreground">{new Date(p.at).toLocaleDateString()}</div>
                   </div>
                   <Amt value={p.total} tone="bad" size="xs" />
                 </div>
@@ -785,7 +785,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     <div className="min-w-0 pr-2">
                       <div className="text-xs font-semibold truncate">{c.note || c.type}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        {new Date(c.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(c.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                     <Amt value={c.amount} size="xs" />
@@ -801,7 +801,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
       {/* 6. RECEIPT VIEWER SHEET */}
       {selectedReceipt && (
-        <ReceiptSheet sale={selectedReceipt} open={!!selectedReceipt} onClose={() => setSelectedReceipt(null)} />
+        <ReceiptSheet sale={selectedReceipt} s={s} money={money} tr={tr} shop={account.shopName} onClose={() => setSelectedReceipt(null)} />
       )}
     </div>
   );
