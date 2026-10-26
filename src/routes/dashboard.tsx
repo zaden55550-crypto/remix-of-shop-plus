@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -71,7 +71,8 @@ const iso = (n: number) => {
 const compactFmt = (n: number) =>
   new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(n);
 
-export default function Dashboard() {
+// Local route component — no redundant top-level default export.
+function Dashboard() {
   const account = useAccount("basic");
   if (!account) return null;
   return <DashboardView account={account} />;
@@ -121,10 +122,70 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   const pnl = useMemo(() => profitAndLoss(s, from, to), [s, from, to]);
 
   const profit = pnl.net;
+
+  // Plain-text currency+number formatter — used only for CSV export / share text.
   const k = (n: number) => {
     const sym = money(0).replace(/[\d.,\s]/g, "");
     return `${sym} ${compactFmt(n)}`;
   };
+
+  // Currency code/symbol extracted once, reused by the subscript <Amt /> renderer below.
+  const currencySymbol = useMemo(
+    () =>
+      money(0)
+        .replace(/[\d.,\s]/g, "")
+        .trim(),
+    [money],
+  );
+
+  // Fluid "number + tiny subscript currency" renderer, e.g. 287.8 ᵏˢʰ
+  const AMT_SIZE: Record<"2xs" | "xs" | "sm" | "md" | "lg", string> = {
+    "2xs": "text-[clamp(7.5px,1.8vw,9px)]",
+    xs: "text-[clamp(8.5px,2vw,10.5px)]",
+    sm: "text-[clamp(9.5px,2.2vw,12px)]",
+    md: "text-[clamp(10.5px,2.7vw,15px)]",
+    lg: "text-[clamp(12.5px,3.2vw,18px)]",
+  };
+  const AMT_CUR_SIZE: Record<"2xs" | "xs" | "sm" | "md" | "lg", string> = {
+    "2xs": "text-[clamp(5px,1.1vw,6px)]",
+    xs: "text-[clamp(5.5px,1.2vw,6.5px)]",
+    sm: "text-[clamp(6px,1.3vw,7px)]",
+    md: "text-[clamp(6.5px,1.5vw,8px)]",
+    lg: "text-[clamp(7px,1.7vw,9px)]",
+  };
+  function Amt({
+    value,
+    tone,
+    size = "md",
+    className,
+  }: {
+    value: number;
+    tone?: "good" | "bad";
+    size?: "2xs" | "xs" | "sm" | "md" | "lg";
+    className?: string;
+  }) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-baseline gap-[1.5px] font-extrabold tabular-nums",
+          AMT_SIZE[size],
+          tone === "good" && "text-success",
+          tone === "bad" && "text-destructive",
+          className,
+        )}
+      >
+        <span>{compactFmt(value)}</span>
+        <span
+          className={cn(
+            "translate-y-[2px] font-bold uppercase leading-none text-muted-foreground/80",
+            AMT_CUR_SIZE[size],
+          )}
+        >
+          {currencySymbol}
+        </span>
+      </span>
+    );
+  }
 
   const cashUp = useMemo(() => {
     const last = s.cash.find((e) => e.type === "CASH UP");
@@ -412,7 +473,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       <div className="flex w-full flex-1 flex-col gap-3 px-2 sm:px-4 md:px-6 lg:px-8 pt-2.5">
         <BackupStatus className="px-0 text-[10px]" />
 
-        {/* 2. TOP KPI STRIP (5 Items: Sales, Purchases, Expenses, Profit, Stock Value) */}
+        {/* 2. TOP KPI STRIP — ALWAYS ONE ROW, NUMBERS + SUBSCRIPT CURRENCY SHRINK TOGETHER */}
         <div className="grid grid-cols-5 gap-1 sm:gap-2 md:gap-3">
           {(
             [
@@ -435,18 +496,12 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             >
               <div className="flex items-center gap-1">
                 <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" style={{ color: c }} />
-                <p className="truncate text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                <p className="truncate text-[clamp(7.5px,2vw,10px)] font-bold uppercase tracking-wider text-muted-foreground">
                   {tr(l)}
                 </p>
               </div>
-              <p
-                className={cn(
-                  "mt-1 truncate text-[10.5px] sm:text-[13px] md:text-[15px] font-extrabold tabular-nums",
-                  tone === "good" && "text-success",
-                  tone === "bad" && "text-destructive",
-                )}
-              >
-                {k(v)}
+              <p className="mt-1 min-w-0 truncate">
+                <Amt value={v} tone={tone} size="md" />
               </p>
             </div>
           ))}
@@ -456,13 +511,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2.5 md:gap-3">
           {/* Chart 1: Money Position (Pie Chart) */}
           <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-2 sm:p-3 shadow-sm min-h-[175px] sm:min-h-[195px]">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center justify-between pb-1 gap-1">
+              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
                 {tr("Money Position")}
               </span>
-              <span className="text-[10px] font-extrabold tabular-nums text-foreground">
-                {k(moneyPositionData.total)}
-              </span>
+              <Amt value={moneyPositionData.total} size="xs" />
             </div>
             <div className="h-[95px] sm:h-[110px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -505,14 +558,14 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   >
                     <div className="flex items-center gap-0.5 truncate max-w-full">
                       <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: item.color }} />
-                      <span className="truncate text-[8px] sm:text-[9.5px] font-semibold text-muted-foreground">
+                      <span className="truncate text-[clamp(7px,1.7vw,9.5px)] font-semibold text-muted-foreground">
                         {tr(item.name)}
                       </span>
                     </div>
-                    <span className="text-[9px] sm:text-[10.5px] font-bold tabular-nums text-foreground">
-                      {compactFmt(item.value)}
+                    <Amt value={item.value} size="2xs" />
+                    <span className="text-[clamp(6.5px,1.5vw,8.5px)] text-muted-foreground/80 tabular-nums">
+                      {pct}%
                     </span>
-                    <span className="text-[7.5px] sm:text-[8.5px] text-muted-foreground/80 tabular-nums">{pct}%</span>
                   </div>
                 );
               })}
@@ -521,11 +574,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
           {/* Chart 2: Sales vs Purchases (Line Chart) */}
           <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-2 sm:p-3 shadow-sm min-h-[175px] sm:min-h-[195px]">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center justify-between pb-1 gap-1">
+              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
                 {tr("Sales vs Purchases")}
               </span>
-              <span className="text-[10px] font-extrabold tabular-nums text-success">{k(perf.sales)}</span>
+              <Amt value={perf.sales} tone="good" size="xs" />
             </div>
             <div className="h-[95px] sm:h-[110px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -579,26 +632,24 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             <div className="grid grid-cols-2 gap-1 border-t border-border/60 pt-1 text-center">
               <div className="flex items-center justify-center gap-1 min-w-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                <span className="truncate text-[8.5px] sm:text-[10px] font-bold text-success">
-                  {tr("Sales")} {k(perf.sales)}
-                </span>
+                <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-success">{tr("Sales")}</span>
+                <Amt value={perf.sales} tone="good" size="2xs" />
               </div>
               <div className="flex items-center justify-center gap-1 min-w-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
-                <span className="truncate text-[8.5px] sm:text-[10px] font-bold text-destructive">
-                  {tr("Buy")} {k(t.purchases)}
-                </span>
+                <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-destructive">{tr("Buy")}</span>
+                <Amt value={t.purchases} tone="bad" size="2xs" />
               </div>
             </div>
           </div>
 
           {/* Chart 3: Receivables vs Payables (Radar Chart) */}
           <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-2 sm:p-3 shadow-sm min-h-[175px] sm:min-h-[195px]">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center justify-between pb-1 gap-1">
+              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
                 {tr("Credit & Debt")}
               </span>
-              <span className="text-[10px] font-extrabold tabular-nums text-foreground">{k(pos.receivables)}</span>
+              <Amt value={pos.receivables} size="xs" />
             </div>
             <div className="h-[95px] sm:h-[110px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -638,33 +689,32 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             <div className="grid grid-cols-2 gap-1 border-t border-border/60 pt-1 text-center">
               <div className="flex items-center justify-center gap-1 min-w-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#3b82f6] shrink-0" />
-                <span className="truncate text-[8.5px] sm:text-[10px] font-bold text-[#3b82f6]">
-                  {tr("Receivable")} {k(pos.receivables)}
+                <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-[#3b82f6]">
+                  {tr("Receivable")}
                 </span>
+                <Amt value={pos.receivables} size="2xs" className="text-[#3b82f6]" />
               </div>
               <div className="flex items-center justify-center gap-1 min-w-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#f59e0b] shrink-0" />
-                <span className="truncate text-[8.5px] sm:text-[10px] font-bold text-[#f59e0b]">
-                  {tr("Payable")} {k(pos.payables)}
+                <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-[#f59e0b]">
+                  {tr("Payable")}
                 </span>
+                <Amt value={pos.payables} size="2xs" className="text-[#f59e0b]" />
               </div>
             </div>
           </div>
 
           {/* Chart 4: Cash Flow (Doughnut Chart) */}
           <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-2 sm:p-3 shadow-sm min-h-[175px] sm:min-h-[195px]">
-            <div className="flex items-center justify-between pb-1">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="flex items-center justify-between pb-1 gap-1">
+              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
                 {tr("Cash Flow")}
               </span>
-              <span
-                className={cn(
-                  "text-[10px] font-extrabold tabular-nums",
-                  cashFlowData.net >= 0 ? "text-success" : "text-destructive",
+              <span className="inline-flex items-baseline gap-0.5">
+                {cashFlowData.net >= 0 && (
+                  <span className="text-success text-[clamp(8.5px,2vw,10.5px)] font-extrabold">+</span>
                 )}
-              >
-                {cashFlowData.net >= 0 ? "+" : ""}
-                {k(cashFlowData.net)}
+                <Amt value={cashFlowData.net} tone={cashFlowData.net >= 0 ? "good" : "bad"} size="xs" />
               </span>
             </div>
             <div className="relative h-[95px] sm:h-[110px] w-full">
@@ -696,30 +746,23 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-[8px] font-bold uppercase text-muted-foreground">{tr("Net")}</span>
-                <span
-                  className={cn(
-                    "text-[11px] font-extrabold tabular-nums",
-                    cashFlowData.net >= 0 ? "text-success" : "text-destructive",
-                  )}
-                >
-                  {compactFmt(cashFlowData.net)}
+                <span className="text-[clamp(7px,1.6vw,8.5px)] font-bold uppercase text-muted-foreground">
+                  {tr("Net")}
                 </span>
+                <Amt value={cashFlowData.net} tone={cashFlowData.net >= 0 ? "good" : "bad"} size="xs" />
               </div>
             </div>
             {/* Cash Flow Single-Row Legend */}
             <div className="grid grid-cols-2 gap-1 border-t border-border/60 pt-1 text-center">
               <div className="flex items-center justify-center gap-1 min-w-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
-                <span className="truncate text-[8.5px] sm:text-[10px] font-bold text-success">
-                  {tr("In")} {k(cashFlowData.inflow)}
-                </span>
+                <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-success">{tr("In")}</span>
+                <Amt value={cashFlowData.inflow} tone="good" size="2xs" />
               </div>
               <div className="flex items-center justify-center gap-1 min-w-0">
                 <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
-                <span className="truncate text-[8.5px] sm:text-[10px] font-bold text-destructive">
-                  {tr("Out")} {k(cashFlowData.outflow)}
-                </span>
+                <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-destructive">{tr("Out")}</span>
+                <Amt value={cashFlowData.outflow} tone="bad" size="2xs" />
               </div>
             </div>
           </div>
@@ -748,7 +791,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               color="var(--primary)"
               to="/contacts"
               label={tr("Receivables")}
-              value={k(pos.receivables)}
+              value={<Amt value={pos.receivables} size="xs" />}
             />
             {/* 3. Payables */}
             <AttentionBox
@@ -756,7 +799,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               color="var(--warning)"
               to="/contacts"
               label={tr("Payables")}
-              value={k(pos.payables)}
+              value={<Amt value={pos.payables} size="xs" />}
               tone={pos.payables > 0 ? "warn" : undefined}
             />
             {/* 4. Cash-up */}
@@ -899,7 +942,7 @@ function AttentionBox({
   icon: LucideIcon;
   color: string;
   label: string;
-  value: string;
+  value: ReactNode;
   tone?: "good" | "warn" | "bad" | undefined;
   to?: string;
 }) {
@@ -907,13 +950,13 @@ function AttentionBox({
     <div className="flex min-w-0 flex-col justify-between rounded-lg border border-border bg-card p-1.5 sm:p-2 shadow-sm transition-transform hover:scale-[1.01]">
       <div className="flex items-center gap-1 min-w-0">
         <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" style={{ color }} />
-        <span className="truncate text-[8.5px] sm:text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+        <span className="truncate text-[clamp(7.5px,2vw,10.5px)] font-bold uppercase tracking-wider text-muted-foreground">
           {label}
         </span>
       </div>
       <p
         className={cn(
-          "mt-1 truncate text-[10.5px] sm:text-xs md:text-sm font-extrabold tabular-nums",
+          "mt-1 truncate text-[clamp(9.5px,2.4vw,13px)] font-extrabold tabular-nums",
           tone === "good" && "text-success",
           tone === "warn" && "text-warning",
           tone === "bad" && "text-destructive",
