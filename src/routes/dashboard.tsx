@@ -210,11 +210,15 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
   // 2. Sales vs Purchases 7-Day Trend
   const salesPurchasesData = useMemo(() => {
-    const series = chartSeries(s, 7);
-    return series.map((pt) => ({
-      label: pt.label,
-      sales: pt.sales,
-      purchases: pt.purchases,
+    const start = new Date(); start.setHours(0, 0, 0, 0); start.setDate(start.getDate() - 6);
+    const range = { from: start.getTime(), to: Date.now() };
+    const sales = chartSeries(s, "sales", range, "Daily");
+    const purchases = chartSeries(s, "purchases", range, "Daily");
+    const labels = [...new Set([...sales, ...purchases].map((p) => p.label))];
+    return labels.map((label) => ({
+      label,
+      sales: sales.find((p) => p.label === label)?.value ?? 0,
+      purchases: purchases.find((p) => p.label === label)?.value ?? 0,
     }));
   }, [s]);
 
