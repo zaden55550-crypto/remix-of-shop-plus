@@ -518,37 +518,45 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           ))}
         </div>
 
-        {/* 3. FOUR FINANCIAL CHARTS GRID (Strict 2-columns on phone, 4 on desktop) */}
+              {/* 3. FOUR FINANCIAL CHARTS GRID (Strict 2-columns on phone, 4 on desktop) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2.5">
-          {/* Chart 1: Money Position (Pie with full-circle slice percentages) */}
+          {/* Chart 1: Money Position (Payment name + % inside slices, amount-only legend below) */}
           <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money Position")}</span>
               <span className="text-[9px] font-mono text-muted-foreground">{compactFmt(moneyPosition.total)}</span>
             </div>
 
-            <div className="h-28 sm:h-32 w-full my-1">
+            <div className="h-28 sm:h-32 w-full my-1 relative">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={moneyPosition.items}
+                    data={moneyPosition.total > 0 ? moneyPosition.items : [{ name: "None", value: 1, color: "var(--border)" }]}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
                     outerRadius="78%"
                     innerRadius="0%"
-                    paddingAngle={2}
+                    paddingAngle={moneyPosition.total > 0 ? 2 : 0}
                     labelLine={false}
-                    label={({ percent }) => (percent && percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : "")}
+                    label={({ name, percent }) => {
+                      if (moneyPosition.total <= 0 || !percent || percent < 0.08) return "";
+                      return `${name} ${(percent * 100).toFixed(0)}%`;
+                    }}
                   >
-                    {moneyPosition.items.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
+                    {(moneyPosition.total > 0 ? moneyPosition.items : [{ name: "None", value: 1, color: "var(--border)" }]).map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} fill={entry.color} opacity={moneyPosition.total > 0 ? 1 : 0.25} stroke="none" />
                     ))}
                   </Pie>
-                  <Tooltip content={<ChartTooltip money={money} />} />
+                  {moneyPosition.total > 0 && <Tooltip content={<ChartTooltip money={money} />} />}
                 </PieChart>
               </ResponsiveContainer>
+              {moneyPosition.total <= 0 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[8px] font-mono text-muted-foreground/60">{tr("No funds")}</span>
+                </div>
+              )}
             </div>
 
             {/* Bottom single-row amount-only legend */}
@@ -562,7 +570,87 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
           </div>
 
-          {/* Chart 2: Sales vs Purchases Trend */}
+          {/* Chart 2: Cash Flow Breakdown (Exchanged to 2nd position) */}
+          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
+              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Cash Flow")}</span>
+              <span
+                className={cn(
+                  "text-[9px] font-mono font-bold",
+                  cashFlowData.net >= 0 ? "text-emerald-500" : "text-rose-500",
+                )}
+              >
+                NET {compactFmt(cashFlowData.net)}
+              </span>
+            </div>
+
+            <div className="h-28 sm:h-32 w-full my-1 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={cashFlowData.items}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="50%"
+                    outerRadius="78%"
+                    paddingAngle={3}
+                    labelLine={false}
+                    label={({ percent }) => (percent && percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : "")}
+                  >
+                    {cashFlowData.items.map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<ChartTooltip money={money} />} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[7.5px] font-bold uppercase text-muted-foreground">NET</span>
+                <span className="text-[10px] font-mono font-extrabold text-foreground">
+                  {compactFmt(cashFlowData.net)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[8px] font-bold">
+              <span className="text-emerald-500">IN {compactFmt(cashFlowData.inflow)}</span>
+              <span className="text-rose-500">OUT {compactFmt(cashFlowData.outflow)}</span>
+            </div>
+          </div>
+
+          {/* Chart 3: Credit & Debt Exposure (Radar) */}
+          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
+              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Credit & Debt")}</span>
+              <div className="flex items-center gap-1.5 text-[8px] font-bold">
+                <span className="text-amber-500">● {tr("Recv")}</span>
+                <span className="text-rose-500">● {tr("Pay")}</span>
+              </div>
+            </div>
+
+            <div className="h-28 sm:h-32 w-full my-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={creditDebt.series} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
+                  <PolarGrid stroke="var(--border)" opacity={0.3} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 7, fill: "var(--muted-foreground)" }} />
+                  <Radar name="Receivables" dataKey="receivables" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.4} />
+                  <Radar name="Payables" dataKey="payables" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} />
+                  <Tooltip content={<ChartTooltip money={money} />} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[8px]">
+              <span className="text-muted-foreground">{tr("Ratio (Recv/Pay):")}</span>
+              <span className="font-mono font-bold text-foreground">
+                {creditDebt.payables > 0 ? (creditDebt.receivables / creditDebt.payables).toFixed(1) : "∞"}
+              </span>
+            </div>
+          </div>
+
+          {/* Chart 4: Sales vs Purchases Trend (Exchanged to 4th position) */}
           <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">
@@ -613,94 +701,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               </span>
             </div>
           </div>
-
-          {/* Chart 3: Credit & Debt Exposure (Radar) */}
-          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
-              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Credit & Debt")}</span>
-              <div className="flex items-center gap-1.5 text-[8px] font-bold">
-                <span className="text-amber-500">● {tr("Recv")}</span>
-                <span className="text-rose-500">● {tr("Pay")}</span>
-              </div>
-            </div>
-
-            <div className="h-28 sm:h-32 w-full my-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={creditDebt.series} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
-                  <PolarGrid stroke="var(--border)" opacity={0.3} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 7, fill: "var(--muted-foreground)" }} />
-                  <Radar name="Receivables" dataKey="receivables" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.4} />
-                  <Radar name="Payables" dataKey="payables" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} />
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[8px]">
-              <span className="text-muted-foreground">{tr("Ratio (Recv/Pay):")}</span>
-              <span className="font-mono font-bold text-foreground">
-                {creditDebt.payables > 0 ? (creditDebt.receivables / creditDebt.payables).toFixed(1) : "∞"}
-              </span>
-            </div>
-          </div>
-
-          {/* Chart 4: Cash Flow Breakdown */}
-          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
-              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Cash Flow")}</span>
-              <span
-                className={cn(
-                  "text-[9px] font-mono font-bold",
-                  cashFlowData.net >= 0 ? "text-emerald-500" : "text-rose-500",
-                )}
-              >
-                NET {compactFmt(cashFlowData.net)}
-              </span>
-            </div>
-
-            <div className="h-28 sm:h-32 w-full my-1 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={cashFlowData.items}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="50%"
-                    outerRadius="78%"
-                    paddingAngle={3}
-                    labelLine={false}
-                    label={({ percent }) => (percent && percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : "")}
-                  >
-                    {cashFlowData.items.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[7.5px] font-bold uppercase text-muted-foreground">NET</span>
-                <span className="text-[10px] font-mono font-extrabold text-foreground">
-                  {compactFmt(cashFlowData.net)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[8px]">
-              <span className="text-emerald-500 font-bold">IN {compactFmt(cashFlowData.inflow)}</span>
-              <span className="text-rose-500 font-bold">OUT {compactFmt(cashFlowData.outflow)}</span>
-            </div>
-          </div>
         </div>
-
-        {/* 4. NEEDS ATTENTION STRIP */}
-        <div className="rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-          <div className="flex items-center gap-1.5 pb-1.5 border-b border-border/40 dark:border-white/10">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
-          </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1.5">
             <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
