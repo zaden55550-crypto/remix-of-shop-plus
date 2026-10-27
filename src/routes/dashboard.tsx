@@ -54,14 +54,14 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-/** Compact number formatter for small screens */
+/** Compact number formatter: full numbers below 1M with commas, M for >=1M, B for >=1B */
 function compactFmt(n: number): string {
   if (typeof n !== "number" || isNaN(n) || Object.is(n, -0) || Math.abs(n) < 0.0001) return "0";
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
   if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (abs >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
-  return n.toLocaleString();
+  // Below 1 million: full number with commas (e.g. 999,000, 125,000, 4,500)
+  return Math.round(n).toLocaleString();
 }
 
 /** Formats shop name so long multi-word names stay on one line on small screens */
@@ -75,7 +75,7 @@ function formatHeaderShopName(name: string): string {
   return `${parts[0]!.toUpperCase()} ${parts[1]!.toUpperCase()}${parts.length > 2 ? ".." : ""}`;
 }
 
-/** Currency formatter component with scaled-down compact typography for tight spaces */
+/** Currency formatter component with screen-adaptive compact typography */
 function Amt({
   value,
   curr = "KSh",
@@ -99,30 +99,46 @@ function Amt({
           ? "text-amber-600 dark:text-amber-400"
           : "text-foreground";
 
+  // Automatically adapt font size if the figure is 6+ characters (e.g., 999,000)
+  const isLong = numStr.length >= 6;
   const numSize =
     size === "2xs"
-      ? "text-[9.5px]"
+      ? "text-[8.5px]"
       : size === "xs"
-        ? "text-[clamp(9.5px,2.4vw,12px)] sm:text-xs"
+        ? isLong
+          ? "text-[clamp(7.5px,1.9vw,10.5px)] sm:text-xs"
+          : "text-[clamp(8.5px,2.2vw,12px)] sm:text-xs"
         : size === "sm"
-          ? "text-xs sm:text-sm"
+          ? isLong
+            ? "text-[clamp(10px,2.4vw,12.5px)] sm:text-sm"
+            : "text-xs sm:text-sm"
           : size === "md"
             ? "text-sm sm:text-base"
             : "text-base sm:text-lg";
 
   const currSize =
     size === "2xs"
-      ? "text-[6.5px]"
+      ? "text-[6px]"
       : size === "xs"
-        ? "text-[7.5px] sm:text-[8px]"
+        ? isLong
+          ? "text-[6.5px] sm:text-[7.5px]"
+          : "text-[7px] sm:text-[8px]"
         : size === "sm"
-          ? "text-[8.5px] sm:text-[9.5px]"
-          : "text-[9.5px] sm:text-xs";
+          ? "text-[7.5px] sm:text-[8.5px]"
+          : "text-[8.5px] sm:text-xs";
 
   return (
-    <span className={cn("inline-flex items-baseline font-mono font-extrabold tracking-tight", toneClass, className)}>
+    <span
+      className={cn(
+        "inline-flex items-baseline font-mono font-extrabold tracking-tight truncate max-w-full",
+        toneClass,
+        className,
+      )}
+    >
       <span className={numSize}>{numStr}</span>
-      <span className={cn("ml-0.5 font-sans font-semibold text-muted-foreground/75 lowercase", currSize)}>{curr}</span>
+      <span className={cn("ml-0.5 font-sans font-semibold text-muted-foreground/75 lowercase shrink-0", currSize)}>
+        {curr}
+      </span>
     </span>
   );
 }
@@ -141,7 +157,7 @@ function ChartTooltip({
 }) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div className="rounded-xl border border-white/20 bg-slate-950/95 px-3 py-2 text-slate-100 shadow-2xl backdrop-blur-xl">
+    <div className="rounded-xl border border-white/20 bg-slate-900/95 p-2 shadow-2xl backdrop-blur-xl text-white z-50">
       {label && <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">{label}</div>}
       <div className="space-y-1">
         {payload.map((entry, i) => {
@@ -508,9 +524,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           ].map((kpi) => (
             <div
               key={kpi.label}
-              className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-2 py-1.5 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]"
+              className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden"
             >
-              <span className="truncate text-[clamp(7.5px,1.9vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none">
+              <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
                 {tr(kpi.label)}
               </span>
               <Amt value={kpi.value} tone={kpi.tone} size="xs" />
@@ -524,7 +540,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money Position")}</span>
-              <span className="text-[8.5px] font-mono text-muted-foreground">{compactFmt(moneyPosition.total)}</span>
+              <span className="text-[8px] sm:text-[8.5px] font-mono text-muted-foreground">
+                {compactFmt(moneyPosition.total)}
+              </span>
             </div>
 
             <div className="h-28 sm:h-32 w-full my-1 relative">
@@ -540,47 +558,38 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius="78%"
-                    innerRadius="0%"
-                    paddingAngle={moneyPosition.total > 0 ? 2 : 0}
+                    innerRadius={0}
+                    outerRadius="85%"
                     labelLine={false}
-                    label={({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) => {
-                      if (moneyPosition.total <= 0 || !percent || percent < 0.08) return null;
-                      const RADIAN = Math.PI / 180;
-                      const radius = Number(innerRadius) + (Number(outerRadius) - Number(innerRadius)) * 0.55;
-                      const x = Number(cx) + radius * Math.cos(-midAngle * RADIAN);
-                      const y = Number(cy) + radius * Math.sin(-midAngle * RADIAN);
-                      return (
-                        <text
-                          x={x}
-                          y={y}
-                          fill="#ffffff"
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          fontSize={7.5}
-                          fontWeight={700}
-                          className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]"
-                        >
-                          {`${name} ${(percent * 100).toFixed(0)}%`}
-                        </text>
-                      );
+                    label={(entry: any) => {
+                      if (moneyPosition.total <= 0 || !entry.value) return null;
+                      const percent = Math.round((entry.value / moneyPosition.total) * 100);
+                      if (percent < 7) return null;
+                      return `${entry.name} ${percent}%`;
                     }}
                   >
-                    {(moneyPosition.total > 0
-                      ? moneyPosition.items
-                      : [{ name: "None", value: 1, color: "var(--border)" }]
-                    ).map((entry, idx) => (
-                      <Cell
-                        key={`cell-${idx}`}
-                        fill={entry.color}
-                        opacity={moneyPosition.total > 0 ? 1 : 0.25}
-                        stroke="none"
-                      />
-                    ))}
+                    {moneyPosition.total > 0 ? (
+                      moneyPosition.items.map((entry, idx) => (
+                        <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
+                      ))
+                    ) : (
+                      <Cell fill="currentColor" className="text-muted/30" stroke="none" />
+                    )}
                   </Pie>
-                  {moneyPosition.total > 0 && <Tooltip content={<ChartTooltip money={money} />} />}
+                  <Tooltip content={<ChartTooltip money={money} />} />
                 </PieChart>
               </ResponsiveContainer>
+
+              {/* In-pie slice label font size override & placeholder */}
+              <style>{`
+                .recharts-pie-labels text {
+                  font-size: 7.5px !important;
+                  font-weight: 800 !important;
+                  fill: #ffffff !important;
+                  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+                }
+              `}</style>
+
               {moneyPosition.total <= 0 && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="text-[8px] font-mono text-muted-foreground/60">{tr("No funds")}</span>
@@ -588,12 +597,16 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               )}
             </div>
 
-            {/* Bottom single-row amount-only legend with reduced fonts */}
+            {/* Bottom single-row amount-only legend with reduced fluid fonts */}
             <div className="grid grid-cols-4 gap-0.5 pt-1 border-t border-border/40 dark:border-white/10 text-center">
               {moneyPosition.items.map((item) => (
-                <div key={item.name} className="flex flex-col items-center">
-                  <span className="text-[7px] font-bold text-muted-foreground truncate">{item.name}</span>
-                  <span className="text-[7.5px] font-mono font-extrabold text-foreground">{compactFmt(item.raw)}</span>
+                <div key={item.name} className="flex flex-col items-center min-w-0 overflow-hidden">
+                  <span className="text-[6.5px] sm:text-[7px] font-bold text-muted-foreground truncate w-full">
+                    {item.name}
+                  </span>
+                  <span className="text-[6.5px] sm:text-[7.5px] font-mono font-extrabold text-foreground truncate w-full">
+                    {compactFmt(item.raw)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -613,8 +626,8 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
             <div className="h-28 sm:h-32 w-full my-1">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendSeries} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                <LineChart data={trendSeries} margin={{ top: 6, right: 6, left: -22, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="var(--border)" opacity={0.3} />
                   <XAxis
                     dataKey="day"
                     stroke="var(--muted-foreground)"
@@ -663,10 +676,10 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
             <div className="h-28 sm:h-32 w-full my-1">
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={creditDebt.series} margin={{ top: 0, right: 10, left: 10, bottom: 0 }}>
+                <RadarChart data={creditDebt.series} margin={{ top: 4, right: 10, left: 10, bottom: 4 }}>
                   <PolarGrid stroke="var(--border)" opacity={0.3} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fontSize: 7, fill: "var(--muted-foreground)" }} />
-                  <Radar name="Receivables" dataKey="receivables" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.4} />
+                  <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--muted-foreground)", fontSize: 7.5 }} />
+                  <Radar name="Receivables" dataKey="receivables" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.3} />
                   <Radar name="Payables" dataKey="payables" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} />
                   <Tooltip content={<ChartTooltip money={money} />} />
                 </RadarChart>
@@ -674,9 +687,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
 
             <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7.5px]">
-              <span className="text-muted-foreground">{tr("Ratio (Recv/Pay):")}</span>
-              <span className="font-mono font-bold text-foreground">
-                {creditDebt.payables > 0 ? (creditDebt.receivables / creditDebt.payables).toFixed(1) : "∞"}
+              <span className="text-amber-500">
+                {tr("Recv:")} {compactFmt(creditDebt.receivables)}
+              </span>
+              <span className="text-rose-500">
+                {tr("Pay:")} {compactFmt(creditDebt.payables)}
               </span>
             </div>
           </div>
@@ -687,7 +702,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Cash Flow")}</span>
               <span
                 className={cn(
-                  "text-[8.5px] font-mono font-bold",
+                  "text-[8px] sm:text-[8.5px] font-mono font-bold",
                   cashFlowData.net >= 0 ? "text-emerald-500" : "text-rose-500",
                 )}
               >
@@ -705,10 +720,8 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     cx="50%"
                     cy="50%"
                     innerRadius="50%"
-                    outerRadius="78%"
-                    paddingAngle={3}
-                    labelLine={false}
-                    label={({ percent }) => (percent && percent > 0.08 ? `${(percent * 100).toFixed(0)}%` : "")}
+                    outerRadius="80%"
+                    stroke="none"
                   >
                     {cashFlowData.items.map((entry, idx) => (
                       <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
@@ -717,17 +730,17 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   <Tooltip content={<ChartTooltip money={money} />} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[7px] font-bold uppercase text-muted-foreground">NET</span>
-                <span className="text-[9.5px] font-mono font-extrabold text-foreground">
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-1">
+                <span className="text-[6.5px] sm:text-[7px] font-bold uppercase text-muted-foreground">NET</span>
+                <span className="text-[8.5px] sm:text-[9.5px] font-mono font-extrabold text-foreground truncate max-w-[85%]">
                   {compactFmt(cashFlowData.net)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7.5px] font-bold">
-              <span className="text-emerald-500">IN {compactFmt(cashFlowData.inflow)}</span>
-              <span className="text-rose-500">OUT {compactFmt(cashFlowData.outflow)}</span>
+            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7px] sm:text-[7.5px] font-bold">
+              <span className="text-emerald-500 truncate">IN {compactFmt(cashFlowData.inflow)}</span>
+              <span className="text-rose-500 truncate">OUT {compactFmt(cashFlowData.outflow)}</span>
             </div>
           </div>
         </div>
