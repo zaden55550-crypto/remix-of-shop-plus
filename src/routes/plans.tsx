@@ -115,7 +115,8 @@ function Plans() {
   };
 
   const plan = PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!;
-  const currentPrice = convertUsdToCurrency(yearly ? plan.yearlyUsd : plan.monthlyUsd, currency);
+  // Always USD, rounded to nearest whole dollar for yearly
+  const currentPrice = convertUsdToCurrency(yearly ? Math.round(plan.yearlyUsd) : plan.monthlyUsd, "USD");
 
   const startTrial = () => {
     store.update({ plan: "trial", trialStart: Date.now() });
@@ -297,7 +298,7 @@ function Plans() {
             </button>
           </div>
 
-          {/* ACTIVE PLAN SUMMARY BANNER */}
+          {/* ACTIVE PLAN SUMMARY BANNER WITH BOLD SUBSCRIPTION DETAILS */}
           <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/70 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-500">
@@ -306,12 +307,12 @@ function Plans() {
               <div>
                 <div className="text-xs font-bold text-foreground">
                   {plan.name} {tr("Plan")}
-                  <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                  <span className="text-[10px] font-bold text-muted-foreground ml-1">
                     · {yearly ? tr("Yearly") : tr("Monthly")} ·
                   </span>
                   <span className="text-xs font-black text-foreground ml-1">{currentPrice.formatted}</span>
                 </div>
-                <div className="text-[9.5px] text-muted-foreground">
+                <div className="text-[9.5px] font-bold text-muted-foreground">
                   {plan.shopsLimit} {plan.shopsLimit === 1 ? tr("Shop") : tr("Shops")} · {plan.warehousesLimit}{" "}
                   {plan.warehousesLimit === 1 ? tr("Warehouse") : tr("Warehouses")}
                 </div>
@@ -452,7 +453,7 @@ function Plans() {
               </div>
 
               {!canUseMpesa && (
-                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10.5px] text-amber-500 leading-tight">
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10.5px] text-amber-500 leading-tight font-semibold">
                   {tr(
                     "M-Pesa operates exclusively in Kenyan Shillings (KSh). For accounts denominated in other currencies or international locations, please settle via Card.",
                   )}
@@ -497,7 +498,7 @@ function Plans() {
                     </div>
                   </div>
 
-                  <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-[10px] text-muted-foreground flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-[10px] font-semibold text-muted-foreground flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>
                       {tr(
@@ -566,14 +567,14 @@ function Plans() {
               {/* TOTAL DUE & SUBMIT BUTTON */}
               <div className="pt-2 border-t border-border/60">
                 <div className="flex items-baseline justify-between mb-2 px-0.5">
-                  <span className="text-[11px] font-semibold text-muted-foreground">{tr("Total Due:")}</span>
+                  <span className="text-[11px] font-bold text-muted-foreground">{tr("Total Due:")}</span>
                   <span className="text-sm font-black text-foreground">{currentPrice.formatted}</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={handlePayNow}
-                  className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -608,7 +609,7 @@ function Plans() {
       <header className="shrink-0 flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
         <div className="flex items-center gap-2 min-w-0">
           <Wordmark className="text-xs sm:text-sm md:text-base font-black tracking-tight" />
-          <span className="hidden sm:inline-block text-[11px] text-muted-foreground truncate">
+          <span className="hidden sm:inline-block text-[11px] font-semibold text-muted-foreground truncate">
             — {tr("Unlock more features and grow your business with SHOPBOOK")}
           </span>
         </div>
@@ -677,7 +678,8 @@ function Plans() {
       <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 items-stretch my-1">
         {PLANS.map((p) => {
           const tColor = tone[p.id];
-          const priceObj = convertUsdToCurrency(yearly ? p.yearlyUsd : p.monthlyUsd, currency);
+          // Always USD, rounded to nearest whole dollar for yearly
+          const priceObj = convertUsdToCurrency(yearly ? Math.round(p.yearlyUsd) : p.monthlyUsd, "USD");
           const isPlus = p.id === "plus";
 
           return (
@@ -734,32 +736,34 @@ function Plans() {
 
                 <h3 className={cn("text-[10px] sm:text-sm md:text-base font-black truncate", tColor.text)}>{p.name}</h3>
 
-                {/* SUBTITLE */}
-                <p className="text-[7px] sm:text-[9.5px] text-muted-foreground line-clamp-1 mt-0.5 font-medium">
+                {/* SUBTITLE IN BOLD */}
+                <p className="text-[7px] sm:text-[9.5px] text-muted-foreground line-clamp-1 mt-0.5 font-bold">
                   {tr(p.subtitle)}
                 </p>
 
-                {/* PRICE ROW */}
+                {/* PRICE ROW IN BOLD */}
                 <div className="mt-1 flex items-baseline justify-center gap-0.5">
                   <span className="text-xs sm:text-base md:text-xl font-black text-foreground tracking-tight">
                     {priceObj.formatted}
                   </span>
-                  <span className="text-[7px] sm:text-[10px] text-muted-foreground font-medium">/{tr("mo")}</span>
+                  <span className="text-[7px] sm:text-[10px] text-muted-foreground font-bold">
+                    /{yearly ? tr("yr") : tr("mo")}
+                  </span>
                 </div>
 
-                {/* CAPACITY PILL */}
+                {/* CAPACITY PILL IN BOLD */}
                 <div className="mt-1 flex justify-center">
-                  <span className="px-1.5 py-0.5 rounded-full text-[6.5px] sm:text-[8.5px] font-semibold bg-muted/60 text-muted-foreground border border-border/50 whitespace-nowrap">
+                  <span className="px-1.5 py-0.5 rounded-full text-[6.5px] sm:text-[8.5px] font-bold bg-muted/60 text-muted-foreground border border-border/50 whitespace-nowrap">
                     {p.shopsLimit} {p.shopsLimit === 1 ? tr("Shop") : tr("Shops")} | {p.warehousesLimit}{" "}
                     {p.warehousesLimit === 1 ? tr("Warehouse") : tr("Warehouses")}
                   </span>
                 </div>
               </div>
 
-              {/* FEATURES LIST (EXPANDED TO FILL FULL HEIGHT TO THE BUTTON) */}
+              {/* FEATURES LIST IN BOLD (EXPANDED TO FILL FULL HEIGHT TO THE BUTTON) */}
               <div className="flex-1 my-1 sm:my-2 flex flex-col justify-between overflow-hidden min-h-0">
                 {p.intro && (
-                  <p className="text-[7px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5 mb-0.5 shrink-0">
+                  <p className="text-[7px] sm:text-[9px] font-black text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5 mb-0.5 shrink-0">
                     {tr(p.intro)}
                   </p>
                 )}
@@ -767,10 +771,10 @@ function Plans() {
                   {p.features.map((f, idx) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-1 text-[7px] sm:text-[9px] md:text-[9.5px] leading-tight"
+                      className="flex items-start gap-1 text-[7px] sm:text-[9px] md:text-[9.5px] leading-tight font-bold"
                     >
                       <Check className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 mt-0.5", tColor.text)} />
-                      <span className="text-foreground/90 line-clamp-2">{tr(f)}</span>
+                      <span className="text-foreground line-clamp-2 font-bold">{tr(f)}</span>
                     </li>
                   ))}
                 </ul>
@@ -785,7 +789,7 @@ function Plans() {
                     setPaying(true);
                   }}
                   className={cn(
-                    "w-full h-6 sm:h-7.5 md:h-8 text-[7.5px] sm:text-[10px] md:text-xs font-semibold cursor-pointer shadow-sm",
+                    "w-full h-6 sm:h-7.5 md:h-8 text-[7.5px] sm:text-[10px] md:text-xs font-bold cursor-pointer shadow-sm",
                     tColor.btn,
                   )}
                 >
@@ -803,7 +807,7 @@ function Plans() {
         <button
           type="button"
           onClick={startTrial}
-          className="w-full h-8 sm:h-9 text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white shadow-md shadow-emerald-600/30 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          className="w-full h-8 sm:h-9 text-xs sm:text-sm font-black bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white shadow-md shadow-emerald-600/30 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <span>{tr("Start with 30-day free trial")}</span>
           <ArrowRight className="h-3.5 w-3.5" />
