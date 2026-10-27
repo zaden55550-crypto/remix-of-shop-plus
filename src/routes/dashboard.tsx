@@ -703,7 +703,10 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           </div>
         </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1.5">
+        {/* 4. NEEDS ATTENTION */}
+        <div className="rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+          <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
+          <div className="grid grid-cols-4 gap-1.5 pt-1.5">
             <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
               <span className="text-[10px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
               <span
