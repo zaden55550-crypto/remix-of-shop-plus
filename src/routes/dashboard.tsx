@@ -1,954 +1,818 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, type ReactNode } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
-  AlertTriangle,
+  ArrowRight,
   Building2,
-  CalendarDays,
+  Check,
+  CheckCircle2,
   ChevronLeft,
-  Download,
-  Package,
-  Receipt,
-  ShoppingCart,
-  Users,
-  Wallet,
-  type LucideIcon,
+  CreditCard,
+  RotateCcw,
+  Smartphone,
+  Store,
+  X,
 } from "lucide-react";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
-} from "recharts";
-import { ReceiptSheet, moneyFor, useAccount } from "@/components/shopbook/selling";
-import { useErp } from "@/components/shopbook/product-search";
-import { useLanguage } from "@/hooks/use-language";
-import { performance, position } from "@/lib/summary";
-import { floatBalances, purchaseTotals } from "@/lib/finance";
-import { profitAndLoss } from "@/lib/accounting";
-import { ConnectionStatus } from "@/components/shopbook/connection-status";
-import { METHOD_LABEL, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
-import { chartSeries } from "@/lib/chart-data";
+import { toast } from "sonner";
+import { ShopButton } from "@/components/ui/shop-button";
+import { Wordmark } from "@/components/shopbook/ui";
+import { PLANS, store, type PlanId } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
+import { convertUsdToCurrency } from "@/lib/world-data";
+import { useLanguage } from "@/hooks/use-language";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/plans")({
   head: () => ({
     meta: [
-      { title: "Dashboard — SHOPBOOK" },
-      { name: "description", content: "Executive retail & business overview" },
-      { property: "og:title", content: "Dashboard — SHOPBOOK" },
-      { property: "og:description", content: "Executive retail & business overview" },
+      { title: "Subscription Plans — SHOPBOOK ERP" },
+      { name: "description", content: "Choose the SHOPBOOK ERP plan that fits your business." },
+      { property: "og:title", content: "Subscription Plans — SHOPBOOK ERP" },
+      { property: "og:description", content: "Transparent pricing for African small and medium businesses." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Dashboard,
+  component: Plans,
 });
 
-/** Compact number formatter for small screens */
-function compactFmt(n: number): string {
-  if (typeof n !== "number" || isNaN(n)) return "0";
-  const abs = Math.abs(n);
-  if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
-  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  if (abs >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "k";
-  return n.toLocaleString();
-}
+// African mobile money networks: Only Safaricom M-Pesa is active. All others are Coming Soon.
+const MOBILE_NETWORKS = [
+  { id: "safaricom", name: "Safaricom M-Pesa", country: "Kenya", active: true },
+  { id: "airtel_ke", name: "Airtel Money (Kenya)", country: "Kenya", active: false },
+  { id: "evc_plus", name: "EVC Plus / Hormuud", country: "Somalia", active: false },
+  { id: "zaad", name: "Zaad / Telesom", country: "Somalia", active: false },
+  { id: "sahal", name: "Sahal / Golis", country: "Somalia", active: false },
+  { id: "mtn_ug", name: "MTN MoMo (Uganda)", country: "Uganda", active: false },
+  { id: "airtel_ug", name: "Airtel Money (Uganda)", country: "Uganda", active: false },
+  { id: "mpesa_tz", name: "Vodacom M-Pesa (Tanzania)", country: "Tanzania", active: false },
+  { id: "airtel_tz", name: "Airtel Money (Tanzania)", country: "Tanzania", active: false },
+  { id: "telebirr", name: "Telebirr (Ethiopia)", country: "Ethiopia", active: false },
+  { id: "mtn_rw", name: "MTN Mobile Money (Rwanda)", country: "Rwanda", active: false },
+];
 
-/** Fluid amount with subscript currency tag */
-function Amt({
-  value,
-  curr,
-  tone,
-  size = "sm",
-  className,
-}: {
-  value: number;
-  curr?: string;
-  tone?: "good" | "warn" | "bad" | undefined;
-  size?: "2xs" | "xs" | "sm" | "md" | "lg";
-  className?: string;
-}) {
-  const numStr = compactFmt(value);
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
-      : tone === "bad"
-        ? "text-rose-600 dark:text-rose-400"
-        : tone === "warn"
-          ? "text-amber-600 dark:text-amber-400"
-          : "text-foreground";
+function Plans() {
+  const nav = useNavigate();
+  const { tr, dir } = useLanguage();
 
-  const sizeClass = {
-    "2xs": "text-[clamp(8px,1.8vw,10px)]",
-    xs: "text-[clamp(9.5px,2.2vw,12px)]",
-    sm: "text-[clamp(11px,2.6vw,14px)]",
-    md: "text-[clamp(13px,3vw,16px)]",
-    lg: "text-[clamp(16px,3.8vw,20px)]",
-  }[size];
+  const [yearly, setYearly] = useState(false);
+  const [chosenPlanId, setChosenPlanId] = useState<PlanId>("plus");
+  const [paying, setPaying] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
-  const subSizeClass = {
-    "2xs": "text-[7px]",
-    xs: "text-[7.5px]",
-    sm: "text-[8.5px]",
-    md: "text-[9.5px]",
-    lg: "text-[11px]",
-  }[size];
+  const acct = store.get();
+  const currency = (acct?.currency || "KSH").toUpperCase();
+  const countryCode = (acct?.country || "KEN").toUpperCase();
 
-  return (
-    <span
-      className={cn(
-        "inline-flex items-baseline font-mono font-bold tracking-tight tabular-nums",
-        toneClass,
-        sizeClass,
-        className,
-      )}
-    >
-      <span>{numStr}</span>
-      {curr && (
-        <span
-          className={cn(
-            "ml-0.5 font-sans font-medium text-muted-foreground/75 uppercase tracking-normal",
-            subSizeClass,
+  // Strict check: Safaricom M-Pesa is ONLY available for Kenya (+254) in KSh
+  const isKenya = countryCode === "KEN" || countryCode === "KENYA";
+  const isKsh = currency === "KSH";
+  const canUseMpesa = isKenya && isKsh;
+
+  // If user is from another country or uses non-KSh currency, enforce Card only
+  const [method, setMethod] = useState<"mobile" | "card">(canUseMpesa ? "mobile" : "card");
+  const [mobileNetwork, setMobileNetwork] = useState("safaricom");
+
+  // Mobile Money phone is strictly locked to Kenya (+254)
+  const [phone, setPhone] = useState("+254 ");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+
+  // Payment execution state
+  const [payStatus, setPayStatus] = useState<"idle" | "stk_waiting" | "processing" | "success">("idle");
+  const [processStep, setProcessStep] = useState(1);
+  const [, setConfirmedDate] = useState("");
+  const [stkSecondsLeft, setStkSecondsLeft] = useState(45);
+
+  useEffect(() => {
+    if (!canUseMpesa && method === "mobile") {
+      setMethod("card");
+    }
+  }, [canUseMpesa, method]);
+
+  useEffect(() => {
+    if (canUseMpesa && acct?.phone) {
+      const clean = acct.phone.trim();
+      if (clean.startsWith("+254")) {
+        const withoutCode = clean.slice(4).trim().replace(/^0+/, "");
+        setPhone(`+254 ${withoutCode}`);
+      } else {
+        const withoutZero = clean.replace(/^0+/, "").replace(/\D/g, "");
+        setPhone(`+254 ${withoutZero}`);
+      }
+    } else {
+      setPhone("+254 ");
+    }
+  }, [canUseMpesa, acct?.phone]);
+
+  // Restrict phone input so user cannot delete the mandatory +254 prefix
+  const handlePhoneChange = (inputVal: string) => {
+    let raw = inputVal;
+    if (!raw.startsWith("+254")) {
+      raw = "+254 " + raw.replace(/^\+?\d*/, "").trim();
+    }
+    const rest = raw.slice(4).replace(/^[ \t0]+/, "");
+    setPhone(`+254 ${rest}`);
+  };
+
+  const plan = PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!;
+  // Pricing strictly formatted in USD ($), with yearly rounded to nearest whole dollar
+  const currentPrice = convertUsdToCurrency(yearly ? Math.round(plan.yearlyUsd) : plan.monthlyUsd, "USD");
+
+  const startTrial = () => {
+    store.update({ plan: "trial", trialStart: Date.now() });
+    toast.success(tr("30-day free trial activated! Welcome to SHOPBOOK ERP."));
+    nav({ to: "/apps" });
+  };
+
+  const tone: Record<PlanId, { text: string; ring: string; border: string; bg: string; btn: string }> = {
+    basic: {
+      text: "text-emerald-500",
+      ring: "ring-emerald-500/20",
+      border: "border-emerald-500/30",
+      bg: "bg-emerald-500/10",
+      btn: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30",
+    },
+    plus: {
+      text: "text-blue-500",
+      ring: "ring-blue-500/30",
+      border: "border-blue-500/40",
+      bg: "bg-blue-500/10",
+      btn: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30",
+    },
+    business: {
+      text: "text-amber-500",
+      ring: "ring-amber-500/20",
+      border: "border-amber-500/30",
+      bg: "bg-amber-500/10",
+      btn: "bg-amber-500 hover:bg-amber-400 text-black font-extrabold shadow-amber-500/30 border border-amber-300/40",
+    },
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (payStatus === "stk_waiting" && stkSecondsLeft > 0) {
+      timer = setInterval(() => {
+        setStkSecondsLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [payStatus, stkSecondsLeft]);
+
+  // Payment workflow with automatic instant redirection to /apps
+  const runPaymentWorkflow = (sourceName?: string) => {
+    setPayStatus("processing");
+    setProcessStep(1);
+
+    setTimeout(() => setProcessStep(2), 500);
+    setTimeout(() => setProcessStep(3), 1100);
+    setTimeout(() => {
+      setProcessStep(4);
+      setConfirmedDate(
+        new Date().toLocaleDateString("en-US", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }),
+      );
+      store.update({ plan: chosenPlanId });
+      const label = sourceName || method.toUpperCase();
+      toast.success(tr(`Payment confirmed via ${label}! ${plan.name} plan is now active.`));
+
+      setTimeout(() => {
+        nav({ to: "/apps" });
+      }, 700);
+    }, 1800);
+  };
+
+  const handlePayNow = () => {
+    if (method === "mobile") {
+      if (!canUseMpesa) {
+        toast.error(tr("Mobile Money (M-Pesa) settles exclusively in Kenya (+254 / KSh). Please pay with Card."));
+        setMethod("card");
+        return;
+      }
+
+      const activeNet = MOBILE_NETWORKS.find((n) => n.id === mobileNetwork);
+      if (!activeNet?.active) {
+        toast.info(tr("Direct integration for this network is coming soon. Please choose Safaricom M-Pesa or Card."));
+        return;
+      }
+
+      // Strict Kenyan Mobile Number Validation (+254 7XX... or +254 1XX...)
+      const digits = phone.replace(/\D/g, "");
+      const localPart = digits.startsWith("254") ? digits.slice(3) : digits;
+
+      if (
+        !digits.startsWith("254") ||
+        localPart.length !== 9 ||
+        (!localPart.startsWith("7") && !localPart.startsWith("1"))
+      ) {
+        toast.error(
+          tr(
+            "Safaricom M-Pesa requires a valid 9-digit Kenyan mobile number starting with 07... or 01... (+254). For international numbers, please use Card.",
+          ),
+        );
+        return;
+      }
+
+      setStkSecondsLeft(45);
+      setPayStatus("stk_waiting");
+
+      setTimeout(() => {
+        runPaymentWorkflow("SAFARICOM M-PESA");
+      }, 2500);
+    } else if (method === "card") {
+      const cleanCard = cardNumber.replace(/\s/g, "");
+      if (cleanCard.length < 15) {
+        toast.error(tr("Enter a valid 16-digit card number"));
+        return;
+      }
+      if (cardExpiry.length < 5) {
+        toast.error(tr("Enter valid card expiry (MM/YY)"));
+        return;
+      }
+      if (cardCvc.length < 3) {
+        toast.error(tr("Enter CVV security code"));
+        return;
+      }
+      runPaymentWorkflow("CARD");
+    }
+  };
+
+  const handleResendStk = () => {
+    setStkSecondsLeft(45);
+    toast.success(tr(`Fresh STK push prompt resent to ${phone.trim()}`));
+  };
+
+  const handleRestorePurchases = () => {
+    setRestoring(true);
+    setTimeout(() => {
+      setRestoring(false);
+      toast.info(tr("No previous active subscription found for this account."));
+    }, 1200);
+  };
+
+  // =========================================================================
+  // VIEW: PAYMENT WORKFLOW SCREENS
+  // =========================================================================
+  if (paying) {
+    return (
+      <main
+        dir={dir}
+        className="min-h-screen w-full bg-background text-foreground flex flex-col items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      >
+        <div className="w-full max-w-md bg-card/95 border border-border/80 rounded-2xl shadow-2xl p-4 sm:p-5 relative backdrop-blur-md">
+          {/* HEADER ROW */}
+          <div className="flex items-center justify-between pb-3 border-b border-border/60">
+            <button
+              type="button"
+              onClick={() => {
+                setPaying(false);
+                setPayStatus("idle");
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>{tr("Back")}</span>
+            </button>
+            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-foreground">
+              {tr("Complete Subscription")}
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setPaying(false);
+                setPayStatus("idle");
+              }}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* ACTIVE PLAN SUMMARY BANNER */}
+          <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/70 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-500">
+                <Store className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-foreground">
+                  {plan.name} {tr("Plan")}
+                  <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                    · {yearly ? tr("Yearly") : tr("Monthly")} ·
+                  </span>
+                  <span className="text-xs font-black text-foreground ml-1">{currentPrice.formatted}</span>
+                </div>
+                <div className="text-[9.5px] text-muted-foreground">
+                  {plan.shopsLimit} {plan.shopsLimit === 1 ? tr("Shop") : tr("Shops")} · {plan.warehousesLimit}{" "}
+                  {plan.warehousesLimit === 1 ? tr("Warehouse") : tr("Warehouses")}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPaying(false)}
+              className="text-[10px] font-bold text-blue-500 hover:text-blue-400 cursor-pointer"
+            >
+              {tr("Change >")}
+            </button>
+          </div>
+
+          {/* STK PUSH WAITING STATE */}
+          {payStatus === "stk_waiting" ? (
+            <div className="my-5 text-center space-y-3">
+              <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 flex items-center justify-center animate-pulse text-emerald-500">
+                <Smartphone className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-foreground">{tr("Check your phone")}</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                  {tr("Enter your Safaricom M-Pesa PIN on")} <span className="font-bold text-foreground">{phone}</span>{" "}
+                  {tr("to authorize payment of")}{" "}
+                  <span className="font-bold text-foreground">{currentPrice.formatted}</span>.
+                </p>
+              </div>
+
+              <div className="py-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted/60 text-[11px] font-mono text-muted-foreground border border-border/70">
+                  <span>{tr("Waiting for PIN authorization...")}</span>
+                  <span className="font-bold text-foreground">{stkSecondsLeft}s</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResendStk}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-muted/80 hover:bg-muted text-foreground cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  <span>{tr("Resend Prompt")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayStatus("idle")}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  {tr("Cancel")}
+                </button>
+              </div>
+            </div>
+          ) : payStatus === "processing" ? (
+            /* PROCESSING 4-STEP VERIFICATION STATE */
+            <div className="my-6 text-center space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+              <div>
+                <h3 className="text-sm font-bold text-foreground">{tr("Authorizing Payment...")}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {tr("Securing direct ledger confirmation and provisioning your business seat.")}
+                </p>
+              </div>
+
+              <div className="space-y-1.5 text-left max-w-xs mx-auto text-xs">
+                {[
+                  tr("Contacting payment gateway"),
+                  tr("Validating mobile money transaction PIN"),
+                  tr("Confirming funds reservation"),
+                  tr("Activating SHOPBOOK ERP workspace"),
+                ].map((stepText, idx) => {
+                  const stepNum = idx + 1;
+                  const isDone = processStep > stepNum;
+                  const isCurrent = processStep === stepNum;
+
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      {isDone ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      ) : isCurrent ? (
+                        <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin shrink-0" />
+                      ) : (
+                        <div className="h-3.5 w-3.5 rounded-full border border-border/80 shrink-0" />
+                      )}
+                      <span
+                        className={cn(
+                          "text-[11px]",
+                          isDone
+                            ? "text-foreground font-semibold"
+                            : isCurrent
+                              ? "text-blue-500 font-bold"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        {stepText}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* STANDARD PAYMENT FORM (M-PESA / CARD) */
+            <div className="mt-4 space-y-3.5">
+              {/* PAYMENT METHOD SELECTOR TABS */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-muted/50 border border-border/70">
+                <button
+                  type="button"
+                  disabled={!canUseMpesa}
+                  onClick={() => setMethod("mobile")}
+                  className={cn(
+                    "h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5",
+                    !canUseMpesa
+                      ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                      : method === "mobile"
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-extrabold cursor-pointer"
+                        : "text-muted-foreground hover:text-foreground cursor-pointer",
+                  )}
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                  <span>{tr("Mobile Money")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMethod("card")}
+                  className={cn(
+                    "h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                    method === "card"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-extrabold"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <CreditCard className="h-3.5 w-3.5" />
+                  <span>{tr("Card")}</span>
+                </button>
+              </div>
+
+              {!canUseMpesa && (
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10.5px] text-amber-500 leading-tight">
+                  {tr(
+                    "M-Pesa operates exclusively in Kenyan Shillings (KSh). For accounts denominated in other currencies or international locations, please settle via Card.",
+                  )}
+                </div>
+              )}
+
+              {/* METHOD BODY */}
+              {method === "mobile" ? (
+                <div className="space-y-3 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {tr("Select African Network")}
+                    </label>
+                    <select
+                      value={mobileNetwork}
+                      onChange={(e) => setMobileNetwork(e.target.value)}
+                      className="w-full h-9 rounded-xl border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    >
+                      {MOBILE_NETWORKS.map((net) => (
+                        <option key={net.id} value={net.id} disabled={!net.active}>
+                          {net.name} {net.active ? `(${tr("Active")})` : `(${tr("Coming soon")})`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {tr("Phone Number (Kenya +254)")}
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="w-24 h-9 rounded-xl border border-border/80 bg-muted/40 px-2.5 flex items-center justify-center text-xs font-bold text-foreground shrink-0 select-none">
+                        +254 (Kenya)
+                      </div>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        placeholder="+254 7XX XXX XXX"
+                        className="flex-1 h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-[10px] text-muted-foreground flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>
+                      {tr(
+                        "An instant Safaricom STK PIN prompt will be sent directly to your phone to authorize settlement.",
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                      {tr("Card Number")}
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={19}
+                      value={cardNumber}
+                      onChange={(e) => {
+                        const v = e.target.value
+                          .replace(/\D/g, "")
+                          .replace(/(.{4})/g, "$1 ")
+                          .trim();
+                        setCardNumber(v);
+                      }}
+                      placeholder="•••• •••• •••• ••••"
+                      className="w-full h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                        {tr("Expiry (MM/YY)")}
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={5}
+                        value={cardExpiry}
+                        onChange={(e) => {
+                          let v = e.target.value.replace(/\D/g, "");
+                          if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2, 4)}`;
+                          setCardExpiry(v);
+                        }}
+                        placeholder="MM/YY"
+                        className="w-full h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                        {tr("CVV / CVC")}
+                      </label>
+                      <input
+                        type="password"
+                        maxLength={4}
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, ""))}
+                        placeholder="•••"
+                        className="w-full h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TOTAL DUE & SUBMIT BUTTON */}
+              <div className="pt-2 border-t border-border/60">
+                <div className="flex items-baseline justify-between mb-2 px-0.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground">{tr("Total Due:")}</span>
+                  <span className="text-sm font-black text-foreground">{currentPrice.formatted}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePayNow}
+                  className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={startTrial}
+                    className="text-[10px] font-bold text-emerald-500 hover:text-emerald-400 cursor-pointer"
+                  >
+                    {tr("Use 30-day free trial instead")}
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
-        >
-          {curr}
-        </span>
-      )}
-    </span>
-  );
-}
+        </div>
+      </main>
+    );
+  }
 
-/** High-contrast, crystal-clear chart detail popover on click / tap */
-function ChartTooltip({ active, payload, label, money }: any) {
-  if (!active || !payload || !payload.length) return null;
+  // =========================================================================
+  // VIEW: MAIN RESPONSIVE PLANS COMPARISON (3 EQUAL COLUMNS ON ALL SCREENS)
+  // =========================================================================
   return (
-    <div className="rounded-xl border border-white/20 bg-slate-950/95 dark:bg-slate-900/95 text-white backdrop-blur-xl px-2.5 py-1.5 shadow-2xl z-50 pointer-events-none">
-      {label && (
-        <div className="text-[10px] font-bold text-slate-300 pb-0.5 border-b border-white/10 mb-1">{label}</div>
-      )}
-      <div className="flex flex-col gap-1">
-        {payload.map((entry: any, i: number) => {
-          const val = typeof entry.value === "number" ? entry.value : 0;
-          const name = entry.name || entry.dataKey || "";
-          const color = entry.color || entry.payload?.fill || entry.stroke || "#10B981";
+    <main
+      dir={dir}
+      className="h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col justify-between p-2 sm:p-3 md:p-4 max-w-7xl mx-auto overflow-hidden select-none"
+    >
+      {/* 1. TOP HEADER WITH RESTORE PURCHASES AND CLOSE */}
+      <header className="shrink-0 flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <Wordmark className="text-xs sm:text-sm md:text-base font-black tracking-tight" />
+          <span className="hidden sm:inline-block text-[11px] text-muted-foreground truncate">
+            — {tr("Unlock more features and grow your business with SHOPBOOK")}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleRestorePurchases}
+            disabled={restoring}
+            className="text-[10px] sm:text-xs font-bold text-blue-500 hover:text-blue-400 cursor-pointer disabled:opacity-50"
+          >
+            {restoring ? tr("Checking...") : tr("Restore Purchases")}
+          </button>
+          <button
+            type="button"
+            onClick={() => nav({ to: "/apps" })}
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+            title={tr("Close")}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* 2. BILLING CYCLE TOGGLE IN SOLID EMERALD GREEN */}
+      <div className="flex justify-center shrink-0 my-0.5 sm:my-1">
+        <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-muted/60 border border-border/80 shadow-inner w-full max-w-xs sm:max-w-sm justify-between">
+          <button
+            type="button"
+            onClick={() => setYearly(false)}
+            className={cn(
+              "flex-1 px-3 py-1 text-[10px] sm:text-xs font-bold rounded-full transition-all cursor-pointer text-center",
+              !yearly
+                ? "bg-emerald-600 text-white font-extrabold shadow-md shadow-emerald-600/30"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tr("Monthly")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setYearly(true)}
+            className={cn(
+              "flex-1 px-3 py-1 text-[10px] sm:text-xs font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1",
+              yearly
+                ? "bg-emerald-600 text-white font-extrabold shadow-md shadow-emerald-600/30"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <span>{tr("Yearly")}</span>
+            <span
+              className={cn(
+                "text-[8.5px] sm:text-[9.5px] font-extrabold uppercase px-1.5 py-0.2 rounded-full border transition-colors",
+                yearly
+                  ? "bg-white/20 text-white border-white/30"
+                  : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+              )}
+            >
+              {tr("Save 10%")}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* 3. THREE PLANS CARDS GRID (ELEVATED 3D HOVER, BOLDER BORDERS, STRICT 3-COLUMN) */}
+      <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 items-stretch my-1">
+        {PLANS.map((p) => {
+          const tColor = tone[p.id];
+          // Pricing strictly formatted in USD ($), with yearly rounded to nearest whole dollar ($119 / $238 / $432)
+          const priceObj = convertUsdToCurrency(yearly ? Math.round(p.yearlyUsd) : p.monthlyUsd, "USD");
+          const isPlus = p.id === "plus";
+
           return (
-            <div key={i} className="flex items-center gap-1.5 text-xs font-bold">
-              <span className="h-2 w-2 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: color }} />
-              <span className="text-slate-200">{name}:</span>
-              <span className="font-mono text-emerald-400 font-extrabold">{money ? money(val) : compactFmt(val)}</span>
+            <div
+              key={p.id}
+              onClick={() => {
+                setChosenPlanId(p.id);
+                setPaying(true);
+              }}
+              className={cn(
+                "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer overflow-visible text-left min-h-0",
+                "hover:scale-[1.04] hover:-translate-y-1.5 hover:z-40 hover:shadow-2xl",
+                isPlus
+                  ? "bg-card/90 shadow-xl border-blue-500/80 hover:border-blue-400 hover:shadow-blue-500/30 z-20"
+                  : p.id === "business"
+                    ? "bg-card/75 shadow-md border-border/70 hover:border-amber-400 hover:shadow-amber-500/30 z-10"
+                    : "bg-card/75 shadow-md border-border/70 hover:border-emerald-400 hover:shadow-emerald-500/20 z-10",
+              )}
+            >
+              {/* TOP BADGES */}
+              {p.recommended && (
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[9px] font-extrabold uppercase tracking-wider bg-blue-600 text-white shadow-md shadow-blue-600/40 border border-blue-400/40 whitespace-nowrap">
+                    {tr("RECOMMENDED")}
+                  </span>
+                </div>
+              )}
+              {p.best && (
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[9px] font-extrabold uppercase tracking-wider bg-amber-500 text-black shadow-md shadow-amber-500/40 border border-amber-300 whitespace-nowrap">
+                    {tr("BEST")}
+                  </span>
+                </div>
+              )}
+
+              {/* CARD HEADER */}
+              <div className="text-center pt-0.5 sm:pt-1 shrink-0">
+                {/* ICON BADGE */}
+                <div className="flex justify-center mb-1">
+                  <div
+                    className={cn(
+                      "p-1 sm:p-1.5 rounded-lg border flex items-center justify-center",
+                      tColor.bg,
+                      tColor.border,
+                    )}
+                  >
+                    {p.id === "business" ? (
+                      <Building2 className={cn("h-3 w-3 sm:h-4 sm:w-4", tColor.text)} />
+                    ) : (
+                      <Store className={cn("h-3 w-3 sm:h-4 sm:w-4", tColor.text)} />
+                    )}
+                  </div>
+                </div>
+
+                <h3 className={cn("text-[10px] sm:text-sm md:text-base font-black truncate", tColor.text)}>{p.name}</h3>
+
+                {/* SUBTITLE */}
+                <p className="text-[7px] sm:text-[9.5px] text-muted-foreground line-clamp-1 mt-0.5 font-medium">
+                  {tr(p.subtitle)}
+                </p>
+
+                {/* PRICE ROW */}
+                <div className="mt-1 flex items-baseline justify-center gap-0.5">
+                  <span className="text-xs sm:text-base md:text-xl font-black text-foreground tracking-tight">
+                    {priceObj.formatted}
+                  </span>
+                  <span className="text-[7px] sm:text-[10px] text-muted-foreground font-medium">
+                    /{yearly ? tr("yr") : tr("mo")}
+                  </span>
+                </div>
+
+                {/* CAPACITY PILL */}
+                <div className="mt-1 flex justify-center">
+                  <span className="px-1.5 py-0.5 rounded-full text-[6.5px] sm:text-[8.5px] font-semibold bg-muted/60 text-muted-foreground border border-border/50 whitespace-nowrap">
+                    {p.shopsLimit} {p.shopsLimit === 1 ? tr("Shop") : tr("Shops")} | {p.warehousesLimit}{" "}
+                    {p.warehousesLimit === 1 ? tr("Warehouse") : tr("Warehouses")}
+                  </span>
+                </div>
+              </div>
+
+              {/* FEATURES LIST (EXPANDED TO FILL FULL HEIGHT TO THE BUTTON) */}
+              <div className="flex-1 my-1 sm:my-2 flex flex-col justify-between overflow-hidden min-h-0">
+                {p.intro && (
+                  <p className="text-[7px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5 mb-0.5 shrink-0">
+                    {tr(p.intro)}
+                  </p>
+                )}
+                <ul className="flex-1 flex flex-col justify-evenly py-0.5 min-h-0">
+                  {p.features.map((f, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-start gap-1 text-[7px] sm:text-[9px] md:text-[9.5px] leading-tight"
+                    >
+                      <Check className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 mt-0.5", tColor.text)} />
+                      <span className="text-foreground/90 line-clamp-2">{tr(f)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* ACTION BUTTON */}
+              <div className="shrink-0 pt-1">
+                <ShopButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChosenPlanId(p.id);
+                    setPaying(true);
+                  }}
+                  className={cn(
+                    "w-full h-6 sm:h-7.5 md:h-8 text-[7.5px] sm:text-[10px] md:text-xs font-semibold cursor-pointer shadow-sm",
+                    tColor.btn,
+                  )}
+                >
+                  <span>{tr(`Continue with ${p.name}`)}</span>
+                  <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1" />
+                </ShopButton>
+              </div>
             </div>
           );
         })}
       </div>
-    </div>
-  );
-}
 
-/** Full Circle Pie slice label: displays payment method name + percentage on the slice */
-const renderMoneySliceLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
-  if (!percent || percent < 0.07) return null;
-  const RADIAN = Math.PI / 180;
-  const radius = (outerRadius - innerRadius) * 0.58;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="#ffffff"
-      textAnchor="middle"
-      dominantBaseline="central"
-      fontSize={8.5}
-      fontWeight="bold"
-      className="select-none pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
-    >
-      <tspan x={x} dy="-4.5">
-        {name}
-      </tspan>
-      <tspan x={x} dy="10.5">{`${Math.round(percent * 100)}%`}</tspan>
-    </text>
-  );
-};
-
-/** Donut slice percentage label */
-const renderDonutSlicePercent = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-  if (!percent || percent < 0.08) return null;
-  const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.55;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="#ffffff"
-      textAnchor="middle"
-      dominantBaseline="central"
-      fontSize={8.5}
-      fontWeight="bold"
-      className="select-none pointer-events-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
-    >
-      {`${Math.round(percent * 100)}%`}
-    </text>
-  );
-};
-
-function DashboardView({ account }: { account: NonNullable<ReturnType<typeof useAccount>> }) {
-  const rawState = useErp();
-  const navigate = useNavigate();
-  const { tr } = useLanguage();
-  const money = moneyFor(account.currency);
-
-  const [dateRangeOffset, setDateRangeOffset] = useState(0);
-  const [showCalendarPopover, setShowCalendarPopover] = useState(false);
-  const [showShopMenu, setShowShopMenu] = useState(false);
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
-
-  // Defensive normalization against undefined collections or corrupted state
-  const s: ErpState = useMemo(() => {
-    const base = empty();
-    const raw = (rawState ?? {}) as Partial<ErpState>;
-    const out = { ...base } as Record<string, unknown>;
-    for (const k of Object.keys(base) as (keyof ErpState)[]) {
-      const v = raw[k];
-      if (Array.isArray(base[k])) out[k] = Array.isArray(v) ? v : [];
-      else out[k] = v && typeof v === "object" ? v : base[k];
-    }
-    return out as ErpState;
-  }, [rawState]);
-
-  // Financial summary metrics calculated safely
-  const perf = performance(s, dateRangeOffset);
-  const pos = position(s);
-  const t = purchaseTotals(s, dateRangeOffset);
-  const pnl = profitAndLoss(s, dateRangeOffset);
-  const floats = floatBalances(s);
-
-  // 1. Money Position Data
-  const moneyPositionData = useMemo(() => {
-    const cash = floats?.cash ?? 0;
-    const mpesa = floats?.mpesa ?? 0;
-    const bank = floats?.bank ?? 0;
-    const credit = (s.customers || []).reduce((sum, c) => sum + (c?.balance || 0), 0);
-    const total = Math.max(0, cash) + Math.max(0, mpesa) + Math.max(0, bank) + Math.max(0, credit);
-
-    return {
-      total,
-      items: [
-        { name: "Cash", value: Math.max(0, cash), color: "#10B981" },
-        { name: "M-Pesa", value: Math.max(0, mpesa), color: "#06B6D4" },
-        { name: "Bank", value: Math.max(0, bank), color: "#3B82F6" },
-        { name: "Credit", value: Math.max(0, credit), color: "#F59E0B" },
-      ],
-    };
-  }, [floats, s.customers]);
-
-  // 2. Sales vs Purchases Trend
-  const salesPurchasesData = useMemo(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - 6);
-    const range = { from: start.getTime(), to: Date.now() };
-
-    const sales = chartSeries(s, "sales", range, "Daily");
-    const purchases = chartSeries(s, "purchases", range, "Daily");
-    const labels = [...new Set([...(sales || []), ...(purchases || [])].map((p) => p.label))];
-
-    return labels.map((label) => ({
-      label,
-      sales: sales?.find((p) => p.label === label)?.value ?? 0,
-      purchases: purchases?.find((p) => p.label === label)?.value ?? 0,
-    }));
-  }, [s]);
-
-  // 3. Receivables vs Payables Radar Data
-  const radarData = useMemo(() => {
-    const customers = s.customers || [];
-    const suppliers = s.suppliers || [];
-    const receivables = customers.reduce((acc, c) => acc + (c?.balance && c.balance > 0 ? c.balance : 0), 0);
-    const payables = suppliers.reduce((acc, sup) => acc + (sup?.balance && sup.balance > 0 ? sup.balance : 0), 0);
-    const customerCount = customers.filter((c) => (c?.balance || 0) > 0).length;
-    const supplierCount = suppliers.filter((sup) => (sup?.balance || 0) > 0).length;
-    const avgRec = customerCount > 0 ? receivables / customerCount : 0;
-    const avgPay = supplierCount > 0 ? payables / supplierCount : 0;
-
-    return {
-      receivables,
-      payables,
-      series: [
-        { subject: tr("Total Bal"), receivables, payables },
-        { subject: tr("Accounts"), receivables: customerCount * 1000, payables: supplierCount * 1000 },
-        { subject: tr("Avg / Acct"), receivables: avgRec, payables: avgPay },
-        { subject: tr("Exposure"), receivables: receivables * 0.8, payables: payables * 0.8 },
-      ],
-    };
-  }, [s.customers, s.suppliers, tr]);
-
-  // 4. Cash Flow Breakdown (Inflow vs Outflow)
-  const cashFlowData = useMemo(() => {
-    const inflow = perf?.sales ?? 0;
-    const outflow = (t?.purchases ?? 0) + ((pnl?.expenses ?? 0) + (pnl?.salaries ?? 0));
-    const net = inflow - outflow;
-    return {
-      inflow,
-      outflow,
-      net,
-      items: [
-        { name: "Inflow", value: Math.max(0, inflow), color: "#10B981" },
-        { name: "Outflow", value: Math.max(0, outflow), color: "#EF4444" },
-      ],
-    };
-  }, [perf?.sales, t?.purchases, pnl?.expenses, pnl?.salaries]);
-
-  // Needs Attention Counts
-  const attention = useMemo(() => {
-    const products = s.products || [];
-    const customers = s.customers || [];
-    const suppliers = s.suppliers || [];
-    const cash = s.cash || [];
-
-    const lowStockCount = products.filter((p) => (p?.qty ?? 0) <= (p?.minStock ?? 5)).length;
-    const receivablesCount = customers.filter((c) => (c?.balance || 0) > 0).length;
-    const payablesCount = suppliers.filter((sup) => (sup?.balance || 0) > 0).length;
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const hasCashedUp = cash.some(
-      (c) => c?.type === "CASH UP" && c?.at && new Date(c.at).toISOString().slice(0, 10) === todayStr,
-    );
-
-    return {
-      lowStock: lowStockCount,
-      receivables: receivablesCount,
-      payables: payablesCount,
-      cashedUp: hasCashedUp,
-    };
-  }, [s.products, s.customers, s.suppliers, s.cash]);
-
-  // Dynamic Date Display
-  const dateRangeLabel = useMemo(() => {
-    if (dateRangeOffset === 0) return tr("Today");
-    if (dateRangeOffset === 1) return tr("Yesterday");
-    return `${dateRangeOffset} ${tr("days ago")}`;
-  }, [dateRangeOffset, tr]);
-
-  // Initials for avatar
-  const shopInitials = useMemo(() => {
-    const name = account?.shopName || "Shop";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
-    return name.slice(0, 2).toUpperCase();
-  }, [account?.shopName]);
-
-  return (
-    <div className="relative min-h-dvh w-full overflow-x-hidden bg-background font-sans text-foreground pb-6">
-      {/* Background Ambient Orbs (Soft Peach in Light, Navy in Dark) */}
-      <div className="pointer-events-none fixed -top-40 -left-40 h-96 w-96 rounded-full bg-primary/10 dark:bg-blue-600/10 blur-3xl" />
-      <div className="pointer-events-none fixed top-1/3 -right-40 h-96 w-96 rounded-full bg-accent/15 dark:bg-purple-600/10 blur-3xl" />
-      <div className="pointer-events-none fixed -bottom-40 left-1/3 h-96 w-96 rounded-full bg-primary/10 dark:bg-emerald-600/10 blur-3xl" />
-
-      {/* 1. HEADER (Strict Single Row, Top-Left: Arrow -> Dashboard -> Online, Hairline Border) */}
-      <header className="sticky top-0 z-30 w-full border-b-[0.5px] border-border/40 dark:border-white/10 bg-card/85 dark:bg-background/80 backdrop-blur-xl px-2.5 sm:px-4 py-2 transition-colors">
-        <div className="flex items-center justify-between gap-1 sm:gap-3 w-full">
-          {/* Top Left: Arrow -> App Name ("Dashboard") -> Online pill */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Link
-              to="/apps"
-              className="flex items-center gap-1 rounded-lg px-1.5 py-1 text-foreground/90 hover:bg-muted dark:hover:bg-white/10 hover:text-foreground transition-all shrink-0"
-              title={tr("Back to Apps")}
-            >
-              <ChevronLeft className="h-4 w-4 shrink-0" />
-              <span className="text-[clamp(11px,2.6vw,13px)] font-bold tracking-tight text-foreground">
-                {tr("Dashboard")}
-              </span>
-            </Link>
-            <div className="shrink-0 scale-90 sm:scale-95">
-              <ConnectionStatus />
-            </div>
-          </div>
-
-          {/* Center: Shop Name in All-Capitals with Subtitle */}
-          <div className="flex flex-col items-center justify-center text-center min-w-0 mx-auto px-1">
-            <h1 className="truncate text-[clamp(11px,2.8vw,15px)] font-black uppercase tracking-wider text-foreground">
-              {account?.shopName || "SHOPBOOK ERP"}
-            </h1>
-            <span className="truncate text-[clamp(8px,1.8vw,9.5px)] font-medium text-muted-foreground tracking-tight">
-              {tr("Retail Shop")}
-            </span>
-          </div>
-
-          {/* Right Elements: Calendar Popover + Shop Logo/Avatar */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Calendar Date Range Popover */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowCalendarPopover(!showCalendarPopover)}
-                className="flex items-center gap-1 rounded-full border-[0.5px] border-border/60 dark:border-white/10 bg-card dark:bg-white/5 px-2.5 py-1 text-[clamp(9px,2vw,11px)] font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs backdrop-blur-md transition-all"
-                title={tr("Select Date Range")}
-              >
-                <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                <span>{dateRangeLabel}</span>
-              </button>
-
-              {showCalendarPopover && (
-                <div className="absolute right-0 mt-2 z-50 w-44 rounded-xl border-[0.5px] border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
-                  <div className="flex items-center justify-between border-b border-border/60 dark:border-white/10 pb-1 mb-1 px-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {tr("Time Range")}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowCalendarPopover(false)}
-                      className="text-[10px] text-muted-foreground hover:text-foreground"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  {[
-                    { label: tr("Today"), offset: 0 },
-                    { label: tr("Yesterday"), offset: 1 },
-                    { label: tr("Last 7 Days"), offset: 7 },
-                    { label: tr("Last 30 Days"), offset: 30 },
-                  ].map((item) => (
-                    <button
-                      key={item.offset}
-                      type="button"
-                      onClick={() => {
-                        setDateRangeOffset(item.offset);
-                        setShowCalendarPopover(false);
-                      }}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors",
-                        dateRangeOffset === item.offset
-                          ? "bg-primary text-primary-foreground font-bold"
-                          : "text-foreground hover:bg-muted dark:hover:bg-white/10",
-                      )}
-                    >
-                      <span>{item.label}</span>
-                      {dateRangeOffset === item.offset && <span className="text-xs">✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Shop Logo/Avatar */}
-            <div className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowShopMenu(!showShopMenu)}
-                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-primary/50 bg-primary/20 text-xs font-black text-foreground shadow-sm hover:scale-105 active:scale-95 transition-all overflow-hidden"
-                title={account?.shopName || "Profile"}
-              >
-                {account?.logo ? (
-                  <img src={account.logo} alt={account.shopName} className="h-full w-full object-cover" />
-                ) : (
-                  <span>{shopInitials}</span>
-                )}
-              </button>
-
-              {showShopMenu && (
-                <div className="absolute right-0 mt-2 z-50 w-48 rounded-xl border-[0.5px] border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
-                  <div className="px-2 py-1.5 border-b border-border/60 dark:border-white/10 mb-1">
-                    <p className="text-xs font-bold text-foreground truncate">{account?.shopName}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{account?.email || account?.phone}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowShopMenu(false);
-                      navigate({ to: "/settings" });
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-muted dark:hover:bg-white/10"
-                  >
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{tr("Business Profile")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowShopMenu(false);
-                      navigate({ to: "/reports" });
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-muted dark:hover:bg-white/10"
-                  >
-                    <Download className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{tr("Export Reports")}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* 2. MAIN DASHBOARD CONTENT */}
-      <main className="w-full px-2 sm:px-4 md:px-6 pt-2.5 sm:pt-3 space-y-2 sm:space-y-3">
-        {/* KPI ROW: Compact without artificial height gaps, hairline borders */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-2">
-          {[
-            { label: "Sales", value: perf?.sales ?? 0, tone: "good" as const },
-            { label: "Purchases", value: t?.purchases ?? 0, tone: "bad" as const },
-            { label: "Expenses", value: (pnl?.expenses ?? 0) + (pnl?.salaries ?? 0), tone: "warn" as const },
-            {
-              label: "Profit",
-              value: pnl?.net ?? 0,
-              tone: (pnl?.net ?? 0) >= 0 ? ("good" as const) : ("bad" as const),
-            },
-            { label: "Stock Value", value: pos?.stock ?? 0, tone: undefined },
-          ].map((kpi) => (
-            <div
-              key={kpi.label}
-              className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-2 py-1.5 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]"
-            >
-              <span className="truncate text-[clamp(7.5px,1.9vw,9.5px)] font-bold uppercase tracking-wider text-muted-foreground leading-none">
-                {tr(kpi.label)}
-              </span>
-              <Amt value={kpi.value} tone={kpi.tone} size="xs" />
-            </div>
-          ))}
-        </div>
-
-        {/* 3. FOUR FINANCIAL CHARTS GRID (Strict 2-Column on Phone, Hairline Borders, High-Contrast Tooltips) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2.5 md:gap-3">
-          {/* Chart 1: Money Position (Full Circle Pie with Slice Labels & Single Row Legend Below) */}
-          <div className="flex flex-col justify-between rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-h-[185px] sm:min-h-[205px]">
-            <div className="flex items-center justify-between pb-1 gap-1">
-              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
-                {tr("Money Position")}
-              </span>
-              <Amt value={moneyPositionData.total} size="xs" />
-            </div>
-
-            {/* Full Circle Pie Chart with name + percentage on slices */}
-            <div className="h-[105px] sm:h-[120px] w-full shrink-0 my-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={moneyPositionData.items}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={0}
-                    outerRadius="82%"
-                    paddingAngle={2}
-                    isAnimationActive={false}
-                    label={renderMoneySliceLabel}
-                    labelLine={false}
-                  >
-                    {moneyPositionData.items.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Single Row Below: Cash, M-Pesa, Bank, Credit with Amount (No Percentages) */}
-            <div className="grid grid-cols-4 gap-0.5 sm:gap-1 w-full pt-1.5 border-t-[0.5px] border-border/30 dark:border-white/5">
-              {moneyPositionData.items.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex flex-col items-center justify-center text-center min-w-0"
-                  title={`${tr(item.name)}: ${money(item.value)}`}
-                >
-                  <div className="flex items-center gap-1 min-w-0 truncate max-w-full">
-                    <span className="h-1.5 w-1.5 rounded-full shrink-0 shadow-xs" style={{ background: item.color }} />
-                    <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-semibold text-muted-foreground">
-                      {tr(item.name)}
-                    </span>
-                  </div>
-                  <Amt value={item.value} size="2xs" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chart 2: Sales vs Purchases Line Chart */}
-          <div className="flex flex-col justify-between rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-h-[185px] sm:min-h-[205px]">
-            <div className="flex items-center justify-between pb-1 gap-1">
-              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
-                {tr("Sales vs Purchases")}
-              </span>
-              <div className="flex items-center gap-1.5 shrink-0 text-[clamp(8px,1.6vw,9.5px)] font-semibold">
-                <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  {tr("Sales")}
-                </span>
-                <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                  {tr("Purchases")}
-                </span>
-              </div>
-            </div>
-
-            <div className="h-[105px] sm:h-[120px] w-full my-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesPurchasesData} margin={{ top: 6, right: 6, left: -22, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--border)" strokeOpacity={0.3} strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    stroke="var(--muted-foreground)"
-                    fontSize={8.5}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="var(--muted-foreground)"
-                    fontSize={8.5}
-                    tickFormatter={(v) => compactFmt(v)}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                  <Line
-                    type="monotone"
-                    dataKey="sales"
-                    name={tr("Sales")}
-                    stroke="#10B981"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="purchases"
-                    name={tr("Purchases")}
-                    stroke="#EF4444"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex items-center justify-between text-[clamp(7.5px,1.8vw,9.5px)] pt-1 border-t-[0.5px] border-border/30 dark:border-white/5">
-              <span className="text-muted-foreground">{tr("Period Total")}</span>
-              <div className="flex items-center gap-1.5">
-                <Amt value={perf?.sales ?? 0} tone="good" size="2xs" />
-                <span className="text-muted-foreground">/</span>
-                <Amt value={t?.purchases ?? 0} tone="bad" size="2xs" />
-              </div>
-            </div>
-          </div>
-
-          {/* Chart 3: Receivables vs Payables (Radar Chart) */}
-          <div className="flex flex-col justify-between rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-h-[185px] sm:min-h-[205px]">
-            <div className="flex items-center justify-between pb-1 gap-1">
-              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
-                {tr("Credit & Debt")}
-              </span>
-              <div className="flex items-center gap-1.5 shrink-0 text-[clamp(8px,1.6vw,9.5px)] font-semibold">
-                <span className="flex items-center gap-0.5 text-amber-600 dark:text-amber-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                  {tr("Owed")}
-                </span>
-                <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                  {tr("Owing")}
-                </span>
-              </div>
-            </div>
-
-            <div className="h-[105px] sm:h-[120px] w-full my-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData.series} margin={{ top: 4, right: 10, bottom: 4, left: 10 }}>
-                  <PolarGrid stroke="var(--border)" strokeOpacity={0.3} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--muted-foreground)", fontSize: 8 }} />
-                  <Radar
-                    name={tr("Receivables")}
-                    dataKey="receivables"
-                    stroke="#F59E0B"
-                    fill="#F59E0B"
-                    fillOpacity={0.3}
-                  />
-                  <Radar name={tr("Payables")} dataKey="payables" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} />
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex items-center justify-between text-[clamp(7.5px,1.8vw,9.5px)] pt-1 border-t-[0.5px] border-border/30 dark:border-white/5">
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">{tr("Rec:")}</span>
-                <Amt value={radarData.receivables} tone="warn" size="2xs" />
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">{tr("Pay:")}</span>
-                <Amt value={radarData.payables} tone="bad" size="2xs" />
-              </div>
-            </div>
-          </div>
-
-          {/* Chart 4: Cash Flow (Inflow vs Outflow Donut) */}
-          <div className="flex flex-col justify-between rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-h-[185px] sm:min-h-[205px]">
-            <div className="flex items-center justify-between pb-1 gap-1">
-              <span className="truncate text-[clamp(9px,2.2vw,11.5px)] font-bold uppercase tracking-wider text-muted-foreground">
-                {tr("Cash Flow")}
-              </span>
-              <div className="flex items-center gap-1">
-                <span className="text-[clamp(7.5px,1.6vw,9px)] font-bold text-muted-foreground">{tr("NET:")}</span>
-                <Amt value={cashFlowData.net} tone={cashFlowData.net >= 0 ? "good" : "bad"} size="2xs" />
-              </div>
-            </div>
-
-            <div className="h-[105px] sm:h-[120px] w-full my-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={cashFlowData.items}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius="48%"
-                    outerRadius="82%"
-                    paddingAngle={3}
-                    isAnimationActive={false}
-                    label={renderDonutSlicePercent}
-                    labelLine={false}
-                  >
-                    {cashFlowData.items.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex items-center justify-between text-[clamp(7.5px,1.8vw,9.5px)] pt-1 border-t-[0.5px] border-border/30 dark:border-white/5">
-              <div className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="text-muted-foreground">{tr("In:")}</span>
-                <Amt value={cashFlowData.inflow} tone="good" size="2xs" />
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                <span className="text-muted-foreground">{tr("Out:")}</span>
-                <Amt value={cashFlowData.outflow} tone="bad" size="2xs" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. NEEDS ATTENTION (Strict Single Horizontal Row of 4 Indicators, Hairline Borders) */}
-        <div>
-          <div className="flex items-center justify-between pb-1.5 px-0.5">
-            <span className="text-[clamp(10px,2.4vw,12px)] font-black uppercase tracking-wider text-foreground">
-              {tr("Needs Attention")}
-            </span>
-            <Link to="/inventory" className="text-[clamp(8.5px,1.8vw,10.5px)] font-bold text-primary hover:underline">
-              {tr("View All ›")}
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-4 gap-1 sm:gap-2">
-            {/* Box 1: Low Stock */}
-            <AttentionBox
-              to="/inventory"
-              icon={Package}
-              label={tr("Low Stock")}
-              badge={attention.lowStock > 0 ? `${attention.lowStock} ${tr("Items")}` : tr("Optimal")}
-              tone={attention.lowStock > 0 ? "warn" : "good"}
-            />
-
-            {/* Box 2: Receivables */}
-            <AttentionBox
-              to="/contacts"
-              icon={Users}
-              label={tr("Receivables")}
-              badge={attention.receivables > 0 ? `${attention.receivables} ${tr("Due")}` : tr("None")}
-              tone={attention.receivables > 0 ? "warn" : "good"}
-            />
-
-            {/* Box 3: Payables */}
-            <AttentionBox
-              to="/contacts"
-              icon={Building2}
-              label={tr("Payables")}
-              badge={attention.payables > 0 ? `${attention.payables} ${tr("Due")}` : tr("Settled")}
-              tone={attention.payables > 0 ? "bad" : "good"}
-            />
-
-            {/* Box 4: Cash-Up Done */}
-            <AttentionBox
-              to="/float"
-              icon={Wallet}
-              label={tr("Cash-up")}
-              badge={attention.cashedUp ? tr("Done") : tr("Pending")}
-              tone={attention.cashedUp ? "good" : "warn"}
-            />
-          </div>
-        </div>
-
-        {/* 5. RECENT ACTIVITY: Sales & Purchases meet in 2 columns on big screens, stacked on small screens */}
-        <div className="space-y-2 sm:space-y-3 pt-1">
-          {/* Side-by-side 2-column grid on desktop (md: and lg:), 1-column on phones */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-            {/* Recent Sales Table */}
-            <Section title={tr("Recent Sales")} to="/sales" icon={ShoppingCart}>
-              {(s.sales || []).slice(0, 5).map((sale) => (
-                <div
-                  key={sale.id}
-                  onClick={() => setSelectedSale(sale)}
-                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 cursor-pointer transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
-                >
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-bold truncate text-foreground">#{sale.id.slice(0, 8)}</span>
-                    <span className="text-[10px] text-muted-foreground truncate">
-                      {(s.customers || []).find((c) => c?.id === sale.customerId)?.name || tr("Walk-in")} •{" "}
-                      {sale?.at ? new Date(sale.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                    </span>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <Amt value={sale.total} size="xs" />
-                    <span className="block text-[9px] text-muted-foreground uppercase">
-                      {sale.pay
-                        ? METHOD_LABEL[(Object.keys(sale.pay) as Method[]).find((m) => sale.pay[m] > 0) ?? "cash"]
-                        : "cash"}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </Section>
-
-            {/* Recent Purchases Table */}
-            <Section title={tr("Recent Purchases")} to="/purchases" icon={Receipt}>
-              {(s.purchases || []).slice(0, 5).map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
-                >
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-bold truncate text-foreground">
-                      {(s.suppliers || []).find((v) => v?.id === p.supplierId)?.name || tr("Supplier")}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground truncate">
-                      {p?.at ? new Date(p.at).toLocaleDateString() : ""}
-                    </span>
-                  </div>
-                  <Amt value={p.total} tone="bad" size="xs" />
-                </div>
-              ))}
-            </Section>
-          </div>
-
-          {/* Money Transfers / Float Movements */}
-          <Section title={tr("Recent Cash Moves")} to="/float" icon={Wallet}>
-            {(s.cash || []).slice(0, 5).map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-muted/60 dark:hover:bg-white/5 transition-colors text-xs border-b-[0.5px] border-border/30 dark:border-white/5 last:border-none"
-              >
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold truncate text-foreground">{tr(c.type)}</span>
-                  <span className="text-[10px] text-muted-foreground truncate">
-                    {c.note ||
-                      (c?.at ? new Date(c.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "")}
-                  </span>
-                </div>
-                <Amt value={c.amount} tone={c.amount >= 0 ? "good" : "bad"} size="xs" />
-              </div>
-            ))}
-          </Section>
-        </div>
-      </main>
-
-      {/* Sale Receipt Modal */}
-      {selectedSale && (
-        <ReceiptSheet
-          onClose={() => setSelectedSale(null)}
-          sale={selectedSale}
-          s={s}
-          money={money}
-          tr={tr}
-          shop={account?.shopName || "SHOPBOOK"}
-        />
-      )}
-    </div>
-  );
-}
-
-function Section({
-  title,
-  to,
-  icon: Icon,
-  children,
-}: {
-  title: string;
-  to: string;
-  icon: LucideIcon;
-  children: ReactNode;
-}) {
-  const { tr } = useLanguage();
-  return (
-    <div className="rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2 border-b-[0.5px] border-border/30 dark:border-white/5 bg-muted/40 dark:bg-white/5">
-        <div className="flex items-center gap-1.5">
-          <Icon className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-bold text-foreground">{title}</span>
-        </div>
-        <Link to={to} className="text-[10px] font-bold text-primary hover:underline">
-          {tr("View ›")}
-        </Link>
+      {/* 4. BOTTOM TRIAL CTA IN SOLID EMERALD GREEN */}
+      <div className="shrink-0 pt-1">
+        <button
+          type="button"
+          onClick={startTrial}
+          className="w-full h-8 sm:h-9 text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white shadow-md shadow-emerald-600/30 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <span>{tr("Start with 30-day free trial")}</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
       </div>
-      <div className="p-1 space-y-0.5">{children}</div>
-    </div>
+    </main>
   );
-}
-
-function AttentionBox({
-  to,
-  icon: Icon,
-  label,
-  badge,
-  tone,
-}: {
-  to: string;
-  icon: LucideIcon;
-  label: string;
-  badge: string;
-  tone: "good" | "warn" | "bad";
-}) {
-  const navigate = useNavigate();
-  const toneBg =
-    tone === "good"
-      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-500/30"
-      : tone === "bad"
-        ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-500/30"
-        : "bg-amber-500/10 text-amber-600 dark:text-amber-300 border-amber-500/30";
-
-  return (
-    <button
-      type="button"
-      onClick={() => navigate({ to })}
-      className={cn(
-        "flex flex-col items-center justify-center rounded-xl border-[0.5px] p-1.5 sm:p-2 text-center backdrop-blur-xl transition-all hover:scale-[1.02] shadow-xs",
-        "border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65",
-      )}
-    >
-      <div className={cn("p-1 sm:p-1.5 rounded-lg border mb-1", toneBg)}>
-        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-      </div>
-      <span className="truncate text-[clamp(7.5px,1.8vw,9.5px)] font-bold text-muted-foreground w-full">{label}</span>
-      <span className={cn("truncate text-[clamp(8px,1.9vw,10.5px)] font-black w-full", toneBg.split(" ")[1])}>
-        {badge}
-      </span>
-    </button>
-  );
-}
-
-function Dashboard() {
-  const account = useAccount("basic");
-  if (!account) return null;
-  return <DashboardView account={account} />;
 }
