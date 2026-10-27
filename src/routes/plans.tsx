@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
+  Building2,
   Check,
   CheckCircle2,
   ChevronLeft,
@@ -123,10 +124,28 @@ function Plans() {
     nav({ to: "/apps" });
   };
 
-  const tone: Record<PlanId, { text: string; ring: string }> = {
-    basic: { text: "text-emerald-500", ring: "ring-emerald-500/20" },
-    plus: { text: "text-blue-500", ring: "ring-blue-500/30" },
-    business: { text: "text-amber-500", ring: "ring-amber-500/20" },
+  const tone: Record<PlanId, { text: string; ring: string; border: string; bg: string; btn: string }> = {
+    basic: {
+      text: "text-emerald-500",
+      ring: "ring-emerald-500/20",
+      border: "border-emerald-500/30",
+      bg: "bg-emerald-500/10",
+      btn: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30",
+    },
+    plus: {
+      text: "text-blue-500",
+      ring: "ring-blue-500/30",
+      border: "border-blue-500/40",
+      bg: "bg-blue-500/10",
+      btn: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30",
+    },
+    business: {
+      text: "text-amber-500",
+      ring: "ring-amber-500/20",
+      border: "border-amber-500/30",
+      bg: "bg-amber-500/10",
+      btn: "bg-amber-500 hover:bg-amber-400 text-black font-extrabold shadow-amber-500/30 border border-amber-300/40",
+    },
   };
 
   useEffect(() => {
@@ -248,218 +267,239 @@ function Plans() {
     return (
       <main
         dir={dir}
-        className="app-screen relative flex items-center justify-center p-2 sm:p-4"
-        style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
+        className="min-h-screen w-full bg-background text-foreground flex flex-col items-center justify-center p-3 sm:p-4 overflow-y-auto"
       >
-        {/* A. STK PUSH WAITING SCREEN */}
-        {payStatus === "stk_waiting" && (
-          <div className="w-full max-w-sm bg-card/95 border border-border/80 rounded-2xl p-5 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="relative">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 grid place-items-center">
-                <Smartphone className="h-8 w-8 text-emerald-500 animate-pulse" />
-              </div>
-              <div className="absolute -top-1 -right-1 bg-emerald-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow">
-                {stkSecondsLeft}s
-              </div>
-            </div>
-
-            <div>
-              <h2 className="text-base font-extrabold text-foreground">{tr("Check your phone")}</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                {tr("Safaricom STK PIN prompt sent to")} <strong className="text-foreground">{phone.trim()}</strong>
-              </p>
-            </div>
-
-            <div className="w-full bg-muted/50 rounded-xl p-3 border border-border/60 text-xs space-y-1.5 text-left">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Merchant:")}</span>
-                <span className="font-bold text-foreground">SHOPBOOK ERP</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Amount:")}</span>
-                <span className="font-extrabold text-foreground">{currentPrice.formatted}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">{tr("Status:")}</span>
-                <span className="text-emerald-500 font-semibold">{tr("Awaiting PIN...")}</span>
-              </div>
-            </div>
-
-            <div className="w-full space-y-2 pt-1">
-              <ShopButton
-                variant="ghost"
-                onClick={handleResendStk}
-                className="w-full h-8 text-xs font-semibold flex items-center justify-center gap-1.5"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span>{tr("Resend Prompt")}</span>
-              </ShopButton>
-
-              <button
-                type="button"
-                onClick={() => setPayStatus("idle")}
-                className="w-full text-center text-xs text-muted-foreground hover:text-foreground cursor-pointer py-1"
-              >
-                {tr("Cancel")}
-              </button>
-            </div>
+        <div className="w-full max-w-md bg-card/95 border border-border/80 rounded-2xl shadow-2xl p-4 sm:p-5 relative backdrop-blur-md">
+          {/* HEADER ROW */}
+          <div className="flex items-center justify-between pb-3 border-b border-border/60">
+            <button
+              type="button"
+              onClick={() => {
+                setPaying(false);
+                setPayStatus("idle");
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>{tr("Back")}</span>
+            </button>
+            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-foreground">
+              {tr("Complete Subscription")}
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setPaying(false);
+                setPayStatus("idle");
+              }}
+              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        )}
 
-        {/* B. PROCESSING SPINNER SCREEN */}
-        {payStatus === "processing" && (
-          <div className="w-full max-w-sm bg-card/95 border border-border/80 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in duration-200">
-            <div className="h-14 w-14 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-
-            <div>
-              <h2 className="text-base font-extrabold text-foreground">{tr("Confirming Payment...")}</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                {processStep === 1 && tr("Contacting settlement gateway...")}
-                {processStep === 2 && tr("Verifying payment authorization...")}
-                {processStep === 3 && tr("Activating subscription features...")}
-                {processStep === 4 && tr("Finalizing shop entitlements...")}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* C. CHECKOUT MODAL */}
-        {payStatus === "idle" && (
-          <div className="w-full max-w-md md:max-w-2xl bg-card/95 border border-border/80 rounded-2xl p-3 sm:p-5 shadow-2xl flex flex-col max-h-[96dvh] justify-between">
-            {/* 1. TOP HEADER & SUMMARY ROW */}
-            <div className="flex items-center justify-between shrink-0 pb-2 border-b border-border/60">
-              <button
-                type="button"
-                onClick={() => setPaying(false)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span>{tr("Back")}</span>
-              </button>
-              <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-foreground">
-                {tr("Complete Subscription")}
-              </h2>
-              <button
-                type="button"
-                onClick={() => nav({ to: "/apps" })}
-                aria-label="Close"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Selected Plan Summary Banner */}
-            <div className="flex items-center justify-between bg-muted/50 border border-border/70 rounded-xl px-3 py-2 my-2 shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 grid place-items-center shrink-0">
-                  <Store className="h-3.5 w-3.5 text-primary" />
+          {/* ACTIVE PLAN SUMMARY BANNER */}
+          <div className="mt-3 p-3 rounded-xl bg-muted/40 border border-border/70 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-500">
+                <Store className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-foreground">
+                  {plan.name} {tr("Plan")}
+                  <span className="text-[10px] font-normal text-muted-foreground ml-1">
+                    · {yearly ? tr("Yearly") : tr("Monthly")} ·
+                  </span>
+                  <span className="text-xs font-black text-foreground ml-1">{currentPrice.formatted}</span>
                 </div>
-                <div className="text-xs truncate">
-                  <span className="font-extrabold text-foreground mr-1.5">{plan.name} Plan</span>
-                  <span className="text-muted-foreground mr-1.5">· {yearly ? tr("Yearly") : tr("Monthly")} ·</span>
-                  <span className="font-extrabold text-foreground whitespace-nowrap">{currentPrice.formatted}</span>
+                <div className="text-[9.5px] text-muted-foreground">
+                  {plan.shopsLimit} {plan.shopsLimit === 1 ? tr("Shop") : tr("Shops")} · {plan.warehousesLimit}{" "}
+                  {plan.warehousesLimit === 1 ? tr("Warehouse") : tr("Warehouses")}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setPaying(false)}
-                className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors shrink-0 ml-2 cursor-pointer"
-              >
-                {tr("Change >")}
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setPaying(false)}
+              className="text-[10px] font-bold text-blue-500 hover:text-blue-400 cursor-pointer"
+            >
+              {tr("Change >")}
+            </button>
+          </div>
 
-            {/* 2. PAYMENT METHOD TABS (M-PESA STRICTLY FOR KENYA +254; CARD FOR ALL) */}
-            <div className="grid grid-cols-2 gap-2 shrink-0">
-              <button
-                type="button"
-                disabled={!canUseMpesa}
-                onClick={() => {
-                  if (canUseMpesa) setMethod("mobile");
-                  else
-                    toast.info(
-                      tr(
-                        "Mobile Money (M-Pesa) is currently available exclusively for Kenya (+254). Please pay with Card.",
-                      ),
-                    );
-                }}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all",
-                  method === "mobile" && canUseMpesa
-                    ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm cursor-pointer"
-                    : !canUseMpesa
-                      ? "bg-muted/40 border-border/40 text-muted-foreground/50 cursor-not-allowed opacity-60"
-                      : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground cursor-pointer",
-                )}
-              >
-                <Smartphone className="h-3.5 w-3.5 text-blue-400" />
-                <span>{tr("Mobile Money")}</span>
-                {!canUseMpesa && (
-                  <span className="text-[8.5px] uppercase text-amber-500/90 font-semibold ml-0.5">(+254 Only)</span>
-                )}
-              </button>
+          {/* STK PUSH WAITING STATE */}
+          {payStatus === "stk_waiting" ? (
+            <div className="my-5 text-center space-y-3">
+              <div className="mx-auto w-14 h-14 rounded-full bg-emerald-500/10 border-2 border-emerald-500/40 flex items-center justify-center animate-pulse text-emerald-500">
+                <Smartphone className="h-7 w-7" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-foreground">{tr("Check your phone")}</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
+                  {tr("Enter your Safaricom M-Pesa PIN on")} <span className="font-bold text-foreground">{phone}</span>{" "}
+                  {tr("to authorize payment of")}{" "}
+                  <span className="font-bold text-foreground">{currentPrice.formatted}</span>.
+                </p>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => setMethod("card")}
-                className={cn(
-                  "flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg border text-xs font-bold transition-all cursor-pointer",
-                  method === "card"
-                    ? "bg-blue-600/15 border-blue-500 text-foreground shadow-sm"
-                    : "bg-card/40 border-border/80 text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <CreditCard className="h-3.5 w-3.5 text-blue-400" />
-                <span>{tr("Card")}</span>
-              </button>
+              <div className="py-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-muted/60 text-[11px] font-mono text-muted-foreground border border-border/70">
+                  <span>{tr("Waiting for PIN authorization...")}</span>
+                  <span className="font-bold text-foreground">{stkSecondsLeft}s</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResendStk}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-muted/80 hover:bg-muted text-foreground cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  <span>{tr("Resend Prompt")}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPayStatus("idle")}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-border text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  {tr("Cancel")}
+                </button>
+              </div>
             </div>
+          ) : payStatus === "processing" ? (
+            /* PROCESSING 4-STEP VERIFICATION STATE */
+            <div className="my-6 text-center space-y-4">
+              <div className="mx-auto w-12 h-12 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+              <div>
+                <h3 className="text-sm font-bold text-foreground">{tr("Authorizing Payment...")}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {tr("Securing direct ledger confirmation and provisioning your business seat.")}
+                </p>
+              </div>
 
-            {/* 3. CONDITIONAL FORM FIELDS */}
-            <div className="flex-1 flex flex-col justify-center min-h-0 my-2">
-              {method === "mobile" && canUseMpesa ? (
-                <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
-                  {/* African Network Dropdown: Only Safaricom is active */}
+              <div className="space-y-1.5 text-left max-w-xs mx-auto text-xs">
+                {[
+                  tr("Contacting payment gateway"),
+                  tr("Validating mobile money transaction PIN"),
+                  tr("Confirming funds reservation"),
+                  tr("Activating SHOPBOOK ERP workspace"),
+                ].map((stepText, idx) => {
+                  const stepNum = idx + 1;
+                  const isDone = processStep > stepNum;
+                  const isCurrent = processStep === stepNum;
+
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      {isDone ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                      ) : isCurrent ? (
+                        <div className="h-3.5 w-3.5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin shrink-0" />
+                      ) : (
+                        <div className="h-3.5 w-3.5 rounded-full border border-border/80 shrink-0" />
+                      )}
+                      <span
+                        className={cn(
+                          "text-[11px]",
+                          isDone
+                            ? "text-foreground font-semibold"
+                            : isCurrent
+                              ? "text-blue-500 font-bold"
+                              : "text-muted-foreground",
+                        )}
+                      >
+                        {stepText}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            /* STANDARD PAYMENT FORM (M-PESA / CARD) */
+            <div className="mt-4 space-y-3.5">
+              {/* PAYMENT METHOD SELECTOR TABS */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-muted/50 border border-border/70">
+                <button
+                  type="button"
+                  disabled={!canUseMpesa}
+                  onClick={() => setMethod("mobile")}
+                  className={cn(
+                    "h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5",
+                    !canUseMpesa
+                      ? "opacity-40 cursor-not-allowed text-muted-foreground"
+                      : method === "mobile"
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-extrabold cursor-pointer"
+                        : "text-muted-foreground hover:text-foreground cursor-pointer",
+                  )}
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                  <span>{tr("Mobile Money")}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMethod("card")}
+                  className={cn(
+                    "h-8 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                    method === "card"
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-600/30 font-extrabold"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <CreditCard className="h-3.5 w-3.5" />
+                  <span>{tr("Card")}</span>
+                </button>
+              </div>
+
+              {!canUseMpesa && (
+                <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10.5px] text-amber-500 leading-tight">
+                  {tr(
+                    "M-Pesa operates exclusively in Kenyan Shillings (KSh). For accounts denominated in other currencies or international locations, please settle via Card.",
+                  )}
+                </div>
+              )}
+
+              {/* METHOD BODY */}
+              {method === "mobile" ? (
+                <div className="space-y-3 pt-1">
                   <div>
-                    <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                       {tr("Select African Network")}
                     </label>
                     <select
                       value={mobileNetwork}
                       onChange={(e) => setMobileNetwork(e.target.value)}
-                      className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+                      className="w-full h-9 rounded-xl border border-border/80 bg-background px-2.5 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                     >
                       {MOBILE_NETWORKS.map((net) => (
                         <option key={net.id} value={net.id} disabled={!net.active}>
-                          {net.name} {net.active ? `(${tr("Active")})` : `(${tr("Coming soon — Pay with Card")})`}
+                          {net.name} {net.active ? `(${tr("Active")})` : `(${tr("Coming soon")})`}
                         </option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Phone Input with LOCKED +254 Kenyan Dial Code */}
                   <div>
-                    <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                       {tr("Phone Number (Kenya +254)")}
                     </label>
-                    <div className="flex gap-1.5">
-                      <div className="h-8 px-2.5 rounded-lg border border-border bg-muted/50 text-foreground text-xs font-bold flex items-center justify-center shrink-0 select-none">
+                    <div className="flex gap-2">
+                      <div className="w-24 h-9 rounded-xl border border-border/80 bg-muted/40 px-2.5 flex items-center justify-center text-xs font-bold text-foreground shrink-0 select-none">
                         +254 (Kenya)
                       </div>
-
                       <input
                         type="tel"
                         value={phone}
                         onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder="+254 712 345 678"
-                        className="flex-1 min-w-0 h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                        placeholder="+254 7XX XXX XXX"
+                        className="flex-1 h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                       />
                     </div>
                   </div>
 
-                  {/* Safaricom STK Push Notice */}
-                  <div className="bg-muted/40 border border-border/60 rounded-lg p-2 text-[10.5px] text-muted-foreground flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                  <div className="p-2.5 rounded-xl bg-muted/30 border border-border/60 text-[10px] text-muted-foreground flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>
                       {tr(
                         "An instant Safaricom STK PIN prompt will be sent directly to your phone to authorize settlement.",
@@ -468,18 +508,9 @@ function Plans() {
                   </div>
                 </div>
               ) : (
-                /* Card Input Fields with International Notice */
-                <div className="space-y-2 bg-card/40 border border-border/60 rounded-xl p-3">
-                  {!canUseMpesa && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 text-[10.5px] text-amber-500 leading-snug">
-                      {tr(
-                        "Safaricom M-Pesa is currently exclusive to Kenya (+254). Direct mobile money for your region (e.g. Zaad, EVC Plus, MTN) is coming soon. Please settle your subscription securely via Card.",
-                      )}
-                    </div>
-                  )}
-
+                <div className="space-y-2.5 pt-1">
                   <div>
-                    <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                       {tr("Card Number")}
                     </label>
                     <input
@@ -487,20 +518,20 @@ function Plans() {
                       maxLength={19}
                       value={cardNumber}
                       onChange={(e) => {
-                        const val = e.target.value
+                        const v = e.target.value
                           .replace(/\D/g, "")
                           .replace(/(.{4})/g, "$1 ")
                           .trim();
-                        setCardNumber(val);
+                        setCardNumber(v);
                       }}
-                      placeholder="4000 1234 5678 9010"
-                      className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                      placeholder="•••• •••• •••• ••••"
+                      className="w-full h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                         {tr("Expiry (MM/YY)")}
                       </label>
                       <input
@@ -509,15 +540,15 @@ function Plans() {
                         value={cardExpiry}
                         onChange={(e) => {
                           let v = e.target.value.replace(/\D/g, "");
-                          if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2, 4);
+                          if (v.length > 2) v = `${v.slice(0, 2)}/${v.slice(2, 4)}`;
                           setCardExpiry(v);
                         }}
                         placeholder="MM/YY"
-                        className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                        className="w-full h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10.5px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
                         {tr("CVV / CVC")}
                       </label>
                       <input
@@ -525,78 +556,78 @@ function Plans() {
                         maxLength={4}
                         value={cardCvc}
                         onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, ""))}
-                        placeholder="123"
-                        className="w-full h-8 px-2.5 rounded-lg border border-border bg-background text-foreground font-mono text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/50"
+                        placeholder="•••"
+                        className="w-full h-9 rounded-xl border border-border/80 bg-background px-3 text-xs font-mono font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40"
                       />
                     </div>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* 4. TOTAL DUE DIRECTLY ABOVE THE PAY BUTTON */}
-            <div className="shrink-0 pt-1 space-y-1.5">
-              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <span>{tr("Total Due:")}</span>
-                <span className="font-extrabold text-foreground text-sm tracking-tight">{currentPrice.formatted}</span>
+              {/* TOTAL DUE & SUBMIT BUTTON */}
+              <div className="pt-2 border-t border-border/60">
+                <div className="flex items-baseline justify-between mb-2 px-0.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground">{tr("Total Due:")}</span>
+                  <span className="text-sm font-black text-foreground">{currentPrice.formatted}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePayNow}
+                  className="w-full h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+
+                <div className="mt-2 text-center">
+                  <button
+                    type="button"
+                    onClick={startTrial}
+                    className="text-[10px] font-bold text-emerald-500 hover:text-emerald-400 cursor-pointer"
+                  >
+                    {tr("Use 30-day free trial instead")}
+                  </button>
+                </div>
               </div>
-
-              <ShopButton
-                onClick={handlePayNow}
-                className="w-full h-8 sm:h-9 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/30 rounded-xl cursor-pointer"
-              >
-                <span>{tr(`Pay ${currentPrice.formatted}`)}</span>
-                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
-              </ShopButton>
-
-              <button
-                type="button"
-                onClick={startTrial}
-                className="w-full text-center text-[10px] sm:text-[11px] font-semibold text-emerald-500 hover:text-emerald-400 cursor-pointer pt-0.5 transition-colors"
-              >
-                {tr("Use 30-day free trial instead")}
-              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </main>
     );
   }
 
   // =========================================================================
-  // VIEW: 3-COLUMN PLANS OVERVIEW — ZERO-SCROLL
+  // VIEW: MAIN RESPONSIVE PLANS COMPARISON (3 EQUAL COLUMNS ON ALL SCREENS)
   // =========================================================================
   return (
     <main
       dir={dir}
-      className="app-screen relative flex flex-col justify-between px-2.5 py-2 sm:px-4 md:px-8 max-w-6xl mx-auto w-full"
-      style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
+      className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between p-2 sm:p-3 md:p-4 max-w-7xl mx-auto overflow-x-hidden select-none"
     >
-      {/* 1. HEADER: ONE ROW TITLE + SUBTITLE + RESTORE + CLOSE ✕ */}
-      <header className="flex items-center justify-between shrink-0 py-0.5 gap-2">
-        <div className="min-w-0 flex items-baseline gap-2">
-          <h1 className="text-sm sm:text-base md:text-lg font-black text-foreground whitespace-nowrap">
-            {tr("Choose your plan")}
-          </h1>
-          <p className="text-[9.5px] sm:text-[11px] text-muted-foreground truncate">
-            {tr("Unlock more features and grow your business with SHOPBOOK")}
-          </p>
+      {/* 1. TOP HEADER WITH RESTORE PURCHASES AND CLOSE */}
+      <header className="shrink-0 flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <Wordmark className="text-xs sm:text-sm md:text-base font-black tracking-tight" />
+          <span className="hidden sm:inline-block text-[11px] text-muted-foreground truncate">
+            — {tr("Unlock more features and grow your business with SHOPBOOK")}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={handleRestorePurchases}
             disabled={restoring}
-            className="text-[10px] sm:text-xs font-semibold text-primary hover:underline whitespace-nowrap cursor-pointer transition-opacity disabled:opacity-50"
+            className="text-[10px] sm:text-xs font-bold text-blue-500 hover:text-blue-400 cursor-pointer disabled:opacity-50"
           >
-            {restoring ? tr("Restoring...") : tr("Restore Purchases")}
+            {restoring ? tr("Checking...") : tr("Restore Purchases")}
           </button>
           <button
             type="button"
             onClick={() => nav({ to: "/apps" })}
-            aria-label="Close"
-            className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 cursor-pointer"
+            title={tr("Close")}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -643,7 +674,7 @@ function Plans() {
         </div>
       </div>
 
-      {/* 3. THREE PLANS CARDS GRID (ELEVATED 3D HOVER, BOLDER BORDERS) */}
+      {/* 3. THREE PLANS CARDS GRID (ELEVATED 3D HOVER, BOLDER BORDERS, STRICT 3-COLUMN) */}
       <div className="grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 items-stretch my-1">
         {PLANS.map((p) => {
           const tColor = tone[p.id];
@@ -659,12 +690,12 @@ function Plans() {
               }}
               className={cn(
                 "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer overflow-visible text-left",
-                "hover:scale-[1.05] hover:-translate-y-2 hover:z-40 hover:shadow-2xl",
+                "hover:scale-[1.04] hover:-translate-y-1.5 hover:z-40 hover:shadow-2xl",
                 isPlus
                   ? "bg-card/90 shadow-xl border-blue-500/80 hover:border-blue-400 hover:shadow-blue-500/30 z-20"
                   : p.id === "business"
                     ? "bg-card/75 shadow-md border-border/70 hover:border-amber-400 hover:shadow-amber-500/30 z-10"
-                    : "bg-card/75 shadow-md border-border/70 hover:border-slate-300 dark:hover:border-slate-200 hover:shadow-slate-500/20 z-10",
+                    : "bg-card/75 shadow-md border-border/70 hover:border-emerald-400 hover:shadow-emerald-500/20 z-10",
               )}
             >
               {/* TOP BADGES */}
@@ -685,32 +716,57 @@ function Plans() {
 
               {/* CARD HEADER */}
               <div className="text-center pt-0.5 sm:pt-1">
+                {/* ICON BADGE */}
+                <div className="flex justify-center mb-1">
+                  <div
+                    className={cn(
+                      "p-1 sm:p-1.5 rounded-lg border flex items-center justify-center",
+                      tColor.bg,
+                      tColor.border,
+                    )}
+                  >
+                    {p.id === "business" ? (
+                      <Building2 className={cn("h-3 w-3 sm:h-4 sm:w-4", tColor.text)} />
+                    ) : (
+                      <Store className={cn("h-3 w-3 sm:h-4 sm:w-4", tColor.text)} />
+                    )}
+                  </div>
+                </div>
+
                 <h3 className={cn("text-[10px] sm:text-sm md:text-base font-black truncate", tColor.text)}>{p.name}</h3>
-                {(p as { desc?: string }).desc && (
-                  <p className="text-[7.5px] sm:text-[10px] text-muted-foreground line-clamp-1 mt-0.5">
-                    {tr((p as { desc?: string }).desc!)}
-                  </p>
-                )}
+
+                {/* SUBTITLE */}
+                <p className="text-[7px] sm:text-[9.5px] text-muted-foreground line-clamp-1 mt-0.5 font-medium">
+                  {tr(p.subtitle)}
+                </p>
 
                 {/* PRICE ROW */}
                 <div className="mt-1 flex items-baseline justify-center gap-0.5">
-                  <span className="text-xs sm:text-lg md:text-2xl font-black text-foreground tracking-tight">
+                  <span className="text-xs sm:text-base md:text-xl font-black text-foreground tracking-tight">
                     {priceObj.formatted}
                   </span>
                   <span className="text-[7px] sm:text-[10px] text-muted-foreground font-medium">/{tr("mo")}</span>
+                </div>
+
+                {/* CAPACITY PILL */}
+                <div className="mt-1 flex justify-center">
+                  <span className="px-1.5 py-0.5 rounded-full text-[6.5px] sm:text-[8.5px] font-semibold bg-muted/60 text-muted-foreground border border-border/50 whitespace-nowrap">
+                    {p.shopsLimit} {p.shopsLimit === 1 ? tr("Shop") : tr("Shops")} | {p.warehousesLimit}{" "}
+                    {p.warehousesLimit === 1 ? tr("Warehouse") : tr("Warehouses")}
+                  </span>
                 </div>
               </div>
 
               {/* FEATURES LIST */}
               <div className="flex-1 my-1.5 space-y-1 overflow-hidden">
                 {p.intro && (
-                  <p className="text-[7.5px] sm:text-[9.5px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5">
+                  <p className="text-[7px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5">
                     {tr(p.intro)}
                   </p>
                 )}
                 <ul className="space-y-0.5 sm:space-y-1">
                   {p.features.map((f, idx) => (
-                    <li key={idx} className="flex items-start gap-1 text-[7.5px] sm:text-[9.5px] leading-tight">
+                    <li key={idx} className="flex items-start gap-1 text-[7px] sm:text-[9px] leading-tight">
                       <Check className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 mt-0.5", tColor.text)} />
                       <span className="text-foreground/90 line-clamp-2">{tr(f)}</span>
                     </li>
@@ -726,8 +782,8 @@ function Plans() {
                   setPaying(true);
                 }}
                 className={cn(
-                  "w-full h-6 sm:h-7.5 md:h-8 text-[8px] sm:text-[10.5px] md:text-xs font-semibold cursor-pointer shadow-sm mt-1",
-                  isPlus ? "bg-blue-600 hover:bg-blue-500 text-white" : "",
+                  "w-full h-6 sm:h-7.5 md:h-8 text-[7.5px] sm:text-[10px] md:text-xs font-semibold cursor-pointer shadow-sm mt-1",
+                  tColor.btn,
                 )}
               >
                 <span>{tr(`Continue with ${p.name}`)}</span>
