@@ -75,7 +75,7 @@ function formatHeaderShopName(name: string): string {
   return `${parts[0]!.toUpperCase()} ${parts[1]!.toUpperCase()}${parts.length > 2 ? ".." : ""}`;
 }
 
-/** Currency formatter component with screen-adaptive compact typography */
+/** Currency formatter component with bolder and larger responsive typography */
 function Amt({
   value,
   curr = "KSh",
@@ -103,14 +103,14 @@ function Amt({
   const isLong = numStr.length >= 6;
   const numSize =
     size === "2xs"
-      ? "text-[8.5px]"
+      ? "text-[9.5px]"
       : size === "xs"
         ? isLong
-          ? "text-[clamp(7.5px,1.9vw,10.5px)] sm:text-xs"
-          : "text-[clamp(8.5px,2.2vw,12px)] sm:text-xs"
+          ? "text-[clamp(8.5px,2.2vw,11.5px)] sm:text-xs"
+          : "text-[clamp(10px,2.6vw,13px)] sm:text-sm"
         : size === "sm"
           ? isLong
-            ? "text-[clamp(10px,2.4vw,12.5px)] sm:text-sm"
+            ? "text-[clamp(11px,2.6vw,13.5px)] sm:text-sm"
             : "text-xs sm:text-sm"
           : size === "md"
             ? "text-sm sm:text-base"
@@ -118,25 +118,25 @@ function Amt({
 
   const currSize =
     size === "2xs"
-      ? "text-[6px]"
+      ? "text-[6.5px]"
       : size === "xs"
         ? isLong
-          ? "text-[6.5px] sm:text-[7.5px]"
-          : "text-[7px] sm:text-[8px]"
+          ? "text-[7px] sm:text-[8px]"
+          : "text-[7.5px] sm:text-[8.5px]"
         : size === "sm"
-          ? "text-[7.5px] sm:text-[8.5px]"
-          : "text-[8.5px] sm:text-xs";
+          ? "text-[8px] sm:text-[9px]"
+          : "text-[9px] sm:text-xs";
 
   return (
     <span
       className={cn(
-        "inline-flex items-baseline font-mono font-extrabold tracking-tight truncate max-w-full",
+        "inline-flex items-baseline font-mono font-black tracking-tight truncate max-w-full",
         toneClass,
         className,
       )}
     >
-      <span className={numSize}>{numStr}</span>
-      <span className={cn("ml-0.5 font-sans font-semibold text-muted-foreground/75 lowercase shrink-0", currSize)}>
+      <span className={cn("font-black", numSize)}>{numStr}</span>
+      <span className={cn("ml-0.5 font-sans font-bold text-muted-foreground/80 lowercase shrink-0", currSize)}>
         {curr}
       </span>
     </span>
@@ -369,6 +369,62 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     return Math.max(0, raw);
   }, [pnl?.net]);
 
+  // Crisp label renderer directly inside each Money Position slice
+  const renderMoneyPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
+    if (moneyPosition.total <= 0 || !percent || percent < 0.08) return null;
+    const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.52;
+    const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
+    const pct = Math.round(percent * 100);
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#ffffff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="pointer-events-none select-none"
+        style={{
+          fontSize: "7.5px",
+          fontWeight: 800,
+          fill: "#ffffff",
+          filter: "drop-shadow(0px 1px 1.5px rgba(0,0,0,0.9))",
+        }}
+      >
+        {`${name} ${pct}%`}
+      </text>
+    );
+  };
+
+  // Crisp label renderer directly inside each Cash Flow slice
+  const renderCashFlowLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
+    const total = (cashFlowData.inflow || 0) + (cashFlowData.outflow || 0);
+    if (total <= 0 || !percent || percent < 0.1) return null;
+    const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.5;
+    const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
+    const pct = Math.round(percent * 100);
+    const shortName = name === "Inflow" ? "IN" : name === "Outflow" ? "OUT" : name;
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#ffffff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="pointer-events-none select-none"
+        style={{
+          fontSize: "7.5px",
+          fontWeight: 800,
+          fill: "#ffffff",
+          filter: "drop-shadow(0px 1px 1.5px rgba(0,0,0,0.9))",
+        }}
+      >
+        {`${shortName} ${pct}%`}
+      </text>
+    );
+  };
+
   return (
     <div className="min-h-screen w-full bg-background text-foreground pb-12 font-sans select-none antialiased">
       {/* 1. TOP UNIFIED COMPACT HEADER */}
@@ -509,7 +565,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
       {/* 2. MAIN DASHBOARD CONTENT */}
       <main className="w-full px-2 sm:px-4 md:px-6 pt-2.5 sm:pt-3 space-y-2 sm:space-y-3">
-        {/* KPI ROW: Compact without artificial height gaps, hairline borders */}
+        {/* KPI ROW: Bolder & Bigger font scaling */}
         <div className="grid grid-cols-5 gap-1 sm:gap-2">
           {[
             { label: "Sales", value: perf?.sales ?? 0, tone: "good" as const },
@@ -540,7 +596,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money Position")}</span>
-              <span className="text-[8px] sm:text-[8.5px] font-mono text-muted-foreground">
+              <span className="text-[8.5px] sm:text-[9.5px] font-mono font-black text-muted-foreground">
                 {compactFmt(moneyPosition.total)}
               </span>
             </div>
@@ -561,12 +617,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     innerRadius={0}
                     outerRadius="85%"
                     labelLine={false}
-                    label={(entry: any) => {
-                      if (moneyPosition.total <= 0 || !entry.value) return null;
-                      const percent = Math.round((entry.value / moneyPosition.total) * 100);
-                      if (percent < 7) return null;
-                      return `${entry.name} ${percent}%`;
-                    }}
+                    label={renderMoneyPieLabel}
                   >
                     {moneyPosition.total > 0 ? (
                       moneyPosition.items.map((entry, idx) => (
@@ -580,16 +631,6 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* In-pie slice label font size override & placeholder */}
-              <style>{`
-                .recharts-pie-labels text {
-                  font-size: 7.5px !important;
-                  font-weight: 800 !important;
-                  fill: #ffffff !important;
-                  text-shadow: 0 1px 2px rgba(0,0,0,0.85);
-                }
-              `}</style>
-
               {moneyPosition.total <= 0 && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span className="text-[8px] font-mono text-muted-foreground/60">{tr("No funds")}</span>
@@ -597,14 +638,14 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               )}
             </div>
 
-            {/* Bottom single-row amount-only legend with reduced fluid fonts */}
+            {/* Bottom single-row amount-only legend with reduced fluid fonts & bold figures */}
             <div className="grid grid-cols-4 gap-0.5 pt-1 border-t border-border/40 dark:border-white/10 text-center">
               {moneyPosition.items.map((item) => (
                 <div key={item.name} className="flex flex-col items-center min-w-0 overflow-hidden">
                   <span className="text-[6.5px] sm:text-[7px] font-bold text-muted-foreground truncate w-full">
                     {item.name}
                   </span>
-                  <span className="text-[6.5px] sm:text-[7.5px] font-mono font-extrabold text-foreground truncate w-full">
+                  <span className="text-[7px] sm:text-[8px] font-mono font-black text-foreground truncate w-full">
                     {compactFmt(item.raw)}
                   </span>
                 </div>
@@ -658,7 +699,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
             <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7.5px]">
               <span className="text-muted-foreground">{tr("7 Days Net:")}</span>
-              <span className="font-mono font-bold text-emerald-500">
+              <span className="font-mono font-black text-emerald-500">
                 {compactFmt((perf?.sales ?? 0) - (t?.purchases ?? 0))}
               </span>
             </div>
@@ -687,22 +728,22 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
 
             <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7.5px]">
-              <span className="text-amber-500">
-                {tr("Recv:")} {compactFmt(creditDebt.receivables)}
+              <span className="text-amber-500 font-semibold">
+                {tr("Recv:")} <strong className="font-mono font-black">{compactFmt(creditDebt.receivables)}</strong>
               </span>
-              <span className="text-rose-500">
-                {tr("Pay:")} {compactFmt(creditDebt.payables)}
+              <span className="text-rose-500 font-semibold">
+                {tr("Pay:")} <strong className="font-mono font-black">{compactFmt(creditDebt.payables)}</strong>
               </span>
             </div>
           </div>
 
-          {/* Chart 4: Cash Flow Breakdown (4th diagram) */}
+          {/* Chart 4: Cash Flow Breakdown (4th diagram with direct slice percentages & bold labels) */}
           <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Cash Flow")}</span>
               <span
                 className={cn(
-                  "text-[8px] sm:text-[8.5px] font-mono font-bold",
+                  "text-[8px] sm:text-[8.5px] font-mono font-black",
                   cashFlowData.net >= 0 ? "text-emerald-500" : "text-rose-500",
                 )}
               >
@@ -714,7 +755,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={cashFlowData.items}
+                    data={
+                      cashFlowData.inflow + cashFlowData.outflow > 0
+                        ? cashFlowData.items
+                        : [{ name: "None", value: 1, color: "var(--border)" }]
+                    }
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -722,23 +767,29 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     innerRadius="50%"
                     outerRadius="80%"
                     stroke="none"
+                    labelLine={false}
+                    label={renderCashFlowLabel}
                   >
-                    {cashFlowData.items.map((entry, idx) => (
-                      <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
-                    ))}
+                    {cashFlowData.inflow + cashFlowData.outflow > 0 ? (
+                      cashFlowData.items.map((entry, idx) => (
+                        <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
+                      ))
+                    ) : (
+                      <Cell fill="currentColor" className="text-muted/30" stroke="none" />
+                    )}
                   </Pie>
                   <Tooltip content={<ChartTooltip money={money} />} />
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-1">
                 <span className="text-[6.5px] sm:text-[7px] font-bold uppercase text-muted-foreground">NET</span>
-                <span className="text-[8.5px] sm:text-[9.5px] font-mono font-extrabold text-foreground truncate max-w-[85%]">
+                <span className="text-[9.5px] sm:text-[10.5px] font-mono font-black text-foreground truncate max-w-[85%]">
                   {compactFmt(cashFlowData.net)}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7px] sm:text-[7.5px] font-bold">
+            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7px] sm:text-[7.5px] font-black">
               <span className="text-emerald-500 truncate">IN {compactFmt(cashFlowData.inflow)}</span>
               <span className="text-rose-500 truncate">OUT {compactFmt(cashFlowData.outflow)}</span>
             </div>
@@ -753,7 +804,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <span className="text-[10px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
               <span
                 className={cn(
-                  "text-xs font-mono font-bold",
+                  "text-xs sm:text-sm font-mono font-black",
                   attention.lowStock > 0 ? "text-amber-500" : "text-muted-foreground",
                 )}
               >
@@ -765,7 +816,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <span className="text-[10px] font-semibold text-muted-foreground">{tr("Receivables")}</span>
               <span
                 className={cn(
-                  "text-xs font-mono font-bold",
+                  "text-xs sm:text-sm font-mono font-black",
                   attention.receivables > 0 ? "text-amber-500" : "text-muted-foreground",
                 )}
               >
@@ -777,7 +828,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <span className="text-[10px] font-semibold text-muted-foreground">{tr("Payables")}</span>
               <span
                 className={cn(
-                  "text-xs font-mono font-bold",
+                  "text-xs sm:text-sm font-mono font-black",
                   attention.payables > 0 ? "text-rose-500" : "text-muted-foreground",
                 )}
               >
@@ -788,7 +839,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
               <span className="text-[10px] font-semibold text-muted-foreground">{tr("POS Cash-up")}</span>
               <span
-                className={cn("text-[10px] font-bold", attention.needsCashUp ? "text-amber-500" : "text-emerald-500")}
+                className={cn("text-[10px] font-black", attention.needsCashUp ? "text-amber-500" : "text-emerald-500")}
               >
                 {attention.needsCashUp ? tr("Pending") : tr("Done")}
               </span>
