@@ -172,7 +172,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   const navigate = useNavigate();
   const money = moneyFor(account.currency);
 
-  const [erpRaw] = useErp();
+  const erpRaw = useErp();
   const s: ErpState = useMemo(() => {
     const base = empty();
     if (!erpRaw || typeof erpRaw !== "object") return base;
@@ -193,7 +193,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   const [showShopMenu, setShowShopMenu] = useState(false);
   const [viewSale, setViewSale] = useState<Sale | null>(null);
 
-  const perf = useMemo(() => performance(s), [s]);
+  const perf = useMemo(() => performance(s, 0), [s]);
   const pos = useMemo(() => position(s), [s]);
   const pnl = useMemo(() => profitAndLoss(s), [s]);
   const t = useMemo(() => purchaseTotals(s), [s]);
@@ -201,9 +201,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
   // 1. Money Position Breakdown
   const moneyPosition = useMemo(() => {
-    const mpesa = balances.Mpesa ?? 0;
-    const cash = balances.Cash ?? 0;
-    const bank = balances.Bank ?? 0;
+    const mpesa = balances.mpesa ?? 0;
+    const cash = balances.cash ?? 0;
+    const bank = balances.bank ?? 0;
     const credit = (s.customers || []).reduce((acc, c) => acc + (c?.balance && c.balance > 0 ? c.balance : 0), 0);
     const total = mpesa + cash + bank + credit;
 
@@ -222,8 +222,8 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     try {
       const now = new Date();
       const past = new Date(now.getTime() - 6 * 86400000);
-      const toStr = now.toISOString().slice(0, 10);
-      const fromStr = past.toISOString().slice(0, 10);
+      const toStr = now.getTime();
+      const fromStr = new Date(past.getFullYear(), past.getMonth(), past.getDate()).getTime();
 
       const salesData = chartSeries(s, "sales", { from: fromStr, to: toStr }, "Daily");
       const purchasesData = chartSeries(s, "purchases", { from: fromStr, to: toStr }, "Daily");
@@ -233,11 +233,11 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 86400000);
-        const dayKey = d.toISOString().slice(0, 10);
+        const dayKey = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
         const dayLabel = days[d.getDay()]!;
 
-        const sItem = (salesData?.points || []).find((p: any) => p?.period === dayKey || p?.label === dayKey);
-        const pItem = (purchasesData?.points || []).find((p: any) => p?.period === dayKey || p?.label === dayKey);
+        const sItem = (salesData || []).find((p: any) => p?.period === dayKey || p?.label === dayKey);
+        const pItem = (purchasesData || []).find((p: any) => p?.period === dayKey || p?.label === dayKey);
 
         result.push({
           day: dayLabel,
@@ -306,8 +306,8 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     const cash = s.cash || [];
 
     const lowStockCount = products.filter((p) => {
-      const q = typeof p?.stock === "number" ? p.stock : 0;
-      const re = typeof p?.reorder === "number" ? p.reorder : 5;
+      const q = typeof p?.qty === "number" ? p.qty : 0;
+      const re = typeof p?.minStock === "number" ? p.minStock : 5;
       return q <= re;
     }).length;
 
@@ -315,7 +315,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     const overduePayables = suppliers.filter((sup) => (sup?.balance || 0) > 0).length;
 
     const now = Date.now();
-    const lastCashUp = cash[0]?.timestamp ? new Date(cash[0].timestamp).getTime() : 0;
+    const lastCashUp = cash[0]?.at ? new Date(cash[0].at).getTime() : 0;
     const needsCashUp = now - lastCashUp > 86400000;
 
     return {
@@ -778,10 +778,10 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-foreground truncate">
-                        {sale.receiptNo || sale.id}
+                        {sale.ref || sale.id}
                       </span>
                       <span className="text-[8.5px] text-muted-foreground">
-                        {METHOD_LABEL[sale.method as Method] || sale.method} · {sale.items?.length || 0} items
+                        {(Object.keys(sale.pay || {}) as Method[]).filter((k) => (sale.pay?.[k] ?? 0) > 0).map((k) => METHOD_LABEL[k]).join(" + ") || "—"} · {sale.items?.length || 0} items
                       </span>
                     </div>
                     <Amt value={sale.total} tone="good" size="xs" />
@@ -816,9 +816,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-foreground truncate">
-                        {pur.supplierName || "Supplier"}
+                        {s.suppliers.find((x) => x.id === pur.supplierId)?.name || "Supplier"}
                       </span>
-                      <span className="text-[8.5px] text-muted-foreground">{pur.invoiceNo || pur.id}</span>
+                      <span className="text-[8.5px] text-muted-foreground">{pur.ref || pur.id}</span>
                     </div>
                     <Amt value={pur.total} tone="bad" size="xs" />
                   </div>
@@ -847,7 +847,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               recentMoves.map((m) => (
                 <div key={m.id} className="flex items-center justify-between py-1 px-1">
                   <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold text-foreground truncate">{m.note || m.kind}</span>
+                    <span className="text-[10px] font-bold text-foreground truncate">{m.source || m.kind}</span>
                     <span className="text-[8.5px] text-muted-foreground">
                       {METHOD_LABEL[m.method as Method] || m.method}
                     </span>
@@ -861,7 +861,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       </main>
 
       {/* RECEIPT PREVIEW SHEET */}
-      {viewSale && <ReceiptSheet sale={viewSale} onClose={() => setViewSale(null)} />}
+      {viewSale && <ReceiptSheet sale={viewSale} s={s} money={money} tr={tr} shop={account?.shopName || "Shop"} onClose={() => setViewSale(null)} />}
     </div>
   );
 }
