@@ -61,6 +61,9 @@ export const PLANS: {
   monthly: number;
   yearly: number;
   tagline: string;
+  subtitle: string;
+  shopsLimit: number;
+  warehousesLimit: number;
   intro?: string;
   features: string[];
   recommended?: boolean;
@@ -74,13 +77,21 @@ export const PLANS: {
     monthly: 11,
     yearly: 118.8,
     tagline: "Start selling.",
+    subtitle: "Single shop",
+    shopsLimit: 1,
+    warehousesLimit: 0,
     features: [
-      "POS cashier checkout",
-      "Real-time Inventory & stock",
-      "Sales & purchase orders",
+      "POS cash checkout",
+      "Real-time inventory & stock",
+      "Sales and purchase orders",
       "Product catalog & barcode",
-      "Basic daily sales history",
+      "Daily sales history & reports",
+      "Expenses & payment recording",
+      "Returns & customer receipts",
+      "Low-stock alerts & badges",
+      "Customer & supplier records",
       "Device-local backup",
+      "Offline sales recording",
     ],
   },
   {
@@ -91,18 +102,22 @@ export const PLANS: {
     monthly: 22,
     yearly: 237.6,
     tagline: "Manage your growing shop.",
-    intro: "Basic plus:",
+    subtitle: "Growing business",
+    shopsLimit: 3,
+    warehousesLimit: 1,
+    intro: "Everything in Basic, plus:",
     recommended: true,
     features: [
-      "Customer Debtors & Contacts",
-      "Double-entry Accounting",
-      "Cash Float & Till Management",
+      "Customer debtors & contacts",
+      "Double-entry accounting",
+      "Cash float & till management",
       "Returns & stock restoration",
-      "Credit sales & partial payments (P.PAY)",
-      "End-of-day Cash-Up audit",
-      "Full Financial Reports",
-      "Multi-Shop & Multi-Device Sync (manage 1 store)",
-      "Settings (advanced)",
+      "Credit sales & partial payments (P.Pay)",
+      "End-of-day cash-up auditing",
+      "Full financial reports",
+      "Multi-shop management",
+      "Warehouse stock transfers",
+      "Advanced settings & permissions",
     ],
   },
   {
@@ -113,17 +128,22 @@ export const PLANS: {
     monthly: 40,
     yearly: 432,
     tagline: "Run the whole business.",
-    intro: "Plus plus:",
+    subtitle: "Multi-location",
+    shopsLimit: 5,
+    warehousesLimit: 3,
+    intro: "Everything in Plus, plus:",
     best: true,
     features: [
-      "Staff Payroll & Wage slips",
-      "Executive Business Summary",
-      "Multi-Shop & Multi-Device Sync (manage multiple branches & stores)",
-      "Smart Business AI & reorder alerts",
+      "Staff payroll & wage slips",
+      "Executive business summaries",
+      "Multi-shop & multi-device sync",
+      "Advanced approval workflows",
+      "Shopbot AI business insights",
       "Role-based permissions & cashiers",
       "Priority VIP support",
-      "Unlimited cloud backups",
-      "Full settings & custom reports",
+      "Expanded cloud backups",
+      "Custom reports & scheduled summaries",
+      "Advanced settings & controls",
     ],
   },
 ];
