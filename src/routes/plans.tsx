@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   CreditCard,
-  Receipt,
   RotateCcw,
   Smartphone,
   Store,
@@ -52,7 +51,7 @@ const MOBILE_NETWORKS = [
 
 function Plans() {
   const nav = useNavigate();
-  const { tr, t, dir } = useLanguage();
+  const { tr, dir } = useLanguage();
 
   const [yearly, setYearly] = useState(false);
   const [chosenPlanId, setChosenPlanId] = useState<PlanId>("plus");
@@ -81,7 +80,7 @@ function Plans() {
   // Payment execution state
   const [payStatus, setPayStatus] = useState<"idle" | "stk_waiting" | "processing" | "success">("idle");
   const [processStep, setProcessStep] = useState(1);
-  const [confirmedDate, setConfirmedDate] = useState("");
+  const [, setConfirmedDate] = useState("");
   const [stkSecondsLeft, setStkSecondsLeft] = useState(45);
 
   useEffect(() => {
@@ -603,7 +602,7 @@ function Plans() {
   return (
     <main
       dir={dir}
-      className="min-h-screen w-full bg-background text-foreground flex flex-col justify-between p-2 sm:p-3 md:p-4 max-w-7xl mx-auto overflow-x-hidden select-none"
+      className="h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col justify-between p-2 sm:p-3 md:p-4 max-w-7xl mx-auto overflow-hidden select-none"
     >
       {/* 1. TOP HEADER WITH RESTORE PURCHASES AND CLOSE */}
       <header className="shrink-0 flex items-center justify-between gap-2 border-b border-border/40 pb-1.5">
@@ -689,7 +688,7 @@ function Plans() {
                 setPaying(true);
               }}
               className={cn(
-                "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer overflow-visible text-left",
+                "relative rounded-xl border p-1.5 sm:p-2.5 md:p-3.5 flex flex-col justify-between transition-all duration-300 ease-out cursor-pointer overflow-visible text-left min-h-0",
                 "hover:scale-[1.04] hover:-translate-y-1.5 hover:z-40 hover:shadow-2xl",
                 isPlus
                   ? "bg-card/90 shadow-xl border-blue-500/80 hover:border-blue-400 hover:shadow-blue-500/30 z-20"
@@ -715,7 +714,7 @@ function Plans() {
               )}
 
               {/* CARD HEADER */}
-              <div className="text-center pt-0.5 sm:pt-1">
+              <div className="text-center pt-0.5 sm:pt-1 shrink-0">
                 {/* ICON BADGE */}
                 <div className="flex justify-center mb-1">
                   <div
@@ -757,16 +756,19 @@ function Plans() {
                 </div>
               </div>
 
-              {/* FEATURES LIST */}
-              <div className="flex-1 my-1.5 space-y-1 overflow-hidden">
+              {/* FEATURES LIST (EXPANDED TO FILL FULL HEIGHT TO THE BUTTON) */}
+              <div className="flex-1 my-1 sm:my-2 flex flex-col justify-between overflow-hidden min-h-0">
                 {p.intro && (
-                  <p className="text-[7px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5">
+                  <p className="text-[7px] sm:text-[9px] font-bold text-muted-foreground uppercase tracking-wider border-b border-border/40 pb-0.5 mb-0.5 shrink-0">
                     {tr(p.intro)}
                   </p>
                 )}
-                <ul className="space-y-0.5 sm:space-y-1">
+                <ul className="flex-1 flex flex-col justify-evenly py-0.5 min-h-0">
                   {p.features.map((f, idx) => (
-                    <li key={idx} className="flex items-start gap-1 text-[7px] sm:text-[9px] leading-tight">
+                    <li
+                      key={idx}
+                      className="flex items-start gap-1 text-[7px] sm:text-[9px] md:text-[9.5px] leading-tight"
+                    >
                       <Check className={cn("h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 mt-0.5", tColor.text)} />
                       <span className="text-foreground/90 line-clamp-2">{tr(f)}</span>
                     </li>
@@ -775,20 +777,22 @@ function Plans() {
               </div>
 
               {/* ACTION BUTTON */}
-              <ShopButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setChosenPlanId(p.id);
-                  setPaying(true);
-                }}
-                className={cn(
-                  "w-full h-6 sm:h-7.5 md:h-8 text-[7.5px] sm:text-[10px] md:text-xs font-semibold cursor-pointer shadow-sm mt-1",
-                  tColor.btn,
-                )}
-              >
-                <span>{tr(`Continue with ${p.name}`)}</span>
-                <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1" />
-              </ShopButton>
+              <div className="shrink-0 pt-1">
+                <ShopButton
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setChosenPlanId(p.id);
+                    setPaying(true);
+                  }}
+                  className={cn(
+                    "w-full h-6 sm:h-7.5 md:h-8 text-[7.5px] sm:text-[10px] md:text-xs font-semibold cursor-pointer shadow-sm",
+                    tColor.btn,
+                  )}
+                >
+                  <span>{tr(`Continue with ${p.name}`)}</span>
+                  <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3 ml-1" />
+                </ShopButton>
+              </div>
             </div>
           );
         })}
