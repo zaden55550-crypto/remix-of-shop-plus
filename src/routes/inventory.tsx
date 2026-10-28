@@ -70,7 +70,7 @@ const MENUS = {
   products: ["All Products", "Add Product", "Categories", "Brands", "Export"],
   stock: ["Stock Levels", "Stock In", "Stock Out", "Returned Goods", "Adjustments", "History"],
   transfers: ["New Transfer", "Pending", "Received", "History"],
-  reports: ["Stock Report", "Movement", "Valuation", "Performance"],
+  reports: ["Stock Report", "Movement", "Valuation", "Profits", "Performance"],
 } as const;
 type Menu = keyof typeof MENUS;
 
@@ -867,6 +867,7 @@ const SIZE_PRESETS = [
   { label: "46–56", sizes: ["46", "48", "50", "52", "54", "56"] },
   { label: "58–68", sizes: ["58", "60", "62", "64", "66", "68"] },
   { label: "S–3XL", sizes: ["S", "M", "L", "XL", "XXL", "3XL"] },
+  { label: "Shoes 40–45", sizes: ["40", "41", "42", "43", "44", "45"] },
 ];
 
 function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
@@ -882,13 +883,21 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     unit: "Piece",
     minStock: "5",
   });
-  const [adv, setAdv] = useState(false);
+
+  const [showCategory, setShowCategory] = useState(false);
+  const [showBrand, setShowBrand] = useState(false);
+  const [showBarcode, setShowBarcode] = useState(Boolean(barcode));
+  const [showDetails, setShowDetails] = useState(false);
+
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<SizeDraft[]>([]);
-  const [customSize, setCustomSize] = useState("");
+  const [freeformSizes, setFreeformSizes] = useState("");
 
   useEffect(() => {
-    setF((x) => ({ ...x, barcode }));
+    if (barcode) {
+      setF((x) => ({ ...x, barcode }));
+      setShowBarcode(true);
+    }
   }, [barcode]);
 
   const set = (key: keyof typeof f) => (e: { target: { value: string } }) =>
@@ -906,15 +915,29 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     setVariants((curr) => curr.filter((v) => v.id !== id));
   };
 
-  const addCustomSize = () => {
-    const trimmed = customSize.trim();
-    if (!trimmed) return;
-    if (variants.some((v) => v.id.toLowerCase() === trimmed.toLowerCase())) {
-      toast.error(tr("Size already exists"));
-      return;
-    }
-    setVariants((curr) => [...curr, { id: trimmed, name: `Size ${trimmed}`, qty: "0" }]);
-    setCustomSize("");
+  const addFreeformSizes = () => {
+    const raw = freeformSizes.trim();
+    if (!raw) return;
+    const tokens = raw
+      .split(/[,/ ]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    if (tokens.length === 0) return;
+
+    setVariants((curr) => {
+      const existing = new Set(curr.map((v) => v.id.toLowerCase()));
+      const added: SizeDraft[] = [];
+      for (const t of tokens) {
+        if (!existing.has(t.toLowerCase())) {
+          existing.add(t.toLowerCase());
+          added.push({ id: t, name: `Size ${t}`, qty: "0" });
+        }
+      }
+      return [...curr, ...added];
+    });
+
+    setFreeformSizes("");
   };
 
   const totalVariantQty = useMemo(() => {
@@ -942,39 +965,41 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     return run(() => erp.addProduct(newProductData as erp.NewProduct), tr("Product added")) && done();
   };
 
-  return (
-    <div className="h-full flex flex-col justify-between max-w-xl mx-auto">
-      <div className="flex items-center justify-between mb-1">
-        <h2 className="inventory-form-title text-xs font-bold uppercase tracking-wider">{tr("Add Product")}</h2>
-        {hasVariants && (
-          <span className="text-[11px] font-semibold text-primary">
-            {tr("Total Stock")}: <b>{totalVariantQty}</b>
-          </span>
-        )}
-      </div>
+  const selectedCategoryName = s.categories.find((c) => c.id === f.categoryId)?.name;
+  const selectedBrandName = s.brands.find((b) => b.id === f.brandId)?.name;
 
+  return (
+    <div className="h-full flex flex-col justify-between max-w-xl mx-auto text-xs">
       <form
-        className="inventory-form space-y-1.5"
+        className="space-y-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           save();
         }}
       >
-        {/* Row 1: Product Name */}
+        <div className="flex items-center justify-between pb-0.5">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">{tr("Add Product")}</h2>
+          {hasVariants && (
+            <span className="text-[11px] font-bold text-primary">
+              {tr("Total Stock")}: {totalVariantQty} {f.unit}s
+            </span>
+          )}
+        </div>
+
         <InventoryField label={tr("Product name")} required>
           <input
             aria-label={tr("Product name")}
-            placeholder={tr("Enter product name (e.g. Italian Wool Suit)")}
+            placeholder={tr("Enter product name (e.g. Italian Wool Suit, Oxford Shirt)")}
             value={f.name}
             onChange={set("name")}
             className={inventoryInput}
             required
+            autoFocus
           />
         </InventoryField>
 
-        {/* Row 2: Buying Price & Selling Price */}
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Buying price")} required>
+        <div className="grid grid-cols-4 gap-1.5">
+          <InventoryField label={tr("Buying Price")} required>
             <input
               aria-label={tr("Buying price")}
               type="number"
@@ -986,7 +1011,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
               required
             />
           </InventoryField>
-          <InventoryField label={tr("Selling price")} required>
+          <InventoryField label={tr("Selling Price")} required>
             <input
               aria-label={tr("Selling price")}
               type="number"
@@ -998,13 +1023,43 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
               required
             />
           </InventoryField>
+          <InventoryField label={tr("Quantity")} required>
+            {hasVariants ? (
+              <input
+                aria-label={tr("Quantity")}
+                readOnly
+                value={totalVariantQty}
+                title={tr("Calculated from sizes breakdown")}
+                className={cn(inventoryInput, "bg-muted/40 font-bold text-primary cursor-not-allowed")}
+              />
+            ) : (
+              <input
+                aria-label={tr("Quantity")}
+                type="number"
+                min="0"
+                step="any"
+                value={f.qty}
+                onChange={set("qty")}
+                className={inventoryInput}
+                required
+              />
+            )}
+          </InventoryField>
+          <InventoryField label={tr("Unit")}>
+            <select aria-label={tr("Unit")} className={inventoryInput} value={f.unit} onChange={set("unit")}>
+              {["Piece", "Box", "Pack", "Kg", "Gram", "Litre", "Metre", "Yard", "Pair"].map((u) => (
+                <option key={u} value={u}>
+                  {tr(u)}
+                </option>
+              ))}
+            </select>
+          </InventoryField>
         </div>
 
-        {/* Option 1: Sizes / Variants Toggle */}
         <div className="rounded-lg border border-border/70 bg-muted/20 p-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-foreground">
-              {tr("Has Sizes / Variants (e.g. Suits 46-56, 58-68)")}
+              {tr("Has Sizes / Variants (e.g. Suits 46-56, Shirts S-3XL)")}
             </span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
@@ -1013,7 +1068,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
                 onChange={(e) => {
                   setHasVariants(e.target.checked);
                   if (e.target.checked && variants.length === 0) {
-                    applyPreset(SIZE_PRESETS[1]?.sizes ?? []); // default to 58-68
+                    applyPreset(SIZE_PRESETS[1]?.sizes ?? []);
                   }
                 }}
                 className="sr-only peer"
@@ -1022,28 +1077,52 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             </label>
           </div>
 
-          {hasVariants ? (
+          {hasVariants && (
             <div className="mt-2 space-y-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground mr-1">{tr("Presets")}:</span>
-                {SIZE_PRESETS.map((p) => (
+              <div className="flex flex-col sm:flex-row gap-1.5 items-stretch sm:items-center">
+                <div className="flex-1 flex items-center gap-1">
+                  <input
+                    type="text"
+                    placeholder={tr("Type sizes e.g. S, M, L, XL, 2XL, 3XL or 38, 40, 42")}
+                    value={freeformSizes}
+                    onChange={(e) => setFreeformSizes(e.target.value)}
+                    className="h-6 text-xs px-2 flex-1 rounded border border-input bg-background"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addFreeformSizes();
+                      }
+                    }}
+                  />
                   <ShopButton
-                    key={p.label}
                     type="button"
                     variant="outline"
-                    className="h-6 px-2 text-[10px] rounded"
-                    onClick={() => applyPreset(p.sizes)}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={addFreeformSizes}
                   >
-                    {p.label}
+                    {tr("+ Add Sizes")}
                   </ShopButton>
-                ))}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-1">
+                  {SIZE_PRESETS.map((p) => (
+                    <ShopButton
+                      key={p.label}
+                      type="button"
+                      variant="ghost"
+                      className="h-6 px-1.5 text-[10px] rounded bg-background/50 border border-border/40"
+                      onClick={() => applyPreset(p.sizes)}
+                    >
+                      {p.label}
+                    </ShopButton>
+                  ))}
+                </div>
               </div>
 
-              {/* Per-size stock inputs */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-0.5">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 max-h-28 overflow-y-auto pr-0.5">
                 {variants.map((v) => (
                   <div key={v.id} className="relative rounded border border-border/60 bg-background/90 p-1 text-center">
-                    <span className="block text-[10px] font-bold text-muted-foreground">{v.id}</span>
+                    <span className="block text-[10px] font-bold text-muted-foreground truncate">{v.id}</span>
                     <input
                       type="number"
                       min="0"
@@ -1062,110 +1141,102 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
                   </div>
                 ))}
               </div>
-
-              {/* Add custom size */}
-              <div className="flex items-center gap-1.5 pt-1">
-                <input
-                  type="text"
-                  placeholder={tr("Add size (e.g. 70 or 38)")}
-                  value={customSize}
-                  onChange={(e) => setCustomSize(e.target.value)}
-                  className="h-6 text-xs px-2 flex-1 rounded border border-input bg-background"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addCustomSize();
-                    }
-                  }}
-                />
-                <ShopButton type="button" variant="outline" className="h-6 px-2 text-[10px]" onClick={addCustomSize}>
-                  {tr("+ Add")}
-                </ShopButton>
-              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <InventoryField label={tr("Quantity")} required>
-                <input
-                  aria-label={tr("Quantity")}
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={f.qty}
-                  onChange={set("qty")}
-                  className={inventoryInput}
-                  required
-                />
+          )}
+        </div>
+
+        <div className="pt-0.5">
+          <div className="flex flex-wrap items-center gap-1">
+            <ShopButton
+              type="button"
+              variant={showCategory ? "default" : "outline"}
+              className="h-6 px-2 text-[10px] rounded-full"
+              onClick={() => setShowCategory(!showCategory)}
+            >
+              {selectedCategoryName ? `${tr("Category")}: ${selectedCategoryName} ✓` : `+ ${tr("Category")}`}
+            </ShopButton>
+
+            <ShopButton
+              type="button"
+              variant={showBrand ? "default" : "outline"}
+              className="h-6 px-2 text-[10px] rounded-full"
+              onClick={() => setShowBrand(!showBrand)}
+            >
+              {selectedBrandName ? `${tr("Brand")}: ${selectedBrandName} ✓` : `+ ${tr("Brand")}`}
+            </ShopButton>
+
+            <ShopButton
+              type="button"
+              variant={showBarcode ? "default" : "outline"}
+              className="h-6 px-2 text-[10px] rounded-full"
+              onClick={() => setShowBarcode(!showBarcode)}
+            >
+              {f.barcode ? `${tr("Barcode")}: ${f.barcode} ✓` : `+ ${tr("Barcode")}`}
+            </ShopButton>
+
+            <ShopButton
+              type="button"
+              variant={showDetails ? "default" : "outline"}
+              className="h-6 px-2 text-[10px] rounded-full"
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              + {tr("SKU & Reorder")}
+            </ShopButton>
+          </div>
+
+          {(showCategory || showBrand) && (
+            <div className="grid grid-cols-2 gap-2 mt-1.5 pt-1 border-t border-border/40">
+              {showCategory && (
+                <InventoryField group label={tr("Category")}>
+                  <SearchPicker
+                    tr={tr}
+                    items={s.categories.map((c) => ({ id: c.id, label: c.name }))}
+                    value={f.categoryId}
+                    onChange={(v) => setF((x) => ({ ...x, categoryId: v }))}
+                    noneLabel={tr("No category")}
+                    placeholder={tr("Select category")}
+                    addLabel={tr("Add Category")}
+                    onAdd={(n) => runPick(() => erp.addNamed("categories", n))}
+                  />
+                </InventoryField>
+              )}
+              {showBrand && (
+                <InventoryField group label={tr("Brand")}>
+                  <SearchPicker
+                    tr={tr}
+                    items={s.brands.map((c) => ({ id: c.id, label: c.name }))}
+                    value={f.brandId}
+                    onChange={(v) => setF((x) => ({ ...x, brandId: v }))}
+                    noneLabel={tr("No brand")}
+                    placeholder={tr("Select brand")}
+                    addLabel={tr("Add Brand")}
+                    onAdd={(n) => runPick(() => erp.addNamed("brands", n))}
+                  />
+                </InventoryField>
+              )}
+            </div>
+          )}
+
+          {showBarcode && (
+            <div className="mt-1.5">
+              <InventoryField label={tr("Barcode")}>
+                <BarcodeField value={f.barcode} onChange={(v) => setF((x) => ({ ...x, barcode: v }))} tr={tr} />
               </InventoryField>
-              <InventoryField label={tr("Unit")}>
-                <select aria-label={tr("Unit")} className={inventoryInput} value={f.unit} onChange={set("unit")}>
-                  {["Piece", "Box", "Pack", "Kg", "Gram", "Litre", "Metre", "Yard"].map((u) => (
-                    <option key={u} value={u}>
-                      {tr(u)}
-                    </option>
-                  ))}
-                </select>
+            </div>
+          )}
+
+          {showDetails && (
+            <div className="grid grid-cols-2 gap-2 mt-1.5">
+              <InventoryField label={tr("SKU")}>
+                <input className={inventoryInput} value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} />
+              </InventoryField>
+              <InventoryField label={tr("Reorder level")}>
+                <input type="number" min="0" className={inventoryInput} value={f.minStock} onChange={set("minStock")} />
               </InventoryField>
             </div>
           )}
         </div>
 
-        {/* Row 4: Category & Brand */}
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField group label={tr("Category")}>
-            <SearchPicker
-              tr={tr}
-              items={s.categories.map((c) => ({ id: c.id, label: c.name }))}
-              value={f.categoryId}
-              onChange={(v) => setF((x) => ({ ...x, categoryId: v }))}
-              noneLabel={tr("No category")}
-              placeholder={tr("Select category")}
-              addLabel={tr("Add Category")}
-              onAdd={(n) => runPick(() => erp.addNamed("categories", n))}
-            />
-          </InventoryField>
-          <InventoryField group label={tr("Brand")}>
-            <SearchPicker
-              tr={tr}
-              items={s.brands.map((c) => ({ id: c.id, label: c.name }))}
-              value={f.brandId}
-              onChange={(v) => setF((x) => ({ ...x, brandId: v }))}
-              noneLabel={tr("No brand")}
-              placeholder={tr("Select brand")}
-              addLabel={tr("Add Brand")}
-              onAdd={(n) => runPick(() => erp.addNamed("brands", n))}
-            />
-          </InventoryField>
-        </div>
-
-        {/* Row 5: Barcode */}
-        <InventoryField label={tr("Barcode")}>
-          <BarcodeField value={f.barcode} onChange={(v) => setF((x) => ({ ...x, barcode: v }))} tr={tr} />
-        </InventoryField>
-
-        {/* Collapsible Details */}
-        <ShopButton
-          variant="bare"
-          type="button"
-          className="h-auto w-auto justify-start p-0 text-[10px] text-primary"
-          onClick={() => setAdv(!adv)}
-        >
-          {tr("More details (SKU & Reorder)")}
-          <ChevronDown className={cn("h-3 w-3 transition-transform", adv && "rotate-180")} />
-        </ShopButton>
-
-        {adv && (
-          <div className="grid grid-cols-2 gap-2">
-            <InventoryField label={tr("SKU")}>
-              <input className={inventoryInput} value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} />
-            </InventoryField>
-            <InventoryField label={tr("Reorder level")}>
-              <input type="number" min="0" className={inventoryInput} value={f.minStock} onChange={set("minStock")} />
-            </InventoryField>
-          </div>
-        )}
-
-        {/* Submit */}
         <ShopButton type="submit" className="inventory-save w-full mt-2">
           {tr("Save Product")}
         </ShopButton>
@@ -1298,10 +1369,23 @@ function NamedList({ s, tr, kind, go }: Ctx & { kind: "categories" | "brands" })
 
 function ProductExport({ s, money, tr }: Ctx) {
   const [ai, setAi] = useState(false);
+
+  const quote = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
+
+  const downloadCsv = (rows: (string | number)[][], filename: string) => {
+    const url = URL.createObjectURL(
+      new Blob([rows.map((row) => row.map(quote).join(",")).join("\n")], { type: "text/csv;charset=utf-8" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const exportProducts = () => {
-    const quote = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
     const rows = [
-      ["Product", "Buying price", "Selling price", "Stock", "Reorder", "SKU", "Barcode", "Unit"],
+      ["Product", "Buying price", "Selling price", "Stock", "Reorder", "SKU", "Barcode", "Unit", "Variants"],
       ...s.products.map((p) => [
         p.name,
         p.buy,
@@ -1311,24 +1395,63 @@ function ProductExport({ s, money, tr }: Ctx) {
         p.sku ?? "",
         p.barcode ?? "",
         p.unit ?? "",
+        p.variants ? p.variants.map((v) => `${v.name}:${v.qty}`).join(" | ") : "",
       ]),
     ];
-    const url = URL.createObjectURL(
-      new Blob([rows.map((row) => row.map(quote).join(",")).join("\n")], { type: "text/csv;charset=utf-8" }),
-    );
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "SHOPBOOK-products.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(rows, "SHOPBOOK-products.csv");
   };
+
+  const downloadTemplate = () => {
+    const rows = [
+      ["Product", "Buying price", "Selling price", "Stock", "Unit", "Category", "Brand", "Barcode", "Sizes Breakdown"],
+      ["Italian Wool Suit", 4500, 7500, 20, "Piece", "Suits", "Armani", "200001", "48:5, 50:5, 52:6, 54:4"],
+      ["Oxford Cotton Shirt", 800, 1500, 50, "Piece", "Shirts", "Zara", "200002", "S:10, M:15, L:15, XL:10"],
+      ["Leather Belt", 400, 950, 30, "Piece", "Accessories", "Generic", "200003", ""],
+    ];
+    downloadCsv(rows, "SHOPBOOK-import-template.csv");
+  };
+
+  const exportValuationAndProfits = () => {
+    const rows = [
+      [
+        "Product",
+        "Unit Buy",
+        "Unit Sell",
+        "Unit Margin",
+        "Margin %",
+        "Stock Qty",
+        "Cost Value",
+        "Selling Value",
+        "Projected Profit",
+      ],
+      ...s.products.map((p) => {
+        const unitProfit = p.sell - p.buy;
+        const marginPct = p.sell > 0 ? ((unitProfit / p.sell) * 100).toFixed(1) + "%" : "0%";
+        return [p.name, p.buy, p.sell, unitProfit, marginPct, p.qty, p.qty * p.buy, p.qty * p.sell, p.qty * unitProfit];
+      }),
+    ];
+    downloadCsv(rows, "SHOPBOOK-valuation-profits-audit.csv");
+  };
+
   return (
-    <div className="space-y-2">
-      <ShopButton className="inventory-save" onClick={exportProducts}>
-        {tr("Export")}
-      </ShopButton>
-      <ShopButton variant="outline" className="inventory-save" onClick={() => setAi(!ai)}>
-        {tr("AI Reorder")}
+    <div className="space-y-2 max-w-md mx-auto text-xs">
+      <div className="rounded-lg border border-border/70 bg-card/80 p-3 space-y-2">
+        <h3 className="font-bold uppercase tracking-wider text-muted-foreground text-[11px]">
+          {tr("Exports & Templates")}
+        </h3>
+        <ShopButton className="inventory-save w-full" onClick={exportProducts}>
+          {tr("Export All Products (CSV)")}
+        </ShopButton>
+        <ShopButton variant="outline" className="inventory-save w-full" onClick={downloadTemplate}>
+          {tr("Download Import Template (with Sizes column)")}
+        </ShopButton>
+        <ShopButton variant="outline" className="inventory-save w-full" onClick={exportValuationAndProfits}>
+          {tr("Export Valuation & Profits Audit (CSV)")}
+        </ShopButton>
+      </div>
+
+      <ShopButton variant="outline" className="inventory-save w-full" onClick={() => setAi(!ai)}>
+        {tr("AI Reorder Suggestions")}
       </ShopButton>
       {ai && <Reorder s={s} money={money} />}
     </div>
@@ -1661,30 +1784,141 @@ function Transfers({ s, tr, view, shop }: Ctx & { view: string }) {
 }
 
 function Reports({ s, money, tr, view }: Ctx & { view: string }) {
+  const [profitSearch, setProfitSearch] = useState("");
+
   if (view === "AI Reorder") return <Reorder s={s} money={money} />;
+
   if (view === "Valuation") {
     const cost = s.products.reduce((a, p) => a + p.qty * p.buy, 0);
     const sell = s.products.reduce((a, p) => a + p.qty * p.sell, 0);
+    const potentialProfit = sell - cost;
+    const portfolioMargin = sell > 0 ? ((potentialProfit / sell) * 100).toFixed(1) : "0";
+
     return (
-      <div>
-        <KpiRow>
-          <Kpi label={tr("Cost value")} value={money(cost)} />
-          <Kpi label={tr("Selling value")} value={money(sell)} />
-        </KpiRow>
-        <p className="mt-2 text-xs text-muted-foreground">
-          {tr("Potential profit")}: <b className="text-foreground">{money(sell - cost)}</b>
-        </p>
-        {s.products.map((p) => (
-          <div key={p.id} className="flex justify-between border-b border-border py-1.5 text-xs">
-            <span className="truncate">
-              {p.name} <span className="text-xs text-muted-foreground">× {p.qty}</span>
-            </span>
-            <span>{money(p.qty * p.buy)}</span>
+      <div className="space-y-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">{tr("Cost value")}</span>
+            <span className="text-xs font-bold text-foreground">{money(cost)}</span>
+            <span className="block text-[9px] text-muted-foreground">Qty × Buy</span>
           </div>
-        ))}
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">{tr("Selling value")}</span>
+            <span className="text-xs font-bold text-primary">{money(sell)}</span>
+            <span className="block text-[9px] text-muted-foreground">Qty × Sell</span>
+          </div>
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">
+              {tr("Projected Profit")}
+            </span>
+            <span className="text-xs font-bold text-emerald-500">{money(potentialProfit)}</span>
+            <span className="block text-[9px] text-muted-foreground">Sell − Cost</span>
+          </div>
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">
+              {tr("Portfolio Margin")}
+            </span>
+            <span className="text-xs font-bold text-emerald-500">{portfolioMargin}%</span>
+            <span className="block text-[9px] text-muted-foreground">Average Markup</span>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/60 bg-card/60 divide-y divide-border/60">
+          {s.products.length === 0 && <Empty>{tr("No products yet")}</Empty>}
+          {s.products.map((p) => {
+            const itemCost = p.qty * p.buy;
+            const itemSell = p.qty * p.sell;
+            return (
+              <div key={p.id} className="flex items-center justify-between px-2.5 py-1.5 text-xs">
+                <div className="min-w-0 pr-2">
+                  <p className="truncate font-medium">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {p.qty} {p.unit ?? "pcs"} × {money(p.buy)} buy ({money(p.sell)} sell)
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-bold text-foreground">{money(itemCost)}</span>
+                  <span className="block text-[10px] text-primary">{money(itemSell)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
+
+  if (view === "Profits") {
+    const filtered = s.products.filter((p) => p.name.toLowerCase().includes(profitSearch.toLowerCase().trim()));
+
+    const totalPotentialProfit = s.products.reduce((a, p) => a + p.qty * (p.sell - p.buy), 0);
+    const totalSellingValue = s.products.reduce((a, p) => a + p.qty * p.sell, 0);
+    const overallMargin = totalSellingValue > 0 ? ((totalPotentialProfit / totalSellingValue) * 100).toFixed(1) : "0";
+
+    return (
+      <div className="space-y-2">
+        <div className="grid grid-cols-3 gap-1.5">
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">
+              {tr("Total Potential Profit")}
+            </span>
+            <span className="text-xs font-bold text-emerald-500">{money(totalPotentialProfit)}</span>
+          </div>
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">{tr("Average Margin")}</span>
+            <span className="text-xs font-bold text-primary">{overallMargin}%</span>
+          </div>
+          <div className="rounded border border-border/60 bg-muted/20 p-2 text-center">
+            <span className="block text-[10px] uppercase font-bold text-muted-foreground">
+              {tr("Products Tracked")}
+            </span>
+            <span className="text-xs font-bold text-foreground">{s.products.length}</span>
+          </div>
+        </div>
+
+        <input
+          type="text"
+          placeholder={tr("Filter products by name...")}
+          value={profitSearch}
+          onChange={(e) => setProfitSearch(e.target.value)}
+          className="w-full h-7 text-xs px-2.5 rounded border border-input bg-background"
+        />
+
+        <div className="rounded-lg border border-border/60 bg-card/60 divide-y divide-border/60 max-h-96 overflow-y-auto">
+          {filtered.length === 0 && <Empty>{tr("No products match filter")}</Empty>}
+          {filtered.map((p) => {
+            const unitProfit = p.sell - p.buy;
+            const marginPct = p.sell > 0 ? ((unitProfit / p.sell) * 100).toFixed(1) : "0";
+            const totalProjected = unitProfit * p.qty;
+
+            return (
+              <div key={p.id} className="flex items-center justify-between px-2.5 py-1.5 text-xs">
+                <div className="min-w-0 pr-2">
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate font-semibold">{p.name}</p>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                      {marginPct}%
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Buy: {money(p.buy)} → Sell: {money(p.sell)} |{" "}
+                    <span className="text-foreground">+{money(unitProfit)}/unit</span>
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-bold text-emerald-500">+{money(totalProjected)}</span>
+                  <span className="block text-[10px] text-muted-foreground">
+                    {p.qty} {p.unit ?? "pcs"} in stock
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   if (view === "Movement") {
     const by = new Map<string, { in: number; out: number }>();
     s.movements.forEach((m) => {
@@ -1707,6 +1941,7 @@ function Reports({ s, money, tr, view }: Ctx & { view: string }) {
       </div>
     );
   }
+
   if (view === "Performance") {
     const out = new Map<string, number>();
     s.movements
@@ -1727,5 +1962,6 @@ function Reports({ s, money, tr, view }: Ctx & { view: string }) {
       </div>
     );
   }
+
   return <StockLevels s={s} money={money} tr={tr} go={() => {}} cur="" shop="" />;
 }
