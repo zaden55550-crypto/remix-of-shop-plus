@@ -1509,7 +1509,9 @@ function ProductExport({ s, money, tr }: Ctx) {
         p.sku ?? "",
         p.barcode ?? "",
         p.unit ?? "",
-        p.variants ? p.variants.map((v) => `${v.name}:${v.qty}`).join(" | ") : "",
+        ((p as unknown as { variants?: { name: string; qty: number }[] }).variants ?? [])
+          .map((v) => `${v.name}:${v.qty}`)
+          .join(" | "),
       ]),
     ];
     downloadCsv(rows, "SHOPBOOK-products.csv");
