@@ -637,9 +637,11 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
 function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [quickAdd, setQuickAdd] = useState<string | null>(null);
   const { cart, setCart, saveDraft, clearDraft } = useCartDraft("Sales");
   const [step, setStep] = useState<null | "cart">(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
+
   const add = (p: erp.Product) => {
     const existing = cart.find((l) => l.productId === p.id);
     const qty = erp.roundQty((existing?.qty ?? 0) + 1);
@@ -653,7 +655,9 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
         : [...current, { productId: p.id, qty }],
     );
   };
+
   const list = useMemo(() => inventoryProducts(s, q), [s, q]);
+
   const onScan = (code: string) => {
     const p = erp.findByCode(s, code);
     if (p) {
@@ -661,18 +665,54 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
       setOpen(p.id);
     } else onUnknown(code);
   };
+
   const openP = s.products.find((p) => p.id === open);
+
   return (
     <div>
       <InventorySearch q={q} setQ={setQ} onScan={onScan} tr={tr} />
+
+      {/* Filter status row with inline right-side Add button */}
+      <div className="flex items-center justify-between gap-2 px-1 py-1.5 text-xs">
+        <span className="text-[11px] text-muted-foreground truncate">
+          {list.length} {list.length === 1 ? tr("product") : tr("products")} {q ? `(${tr("filtered")})` : ""}
+        </span>
+        {q.trim() && (
+          <ShopButton
+            variant="outline"
+            className="h-6 px-2 text-[10px] font-semibold text-primary border-primary/40 hover:bg-primary/10 ml-auto shrink-0"
+            onClick={() => setQuickAdd(q.trim())}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            {tr("Add")} "{q.trim()}"
+          </ShopButton>
+        )}
+      </div>
+
       <div className="inventory-list-panel">
-        {list.length === 0 && <Empty>{q ? tr("No matching products") : tr("No products yet")}</Empty>}
-        <div className="pos-head">
-          <span>{tr("Product")}</span>
-          <span className="text-center">{tr("Stock")}</span>
-          <span className="text-end">{tr("Price")}</span>
-          <span />
-        </div>
+        {list.length === 0 && (
+          <div className="py-8 text-center space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {q ? `${tr("Product not found")}: "${q}"` : tr("No products yet")}
+            </p>
+            {q.trim() && (
+              <ShopButton className="h-7 px-3 text-xs font-semibold mx-auto" onClick={() => setQuickAdd(q.trim())}>
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                {tr("Add New Product")} "{q.trim()}"
+              </ShopButton>
+            )}
+          </div>
+        )}
+
+        {list.length > 0 && (
+          <div className="pos-head">
+            <span>{tr("Product")}</span>
+            <span className="text-center">{tr("Stock")}</span>
+            <span className="text-end">{tr("Price")}</span>
+            <span />
+          </div>
+        )}
+
         {list.map((p) => {
           const inCart = cart.find((l) => l.productId === p.id)?.qty ?? 0;
           return (
@@ -705,7 +745,42 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
           );
         })}
       </div>
+
       {openP && <ProductSheet p={openP} s={s} money={money} tr={tr} onClose={() => setOpen(null)} />}
+
+      {/* Quick Add Product Modal Sheet */}
+      {quickAdd && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-background/80 backdrop-blur-sm"
+          onClick={() => setQuickAdd(null)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-border bg-card p-4 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/50">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
+                {tr("New Product Details")}
+              </h3>
+              <ShopButton variant="bare" onClick={() => setQuickAdd(null)} aria-label={tr("Close")}>
+                <X className="h-4 w-4" />
+              </ShopButton>
+            </div>
+            <AddProduct
+              s={s}
+              money={money}
+              tr={tr}
+              go={() => {}}
+              cur=""
+              shop={shop}
+              barcode=""
+              initialName={quickAdd}
+              done={() => setQuickAdd(null)}
+            />
+          </div>
+        </div>
+      )}
+
       {cart.length > 0 && (
         <ShopButton
           variant="bare"
@@ -717,6 +792,7 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
           <span className="pos-fab-count">{cart.length}</span>
         </ShopButton>
       )}
+
       {step === "cart" && (
         <CartCheckout
           s={s}
@@ -741,6 +817,7 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
           }}
         />
       )}
+
       {receipt && (
         <ReceiptSheet live sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />
       )}
@@ -870,9 +947,15 @@ const SIZE_PRESETS = [
   { label: "Shoes 40–45", sizes: ["40", "41", "42", "43", "44", "45"] },
 ];
 
-function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
+function AddProduct({
+  s,
+  tr,
+  barcode,
+  initialName = "",
+  done,
+}: Ctx & { barcode: string; initialName?: string; done: () => void }) {
   const [f, setF] = useState({
-    name: "",
+    name: initialName,
     buy: "0",
     sell: "0",
     qty: "0",
@@ -884,11 +967,13 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     minStock: "5",
   });
 
+  // Direct-below dropdown toggles
   const [showCategory, setShowCategory] = useState(false);
   const [showBrand, setShowBrand] = useState(false);
   const [showBarcode, setShowBarcode] = useState(Boolean(barcode));
   const [showDetails, setShowDetails] = useState(false);
 
+  // Variant & Freeform sizes state
   const [hasVariants, setHasVariants] = useState(false);
   const [variants, setVariants] = useState<SizeDraft[]>([]);
   const [freeformSizes, setFreeformSizes] = useState("");
@@ -899,6 +984,12 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
       setShowBarcode(true);
     }
   }, [barcode]);
+
+  useEffect(() => {
+    if (initialName) {
+      setF((x) => ({ ...x, name: initialName }));
+    }
+  }, [initialName]);
 
   const set = (key: keyof typeof f) => (e: { target: { value: string } }) =>
     setF((x) => ({ ...x, [key]: e.target.value }));
@@ -986,6 +1077,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           )}
         </div>
 
+        {/* Product Name */}
         <InventoryField label={tr("Product name")} required>
           <input
             aria-label={tr("Product name")}
@@ -998,6 +1090,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           />
         </InventoryField>
 
+        {/* 4-Column Core Row: Buying, Selling, Quantity, Unit */}
         <div className="grid grid-cols-4 gap-1.5">
           <InventoryField label={tr("Buying Price")} required>
             <input
@@ -1056,6 +1149,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           </InventoryField>
         </div>
 
+        {/* Sizes / Variants Section */}
         <div className="rounded-lg border border-border/70 bg-muted/20 p-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-foreground">
@@ -1145,48 +1239,23 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           )}
         </div>
 
-        <div className="pt-0.5">
-          <div className="flex flex-wrap items-center gap-1">
+        {/* Collapsible Sections: Opens directly below each button */}
+        <div className="space-y-1.5 pt-0.5">
+          {/* 1. Category */}
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-1">
             <ShopButton
               type="button"
               variant={showCategory ? "default" : "outline"}
-              className="h-6 px-2 text-[10px] rounded-full"
+              className="h-6 w-full justify-between px-2 text-[10px] rounded"
               onClick={() => setShowCategory(!showCategory)}
             >
-              {selectedCategoryName ? `${tr("Category")}: ${selectedCategoryName} ✓` : `+ ${tr("Category")}`}
+              <span>
+                {selectedCategoryName ? `${tr("Category")}: ${selectedCategoryName} ✓` : `+ ${tr("Category")}`}
+              </span>
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showCategory && "rotate-180")} />
             </ShopButton>
-
-            <ShopButton
-              type="button"
-              variant={showBrand ? "default" : "outline"}
-              className="h-6 px-2 text-[10px] rounded-full"
-              onClick={() => setShowBrand(!showBrand)}
-            >
-              {selectedBrandName ? `${tr("Brand")}: ${selectedBrandName} ✓` : `+ ${tr("Brand")}`}
-            </ShopButton>
-
-            <ShopButton
-              type="button"
-              variant={showBarcode ? "default" : "outline"}
-              className="h-6 px-2 text-[10px] rounded-full"
-              onClick={() => setShowBarcode(!showBarcode)}
-            >
-              {f.barcode ? `${tr("Barcode")}: ${f.barcode} ✓` : `+ ${tr("Barcode")}`}
-            </ShopButton>
-
-            <ShopButton
-              type="button"
-              variant={showDetails ? "default" : "outline"}
-              className="h-6 px-2 text-[10px] rounded-full"
-              onClick={() => setShowDetails(!showDetails)}
-            >
-              + {tr("SKU & Reorder")}
-            </ShopButton>
-          </div>
-
-          {(showCategory || showBrand) && (
-            <div className="grid grid-cols-2 gap-2 mt-1.5 pt-1 border-t border-border/40">
-              {showCategory && (
+            {showCategory && (
+              <div className="mt-1.5 p-1 bg-background/80 rounded border border-border/50">
                 <InventoryField group label={tr("Category")}>
                   <SearchPicker
                     tr={tr}
@@ -1199,8 +1268,23 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
                     onAdd={(n) => runPick(() => erp.addNamed("categories", n))}
                   />
                 </InventoryField>
-              )}
-              {showBrand && (
+              </div>
+            )}
+          </div>
+
+          {/* 2. Brand */}
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-1">
+            <ShopButton
+              type="button"
+              variant={showBrand ? "default" : "outline"}
+              className="h-6 w-full justify-between px-2 text-[10px] rounded"
+              onClick={() => setShowBrand(!showBrand)}
+            >
+              <span>{selectedBrandName ? `${tr("Brand")}: ${selectedBrandName} ✓` : `+ ${tr("Brand")}`}</span>
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showBrand && "rotate-180")} />
+            </ShopButton>
+            {showBrand && (
+              <div className="mt-1.5 p-1 bg-background/80 rounded border border-border/50">
                 <InventoryField group label={tr("Brand")}>
                   <SearchPicker
                     tr={tr}
@@ -1213,28 +1297,58 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
                     onAdd={(n) => runPick(() => erp.addNamed("brands", n))}
                   />
                 </InventoryField>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          {showBarcode && (
-            <div className="mt-1.5">
-              <InventoryField label={tr("Barcode")}>
-                <BarcodeField value={f.barcode} onChange={(v) => setF((x) => ({ ...x, barcode: v }))} tr={tr} />
-              </InventoryField>
-            </div>
-          )}
+          {/* 3. Barcode */}
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-1">
+            <ShopButton
+              type="button"
+              variant={showBarcode ? "default" : "outline"}
+              className="h-6 w-full justify-between px-2 text-[10px] rounded"
+              onClick={() => setShowBarcode(!showBarcode)}
+            >
+              <span>{f.barcode ? `${tr("Barcode")}: ${f.barcode} ✓` : `+ ${tr("Barcode")}`}</span>
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showBarcode && "rotate-180")} />
+            </ShopButton>
+            {showBarcode && (
+              <div className="mt-1.5 p-1 bg-background/80 rounded border border-border/50">
+                <InventoryField label={tr("Barcode")}>
+                  <BarcodeField value={f.barcode} onChange={(v) => setF((x) => ({ ...x, barcode: v }))} tr={tr} />
+                </InventoryField>
+              </div>
+            )}
+          </div>
 
-          {showDetails && (
-            <div className="grid grid-cols-2 gap-2 mt-1.5">
-              <InventoryField label={tr("SKU")}>
-                <input className={inventoryInput} value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} />
-              </InventoryField>
-              <InventoryField label={tr("Reorder level")}>
-                <input type="number" min="0" className={inventoryInput} value={f.minStock} onChange={set("minStock")} />
-              </InventoryField>
-            </div>
-          )}
+          {/* 4. SKU & Reorder */}
+          <div className="rounded-lg border border-border/50 bg-muted/10 p-1">
+            <ShopButton
+              type="button"
+              variant={showDetails ? "default" : "outline"}
+              className="h-6 w-full justify-between px-2 text-[10px] rounded"
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              <span>+ {tr("SKU & Reorder Level")}</span>
+              <ChevronDown className={cn("h-3 w-3 transition-transform", showDetails && "rotate-180")} />
+            </ShopButton>
+            {showDetails && (
+              <div className="mt-1.5 grid grid-cols-2 gap-2 p-1 bg-background/80 rounded border border-border/50">
+                <InventoryField label={tr("SKU")}>
+                  <input className={inventoryInput} value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} />
+                </InventoryField>
+                <InventoryField label={tr("Reorder level")}>
+                  <input
+                    type="number"
+                    min="0"
+                    className={inventoryInput}
+                    value={f.minStock}
+                    onChange={set("minStock")}
+                  />
+                </InventoryField>
+              </div>
+            )}
+          </div>
         </div>
 
         <ShopButton type="submit" className="inventory-save w-full mt-2">
