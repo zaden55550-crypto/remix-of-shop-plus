@@ -16,11 +16,14 @@ import {
   Plus,
   Trash2,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { store, canOpen, type Account } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
+import { useTheme } from "@/components/shopbook/ui";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { Reorder } from "@/components/shopbook/reorder";
 import { translateCurrent } from "@/lib/interface-translations";
@@ -95,7 +98,7 @@ function compactFmt(n: number): string {
   return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
 }
 
-/** Dashboard-style Amt component with responsive font sizes and status tones */
+/** Dashboard-style Amt component with vibrant status tones */
 function Amt({
   value,
   curr,
@@ -105,19 +108,21 @@ function Amt({
 }: {
   value: number;
   curr?: string;
-  tone?: "good" | "warn" | "bad" | undefined;
+  tone?: "good" | "warn" | "bad" | "info" | undefined;
   size?: "2xs" | "xs" | "sm" | "md" | "lg";
   className?: string;
 }) {
   const numStr = compactFmt(value);
   const toneClass =
     tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-emerald-500 dark:text-emerald-400"
       : tone === "bad"
-        ? "text-rose-600 dark:text-rose-400"
+        ? "text-rose-500 dark:text-rose-400"
         : tone === "warn"
-          ? "text-amber-600 dark:text-amber-400"
-          : "text-foreground";
+          ? "text-amber-500 dark:text-amber-400"
+          : tone === "info"
+            ? "text-sky-500 dark:text-sky-400"
+            : "text-foreground";
 
   const numSizeClass =
     size === "2xs"
@@ -152,9 +157,12 @@ function Amt({
       <span className={cn(numSizeClass, "font-black tracking-tight")}>{numStr}</span>
       {curr && (
         <span
-          className={cn(currSizeClass, "font-sans font-bold uppercase text-muted-foreground/80 ms-0.5 tracking-normal")}
+          className={cn(
+            currSizeClass,
+            "ms-0.5 font-bold uppercase tracking-normal opacity-75 select-none align-baseline",
+          )}
         >
-          {curr}
+          {curr.toLowerCase()}
         </span>
       )}
     </span>
@@ -164,6 +172,7 @@ function Amt({
 function Inventory() {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
+  const { dark, toggle: toggleTheme } = useTheme();
   const [acct, setAcct] = useState<Account | null>(null);
   const [menu, setMenu] = useState<Menu>("overview");
   const [sub, setSub] = useState<string>("");
@@ -222,7 +231,7 @@ function Inventory() {
   return (
     <main dir={dir} className="inventory-screen flex w-full flex-col">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        {/* UNIFIED SINGLE-ROW HEADER: < Apps | Online | INVENTORY | 📅 | (SC) */}
+        {/* UNIFIED SINGLE-ROW HEADER: < Apps | Online | INVENTORY | ☀️/🌙 | 📅 | (SC) */}
         <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-1.5 min-w-0">
           {/* Left: < Apps button + Online status badge */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
@@ -248,8 +257,19 @@ function Inventory() {
             <p className="truncate text-[9.5px] font-semibold text-muted-foreground leading-tight">{acct.shopName}</p>
           </div>
 
-          {/* Right: Calendar Icon Only (📅) + Shop Circle */}
+          {/* Right: Sun/Moon Theme Toggle + Calendar Icon Only (📅) + Shop Circle */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Sun & Moon Theme Toggle */}
+            <ShopButton
+              variant="bare"
+              className="h-7 w-7 rounded-full border border-border/60 flex items-center justify-center p-0 hover:bg-muted transition-colors"
+              aria-label={dark ? tr("Switch to Light Mode") : tr("Switch to Dark Mode")}
+              title={dark ? tr("Switch to Light Mode") : tr("Switch to Dark Mode")}
+              onClick={toggleTheme}
+            >
+              {dark ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-indigo-500" />}
+            </ShopButton>
+
             {/* Calendar Icon Only Popover */}
             <div className="relative">
               <ShopButton
