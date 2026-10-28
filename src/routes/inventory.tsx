@@ -67,7 +67,7 @@ export const Route = createFileRoute("/inventory")({
 
 const MENUS = {
   overview: [],
-  products: ["All Products", "Add Product", "Categories", "Brands", "More"],
+  products: ["All Products", "Add Product", "Categories", "Brands", "Export"],
   stock: ["Stock Levels", "Stock In", "Stock Out", "Returned Goods", "Adjustments", "History"],
   transfers: ["New Transfer", "Pending", "Received", "History"],
   reports: ["Stock Report", "Movement", "Valuation", "Performance"],
@@ -98,114 +98,81 @@ function compactFmt(n: number): string {
   return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
 }
 
-/** Dashboard-style Amt component with vibrant status tones */
+/** Fluid KPI number component */
 function Amt({
   value,
   curr,
   tone,
-  size = "xs",
-  className,
+  size = "md",
 }: {
   value: number;
   curr?: string;
-  tone?: "good" | "warn" | "bad" | "info" | undefined;
-  size?: "2xs" | "xs" | "sm" | "md" | "lg";
-  className?: string;
+  tone?: "warn" | "bad";
+  size?: "sm" | "md" | "lg" | "xs";
 }) {
-  const numStr = compactFmt(value);
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-500 dark:text-emerald-400"
-      : tone === "bad"
-        ? "text-rose-500 dark:text-rose-400"
-        : tone === "warn"
-          ? "text-amber-500 dark:text-amber-400"
-          : tone === "info"
-            ? "text-sky-500 dark:text-sky-400"
-            : "text-foreground";
-
-  const numSizeClass =
-    size === "2xs"
-      ? "text-[9.5px] sm:text-[10px]"
-      : size === "xs"
-        ? "text-[12px] sm:text-[13px] md:text-[14px]"
-        : size === "sm"
-          ? "text-[14px] sm:text-[15.5px]"
-          : size === "md"
-            ? "text-[17px] sm:text-[19px]"
-            : "text-[21px] sm:text-[24px]";
-
-  const currSizeClass =
-    size === "2xs"
-      ? "text-[6.5px]"
-      : size === "xs"
-        ? "text-[8px] sm:text-[8.5px]"
-        : size === "sm"
-          ? "text-[9px]"
-          : size === "md"
-            ? "text-[10px]"
-            : "text-[11px]";
-
+  const formatted = compactFmt(value);
+  const isLarge = formatted.length > 7;
+  const isHuge = formatted.length > 10;
   return (
-    <span
-      className={cn(
-        "inline-flex items-baseline font-mono font-black tracking-tight leading-none whitespace-nowrap",
-        toneClass,
-        className,
-      )}
-    >
-      <span className={cn(numSizeClass, "font-black tracking-tight")}>{numStr}</span>
+    <div className="flex items-baseline gap-0.5 leading-none min-w-0 max-w-full">
+      <span
+        className={cn(
+          "font-extrabold tracking-tight tabular-nums truncate",
+          tone === "bad" && "text-rose-500",
+          tone === "warn" && "text-amber-500",
+          !tone && "text-foreground",
+          size === "xs" && (isHuge ? "text-xs" : isLarge ? "text-sm" : "text-base sm:text-lg"),
+          size === "sm" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg sm:text-xl"),
+          size === "md" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl sm:text-2xl"),
+          size === "lg" && (isHuge ? "text-xl" : isLarge ? "text-2xl" : "text-3xl sm:text-4xl"),
+        )}
+      >
+        {formatted}
+      </span>
       {curr && (
-        <span
-          className={cn(
-            currSizeClass,
-            "ms-0.5 font-bold uppercase tracking-normal opacity-75 select-none align-baseline",
-          )}
-        >
-          {curr.toLowerCase()}
+        <span className="text-[9px] sm:text-[10px] font-semibold text-muted-foreground/80 lowercase shrink-0">
+          {curr}
         </span>
       )}
-    </span>
+    </div>
   );
 }
 
 function Inventory() {
   const nav = useNavigate();
-  const { tr, dir } = useLanguage();
-  const { dark, toggle: toggleTheme } = useTheme();
+  const { tr } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const [acct, setAcct] = useState<Account | null>(null);
   const [menu, setMenu] = useState<Menu>("overview");
   const [sub, setSub] = useState<string>("");
   const [prefillBarcode, setPrefill] = useState("");
-  const s = useErp();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [calOpen, setCalOpen] = useState(false);
-  const [lb, setLb] = useState(0);
-  useEffect(() => {
-    setLb(lastBackup());
-  }, []);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarRange, setCalendarRange] = useState<"today" | "week" | "month" | "all">("today");
+  const [showShopMenu, setShowShopMenu] = useState(false);
 
   useEffect(() => {
     const a = store.get();
-    if (!a || !store.signedIn()) {
-      nav({ to: "/", replace: true });
-      return;
-    }
-    if (!canOpen(a, "basic")) {
-      nav({ to: "/apps", replace: true });
+    if (!a || !canOpen(a, "inventory")) {
+      nav({ to: "/apps" });
       return;
     }
     setAcct(a);
   }, [nav]);
-  if (!acct) return <main className="app-screen" />;
 
-  const cur = acct.currency || "KSh";
-  const money = (n: number) => `${cur} ${clean(Math.round(clean(n))).toLocaleString("en-KE")}`;
+  const s = useErp();
+  const cur = acct?.currency ?? "KSh";
+  const money = useMemo(() => {
+    return (n: number) => `${Math.round(clean(n)).toLocaleString("en-KE")} ${cur}`;
+  }, [cur]);
+
+  if (!acct) return null;
+
   const go = (m: Menu, sm?: string) => {
     setMenu(m);
     setSub(sm ?? MENUS[m][0] ?? "");
   };
-  const ctx = {
+
+  const ctx: Ctx = {
     s,
     money,
     tr,
@@ -218,160 +185,139 @@ function Inventory() {
     },
   };
 
-  // 2-letter uppercase initials for the Shop Circle avatar
-  const shopInitials = (acct.shopName || "SB")
-    .trim()
-    .split(/\s+/)
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  const shopInitials =
+    (acct.shopName || "SB")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") || "SB";
 
   return (
-    <main dir={dir} className="inventory-screen flex w-full flex-col">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        {/* UNIFIED SINGLE-ROW HEADER: < Apps | Online | INVENTORY | ☀️/🌙 | 📅 | (SC) */}
-        <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-1.5 min-w-0">
-          {/* Left: < Apps button + Online status badge */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <ShopButton
-              variant="bare"
-              className="h-7 px-1.5 py-0 inline-flex items-center gap-0.5 text-xs font-bold rounded-lg border border-border/60 hover:bg-muted"
-              aria-label={tr("Back to Apps")}
-              onClick={() => nav({ to: "/apps" })}
-            >
-              <ChevronLeft className="h-3.5 w-3.5 rtl:rotate-180" />
-              <span>{tr("Apps")}</span>
-            </ShopButton>
-            <div className="scale-90 origin-left shrink-0">
-              <ConnectionStatus />
-            </div>
-          </div>
-
-          {/* Center: INVENTORY + Shop Subtitle */}
-          <div className="flex flex-col items-center justify-center text-center min-w-0 mx-auto px-1">
-            <h1 className="truncate text-xs font-black uppercase tracking-wider text-foreground">
-              {tr("Inventory").toUpperCase()}
-            </h1>
-            <p className="truncate text-[9.5px] font-semibold text-muted-foreground leading-tight">{acct.shopName}</p>
-          </div>
-
-          {/* Right: Sun/Moon Theme Toggle + Calendar Icon Only (📅) + Shop Circle */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Sun & Moon Theme Toggle */}
-            <ShopButton
-              variant="bare"
-              className="h-7 w-7 rounded-full border border-border/60 flex items-center justify-center p-0 hover:bg-muted transition-colors"
-              aria-label={dark ? tr("Switch to Light Mode") : tr("Switch to Dark Mode")}
-              title={dark ? tr("Switch to Light Mode") : tr("Switch to Dark Mode")}
-              onClick={toggleTheme}
-            >
-              {dark ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-indigo-500" />}
-            </ShopButton>
-
-            {/* Calendar Icon Only Popover */}
-            <div className="relative">
-              <ShopButton
-                variant="bare"
-                className="h-7 w-7 rounded-full border border-border/60 flex items-center justify-center p-0 hover:bg-muted"
-                aria-label={tr("Calendar")}
-                onClick={() => setCalOpen(!calOpen)}
-              >
-                <CalendarDays className="h-3.5 w-3.5 text-primary" />
-              </ShopButton>
-
-              {calOpen && (
-                <div className="absolute end-0 top-8 z-30 w-36 rounded-xl border border-border bg-popover p-1 shadow-lg">
-                  {["Today", "Yesterday", "Last 7 Days", "Last 30 Days"].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setCalOpen(false)}
-                      className="block w-full rounded-lg px-2.5 py-1.5 text-start text-xs font-medium hover:bg-muted"
-                    >
-                      {tr(d)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Shop Circle Avatar & Dropdown */}
-            <div className="relative">
-              <ShopButton
-                variant="bare"
-                className="h-7 w-7 rounded-full border border-border/60 bg-primary/10 flex items-center justify-center p-0 text-[10px] font-black text-primary hover:scale-105 transition-all shadow-xs overflow-hidden"
-                aria-label={tr("Shop Menu")}
-                title={acct.shopName}
-                onClick={() => setMenuOpen(!menuOpen)}
-              >
-                {acct.logo ? (
-                  <img src={acct.logo} alt="" className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  shopInitials
-                )}
-              </ShopButton>
-
-              {menuOpen && (
-                <div className="absolute end-0 top-8 z-30 w-48 rounded-xl border border-border bg-popover p-1 shadow-lg">
-                  <div className="px-2.5 py-1.5 border-b border-border/60 mb-1">
-                    <div className="text-xs font-bold truncate">{acct.shopName}</div>
-                    <div className="text-[10px] text-muted-foreground">{acct.currency}</div>
-                  </div>
-                  {(Object.keys(MENUS) as Menu[]).map((m) => (
-                    <ShopButton
-                      variant="bare"
-                      key={m}
-                      onClick={() => {
-                        go(m);
-                        setMenuOpen(false);
-                      }}
-                      className={cn(
-                        "block w-full rounded-lg px-2.5 py-1.5 text-start text-xs font-medium hover:bg-muted",
-                        menu === m && "text-primary",
-                      )}
-                    >
-                      {tr(m.charAt(0).toUpperCase() + m.slice(1))}
-                    </ShopButton>
-                  ))}
-                  <ShopButton
-                    variant="bare"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      nav({ to: "/settings" });
-                    }}
-                    className="block w-full rounded-lg px-2.5 py-1.5 text-start text-xs font-medium text-muted-foreground hover:bg-muted"
-                  >
-                    {tr("Settings")}
-                  </ShopButton>
-                  <ShopButton
-                    variant="bare"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      nav({ to: "/apps" });
-                    }}
-                    className="block w-full rounded-lg px-2.5 py-1.5 text-start text-xs font-medium text-muted-foreground hover:bg-muted"
-                  >
-                    {tr("Apps")}
-                  </ShopButton>
-                </div>
-              )}
-            </div>
-          </div>
+    <main className="inventory-screen app-screen flex flex-col min-h-screen">
+      <header className="inventory-header sticky top-0 z-30 flex items-center justify-between gap-1.5 px-3 py-2 border-b border-border/40 backdrop-blur-md bg-background/80">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <ShopButton
+            variant="bare"
+            className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md hover:bg-muted/60 transition-colors"
+            onClick={() => nav({ to: "/apps" })}
+            aria-label={tr("Back to Apps")}
+          >
+            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            <span>{tr("Apps")}</span>
+          </ShopButton>
+          <ConnectionStatus />
         </div>
 
-        <BackupStatus />
+        <div className="flex flex-col items-center justify-center min-w-0 px-2 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate">
+            {tr("Inventory")}
+          </span>
+          <span className="text-[10px] text-muted-foreground truncate leading-tight">{acct.shopName}</span>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0 relative">
+          <ShopButton
+            variant="bare"
+            className="h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors text-foreground"
+            onClick={toggleTheme}
+            aria-label={tr("Toggle Theme")}
+            title={theme === "dark" ? tr("Switch to Light mode") : tr("Switch to Dark mode")}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-700" />
+            )}
+          </ShopButton>
+
+          <ShopButton
+            variant="bare"
+            className={cn(
+              "h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors",
+              showCalendar && "bg-muted text-primary",
+            )}
+            onClick={() => {
+              setShowCalendar(!showCalendar);
+              setShowShopMenu(false);
+            }}
+            aria-label={tr("Filter by date")}
+            title={tr("Calendar filter")}
+          >
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </ShopButton>
+
+          {showCalendar && (
+            <div className="absolute right-9 top-10 z-50 w-36 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              {(["today", "week", "month", "all"] as const).map((r) => (
+                <button
+                  key={r}
+                  className={cn(
+                    "w-full text-start px-2 py-1 rounded capitalize font-medium transition-colors",
+                    calendarRange === r ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
+                  )}
+                  onClick={() => {
+                    setCalendarRange(r);
+                    setShowCalendar(false);
+                    toast.success(`${tr("Date filter")}: ${tr(r)}`);
+                  }}
+                >
+                  {tr(r === "all" ? "All time" : r === "today" ? "Today" : r === "week" ? "This week" : "This month")}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <ShopButton
+            variant="bare"
+            className="h-7 w-7 rounded-full bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity"
+            onClick={() => {
+              setShowShopMenu(!showShopMenu);
+              setShowCalendar(false);
+            }}
+            aria-label={acct.shopName}
+            title={acct.shopName}
+          >
+            {shopInitials}
+          </ShopButton>
+
+          {showShopMenu && (
+            <div className="absolute right-0 top-10 z-50 w-44 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              <div className="px-2 py-1 border-b border-border/50 font-bold truncate">{acct.shopName}</div>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/settings" });
+                }}
+              >
+                {tr("Shop Settings")}
+              </button>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/apps" });
+                }}
+              >
+                {tr("All Apps")}
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <nav aria-label={tr("Inventory navigation")} className="inventory-nav-wrap">
         <Tabs
           items={Object.keys(MENUS)}
           value={menu}
-          onChange={(m) => go(m as Menu)}
-          label={(k) => tr(k.charAt(0).toUpperCase() + k.slice(1))}
+          onChange={(k) => go(k as Menu)}
+          label={(k) => tr(k[0]?.toUpperCase() + k.slice(1))}
         />
         {MENUS[menu].length > 0 && (
           <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />
         )}
-      </header>
+      </nav>
 
       <section className="inventory-content flex-1">
         {menu === "overview" && <Overview {...ctx} />}
@@ -397,7 +343,7 @@ function Inventory() {
         {menu === "products" && (sub === "Categories" || sub === "Brands") && (
           <NamedList {...ctx} kind={sub === "Brands" ? "brands" : "categories"} />
         )}
-        {menu === "products" && sub === "More" && <ProductMore {...ctx} />}
+        {menu === "products" && sub === "Export" && <ProductExport {...ctx} />}
         {menu === "stock" && sub === "Stock Levels" && <StockLevels {...ctx} />}
         {menu === "stock" && (sub === "Stock In" || sub === "Stock Out" || sub === "Adjustments") && (
           <StockForm {...ctx} mode={sub} />
@@ -631,7 +577,6 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
   };
   return (
     <div>
-      {/* 4 Dashboard-style Liquid Glass KPI Cards */}
       <div className="grid grid-cols-4 gap-1 sm:gap-2 mb-3">
         <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden">
           <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
@@ -821,10 +766,12 @@ function ProductSheet({
   const moves = s.movements.filter((m) => m.productId === p.id).slice(0, 8);
   const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
   const brand = s.brands.find((c) => c.id === p.brandId)?.name;
+  const variants = (p as unknown as { variants?: { id: string; name: string; qty: number }[] }).variants ?? [];
+
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="mx-auto max-h-[85vh] w-full max-w-md overflow-y-auto inventory-sheet border border-border bg-card p-4"
+        className="mx-auto max-h-[85vh] w-full max-w-md overflow-y-auto inventory-sheet border border-border bg-card p-4 rounded-t-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
@@ -838,11 +785,34 @@ function ProductSheet({
             <X className="h-5 w-5" />
           </ShopButton>
         </div>
+
         <KpiRow className="mt-3">
           <Kpi label={tr("Stock")} value={`${p.qty}`} />
           <Kpi label={tr("Cost value")} value={money(p.qty * p.buy)} />
           <Kpi label={tr("Sell value")} value={money(p.qty * p.sell)} />
         </KpiRow>
+
+        {variants.length > 0 && (
+          <div className="mt-3 rounded-lg border border-border/70 bg-muted/20 p-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                {tr("Sizes / Variants")}
+              </span>
+              <span className="text-[10px] font-semibold text-primary">
+                {variants.length} {tr("sizes")}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+              {variants.map((v) => (
+                <div key={v.id} className="rounded border border-border/50 bg-background/80 px-2 py-1 text-center">
+                  <p className="text-[10px] font-medium truncate text-foreground">{v.name}</p>
+                  <b className="text-xs text-primary">{v.qty}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
           <label>
             {tr("Buying price")}
@@ -857,11 +827,10 @@ function ProductSheet({
             <input type="number" value={min} onChange={(e) => setMin(e.target.value)} className={inventoryInput} />
           </label>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {tr("Quantity changes only through Stock In, Stock Out, Adjustments, sales and purchases.")}
-        </p>
+
         <div className="mt-3 flex gap-2">
           <ShopButton
+            className="flex-1"
             onClick={() =>
               run(() => erp.updateProduct(p.id, { buy: +buy || 0, sell: +sell || 0, minStock: +min || 0 }), tr("Saved"))
             }
@@ -879,6 +848,7 @@ function ProductSheet({
             <Trash2 className="h-4 w-4" />
           </ShopButton>
         </div>
+
         <Title>{tr("History")}</Title>
         {moves.length ? (
           moves.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)
@@ -889,6 +859,14 @@ function ProductSheet({
     </div>
   );
 }
+
+type SizeDraft = { id: string; name: string; qty: string };
+
+const SIZE_PRESETS = [
+  { label: "46–56", sizes: ["46", "48", "50", "52", "54", "56"] },
+  { label: "58–68", sizes: ["58", "60", "62", "64", "66", "68"] },
+  { label: "S–3XL", sizes: ["S", "M", "L", "XL", "XXL", "3XL"] },
+];
 
 function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
   const [f, setF] = useState({
@@ -904,48 +882,96 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     minStock: "5",
   });
   const [adv, setAdv] = useState(false);
+  const [hasVariants, setHasVariants] = useState(false);
+  const [variants, setVariants] = useState<SizeDraft[]>([]);
+  const [customSize, setCustomSize] = useState("");
+
   useEffect(() => {
     setF((x) => ({ ...x, barcode }));
   }, [barcode]);
+
   const set = (key: keyof typeof f) => (e: { target: { value: string } }) =>
     setF((x) => ({ ...x, [key]: e.target.value }));
-  const save = () =>
-    run(
-      () =>
-        erp.addProduct({
-          name: f.name,
-          buy: Number(f.buy),
-          sell: Number(f.sell),
-          qty: Number(f.qty),
-          categoryId: f.categoryId || undefined,
-          brandId: f.brandId || undefined,
-          sku: f.sku.trim() || undefined,
-          barcode: f.barcode.trim() || undefined,
-          unit: f.unit,
-          minStock: Number(f.minStock),
-        }),
-      tr("Product added"),
-    ) && done();
+
+  const applyPreset = (sizes: string[]) => {
+    setVariants(sizes.map((sz) => ({ id: sz, name: `Size ${sz}`, qty: "0" })));
+  };
+
+  const updateVariantQty = (id: string, qty: string) => {
+    setVariants((curr) => curr.map((v) => (v.id === id ? { ...v, qty } : v)));
+  };
+
+  const removeVariant = (id: string) => {
+    setVariants((curr) => curr.filter((v) => v.id !== id));
+  };
+
+  const addCustomSize = () => {
+    const trimmed = customSize.trim();
+    if (!trimmed) return;
+    if (variants.some((v) => v.id.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error(tr("Size already exists"));
+      return;
+    }
+    setVariants((curr) => [...curr, { id: trimmed, name: `Size ${trimmed}`, qty: "0" }]);
+    setCustomSize("");
+  };
+
+  const totalVariantQty = useMemo(() => {
+    return variants.reduce((sum, v) => sum + (Number(v.qty) || 0), 0);
+  }, [variants]);
+
+  const save = () => {
+    const finalQty = hasVariants && variants.length > 0 ? totalVariantQty : Number(f.qty);
+    const newProductData = {
+      name: f.name.trim(),
+      buy: Number(f.buy),
+      sell: Number(f.sell),
+      qty: finalQty,
+      categoryId: f.categoryId || undefined,
+      brandId: f.brandId || undefined,
+      sku: f.sku.trim() || undefined,
+      barcode: f.barcode.trim() || undefined,
+      unit: f.unit,
+      minStock: Number(f.minStock),
+      ...(hasVariants && variants.length > 0
+        ? { variants: variants.map((v) => ({ id: v.id, name: v.name, qty: Number(v.qty) || 0 })) }
+        : {}),
+    };
+
+    return run(() => erp.addProduct(newProductData as erp.NewProduct), tr("Product added")) && done();
+  };
+
   return (
-    <>
-      <h2 className="inventory-form-title">{tr("Add Product")}</h2>
+    <div className="h-full flex flex-col justify-between max-w-xl mx-auto">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="inventory-form-title text-xs font-bold uppercase tracking-wider">{tr("Add Product")}</h2>
+        {hasVariants && (
+          <span className="text-[11px] font-semibold text-primary">
+            {tr("Total Stock")}: <b>{totalVariantQty}</b>
+          </span>
+        )}
+      </div>
+
       <form
-        className="inventory-form"
+        className="inventory-form space-y-1.5"
         onSubmit={(e) => {
           e.preventDefault();
           save();
         }}
       >
+        {/* Row 1: Product Name */}
         <InventoryField label={tr("Product name")} required>
           <input
             aria-label={tr("Product name")}
-            placeholder={tr("Enter product name")}
+            placeholder={tr("Enter product name (e.g. Italian Wool Suit)")}
             value={f.name}
             onChange={set("name")}
             className={inventoryInput}
             required
           />
         </InventoryField>
+
+        {/* Row 2: Buying Price & Selling Price */}
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Buying price")} required>
             <input
@@ -972,78 +998,178 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             />
           </InventoryField>
         </div>
-        <InventoryField label={tr("Quantity")} required>
-          <input
-            aria-label={tr("Quantity")}
-            type="number"
-            min="0"
-            step="any"
-            value={f.qty}
-            onChange={set("qty")}
-            className={inventoryInput}
-            required
-          />
-        </InventoryField>
-        <InventoryField group label={tr("Category")}>
-          <SearchPicker
-            tr={tr}
-            items={s.categories.map((c) => ({ id: c.id, label: c.name }))}
-            value={f.categoryId}
-            onChange={(v) => setF((x) => ({ ...x, categoryId: v }))}
-            noneLabel={tr("No category")}
-            placeholder={tr("Select category")}
-            addLabel={tr("Add Category")}
-            onAdd={(n) => runPick(() => erp.addNamed("categories", n))}
-          />
-        </InventoryField>
-        <InventoryField group label={tr("Brand")}>
-          <SearchPicker
-            tr={tr}
-            items={s.brands.map((c) => ({ id: c.id, label: c.name }))}
-            value={f.brandId}
-            onChange={(v) => setF((x) => ({ ...x, brandId: v }))}
-            noneLabel={tr("No brand")}
-            placeholder={tr("Select brand")}
-            addLabel={tr("Add Brand")}
-            onAdd={(n) => runPick(() => erp.addNamed("brands", n))}
-          />
-        </InventoryField>
+
+        {/* Option 1: Sizes / Variants Toggle */}
+        <div className="rounded-lg border border-border/70 bg-muted/20 p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-foreground">
+              {tr("Has Sizes / Variants (e.g. Suits 46-56, 58-68)")}
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hasVariants}
+                onChange={(e) => {
+                  setHasVariants(e.target.checked);
+                  if (e.target.checked && variants.length === 0) {
+                    applyPreset(SIZE_PRESETS[1].sizes); // default to 58-68
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-8 h-4 bg-muted peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary" />
+            </label>
+          </div>
+
+          {hasVariants ? (
+            <div className="mt-2 space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground mr-1">{tr("Presets")}:</span>
+                {SIZE_PRESETS.map((p) => (
+                  <ShopButton
+                    key={p.label}
+                    type="button"
+                    variant="outline"
+                    className="h-6 px-2 text-[10px] rounded"
+                    onClick={() => applyPreset(p.sizes)}
+                  >
+                    {p.label}
+                  </ShopButton>
+                ))}
+              </div>
+
+              {/* Per-size stock inputs */}
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 max-h-32 overflow-y-auto pr-0.5">
+                {variants.map((v) => (
+                  <div key={v.id} className="relative rounded border border-border/60 bg-background/90 p-1 text-center">
+                    <span className="block text-[10px] font-bold text-muted-foreground">{v.id}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={v.qty}
+                      onChange={(e) => updateVariantQty(v.id, e.target.value)}
+                      className="w-full text-center text-xs font-bold py-0.5 rounded border border-input/60 bg-transparent tabular-nums"
+                      placeholder="0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(v.id)}
+                      className="absolute -top-1 -right-1 text-muted-foreground hover:text-destructive text-[10px] leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add custom size */}
+              <div className="flex items-center gap-1.5 pt-1">
+                <input
+                  type="text"
+                  placeholder={tr("Add size (e.g. 70 or 38)")}
+                  value={customSize}
+                  onChange={(e) => setCustomSize(e.target.value)}
+                  className="h-6 text-xs px-2 flex-1 rounded border border-input bg-background"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      addCustomSize();
+                    }
+                  }}
+                />
+                <ShopButton type="button" variant="outline" className="h-6 px-2 text-[10px]" onClick={addCustomSize}>
+                  {tr("+ Add")}
+                </ShopButton>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <InventoryField label={tr("Quantity")} required>
+                <input
+                  aria-label={tr("Quantity")}
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={f.qty}
+                  onChange={set("qty")}
+                  className={inventoryInput}
+                  required
+                />
+              </InventoryField>
+              <InventoryField label={tr("Unit")}>
+                <select aria-label={tr("Unit")} className={inventoryInput} value={f.unit} onChange={set("unit")}>
+                  {["Piece", "Box", "Pack", "Kg", "Gram", "Litre", "Metre", "Yard"].map((u) => (
+                    <option key={u} value={u}>
+                      {tr(u)}
+                    </option>
+                  ))}
+                </select>
+              </InventoryField>
+            </div>
+          )}
+        </div>
+
+        {/* Row 4: Category & Brand */}
+        <div className="grid grid-cols-2 gap-2">
+          <InventoryField group label={tr("Category")}>
+            <SearchPicker
+              tr={tr}
+              items={s.categories.map((c) => ({ id: c.id, label: c.name }))}
+              value={f.categoryId}
+              onChange={(v) => setF((x) => ({ ...x, categoryId: v }))}
+              noneLabel={tr("No category")}
+              placeholder={tr("Select category")}
+              addLabel={tr("Add Category")}
+              onAdd={(n) => runPick(() => erp.addNamed("categories", n))}
+            />
+          </InventoryField>
+          <InventoryField group label={tr("Brand")}>
+            <SearchPicker
+              tr={tr}
+              items={s.brands.map((c) => ({ id: c.id, label: c.name }))}
+              value={f.brandId}
+              onChange={(v) => setF((x) => ({ ...x, brandId: v }))}
+              noneLabel={tr("No brand")}
+              placeholder={tr("Select brand")}
+              addLabel={tr("Add Brand")}
+              onAdd={(n) => runPick(() => erp.addNamed("brands", n))}
+            />
+          </InventoryField>
+        </div>
+
+        {/* Row 5: Barcode */}
         <InventoryField label={tr("Barcode")}>
           <BarcodeField value={f.barcode} onChange={(v) => setF((x) => ({ ...x, barcode: v }))} tr={tr} />
         </InventoryField>
-        <InventoryField label={tr("Unit")}>
-          <select aria-label={tr("Unit")} className={inventoryInput} value={f.unit} onChange={set("unit")}>
-            {["Piece", "Box", "Pack", "Kg", "Gram", "Litre", "Metre", "Yard"].map((u) => (
-              <option key={u} value={u}>
-                {tr(u)}
-              </option>
-            ))}
-          </select>
-        </InventoryField>
+
+        {/* Collapsible Details */}
         <ShopButton
           variant="bare"
           type="button"
           className="h-auto w-auto justify-start p-0 text-[10px] text-primary"
           onClick={() => setAdv(!adv)}
         >
-          {tr("More details")}
-          <ChevronDown className="h-3 w-3" />
+          {tr("More details (SKU & Reorder)")}
+          <ChevronDown className={cn("h-3 w-3 transition-transform", adv && "rotate-180")} />
         </ShopButton>
+
         {adv && (
           <div className="grid grid-cols-2 gap-2">
             <InventoryField label={tr("SKU")}>
               <input className={inventoryInput} value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} />
             </InventoryField>
-            <InventoryField label={tr("Reorder")}>
+            <InventoryField label={tr("Reorder level")}>
               <input type="number" min="0" className={inventoryInput} value={f.minStock} onChange={set("minStock")} />
             </InventoryField>
           </div>
         )}
-        <ShopButton type="submit" className="inventory-save">
+
+        {/* Submit */}
+        <ShopButton type="submit" className="inventory-save w-full mt-2">
           {tr("Save Product")}
         </ShopButton>
       </form>
-    </>
+    </div>
   );
 }
 
@@ -1169,7 +1295,7 @@ function NamedList({ s, tr, kind, go }: Ctx & { kind: "categories" | "brands" })
   );
 }
 
-function ProductMore({ s, money, tr }: Ctx) {
+function ProductExport({ s, money, tr }: Ctx) {
   const [ai, setAi] = useState(false);
   const exportProducts = () => {
     const quote = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
