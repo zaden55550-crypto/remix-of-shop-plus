@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { store, canOpen, type Account } from "@/lib/shopbook";
+import { store, canOpen, APPS, type Account } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/components/shopbook/ui";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
@@ -141,7 +141,8 @@ function Amt({
 function Inventory() {
   const nav = useNavigate();
   const { tr } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
+  const { dark, toggle: toggleTheme } = useTheme();
+  const theme = dark ? "dark" : "light";
   const [acct, setAcct] = useState<Account | null>(null);
   const [menu, setMenu] = useState<Menu>("overview");
   const [sub, setSub] = useState<string>("");
@@ -152,7 +153,7 @@ function Inventory() {
 
   useEffect(() => {
     const a = store.get();
-    if (!a || !canOpen(a, "inventory")) {
+    if (!a || !canOpen(a, APPS.find((x) => x.id === "inventory")?.tier ?? "basic")) {
       nav({ to: "/apps" });
       return;
     }
@@ -594,13 +595,13 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
           <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
             {tr("Low Stock")}
           </span>
-          <Amt value={low.length} tone={low.length > 0 ? "warn" : undefined} size="xs" />
+          <Amt value={low.length} {...(low.length > 0 ? { tone: "warn" as const } : {})} size="xs" />
         </div>
         <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden">
           <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
             {tr("Out of Stock")}
           </span>
-          <Amt value={out.length} tone={out.length > 0 ? "bad" : undefined} size="xs" />
+          <Amt value={out.length} {...(out.length > 0 ? { tone: "bad" as const } : {})} size="xs" />
         </div>
       </div>
 
@@ -1012,7 +1013,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
                 onChange={(e) => {
                   setHasVariants(e.target.checked);
                   if (e.target.checked && variants.length === 0) {
-                    applyPreset(SIZE_PRESETS[1].sizes); // default to 58-68
+                    applyPreset(SIZE_PRESETS[1]?.sizes ?? []); // default to 58-68
                   }
                 }}
                 className="sr-only peer"
