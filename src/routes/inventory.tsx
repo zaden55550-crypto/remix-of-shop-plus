@@ -1,5 +1,4 @@
 import { clean } from "@/lib/format";
-import { ModuleCharts } from "@/components/shopbook/analytics-charts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
@@ -84,6 +83,83 @@ const run = (fn: () => unknown, ok: string) => {
 };
 const dt = (n: number) =>
   new Date(n).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+
+/** Compact number formatter: full numbers below 1M with commas, M for >=1M, B for >=1B */
+function compactFmt(n: number): string {
+  if (typeof n !== "number" || isNaN(n) || Object.is(n, -0) || Math.abs(n) < 0.0001) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  const [intPart, decPart] = n.toFixed(2).split(".");
+  const formattedInt = Number(intPart).toLocaleString("en-US");
+  return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
+}
+
+/** Dashboard-style Amt component with responsive font sizes and status tones */
+function Amt({
+  value,
+  curr,
+  tone,
+  size = "xs",
+  className,
+}: {
+  value: number;
+  curr?: string;
+  tone?: "good" | "warn" | "bad" | undefined;
+  size?: "2xs" | "xs" | "sm" | "md" | "lg";
+  className?: string;
+}) {
+  const numStr = compactFmt(value);
+  const toneClass =
+    tone === "good"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : tone === "bad"
+        ? "text-rose-600 dark:text-rose-400"
+        : tone === "warn"
+          ? "text-amber-600 dark:text-amber-400"
+          : "text-foreground";
+
+  const numSizeClass =
+    size === "2xs"
+      ? "text-[9.5px] sm:text-[10px]"
+      : size === "xs"
+        ? "text-[12px] sm:text-[13px] md:text-[14px]"
+        : size === "sm"
+          ? "text-[14px] sm:text-[15.5px]"
+          : size === "md"
+            ? "text-[17px] sm:text-[19px]"
+            : "text-[21px] sm:text-[24px]";
+
+  const currSizeClass =
+    size === "2xs"
+      ? "text-[6.5px]"
+      : size === "xs"
+        ? "text-[8px] sm:text-[8.5px]"
+        : size === "sm"
+          ? "text-[9px]"
+          : size === "md"
+            ? "text-[10px]"
+            : "text-[11px]";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-baseline font-mono font-black tracking-tight leading-none whitespace-nowrap",
+        toneClass,
+        className,
+      )}
+    >
+      <span className={cn(numSizeClass, "font-black tracking-tight")}>{numStr}</span>
+      {curr && (
+        <span
+          className={cn(currSizeClass, "font-sans font-bold uppercase text-muted-foreground/80 ms-0.5 tracking-normal")}
+        >
+          {curr}
+        </span>
+      )}
+    </span>
+  );
+}
 
 function Inventory() {
   const nav = useNavigate();
@@ -505,7 +581,7 @@ function MoveRow({ m, s, tr }: { m: erp.Movement; s: erp.ErpState; tr: Ctx["tr"]
   );
 }
 
-function Overview({ s, money, tr, go }: Ctx) {
+function Overview({ s, money, tr, go, cur }: Ctx) {
   const low = s.products.filter((p) => erp.stockStatus(p) === "LOW");
   const out = s.products.filter((p) => erp.stockStatus(p) === "OUT");
   const value = s.products.reduce((a, p) => a + p.qty * p.buy, 0);
@@ -535,13 +611,34 @@ function Overview({ s, money, tr, go }: Ctx) {
   };
   return (
     <div>
-      <KpiRow>
-        <Kpi label={tr("Products")} value={s.products.length} icon={<Package className="text-primary" />} />
-        <Kpi label={tr("Stock value")} value={money(value)} icon={<Coins className="text-warning" />} />
-        <Kpi label={tr("Low stock")} value={low.length} icon={<TriangleAlert className="text-warning" />} />
-        <Kpi label={tr("Out of stock")} value={out.length} icon={<ArchiveX className="text-destructive" />} />
-      </KpiRow>
-      <ModuleCharts s={s} module="inventory" money={money} tr={tr} />
+      {/* 4 Dashboard-style Liquid Glass KPI Cards */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-2 mb-3">
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Products")}
+          </span>
+          <Amt value={s.products.length} size="xs" />
+        </div>
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Stock Value")}
+          </span>
+          <Amt value={value} curr={cur} size="xs" />
+        </div>
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Low Stock")}
+          </span>
+          <Amt value={low.length} tone={low.length > 0 ? "warn" : undefined} size="xs" />
+        </div>
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Out of Stock")}
+          </span>
+          <Amt value={out.length} tone={out.length > 0 ? "bad" : undefined} size="xs" />
+        </div>
+      </div>
+
       <Box title={tr("Recent Stock In")} tr={tr} onView={() => go("stock", "History")}>
         {ins.length ? ins.map(movement) : <Empty>{tr("No movements yet")}</Empty>}
       </Box>
