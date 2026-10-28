@@ -85,6 +85,81 @@ const run = (fn: () => unknown, ok: string) => {
 const dt = (n: number) =>
   new Date(n).toLocaleString("en-GB", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
+/** Number formatter matching the Dashboard: full comma-separated below 1M, M/B suffix for 1M+ */
+function compactFmt(n: number) {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  return clean(Math.round(n)).toLocaleString("en-KE");
+}
+
+/** Bold financial amount component matching the Dashboard with subscript lowercase currency */
+function Amt({
+  value,
+  curr = "KSh",
+  tone,
+  size = "xs",
+  className,
+}: {
+  value: number;
+  curr?: string;
+  tone?: "good" | "warn" | "bad" | undefined;
+  size?: "2xs" | "xs" | "sm" | "md" | "lg";
+  className?: string;
+}) {
+  const numStr = compactFmt(value);
+  const toneClass =
+    tone === "good"
+      ? "text-emerald-600 dark:text-emerald-400"
+      : tone === "bad"
+        ? "text-rose-600 dark:text-rose-400"
+        : tone === "warn"
+          ? "text-amber-600 dark:text-amber-400"
+          : "text-foreground";
+
+  const isLong = numStr.length >= 6;
+  const numSize =
+    size === "2xs"
+      ? "text-[9.5px]"
+      : size === "xs"
+        ? isLong
+          ? "text-[clamp(8.5px,2.2vw,11.5px)] sm:text-xs"
+          : "text-[clamp(10px,2.6vw,13px)] sm:text-sm"
+        : size === "sm"
+          ? isLong
+            ? "text-[clamp(11px,2.6vw,13.5px)] sm:text-sm"
+            : "text-xs sm:text-sm"
+          : size === "md"
+            ? "text-sm sm:text-base"
+            : "text-base sm:text-lg";
+
+  const currSize =
+    size === "2xs"
+      ? "text-[6.5px]"
+      : size === "xs"
+        ? isLong
+          ? "text-[7px] sm:text-[8px]"
+          : "text-[7.5px] sm:text-[8.5px]"
+        : size === "sm"
+          ? "text-[8px] sm:text-[9px]"
+          : "text-[9px] sm:text-xs";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-baseline font-mono font-black tracking-tight truncate max-w-full",
+        toneClass,
+        className,
+      )}
+    >
+      <span className={cn("font-black", numSize)}>{numStr}</span>
+      <span className={cn("ml-0.5 font-sans font-bold text-muted-foreground/80 lowercase shrink-0", currSize)}>
+        {curr}
+      </span>
+    </span>
+  );
+}
+
 function Inventory() {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
@@ -115,7 +190,7 @@ function Inventory() {
   if (!acct) return <main className="app-screen" />;
 
   const cur = acct.currency || "KSh";
-  const money = (n: number) => `${cur} ${clean(Math.round(clean(n))).toLocaleString("en-KE")}`;
+  const money = (n: number) => `${compactFmt(clean(n))} ${cur.toLowerCase()}`;
   const go = (m: Menu, sm?: string) => {
     setMenu(m);
     setSub(sm ?? MENUS[m][0] ?? "");
@@ -145,6 +220,38 @@ function Inventory() {
 
   return (
     <main dir={dir} className="inventory-screen flex w-full flex-col">
+      <style>{`
+        .inventory-screen .shop-chart-title {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: -0.01em;
+          margin-bottom: 6px;
+          color: var(--foreground);
+        }
+        .inventory-screen .shop-chart-rank {
+          font-size: 9.5px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-weight: 700;
+        }
+        .inventory-screen .shop-chart-rank b {
+          font-weight: 900;
+          font-variant-numeric: tabular-nums;
+          color: var(--foreground);
+        }
+        .inventory-screen .kpi-item p:first-child {
+          font-size: 8px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--muted-foreground);
+        }
+        .inventory-screen .kpi-item p:last-child {
+          margin-top: 2px;
+          font-size: 12px;
+          font-weight: 900;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+      `}</style>
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         {/* UNIFIED SINGLE-ROW HEADER: < Apps | Online | INVENTORY | 📅 | (SC) */}
         <div className="flex items-center justify-between gap-1 px-2 sm:px-3 py-1.5 min-w-0">
@@ -284,31 +391,33 @@ function Inventory() {
             {...ctx}
             onUnknown={(code) => {
               setPrefill(code);
-              setSub("Add Product");
+              go("products", "Add Product");
             }}
           />
         )}
         {menu === "products" && sub === "Add Product" && (
-          <AddProduct
+          <ProductForm
             {...ctx}
             barcode={prefillBarcode}
-            done={() => {
+            onSaved={() => {
               setPrefill("");
-              setSub("All Products");
+              go("products", "All Products");
             }}
           />
         )}
-        {menu === "products" && (sub === "Categories" || sub === "Brands") && (
-          <NamedList {...ctx} kind={sub === "Brands" ? "brands" : "categories"} />
-        )}
+        {menu === "products" && sub === "Categories" && <Categories {...ctx} />}
+        {menu === "products" && sub === "Brands" && <Brands {...ctx} />}
         {menu === "products" && sub === "More" && <ProductMore {...ctx} />}
         {menu === "stock" && sub === "Stock Levels" && <StockLevels {...ctx} />}
-        {menu === "stock" && (sub === "Stock In" || sub === "Stock Out" || sub === "Adjustments") && (
-          <StockForm {...ctx} mode={sub} />
-        )}
-        {menu === "stock" && sub === "Returned Goods" && <ReturnedGoods {...ctx} />}
+        {menu === "stock" && sub === "Stock In" && <StockIn {...ctx} onDone={() => go("stock", "Stock Levels")} />}
+        {menu === "stock" && sub === "Stock Out" && <StockOut {...ctx} onDone={() => go("stock", "Stock Levels")} />}
+        {menu === "stock" && sub === "Returned Goods" && <Returns {...ctx} />}
+        {menu === "stock" && sub === "Adjustments" && <Adjustments {...ctx} />}
         {menu === "stock" && sub === "History" && <History {...ctx} />}
-        {menu === "transfers" && <Transfers {...ctx} view={sub} />}
+        {menu === "transfers" && sub === "New Transfer" && <NewTransfer {...ctx} />}
+        {menu === "transfers" && sub === "Pending" && <PendingTransfers {...ctx} />}
+        {menu === "transfers" && sub === "Received" && <ReceivedTransfers {...ctx} />}
+        {menu === "transfers" && sub === "History" && <TransferHistory {...ctx} />}
         {menu === "reports" && <Reports {...ctx} view={sub} />}
       </section>
     </main>
@@ -332,172 +441,139 @@ function Tabs({
   label,
   small,
 }: {
-  items: string[];
+  items: readonly string[];
   value: string;
   onChange: (v: string) => void;
-  label: (k: string) => string;
+  label?: (k: string) => string;
   small?: boolean;
 }) {
   return (
     <div
       role="tablist"
-      aria-label={small ? "Inventory submenu" : "Inventory navigation"}
-      className={cn("inventory-tabs", small && "inventory-tabs-sub")}
+      aria-label={small ? "Sub-navigation" : "Main navigation"}
+      className={small ? "inventory-tabs-sub" : "inventory-tabs"}
     >
-      {items.map((k) => (
+      {items.map((it) => (
         <ShopButton
           variant="bare"
+          key={it}
           role="tab"
-          aria-selected={value === k}
-          key={k}
-          onClick={() => onChange(k)}
+          aria-selected={value === it}
+          onClick={() => onChange(it)}
           className="inventory-tab"
         >
-          {label(k)}
+          {label ? label(it) : it}
         </ShopButton>
       ))}
     </div>
   );
 }
 
-function Status({ p }: { p: erp.Product }) {
-  const st = erp.stockStatus(p);
-  return (
-    <span
-      className={cn(
-        "rounded px-1.5 py-0.5 text-[10px] font-bold",
-        st === "OK" && "bg-primary/15 text-primary",
-        st === "LOW" && "bg-warning/15 text-warning",
-        st === "OUT" && "bg-destructive/15 text-destructive",
-      )}
-    >
-      {translateCurrent(st)}
-    </span>
-  );
+function StockDot({ p }: { p?: erp.Product | undefined }) {
+  const st = p ? erp.stockStatus(p) : "OUT";
+  return <span className={cn("stock-dot", st === "OK" ? "stock-ok" : st === "LOW" ? "stock-low" : "stock-out")} />;
 }
 
 function Box({
   title,
+  action,
   children,
   onView,
   tr,
 }: {
   title: string;
+  action?: ReactNode;
   children: ReactNode;
   onView?: () => void;
-  tr: Ctx["tr"];
+  tr: (t: string) => string;
 }) {
   return (
     <div className="inventory-box">
       <div className="inventory-box-heading">
         <h2>{title}</h2>
-        {onView && (
-          <ShopButton variant="bare" className="inventory-view-all" onClick={onView}>
-            {tr("View All")} <ChevronRight className="h-3 w-3 rtl:rotate-180" />
-          </ShopButton>
-        )}
+        <div className="flex items-center gap-2">
+          {action}
+          {onView && (
+            <ShopButton variant="bare" onClick={onView} className="inventory-view-all">
+              {tr("View all")}
+            </ShopButton>
+          )}
+        </div>
       </div>
       {children}
     </div>
   );
 }
 
-function StockDot({ p }: { p?: erp.Product | undefined }) {
-  const status = p ? erp.stockStatus(p) : "OK";
-  return (
-    <span
-      aria-label={status}
-      className={cn("inventory-dot", status === "LOW" && "inventory-dot-low", status === "OUT" && "inventory-dot-out")}
-    />
-  );
-}
-
-function ReturnedGoods({ s, tr }: Ctx) {
-  const [q, setQ] = useState("");
-  const rows = s.returns.filter(
-    (r) =>
-      !q || `${r.ref} ${r.saleRef} ${r.items.map((i) => i.name).join(" ")}`.toLowerCase().includes(q.toLowerCase()),
-  );
-  return (
-    <div>
-      <InventorySearch q={q} setQ={setQ} onScan={setQ} tr={tr} placeholder="Search returns..." />
-      <div className="inventory-list-panel">
-        {rows.length === 0 ? (
-          <Empty>{tr("No returns yet.")}</Empty>
-        ) : (
-          rows.map((r) => (
-            <div key={r.id} className="border-b border-border py-2">
-              <div className="flex items-center justify-between gap-2 text-[10px]">
-                <b>{r.ref}</b>
-                <span className="text-muted-foreground">{dt(r.at)}</span>
-              </div>
-              {r.items.map((i, k) => (
-                <div key={k} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate">{i.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {tr("Quantity")}: {i.qty} • {tr("Sale")}: {r.saleRef}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {tr("Reason")}: {tr("Return")} • {tr("Refund")}: {tr(erp.METHOD_LABEL[r.refund])}
-                    </p>
-                  </div>
-                  <span className="rounded border border-primary px-1.5 text-[10px] text-primary">
-                    +{i.qty} {tr("Stock")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
-function Title({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground first:mt-0">
-      {children}
-    </h2>
-  );
-}
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
+  return <p className="py-6 text-center text-xs text-muted-foreground">{children}</p>;
 }
 
-function MoveRow({ m, s, tr }: { m: erp.Movement; s: erp.ErpState; tr: Ctx["tr"] }) {
+function MovementRow({ m, s, tr }: { m: erp.Movement; s: erp.ErpState; tr: (t: string) => string }) {
+  const p = s.products.find((x) => x.id === m.productId);
+  const isIn = m.qty > 0;
+  return (
+    <div className="inventory-move-row">
+      <StockDot p={p} />
+      <span className="truncate">{p?.name ?? tr("Deleted product")}</span>
+      <b className={cn("text-end", isIn ? "text-primary" : "text-destructive")}>
+        {isIn ? "+" : ""}
+        {m.qty}
+      </b>
+      <span className="text-end text-[10px] text-muted-foreground">{dt(m.at)}</span>
+    </div>
+  );
+}
+
+function MovementDetailRow({
+  m,
+  s,
+  money,
+  tr,
+}: {
+  m: erp.Movement;
+  s: erp.ErpState;
+  money: (n: number) => string;
+  tr: (t: string) => string;
+}) {
   const [open, setOpen] = useState(false);
   const p = s.products.find((x) => x.id === m.productId);
+  const isIn = m.qty > 0;
+  const unit = p?.costPrice ?? p?.buy ?? 0;
+  const total = Math.abs(m.qty) * unit;
   return (
     <ShopButton
       variant="bare"
+      className="block w-full border-b border-border py-2 text-start text-xs last:border-0 hover:bg-muted/40"
       onClick={() => setOpen(!open)}
-      className="block h-auto w-full border-b border-border py-1.5 text-start"
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[11px] text-muted-foreground">
-            {dt(m.at)} • {tr(m.type)}
-          </p>
-          <p className="text-xs font-medium">{p?.name ?? tr("Deleted product")}</p>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <StockDot p={p} />
+          <div className="min-w-0">
+            <p className="truncate font-medium">{p?.name ?? tr("Deleted product")}</p>
+            <p className="text-[10px] text-muted-foreground">{dt(m.at)}</p>
+          </div>
         </div>
-        <span className={cn("text-xs font-bold", m.qty > 0 ? "text-primary" : "text-destructive")}>
-          {m.qty > 0 ? "+" : ""}
-          {m.qty}
-        </span>
+        <div className="text-end">
+          <b className={cn("block", isIn ? "text-primary" : "text-destructive")}>
+            {isIn ? "+" : ""}
+            {m.qty}
+          </b>
+          <span className="text-[10px] text-muted-foreground">{money(total)}</span>
+        </div>
       </div>
       {open && (
-        <div className="mt-2 grid grid-cols-2 gap-1 rounded-lg bg-muted/50 p-2 text-[11px]">
-          <span className="text-muted-foreground">{tr("Source")}</span>
-          <span>{m.source ?? "—"}</span>
-          <span className="text-muted-foreground">{tr("Previous")}</span>
-          <span>{m.prev}</span>
-          <span className="text-muted-foreground">{tr("New")}</span>
-          <span>{m.next}</span>
-          <span className="text-muted-foreground">{tr("Reason")}</span>
-          <span>{m.reason ? tr(m.reason) : "—"}</span>
-          <span className="text-muted-foreground">{tr("Performed by")}</span>
+        <div className="mt-2 grid grid-cols-2 gap-1 rounded bg-muted/40 p-2 text-[10px] text-muted-foreground">
+          <span>
+            {tr("Reason")}: {m.reason}
+          </span>
+          <span>
+            {tr("Ref")}: {m.ref || "-"}
+          </span>
+          <span>
+            {tr("Unit cost")}: {money(unit)}
+          </span>
           <span>{tr(m.user)}</span>
         </div>
       )}
@@ -505,7 +581,7 @@ function MoveRow({ m, s, tr }: { m: erp.Movement; s: erp.ErpState; tr: Ctx["tr"]
   );
 }
 
-function Overview({ s, money, tr, go }: Ctx) {
+function Overview({ s, money, tr, go, cur = "KSh" }: Ctx & { cur?: string }) {
   const low = s.products.filter((p) => erp.stockStatus(p) === "LOW");
   const out = s.products.filter((p) => erp.stockStatus(p) === "OUT");
   const value = s.products.reduce((a, p) => a + p.qty * p.buy, 0);
@@ -535,12 +611,43 @@ function Overview({ s, money, tr, go }: Ctx) {
   };
   return (
     <div>
-      <KpiRow>
-        <Kpi label={tr("Products")} value={s.products.length} icon={<Package className="text-primary" />} />
-        <Kpi label={tr("Stock value")} value={money(value)} icon={<Coins className="text-warning" />} />
-        <Kpi label={tr("Low stock")} value={low.length} icon={<TriangleAlert className="text-warning" />} />
-        <Kpi label={tr("Out of stock")} value={out.length} icon={<ArchiveX className="text-destructive" />} />
-      </KpiRow>
+      {/* KPI ROW: Matches Dashboard typography, bold weights and liquid-glass cards */}
+      <div className="grid grid-cols-4 gap-1 sm:gap-2 mb-2">
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Products")}
+          </span>
+          <span className="font-mono font-black text-[clamp(11px,2.6vw,14px)] text-foreground">
+            {s.products.length}
+          </span>
+        </div>
+
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Stock value")}
+          </span>
+          <Amt value={value} curr={cur} size="xs" />
+        </div>
+
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Low stock")}
+          </span>
+          <span className="font-mono font-black text-[clamp(11px,2.6vw,14px)] text-amber-500 dark:text-amber-400">
+            {low.length}
+          </span>
+        </div>
+
+        <div className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs min-w-0 overflow-hidden">
+          <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
+            {tr("Out of stock")}
+          </span>
+          <span className="font-mono font-black text-[clamp(11px,2.6vw,14px)] text-rose-500 dark:text-rose-400">
+            {out.length}
+          </span>
+        </div>
+      </div>
+
       <ModuleCharts s={s} module="inventory" money={money} tr={tr} />
       <Box title={tr("Recent Stock In")} tr={tr} onView={() => go("stock", "History")}>
         {ins.length ? ins.map(movement) : <Empty>{tr("No movements yet")}</Empty>}
@@ -556,9 +663,10 @@ function Overview({ s, money, tr, go }: Ctx) {
                 <StockDot p={p} />
               </span>
               <div className="min-w-0">
-                <p className="truncate">{p.name}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {tr("Stock")}: {p.qty} • {tr("Reorder")}: {p.minStock ?? 5}
+                <p className="truncate font-semibold text-xs text-foreground">{p.name}</p>
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  {tr("Stock")}: <b className="font-bold text-foreground">{p.qty}</b> • {tr("Reorder")}:{" "}
+                  {p.minStock ?? 5}
                 </p>
               </div>
             </div>
@@ -573,108 +681,99 @@ function Overview({ s, money, tr, go }: Ctx) {
 
 function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
   const [q, setQ] = useState("");
-  const [open, setOpen] = useState<string | null>(null);
-  const { cart, setCart, saveDraft, clearDraft } = useCartDraft("Sales");
-  const [step, setStep] = useState<null | "cart">(null);
+  const [cat, setCat] = useState("all");
+  const [filter, setFilter] = useState<"all" | "low" | "out">("all");
+  const [openP, setOpen] = useState<erp.Product | null>(null);
+  const [editP, setEdit] = useState<erp.Product | null>(null);
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
-  const add = (p: erp.Product) => {
-    const existing = cart.find((l) => l.productId === p.id);
-    const qty = erp.roundQty((existing?.qty ?? 0) + 1);
-    if (qty > p.qty) {
-      toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`);
-      return;
-    }
-    setCart((current) =>
-      existing
-        ? current.map((l) => (l.productId === p.id ? { ...l, qty } : l))
-        : [...current, { productId: p.id, qty }],
-    );
-  };
-  const list = useMemo(() => inventoryProducts(s, q), [s, q]);
-  const onScan = (code: string) => {
-    const p = erp.findByCode(s, code);
-    if (p) {
-      setQ(p.name);
-      setOpen(p.id);
-    } else onUnknown(code);
-  };
-  const openP = s.products.find((p) => p.id === open);
+  const draft = useCartDraft("inventory-checkout");
+
+  const filtered = useMemo(() => {
+    return s.products.filter((p) => {
+      if (cat !== "all" && p.category !== cat) return false;
+      const st = erp.stockStatus(p);
+      if (filter === "low" && st !== "LOW") return false;
+      if (filter === "out" && st !== "OUT") return false;
+      if (!q.trim()) return true;
+      const t = q.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(t) ||
+        (p.barcode && p.barcode.toLowerCase().includes(t)) ||
+        (p.sku && p.sku.toLowerCase().includes(t))
+      );
+    });
+  }, [s.products, q, cat, filter]);
+
   return (
     <div>
-      <InventorySearch q={q} setQ={setQ} onScan={onScan} tr={tr} />
-      <div className="inventory-list-panel">
-        {list.length === 0 && <Empty>{q ? tr("No matching products") : tr("No products yet")}</Empty>}
-        <div className="pos-head">
-          <span>{tr("Product")}</span>
-          <span className="text-center">{tr("Stock")}</span>
-          <span className="text-end">{tr("Price")}</span>
-          <span />
-        </div>
-        {list.map((p) => {
-          const inCart = cart.find((l) => l.productId === p.id)?.qty ?? 0;
-          return (
-            <div key={p.id} className={cn("pos-row", inCart > 0 && "pos-row-on")}>
-              <ShopButton
-                variant="bare"
-                className="flex h-auto min-w-0 items-center justify-start gap-1.5 p-0 text-start text-[11px] font-normal"
-                aria-label={`${tr("Add")} ${p.name}`}
-                disabled={p.qty <= 0}
-                onClick={() => add(p)}
-              >
-                <StockDot p={p} />
-                <span className="truncate" title={p.name}>
-                  {p.name}
+      <InventorySearch
+        q={q}
+        setQ={setQ}
+        tr={tr}
+        categories={s.categories}
+        cat={cat}
+        setCat={setCat}
+        filter={filter}
+        setFilter={setFilter}
+        onScan={onUnknown}
+      />
+      <div className={inventoryProducts}>
+        {filtered.length === 0 ? (
+          <Empty>{tr("No products match")}</Empty>
+        ) : (
+          filtered.map((p) => (
+            <ShopButton
+              variant="bare"
+              key={p.id}
+              className="pos-product-button"
+              onClick={() => {
+                if (draft.count > 0) {
+                  draft.add(p);
+                } else {
+                  setOpen(p);
+                }
+              }}
+            >
+              <div className="flex w-full items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <StockDot p={p} />
+                  <span className="pos-product-name truncate">{p.name}</span>
+                </div>
+                <span className="pos-product-price shrink-0">{money(p.sell)}</span>
+              </div>
+              <div className="pos-product-meta flex justify-between">
+                <span>
+                  {tr("Stock")}: {p.qty} {p.unit || ""}
                 </span>
-                {inCart > 0 && <span className="pos-chip">×{inCart}</span>}
-              </ShopButton>
-              <span className="text-center tabular-nums">{p.qty}</span>
-              <span className="text-end tabular-nums">{Math.round(p.sell).toLocaleString("en-KE")}</span>
-              <ShopButton
-                variant="bare"
-                className="pos-add h-[22px] w-[22px] p-0"
-                aria-label={`${tr("Product")} ${p.name}`}
-                title={tr("More details")}
-                onClick={() => setOpen(p.id)}
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </ShopButton>
-            </div>
-          );
-        })}
+                {p.category && <span className="truncate">{p.category}</span>}
+              </div>
+            </ShopButton>
+          ))
+        )}
       </div>
       {openP && <ProductSheet p={openP} s={s} money={money} tr={tr} onClose={() => setOpen(null)} />}
-      {cart.length > 0 && (
-        <ShopButton
-          variant="bare"
-          className="pos-fab"
-          aria-label={`${tr("Cart")} (${cart.length})`}
-          onClick={() => setStep("cart")}
-        >
-          <ShoppingCart className="h-6 w-6" />
-          <span className="pos-fab-count">{cart.length}</span>
-        </ShopButton>
-      )}
-      {step === "cart" && (
-        <CartCheckout
+      {editP && (
+        <ProductForm
           s={s}
-          cart={cart}
           money={money}
           tr={tr}
-          channel="Sales"
-          setLine={(line) => setCart((current) => current.map((l) => (l.productId === line.productId ? line : l)))}
-          remove={(id) => setCart((current) => current.filter((l) => l.productId !== id))}
-          clear={() => {
-            setCart([]);
-            clearDraft();
-            setStep(null);
-          }}
-          back={() => setStep(null)}
-          saveDraft={saveDraft}
+          go={() => {}}
+          cur=""
+          shop=""
+          initial={editP}
+          onSaved={() => setEdit(null)}
+        />
+      )}
+      {draft.count > 0 && (
+        <CartCheckout
+          cart={draft}
+          s={s}
+          money={money}
+          tr={tr}
+          shop={shop}
           onDone={(sale) => {
-            setCart([]);
-            clearDraft();
-            setStep(null);
             setReceipt(sale);
+            draft.clear();
           }}
         />
       )}
@@ -698,23 +797,21 @@ function ProductSheet({
   tr: Ctx["tr"];
   onClose: () => void;
 }) {
-  const [sell, setSell] = useState(String(p.sell));
   const [buy, setBuy] = useState(String(p.buy));
+  const [sell, setSell] = useState(String(p.sell));
   const [min, setMin] = useState(String(p.minStock ?? 5));
-  const moves = s.movements.filter((m) => m.productId === p.id).slice(0, 8);
-  const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
-  const brand = s.brands.find((c) => c.id === p.brandId)?.name;
+  const [cat, setCat] = useState(p.category || "");
+  const [brand, setBrand] = useState(p.brand || "");
+  const [unit, setUnit] = useState(p.unit || "Pcs");
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="mx-auto max-h-[85vh] w-full max-w-md overflow-y-auto inventory-sheet border border-border bg-card p-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1">
-            <p className="text-xs font-bold">{p.name}</p>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-2 sm:items-center">
+      <div className="w-full max-w-lg rounded-t-xl bg-card p-4 shadow-xl sm:rounded-xl">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-base font-bold">{p.name}</h2>
             <p className="text-xs text-muted-foreground">
-              {[p.sku, p.barcode, cat, brand].filter(Boolean).join(" • ")}
+              {p.barcode || p.sku || tr("No barcode")} • {p.category || tr("Uncategorized")}
             </p>
           </div>
           <ShopButton variant="bare" onClick={onClose} aria-label={tr("Close")}>
@@ -740,310 +837,359 @@ function ProductSheet({
             <input type="number" value={min} onChange={(e) => setMin(e.target.value)} className={inventoryInput} />
           </label>
         </div>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {tr("Quantity changes only through Stock In, Stock Out, Adjustments, sales and purchases.")}
-        </p>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+          <label>
+            {tr("Category")}
+            <SearchPicker
+              value={cat}
+              onChange={setCat}
+              options={s.categories.map((c) => ({ id: c, label: c }))}
+              placeholder={tr("Select category")}
+              entityName={tr("Category")}
+              onCreateOption={(name) => {
+                run(() => erp.addCategory(name), tr("Category created"));
+                setCat(name);
+              }}
+              triggerClassName={inventoryInput}
+            />
+          </label>
+          <label>
+            {tr("Brand")}
+            <SearchPicker
+              value={brand}
+              onChange={setBrand}
+              options={s.brands.map((b) => ({ id: b, label: b }))}
+              placeholder={tr("Select brand")}
+              entityName={tr("Brand")}
+              onCreateOption={(name) => {
+                run(() => erp.addBrand(name), tr("Brand created"));
+                setBrand(name);
+              }}
+              triggerClassName={inventoryInput}
+            />
+          </label>
+          <label>
+            {tr("Unit")}
+            <input value={unit} onChange={(e) => setUnit(e.target.value)} className={inventoryInput} />
+          </label>
+        </div>
+        <div className="mt-4 flex gap-2">
           <ShopButton
-            onClick={() =>
-              run(() => erp.updateProduct(p.id, { buy: +buy || 0, sell: +sell || 0, minStock: +min || 0 }), tr("Saved"))
-            }
-          >
-            {tr("Save")}
-          </ShopButton>
-          <ShopButton
-            variant="outline"
-            className="w-14"
-            aria-label={tr("Delete")}
+            variant="bare"
+            className="inventory-action-btn border-destructive text-destructive hover:bg-destructive/10"
             onClick={() => {
-              if (confirm(tr("Delete this product?")) && run(() => erp.deleteProduct(p.id), tr("Deleted"))) onClose();
+              if (!confirm(tr("Delete this product?"))) return;
+              run(() => erp.deleteProduct(p.id), tr("Deleted"));
+              onClose();
             }}
           >
-            <Trash2 className="h-4 w-4" />
+            {tr("Delete")}
+          </ShopButton>
+          <ShopButton
+            className="inventory-action-btn flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={() => {
+              run(
+                () =>
+                  erp.updateProduct({
+                    ...p,
+                    buy: Number(buy),
+                    sell: Number(sell),
+                    minStock: Number(min),
+                    category: cat,
+                    brand,
+                    unit,
+                  }),
+                tr("Saved"),
+              );
+              onClose();
+            }}
+          >
+            {tr("Save changes")}
           </ShopButton>
         </div>
-        <Title>{tr("History")}</Title>
-        {moves.length ? (
-          moves.map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)
-        ) : (
-          <Empty>{tr("No movements yet")}</Empty>
-        )}
       </div>
     </div>
   );
 }
 
-function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
-  const [f, setF] = useState({
-    name: "",
-    buy: "0",
-    sell: "0",
-    qty: "0",
-    categoryId: "",
-    brandId: "",
-    sku: "",
-    barcode,
-    unit: "Piece",
-    minStock: "5",
-  });
-  const [adv, setAdv] = useState(false);
-  useEffect(() => {
-    setF((x) => ({ ...x, barcode }));
-  }, [barcode]);
-  const set = (key: keyof typeof f) => (e: { target: { value: string } }) =>
-    setF((x) => ({ ...x, [key]: e.target.value }));
-  const save = () =>
-    run(
-      () =>
-        erp.addProduct({
-          name: f.name,
-          buy: Number(f.buy),
-          sell: Number(f.sell),
-          qty: Number(f.qty),
-          categoryId: f.categoryId || undefined,
-          brandId: f.brandId || undefined,
-          sku: f.sku.trim() || undefined,
-          barcode: f.barcode.trim() || undefined,
-          unit: f.unit,
-          minStock: Number(f.minStock),
-        }),
-      tr("Product added"),
-    ) && done();
+function ProductForm({
+  s,
+  tr,
+  barcode: initialBarcode,
+  initial,
+  onSaved,
+}: Ctx & { barcode?: string; initial?: erp.Product | null; onSaved: () => void }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [barcode, setBarcode] = useState(initial?.barcode || initialBarcode || "");
+  const [sku, setSku] = useState(initial?.sku || "");
+  const [buy, setBuy] = useState(initial ? String(initial.buy) : "");
+  const [sell, setSell] = useState(initial ? String(initial.sell) : "");
+  const [qty, setQty] = useState(initial ? String(initial.qty) : "0");
+  const [min, setMin] = useState(initial ? String(initial.minStock ?? 5) : "5");
+  const [cat, setCat] = useState(initial?.category || "");
+  const [brand, setBrand] = useState(initial?.brand || "");
+  const [unit, setUnit] = useState(initial?.unit || "Pcs");
+
   return (
-    <>
-      <h2 className="inventory-form-title">{tr("Add Product")}</h2>
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{initial ? tr("Edit Product") : tr("New Product")}</h2>
+      </div>
       <form
-        className="inventory-form"
         onSubmit={(e) => {
           e.preventDefault();
-          save();
+          if (!name.trim()) return toast.error(tr("Name is required"));
+          if (initial) {
+            run(
+              () =>
+                erp.updateProduct({
+                  ...initial,
+                  name: name.trim(),
+                  barcode: barcode.trim(),
+                  sku: sku.trim(),
+                  buy: Number(buy) || 0,
+                  sell: Number(sell) || 0,
+                  minStock: Number(min) || 0,
+                  category: cat,
+                  brand,
+                  unit,
+                }),
+              tr("Updated"),
+            );
+          } else {
+            run(
+              () =>
+                erp.addProduct({
+                  name: name.trim(),
+                  barcode: barcode.trim(),
+                  sku: sku.trim(),
+                  buy: Number(buy) || 0,
+                  sell: Number(sell) || 0,
+                  qty: Number(qty) || 0,
+                  minStock: Number(min) || 0,
+                  category: cat,
+                  brand,
+                  unit,
+                }),
+              tr("Product created"),
+            );
+          }
+          onSaved();
         }}
+        className="space-y-3"
       >
         <InventoryField label={tr("Product name")} required>
           <input
-            aria-label={tr("Product name")}
-            placeholder={tr("Enter product name")}
-            value={f.name}
-            onChange={set("name")}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={tr("e.g. Milk 500ml")}
             className={inventoryInput}
-            required
           />
         </InventoryField>
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Buying price")} required>
+          <BarcodeField barcode={barcode} setBarcode={setBarcode} tr={tr} />
+          <InventoryField label={tr("SKU")}>
             <input
-              aria-label={tr("Buying price")}
-              type="number"
-              min="0"
-              step="any"
-              value={f.buy}
-              onChange={set("buy")}
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="SKU-..."
               className={inventoryInput}
-              required
+            />
+          </InventoryField>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <InventoryField label={tr("Buying price")}>
+            <input
+              type="number"
+              step="0.01"
+              value={buy}
+              onChange={(e) => setBuy(e.target.value)}
+              placeholder="0.00"
+              className={inventoryInput}
             />
           </InventoryField>
           <InventoryField label={tr("Selling price")} required>
             <input
-              aria-label={tr("Selling price")}
               type="number"
-              min="0"
-              step="any"
-              value={f.sell}
-              onChange={set("sell")}
+              step="0.01"
+              value={sell}
+              onChange={(e) => setSell(e.target.value)}
+              placeholder="0.00"
               className={inventoryInput}
-              required
             />
           </InventoryField>
         </div>
-        <InventoryField label={tr("Quantity")} required>
-          <input
-            aria-label={tr("Quantity")}
-            type="number"
-            min="0"
-            step="any"
-            value={f.qty}
-            onChange={set("qty")}
-            className={inventoryInput}
-            required
-          />
-        </InventoryField>
-        <InventoryField group label={tr("Category")}>
-          <SearchPicker
-            tr={tr}
-            items={s.categories.map((c) => ({ id: c.id, label: c.name }))}
-            value={f.categoryId}
-            onChange={(v) => setF((x) => ({ ...x, categoryId: v }))}
-            noneLabel={tr("No category")}
-            placeholder={tr("Select category")}
-            addLabel={tr("Add Category")}
-            onAdd={(n) => runPick(() => erp.addNamed("categories", n))}
-          />
-        </InventoryField>
-        <InventoryField group label={tr("Brand")}>
-          <SearchPicker
-            tr={tr}
-            items={s.brands.map((c) => ({ id: c.id, label: c.name }))}
-            value={f.brandId}
-            onChange={(v) => setF((x) => ({ ...x, brandId: v }))}
-            noneLabel={tr("No brand")}
-            placeholder={tr("Select brand")}
-            addLabel={tr("Add Brand")}
-            onAdd={(n) => runPick(() => erp.addNamed("brands", n))}
-          />
-        </InventoryField>
-        <InventoryField label={tr("Barcode")}>
-          <BarcodeField value={f.barcode} onChange={(v) => setF((x) => ({ ...x, barcode: v }))} tr={tr} />
-        </InventoryField>
-        <InventoryField label={tr("Unit")}>
-          <select aria-label={tr("Unit")} className={inventoryInput} value={f.unit} onChange={set("unit")}>
-            {["Piece", "Box", "Pack", "Kg", "Gram", "Litre", "Metre", "Yard"].map((u) => (
-              <option key={u} value={u}>
-                {tr(u)}
-              </option>
-            ))}
-          </select>
-        </InventoryField>
-        <ShopButton
-          variant="bare"
-          type="button"
-          className="h-auto w-auto justify-start p-0 text-[10px] text-primary"
-          onClick={() => setAdv(!adv)}
-        >
-          {tr("More details")}
-          <ChevronDown className="h-3 w-3" />
-        </ShopButton>
-        {adv && (
-          <div className="grid grid-cols-2 gap-2">
-            <InventoryField label={tr("SKU")}>
-              <input className={inventoryInput} value={f.sku} onChange={set("sku")} placeholder={tr("Auto")} />
-            </InventoryField>
-            <InventoryField label={tr("Reorder")}>
-              <input type="number" min="0" className={inventoryInput} value={f.minStock} onChange={set("minStock")} />
-            </InventoryField>
-          </div>
+        {!initial && (
+          <InventoryField label={tr("Opening stock")}>
+            <input
+              type="number"
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+              placeholder="0"
+              className={inventoryInput}
+            />
+          </InventoryField>
         )}
-        <ShopButton type="submit" className="inventory-save">
-          {tr("Save Product")}
+        <div className="grid grid-cols-3 gap-2">
+          <InventoryField label={tr("Reorder level")}>
+            <input
+              type="number"
+              value={min}
+              onChange={(e) => setMin(e.target.value)}
+              placeholder="5"
+              className={inventoryInput}
+            />
+          </InventoryField>
+          <InventoryField label={tr("Category")}>
+            <SearchPicker
+              value={cat}
+              onChange={setCat}
+              options={s.categories.map((c) => ({ id: c, label: c }))}
+              placeholder={tr("Select category")}
+              entityName={tr("Category")}
+              onCreateOption={(name) => {
+                run(() => erp.addCategory(name), tr("Category created"));
+                setCat(name);
+              }}
+              triggerClassName={inventoryInput}
+            />
+          </InventoryField>
+          <InventoryField label={tr("Brand")}>
+            <SearchPicker
+              value={brand}
+              onChange={setBrand}
+              options={s.brands.map((b) => ({ id: b, label: b }))}
+              placeholder={tr("Select brand")}
+              entityName={tr("Brand")}
+              onCreateOption={(name) => {
+                run(() => erp.addBrand(name), tr("Brand created"));
+                setBrand(name);
+              }}
+              triggerClassName={inventoryInput}
+            />
+          </InventoryField>
+        </div>
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {initial ? tr("Save changes") : tr("Create product")}
         </ShopButton>
       </form>
-    </>
+    </div>
   );
 }
 
-function NamedList({ s, tr, kind, go }: Ctx & { kind: "categories" | "brands" }) {
-  const [q, setQ] = useState("");
-  const [adding, setAdding] = useState(false);
+function Categories({ s, tr }: Ctx) {
   const [name, setName] = useState("");
-  const [edit, setEdit] = useState<{ id: string; name: string } | null>(null);
-  const list = s[kind].filter((c) => c.name.toLowerCase().includes(q.toLowerCase()));
   return (
-    <div>
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-        <InventorySearch
-          q={q}
-          setQ={setQ}
-          tr={tr}
-          placeholder={kind === "brands" ? "Search brands..." : "Search categories..."}
-        />
-        <ShopButton className="inventory-add-named" onClick={() => setAdding(!adding)}>
-          <Plus className="h-3 w-3" />
-          {tr(kind === "brands" ? "Add Brand" : "Add Category")}
-        </ShopButton>
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Categories")}</h2>
       </div>
-      {adding && (
-        <form
-          className="mt-2 flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (run(() => erp.addNamed(kind, name), tr("Added"))) {
-              setName("");
-              setAdding(false);
-            }
-          }}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          run(() => erp.addCategory(name.trim()), tr("Category added"));
+          setName("");
+        }}
+        className="flex gap-2"
+      >
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={tr("New category...")}
+          className={cn(inventoryInput, "flex-1")}
+        />
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          <input
-            aria-label={tr("Name")}
-            required
-            autoFocus
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inventoryInput}
-          />
-          <ShopButton type="submit" className="inventory-add-named">
-            {tr("Save")}
-          </ShopButton>
-        </form>
-      )}
-      <div className="inventory-list-panel">
-        {!list.length && <Empty>{tr("Nothing here yet")}</Empty>}
-        {list.map((c) => {
-          const n = s.products.filter((p) => (kind === "brands" ? p.brandId : p.categoryId) === c.id).length;
+          <Plus className="h-4 w-4" />
+        </ShopButton>
+      </form>
+      <div className="mt-3 divide-y divide-border">
+        {s.categories.map((c) => {
+          const count = s.products.filter((p) => p.category === c).length;
           return (
-            <div key={c.id} className="inventory-named-row">
-              {edit?.id === c.id ? (
-                <form
-                  className="flex gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (run(() => erp.renameNamed(kind, c.id, edit.name), tr("Saved"))) setEdit(null);
-                  }}
-                >
-                  <input
-                    className={inventoryInput}
-                    value={edit.name}
-                    onChange={(e) => setEdit({ ...edit, name: e.target.value })}
-                  />
-                  <ShopButton className="inventory-add-named">{tr("Save")}</ShopButton>
-                </form>
-              ) : (
-                <ShopButton
-                  variant="bare"
-                  className="inventory-named-open"
-                  onClick={() => {
-                    go("products", "All Products");
-                  }}
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    {kind === "categories" && (
-                      <span className="inventory-category-icon">
-                        <Layers className="h-4 w-4" />
-                      </span>
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate">{c.name}</p>
-                      <p className="text-[10px] font-normal text-muted-foreground">
-                        ({n} {tr("products")})
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4" />
-                </ShopButton>
-              )}
-              <div className="relative">
-                <ShopButton
-                  variant="bare"
-                  className="inventory-icon-button"
-                  aria-label={`${tr("Edit")} ${c.name}`}
-                  title={tr("Edit")}
-                  onClick={() => setEdit(edit?.id === c.id ? null : { id: c.id, name: c.name })}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </ShopButton>
-                {edit?.id === c.id && (
-                  <ShopButton
-                    variant="bare"
-                    className="inventory-icon-button text-destructive"
-                    aria-label={`${tr("Delete")} ${c.name}`}
-                    onClick={() => {
-                      if (confirm(tr("Delete") + " " + c.name + "?"))
-                        run(() => erp.removeNamed(kind, c.id), tr("Deleted"));
-                      setEdit(null);
-                    }}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </ShopButton>
-                )}
+            <div key={c} className="flex items-center justify-between py-2 text-xs">
+              <div>
+                <span className="font-medium">{c}</span>
+                <span className="ml-2 text-[10px] text-muted-foreground">
+                  {count} {tr("products")}
+                </span>
               </div>
+              <ShopButton
+                variant="bare"
+                onClick={() => {
+                  if (confirm(tr("Delete category?"))) {
+                    run(() => erp.deleteCategory(c), tr("Deleted"));
+                  }
+                }}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </ShopButton>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Brands({ s, tr }: Ctx) {
+  const [name, setName] = useState("");
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Brands")}</h2>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          run(() => erp.addBrand(name.trim()), tr("Brand added"));
+          setName("");
+        }}
+        className="flex gap-2"
+      >
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={tr("New brand...")}
+          className={cn(inventoryInput, "flex-1")}
+        />
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+        </ShopButton>
+      </form>
+      <div className="mt-3 divide-y divide-border">
+        {s.brands.map((b) => {
+          const count = s.products.filter((p) => p.brand === b).length;
+          return (
+            <div key={b} className="flex items-center justify-between py-2 text-xs">
+              <div>
+                <span className="font-medium">{b}</span>
+                <span className="ml-2 text-[10px] text-muted-foreground">
+                  {count} {tr("products")}
+                </span>
+              </div>
+              <ShopButton
+                variant="bare"
+                onClick={() => {
+                  if (confirm(tr("Delete brand?"))) {
+                    run(() => erp.deleteBrand(b), tr("Deleted"));
+                  }
+                }}
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </ShopButton>
             </div>
           );
         })}
@@ -1054,364 +1200,431 @@ function NamedList({ s, tr, kind, go }: Ctx & { kind: "categories" | "brands" })
 
 function ProductMore({ s, money, tr }: Ctx) {
   const [ai, setAi] = useState(false);
-  const exportProducts = () => {
-    const quote = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
-    const rows = [
-      ["Product", "Buying price", "Selling price", "Stock", "Reorder", "SKU", "Barcode", "Unit"],
-      ...s.products.map((p) => [
-        p.name,
-        p.buy,
-        p.sell,
-        p.qty,
-        p.minStock ?? 5,
-        p.sku ?? "",
-        p.barcode ?? "",
-        p.unit ?? "",
-      ]),
-    ];
-    const url = URL.createObjectURL(
-      new Blob([rows.map((row) => row.map(quote).join(",")).join("\n")], { type: "text/csv;charset=utf-8" }),
-    );
+  const handleExport = () => {
+    const rows = s.products.map((p) => ({
+      name: p.name,
+      barcode: p.barcode,
+      sku: p.sku,
+      category: p.category,
+      brand: p.brand,
+      buy: p.buy,
+      sell: p.sell,
+      qty: p.qty,
+      minStock: p.minStock,
+    }));
+    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "SHOPBOOK-products.csv";
+    a.download = `inventory-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success(tr("Exported"));
   };
   return (
-    <div className="space-y-2">
-      <ShopButton className="inventory-save" onClick={exportProducts}>
-        {tr("Export")}
-      </ShopButton>
-      <ShopButton variant="outline" className="inventory-save" onClick={() => setAi(!ai)}>
-        {tr("AI Reorder")}
-      </ShopButton>
+    <div className="space-y-3">
+      <div className="inventory-box">
+        <div className="inventory-box-heading">
+          <h2>{tr("Bulk Actions & Tools")}</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <ShopButton variant="bare" onClick={handleExport} className="inventory-tab border border-border">
+            {tr("Export JSON")}
+          </ShopButton>
+          <ShopButton
+            variant="bare"
+            onClick={() => setAi(!ai)}
+            className="inventory-tab border border-border text-primary"
+          >
+            {ai ? tr("Hide AI") : tr("AI Reorder suggestions")}
+          </ShopButton>
+        </div>
+      </div>
       {ai && <Reorder s={s} money={money} />}
     </div>
   );
 }
 
-function StockLevels({ s, tr, onUnknown }: Ctx) {
+function StockLevels({ s, tr, go }: Ctx) {
   const [q, setQ] = useState("");
-  const list = inventoryProducts(s, q);
+  const filtered = s.products.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()));
   return (
-    <div>
-      <InventorySearch
-        q={q}
-        setQ={setQ}
-        onScan={(code) => {
-          const p = erp.findByCode(s, code);
-          if (p) setQ(p.name);
-          else onUnknown?.(code);
-        }}
-        tr={tr}
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Stock Levels")}</h2>
+      </div>
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder={tr("Filter products...")}
+        className={cn(inventoryInput, "mb-3")}
       />
-      <div className="inventory-list-panel">
-        <div className="inventory-stock-row text-[9px] font-semibold uppercase text-muted-foreground">
-          <span>{tr("Product")}</span>
-          <span>{tr("Stock")}</span>
-          <span>{tr("Reorder")}</span>
-        </div>
-        {!list.length && <Empty>{tr("No products yet")}</Empty>}
-        {list.map((p) => (
-          <div key={p.id} className="inventory-stock-row">
-            <span className="flex min-w-0 items-center gap-2">
-              <StockDot p={p} />
-              <span className="truncate">{p.name}</span>
-            </span>
-            <b
-              className={cn(
-                erp.stockStatus(p) === "OK"
-                  ? "text-primary"
-                  : erp.stockStatus(p) === "LOW"
-                    ? "text-warning"
-                    : "text-destructive",
-              )}
-            >
-              {p.qty}
-            </b>
-            <span>{p.minStock ?? 5}</span>
-          </div>
-        ))}
+      <div className="divide-y divide-border">
+        {filtered.map((p) => {
+          const st = erp.stockStatus(p);
+          return (
+            <div key={p.id} className="flex items-center justify-between py-2 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <StockDot p={p} />
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {tr("Reorder at")}: {p.minStock ?? 5}
+                  </p>
+                </div>
+              </div>
+              <div className="text-end">
+                <b className={cn(st === "OK" ? "text-primary" : st === "LOW" ? "text-warning" : "text-destructive")}>
+                  {p.qty} {p.unit || ""}
+                </b>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-const REASONS = {
-  "Stock In": ["Purchase", "Manual entry", "Received Transfer"],
-  "Stock Out": ["Adjustment", "Damaged", "Own use", "Other"],
-  Adjustments: ["Physical stock count", "Damaged", "Lost", "Other"],
-};
-
-function StockForm({ s, tr, mode }: Ctx & { mode: "Stock In" | "Stock Out" | "Adjustments" }) {
+function StockIn({ s, tr, onDone }: Ctx & { onDone: () => void }) {
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
-  const [reason, setReason] = useState<string>(REASONS[mode][0] ?? "");
-  const [reference, setReference] = useState("");
-  const [notes, setNotes] = useState("");
-  useEffect(() => {
-    setReason(REASONS[mode][0] ?? "");
-    setQty("");
-    setReference("");
-    setNotes("");
-  }, [mode]);
-  const p = s.products.find((p) => p.id === pid);
-  const adj = mode === "Adjustments";
-  const submit = () => {
-    if (!pid) {
-      toast.error(tr("Select a product"));
-      return;
-    }
-    const detail = [reason, reference, notes].filter(Boolean).join(" • ");
-    if (
-      run(
-        () =>
-          mode === "Stock In"
-            ? erp.stockIn(pid, Number(qty), detail)
-            : mode === "Stock Out"
-              ? erp.stockOut(pid, Number(qty), detail)
-              : erp.adjustStock(pid, Number(qty), detail),
-        tr("Recorded"),
-      )
-    ) {
-      setQty("");
-      setReference("");
-      setNotes("");
-    }
-  };
+  const [reason, setReason] = useState("Purchase");
   return (
-    <>
-      <h2 className="inventory-form-title">
-        {tr(adj ? "Stock Adjustment" : mode === "Stock In" ? "New Stock In" : "New Stock Out")}
-      </h2>
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Stock In")}</h2>
+      </div>
       <form
-        className="inventory-form"
         onSubmit={(e) => {
           e.preventDefault();
-          submit();
+          if (!pid) return toast.error(tr("Select product"));
+          const n = Number(qty);
+          if (!n || n <= 0) return toast.error(tr("Enter positive quantity"));
+          run(() => erp.stockIn(pid, n, reason), tr("Stock added"));
+          onDone();
         }}
+        className="space-y-3"
       >
-        {!adj && (
-          <InventoryField label={tr("Source")} required>
-            <select
-              aria-label={tr("Source")}
-              className={inventoryInput}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            >
-              {REASONS[mode].map((r) => (
-                <option key={r}>{tr(r)}</option>
-              ))}
-            </select>
-          </InventoryField>
-        )}
-        <InventoryField label={tr("Product")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-        </InventoryField>
-        {adj ? (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              <InventoryField label={tr("Current stock")}>
-                <input readOnly className={inventoryInput} value={p?.qty ?? ""} />
-              </InventoryField>
-              <InventoryField label={tr("Physical count")} required>
-                <input
-                  aria-label={tr("Physical count")}
-                  required
-                  type="number"
-                  min="0"
-                  step="any"
-                  className={inventoryInput}
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                />
-              </InventoryField>
-            </div>
-            <InventoryField label={tr("Adjustment")}>
-              <input
-                className={cn(inventoryInput, p && Number(qty) < p.qty ? "text-destructive" : "text-primary")}
-                readOnly
-                value={p && qty !== "" ? `${Number(qty) - p.qty > 0 ? "+" : ""}${Number(qty) - p.qty}` : ""}
-              />
-            </InventoryField>
-            <InventoryField label={tr("Reason")} required>
-              <select
-                aria-label={tr("Reason")}
-                className={inventoryInput}
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              >
-                {REASONS.Adjustments.map((r) => (
-                  <option key={r} value={r}>
-                    {tr(r)}
-                  </option>
-                ))}
-              </select>
-            </InventoryField>
-          </>
-        ) : (
-          <>
-            <InventoryField label={tr("Quantity")} required>
-              <input
-                aria-label={tr("Quantity")}
-                type="number"
-                min="0.001"
-                step="any"
-                required
-                className={inventoryInput}
-                value={qty}
-                onChange={(e) => setQty(e.target.value)}
-                placeholder="0"
-              />
-            </InventoryField>
-            <InventoryField label={tr("Reference (Optional)")}>
-              <input
-                aria-label={tr("Reference (Optional)")}
-                className={inventoryInput}
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-              />
-            </InventoryField>
-          </>
-        )}
-        <InventoryField label={tr("Notes (Optional)")}>
+        <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+        <InventoryField label={tr("Quantity to add")} required>
           <input
-            aria-label={tr("Notes (Optional)")}
+            type="number"
+            step="any"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder="0"
             className={inventoryInput}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={tr("Enter notes...")}
           />
         </InventoryField>
-        <ShopButton type="submit" className="inventory-save">
-          {tr(adj ? "Save Adjustment" : mode === "Stock In" ? "Save Stock In" : "Save Stock Out")}
+        <InventoryField label={tr("Reason")}>
+          <select value={reason} onChange={(e) => setReason(e.target.value)} className={inventoryInput}>
+            <option value="Purchase">{tr("Purchase")}</option>
+            <option value="Return">{tr("Customer Return")}</option>
+            <option value="Adjustment">{tr("Inventory Count / Found")}</option>
+            <option value="Opening">{tr("Opening stock")}</option>
+          </select>
+        </InventoryField>
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {tr("Confirm Stock In")}
         </ShopButton>
       </form>
-    </>
-  );
-}
-
-function History({ s, tr }: Ctx) {
-  return (
-    <div>
-      {s.movements.length ? (
-        s.movements.slice(0, 200).map((m) => <MoveRow key={m.id} m={m} s={s} tr={tr} />)
-      ) : (
-        <Empty>{tr("No movements yet")}</Empty>
-      )}
     </div>
   );
 }
 
-function Transfers({ s, tr, view, shop }: Ctx & { view: string }) {
+function StockOut({ s, tr, onDone }: Ctx & { onDone: () => void }) {
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
-  const [to, setTo] = useState("");
-  const name = (id: string) => s.products.find((p) => p.id === id)?.name ?? "—";
-  if (view === "New Transfer")
-    return (
-      <>
-        <h2 className="inventory-form-title">{tr("New Transfer")}</h2>
-        <form
-          className="inventory-form"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!pid) {
-              toast.error(tr("Select a product"));
-              return;
-            }
-            if (run(() => erp.createTransfer(pid, Number(qty), to, shop), tr("Transfer created"))) {
-              setQty("");
-              setTo("");
-            }
-          }}
-        >
-          <div className="grid grid-cols-2 gap-2">
-            <InventoryField label={tr("From Location")} required>
-              <select className={inventoryInput} value={shop}>
-                <option>{shop}</option>
-              </select>
-            </InventoryField>
-            <InventoryField label={tr("To Location")} required>
-              <input
-                aria-label={tr("To Location")}
-                className={inventoryInput}
-                required
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                placeholder={tr("To shop / branch")}
-              />
-            </InventoryField>
-          </div>
-          <InventoryField label={tr("Product")} required>
-            <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-          </InventoryField>
-          <InventoryField label={tr("Quantity")} required>
-            <input
-              aria-label={tr("Quantity")}
-              className={inventoryInput}
-              type="number"
-              min="1"
-              required
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              placeholder="0"
-            />
-          </InventoryField>
-          <ShopButton className="inventory-save" type="submit">
-            {tr("Create Transfer")}
-          </ShopButton>
-        </form>
-      </>
-    );
-  const list = s.transfers.filter((t) =>
-    view === "Pending"
-      ? t.status === "PENDING" || t.status === "SENT"
-      : view === "Received"
-        ? t.status === "RECEIVED"
-        : true,
-  );
+  const [reason, setReason] = useState("Damaged");
   return (
-    <div>
-      {list.length === 0 && <Empty>{tr("No transfers")}</Empty>}
-      {list.map((t) => (
-        <div key={t.id} className="border-b border-border py-2.5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-semibold">
-              {t.ref} • {name(t.productId)}
-            </span>
-            <span className="text-[10px] font-bold text-muted-foreground">{tr(t.status)}</span>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            {dt(t.at)} • {t.qty} • {t.from} → {t.to}
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Stock Out")}</h2>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!pid) return toast.error(tr("Select product"));
+          const n = Number(qty);
+          if (!n || n <= 0) return toast.error(tr("Enter positive quantity"));
+          run(() => erp.stockOut(pid, n, reason), tr("Stock removed"));
+          onDone();
+        }}
+        className="space-y-3"
+      >
+        <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+        <InventoryField label={tr("Quantity to remove")} required>
+          <input
+            type="number"
+            step="any"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder="0"
+            className={inventoryInput}
+          />
+        </InventoryField>
+        <InventoryField label={tr("Reason")}>
+          <select value={reason} onChange={(e) => setReason(e.target.value)} className={inventoryInput}>
+            <option value="Damaged">{tr("Damaged / Expired")}</option>
+            <option value="Lost">{tr("Lost / Stolen")}</option>
+            <option value="Internal">{tr("Internal Store Use")}</option>
+            <option value="Adjustment">{tr("Inventory Count / Shortage")}</option>
+          </select>
+        </InventoryField>
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        >
+          {tr("Confirm Stock Out")}
+        </ShopButton>
+      </form>
+    </div>
+  );
+}
+
+function Returns({ s, tr }: Ctx) {
+  const returns = s.movements.filter((m) => m.reason?.toLowerCase().includes("return"));
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Returned Goods")}</h2>
+      </div>
+      <div className="divide-y divide-border">
+        {returns.length === 0 ? (
+          <Empty>{tr("No return records")}</Empty>
+        ) : (
+          returns.map((m) => <MovementRow key={m.id} m={m} s={s} tr={tr} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Adjustments({ s, tr }: Ctx) {
+  const [pid, setPid] = useState("");
+  const [actual, setActual] = useState("");
+  const p = s.products.find((x) => x.id === pid);
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Physical Count Adjustment")}</h2>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!p) return toast.error(tr("Select product"));
+          const n = Number(actual);
+          if (isNaN(n) || n < 0) return toast.error(tr("Enter valid actual quantity"));
+          const diff = n - p.qty;
+          if (diff === 0) return toast.info(tr("Stock is already correct"));
+          run(() => erp.adjustStock(p.id, n, tr("Stock Audit")), tr("Stock adjusted"));
+          setActual("");
+        }}
+        className="space-y-3"
+      >
+        <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+        {p && (
+          <p className="text-xs text-muted-foreground">
+            {tr("Current system stock")}: <b className="font-bold text-foreground">{p.qty}</b>
           </p>
-          {(t.status === "PENDING" || t.status === "SENT") && (
-            <div className="mt-2 flex gap-2">
-              {t.status === "PENDING" && (
-                <ShopButton className="h-9 text-sm" onClick={() => run(() => erp.sendTransfer(t.id), tr("Sent"))}>
-                  {tr("Send")}
-                </ShopButton>
-              )}
-              {t.status === "SENT" && (
-                <ShopButton
-                  className="h-9 text-sm"
-                  onClick={() => run(() => erp.receiveTransfer(t.id), tr("Received"))}
-                >
-                  {tr("Mark received")}
-                </ShopButton>
-              )}
-              <ShopButton
-                variant="outline"
-                className="h-9 text-sm"
-                onClick={() => run(() => erp.cancelTransfer(t.id), tr("Cancelled"))}
-              >
-                {tr("Cancel")}
-              </ShopButton>
-            </div>
-          )}
-        </div>
-      ))}
+        )}
+        <InventoryField label={tr("Actual counted stock")} required>
+          <input
+            type="number"
+            step="any"
+            value={actual}
+            onChange={(e) => setActual(e.target.value)}
+            placeholder="0"
+            className={inventoryInput}
+          />
+        </InventoryField>
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {tr("Save Adjustment")}
+        </ShopButton>
+      </form>
+    </div>
+  );
+}
+
+function History({ s, money, tr }: Ctx) {
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Stock Movement History")}</h2>
+      </div>
+      <div className="divide-y divide-border">
+        {s.movements.length === 0 ? (
+          <Empty>{tr("No movements yet")}</Empty>
+        ) : (
+          s.movements
+            .slice()
+            .reverse()
+            .map((m) => <MovementDetailRow key={m.id} m={m} s={s} money={money} tr={tr} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NewTransfer({ s, tr }: Ctx) {
+  const [pid, setPid] = useState("");
+  const [qty, setQty] = useState("");
+  const [toShop, setToShop] = useState("");
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("New Transfer")}</h2>
+      </div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!pid) return toast.error(tr("Select product"));
+          const n = Number(qty);
+          if (!n || n <= 0) return toast.error(tr("Enter quantity"));
+          if (!toShop.trim()) return toast.error(tr("Enter destination branch"));
+          run(() => erp.createTransfer(pid, n, toShop.trim()), tr("Transfer sent"));
+          setQty("");
+          setToShop("");
+        }}
+        className="space-y-3"
+      >
+        <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+        <InventoryField label={tr("Quantity")} required>
+          <input
+            type="number"
+            step="any"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder="0"
+            className={inventoryInput}
+          />
+        </InventoryField>
+        <InventoryField label={tr("Destination Branch / Warehouse")} required>
+          <input
+            value={toShop}
+            onChange={(e) => setToShop(e.target.value)}
+            placeholder={tr("e.g. Westlands Branch")}
+            className={inventoryInput}
+          />
+        </InventoryField>
+        <ShopButton
+          type="submit"
+          className="inventory-action-btn w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {tr("Initiate Transfer")}
+        </ShopButton>
+      </form>
+    </div>
+  );
+}
+
+function PendingTransfers({ s, tr }: Ctx) {
+  const pending = s.transfers.filter((t) => t.status === "PENDING");
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Pending Transfers")}</h2>
+      </div>
+      <div className="divide-y divide-border">
+        {pending.length === 0 ? (
+          <Empty>{tr("No pending transfers")}</Empty>
+        ) : (
+          pending.map((t) => {
+            const p = s.products.find((x) => x.id === t.productId);
+            return (
+              <div key={t.id} className="flex items-center justify-between py-2 text-xs">
+                <div>
+                  <p className="font-semibold">{p?.name || tr("Product")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {tr("To")}: {t.to} • {dt(t.at)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <b className="font-bold">{t.qty}</b>
+                  <ShopButton
+                    variant="bare"
+                    onClick={() => run(() => erp.receiveTransfer(t.id), tr("Received"))}
+                    className="rounded bg-primary px-2 py-1 text-[10px] text-primary-foreground"
+                  >
+                    {tr("Receive")}
+                  </ShopButton>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReceivedTransfers({ s, tr }: Ctx) {
+  const received = s.transfers.filter((t) => t.status === "RECEIVED");
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Received Transfers")}</h2>
+      </div>
+      <div className="divide-y divide-border">
+        {received.length === 0 ? (
+          <Empty>{tr("No received transfers yet")}</Empty>
+        ) : (
+          received.map((t) => {
+            const p = s.products.find((x) => x.id === t.productId);
+            return (
+              <div key={t.id} className="flex items-center justify-between py-2 text-xs">
+                <div>
+                  <p className="font-semibold">{p?.name || tr("Product")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {tr("From / To")}: {t.to} • {dt(t.at)}
+                  </p>
+                </div>
+                <b className="text-primary font-bold">{t.qty}</b>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TransferHistory({ s, tr }: Ctx) {
+  return (
+    <div className="inventory-box">
+      <div className="inventory-box-heading">
+        <h2>{tr("Transfer History")}</h2>
+      </div>
+      <div className="divide-y divide-border">
+        {s.transfers.length === 0 ? (
+          <Empty>{tr("No transfers recorded")}</Empty>
+        ) : (
+          s.transfers.map((t) => {
+            const p = s.products.find((x) => x.id === t.productId);
+            return (
+              <div key={t.id} className="flex items-center justify-between py-2 text-xs">
+                <div>
+                  <p className="font-semibold">{p?.name || tr("Product")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t.to} • {dt(t.at)}
+                  </p>
+                </div>
+                <div className="text-end">
+                  <b className="font-bold">{t.qty}</b>
+                  <span className="block text-[10px] text-muted-foreground">{t.status}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }
@@ -1422,52 +1635,30 @@ function Reports({ s, money, tr, view }: Ctx & { view: string }) {
     const cost = s.products.reduce((a, p) => a + p.qty * p.buy, 0);
     const sell = s.products.reduce((a, p) => a + p.qty * p.sell, 0);
     return (
-      <div>
+      <div className="space-y-3">
         <KpiRow>
           <Kpi label={tr("Cost value")} value={money(cost)} />
           <Kpi label={tr("Selling value")} value={money(sell)} />
         </KpiRow>
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           {tr("Potential profit")}: <b className="text-foreground">{money(sell - cost)}</b>
         </p>
-        {s.products.map((p) => (
-          <div key={p.id} className="flex justify-between border-b border-border py-1.5 text-xs">
-            <span className="truncate">
-              {p.name} <span className="text-xs text-muted-foreground">× {p.qty}</span>
-            </span>
-            <span>{money(p.qty * p.buy)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (view === "Movement") {
-    const by = new Map<string, { in: number; out: number }>();
-    s.movements.forEach((m) => {
-      const x = by.get(m.type) ?? { in: 0, out: 0 };
-      if (m.qty > 0) x.in += m.qty;
-      else x.out -= m.qty;
-      by.set(m.type, x);
-    });
-    return (
-      <div>
-        {by.size === 0 && <Empty>{tr("No movements yet")}</Empty>}
-        {[...by].map(([k, v]) => (
-          <div key={k} className="flex justify-between border-b border-border py-1.5 text-xs">
-            <span>{tr(k)}</span>
-            <span>
-              <span className="text-primary">+{v.in}</span> / <span className="text-destructive">-{v.out}</span>
-            </span>
-          </div>
-        ))}
+        <div className="divide-y divide-border">
+          {s.products.map((p) => (
+            <div key={p.id} className="flex justify-between py-1.5 text-xs">
+              <span className="truncate">{p.name}</span>
+              <div className="text-end font-mono">
+                <span>{money(p.qty * p.buy)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
   if (view === "Performance") {
     const out = new Map<string, number>();
-    s.movements
-      .filter((m) => m.type === "SALE" || m.type === "STOCK OUT")
-      .forEach((m) => out.set(m.productId, (out.get(m.productId) ?? 0) - m.qty));
+    s.movements.filter((m) => m.qty < 0).forEach((m) => out.set(m.productId, (out.get(m.productId) ?? 0) - m.qty));
     const ranked = s.products.map((p) => ({ p, n: out.get(p.id) ?? 0 })).sort((a, b) => b.n - a.n);
     return (
       <div>
