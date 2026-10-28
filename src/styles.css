@@ -3154,5 +3154,163 @@ body {
 }
 
 /* Inventory: dashboard-style KPI typography */
-.inventory-screen .kpi-item p:first-child { font-size: clamp(8px, 1.8vw, 10px); font-weight: 800; letter-spacing: 0.05em; }
-.inventory-screen .kpi-item p:last-child { font-size: clamp(11px, 2.6vw, 15px); font-weight: 900; letter-spacing: -0.01em; }
+.inventory-screen .kpi-item p:first-child {
+  font-size: clamp(8px, 1.8vw, 10px);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+.inventory-screen .kpi-item p:last-child {
+  font-size: clamp(11px, 2.6vw, 15px);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+/* =======================================================
+   SYSTEM-WIDE LIQUID GLASS ENGINE (ALL APPS & SCREENS)
+   ======================================================= */
+
+/* 1. Global Screen Background with Ambient Radial Glow */
+.inventory-screen,
+main[dir],
+.min-h-screen {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(16, 185, 129, 0.05), transparent 70%);
+  background-attachment: fixed;
+}
+
+/* 2. Universal Liquid Glass Panels & Boxes (.inventory-box across all 12 apps) */
+.inventory-box,
+.inventory-panel,
+.settings-panel,
+.kpi-row,
+.expo-glass-card {
+  background: color-mix(in srgb, var(--card) 68%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.12),
+    0 8px 24px -4px rgba(0, 0, 0, 0.28) !important;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular top-edge shine on all glass boxes */
+.inventory-box::before,
+.inventory-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
+}
+
+/* 3. Sticky App Headers (Unified Single-Row Glass) */
+.inventory-screen > header,
+header.sticky {
+  background: color-mix(in srgb, var(--background) 75%, transparent) !important;
+  backdrop-filter: blur(20px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 4. Horizontal Navigation & App Tabs */
+.inventory-tabs,
+nav[aria-label="Tabs"],
+.erp-subnav {
+  background: transparent !important;
+}
+
+.inventory-tabs button,
+.erp-subnav button {
+  background: rgba(255, 255, 255, 0.04) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 8px;
+}
+
+.inventory-tabs button:hover,
+.erp-subnav button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.inventory-tabs button[data-state="active"],
+.inventory-tabs button.active,
+.erp-subnav button.active {
+  background: color-mix(in srgb, var(--primary) 22%, rgba(255, 255, 255, 0.08)) !important;
+  border-color: color-mix(in srgb, var(--primary) 65%, transparent) !important;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    0 0 14px -2px color-mix(in srgb, var(--primary) 45%, transparent) !important;
+}
+
+/* 5. Liquid Glass KPI Cards (Dashboard & Inventory) */
+.inventory-screen .kpi-item,
+.dashboard-kpi-card {
+  background: color-mix(in srgb, var(--card) 60%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(170%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.14),
+    0 4px 16px -2px rgba(0, 0, 0, 0.22) !important;
+  border-radius: 9px;
+}
+
+/* 6. List Items & Table Rows */
+.inventory-list-item,
+.inventory-table tr,
+.pur-row,
+.sale-row {
+  background: rgba(255, 255, 255, 0.02);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.inventory-list-item:hover,
+.inventory-table tr:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* 7. Search Bars & Filter Inputs */
+.inventory-search-input,
+.erp-search input,
+input[type="search"] {
+  background: rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.inventory-search-input:focus,
+.erp-search input:focus,
+input[type="search"]:focus {
+  border-color: var(--primary) !important;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--primary) 30%, transparent),
+    inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* 8. Drawers, Slide-Over Modals & Sheets */
+[data-radix-portal] [role="dialog"],
+.sheet-content,
+.drawer-content {
+  background: color-mix(in srgb, var(--background) 82%, transparent) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.16),
+    0 16px 40px -8px rgba(0, 0, 0, 0.5) !important;
+}
