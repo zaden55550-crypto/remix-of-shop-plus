@@ -165,13 +165,13 @@ function ChartTooltip({ active, payload, label, money }: any) {
 }
 
 export function Dashboard() {
-  const { account } = useAccount();
+  const account = useAccount("basic");
   const { state: erpState } = useErp();
   const { tr } = useLanguage();
   const navigate = useNavigate();
 
   const s: ErpState = erpState || empty();
-  const money = (n: number) => moneyFor(n, account?.currency || "KSh");
+  const money = moneyFor(account?.currency || "KSh");
 
   const [dateRangeOffset, setDateRangeOffset] = useState<number>(0);
   const [showCalendarPopover, setShowCalendarPopover] = useState(false);
