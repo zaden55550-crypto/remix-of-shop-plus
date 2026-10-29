@@ -675,7 +675,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between min-w-0">
                 <span className="text-muted-foreground truncate">{tr("M-Pesa")}</span>
                 <span className="font-mono font-bold text-foreground truncate">
-                  {compactFmt(floatBalances(s.payments || []).mpesa || 0)}
+                  {compactFmt(pos.mpesa)}
                 </span>
               </div>
               <div className="flex items-center justify-between min-w-0">
@@ -1045,10 +1045,10 @@ export default function Dashboard() {
                 >
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-bold text-foreground truncate">
-                      {sale.customerName || sale.ref || tr("Cash Sale")}
+                      {s.customers.find((c) => c.id === sale.customerId)?.name || sale.ref || tr("Cash Sale")}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
-                      {METHOD_LABEL[sale.method as Method] || sale.method} • {sale.at ? sale.at.slice(11, 16) : ""}
+                      {(Object.keys(sale.pay) as Method[]).filter((m) => sale.pay[m] > 0).map((m) => METHOD_LABEL[m]).join(" + ")} • {new Date(sale.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                   <span className="font-mono font-bold text-xs text-emerald-500 shrink-0">
@@ -1081,7 +1081,7 @@ export default function Dashboard() {
                       {s.suppliers.find((x) => x.id === p.supplierId)?.name || p.ref || tr("Purchase Order")}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
-                      {p.items?.length || 0} {tr("items")} • {p.at ? p.at.slice(0, 10) : ""}
+                      {p.items?.length || 0} {tr("items")} • {new Date(p.at).toLocaleDateString("en-GB")}
                     </span>
                   </div>
                   <span className="font-mono font-bold text-xs text-rose-500 shrink-0">-{compactFmt(p.total)}</span>
@@ -1103,7 +1103,7 @@ export default function Dashboard() {
             </div>
             <div className="mt-1.5 space-y-1.5">
               {(s.payments || [])
-                .filter((pm) => pm.type === "FLOAT_IN" || pm.type === "FLOAT_OUT")
+                .filter((pm) => pm.kind === "DEPOSIT" || pm.kind === "WITHDRAWAL")
                 .slice(0, 5)
                 .map((pm) => (
                   <div
@@ -1112,22 +1112,22 @@ export default function Dashboard() {
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-bold text-foreground truncate">
-                        {pm.type === "FLOAT_IN" ? tr("Cash In") : tr("Cash Out")}
+                        {pm.kind === "DEPOSIT" ? tr("Cash In") : tr("Cash Out")}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">{pm.notes || pm.method}</span>
+                      <span className="text-[10px] text-muted-foreground">{METHOD_LABEL[pm.method]}</span>
                     </div>
                     <span
                       className={cn(
                         "font-mono font-bold text-xs shrink-0",
-                        pm.type === "FLOAT_IN" ? "text-cyan-500" : "text-amber-500",
+                        pm.kind === "DEPOSIT" ? "text-cyan-500" : "text-amber-500",
                       )}
                     >
-                      {pm.type === "FLOAT_IN" ? "+" : "-"}
-                      {compactFmt(pm.amount)}
+                      {pm.kind === "DEPOSIT" ? "+" : "-"}
+                      {compactFmt(Math.abs(pm.amount))}
                     </span>
                   </div>
                 ))}
-              {(!s.payments || s.payments.filter((p) => p.type.startsWith("FLOAT")).length === 0) && (
+              {(!s.payments || s.payments.filter((p) => p.kind === "DEPOSIT" || p.kind === "WITHDRAWAL").length === 0) && (
                 <div className="py-4 text-center text-xs text-muted-foreground">{tr("No cash moves yet")}</div>
               )}
             </div>
