@@ -196,7 +196,7 @@ export function Dashboard() {
   const shopInitials = useMemo(() => {
     const name = account?.shopName || "Shop";
     const parts = name.trim().split(/\s+/);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    if (parts.length >= 2) return `${parts[0]?.[0] ?? ""}${parts[1]?.[0] ?? ""}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
   }, [account?.shopName]);
 
@@ -843,7 +843,7 @@ export function Dashboard() {
                       innerRadius={28}
                       outerRadius={44}
                       paddingAngle={recPayDonut.total > 0 ? 3 : 0}
-                      label={recPayDonut.total > 0 ? renderRecPayPieLabel : undefined}
+                      {...(recPayDonut.total > 0 ? { label: renderRecPayPieLabel } : {})}
                       labelLine={false}
                     >
                       {recPayDonut.total > 0 ? (
