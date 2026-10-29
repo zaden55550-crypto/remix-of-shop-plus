@@ -607,10 +607,6 @@ export function Dashboard() {
             <div className="my-0.5 truncate">
               <Amt value={perf?.sales ?? 0} tone="good" size="xs" />
             </div>
-            <div className="flex items-center gap-0.5 text-[7.5px] sm:text-[10px] font-bold text-emerald-500">
-              <TrendingUp className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />
-              <span>12%</span>
-            </div>
           </div>
 
           {/* 2. Purchases */}
@@ -623,10 +619,6 @@ export function Dashboard() {
             </div>
             <div className="my-0.5 truncate">
               <Amt value={t?.purchases ?? 0} size="xs" />
-            </div>
-            <div className="flex items-center gap-0.5 text-[7.5px] sm:text-[10px] font-bold text-blue-500">
-              <TrendingUp className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />
-              <span>8%</span>
             </div>
           </div>
 
@@ -641,10 +633,6 @@ export function Dashboard() {
             <div className="my-0.5 truncate">
               <Amt value={pnl?.expenses ?? 0} tone="bad" size="xs" />
             </div>
-            <div className="flex items-center gap-0.5 text-[7.5px] sm:text-[10px] font-bold text-rose-500">
-              <TrendingDown className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />
-              <span>3%</span>
-            </div>
           </div>
 
           {/* 4. Profit */}
@@ -657,10 +645,6 @@ export function Dashboard() {
             </div>
             <div className="my-0.5 truncate">
               <Amt value={netProfit} tone="good" size="xs" />
-            </div>
-            <div className="flex items-center gap-0.5 text-[7.5px] sm:text-[10px] font-bold text-emerald-500">
-              <TrendingUp className="h-2 w-2 sm:h-2.5 sm:w-2.5 shrink-0" />
-              <span>18%</span>
             </div>
           </div>
 
