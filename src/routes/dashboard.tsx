@@ -192,8 +192,8 @@ function renderPieLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, n
 
 export default function Dashboard() {
   const account = useAccount("basic");
-  const { s: erpState } = useErp();
-  const s = erpState || empty();
+  const erpState = useErp();
+  const s: ErpState = erpState || empty();
   const { tr } = useLanguage();
   const navigate = useNavigate();
 
@@ -210,62 +210,76 @@ export default function Dashboard() {
   const cur = account?.currency || "KSh";
   const money = moneyFor(cur);
 
-  // Filter ERP performance by selected quick period
+  // Performance for the selected period, read from the shared ERP snapshot
   const perf = useMemo(() => {
-    try {
-      return performance(s, selectedPeriod);
-    } catch {
-      return { sales: 0, purchases: 0, expenses: 0, profit: 0, margin: 0 };
-    }
+    const from = periodStart(selectedPeriod);
+    const p = performance(s, from);
+    const t = purchaseTotals(s, from);
+    const profit = p.grossProfit - t.expenses;
+    return {
+      sales: p.sales,
+      purchases: t.purchases,
+      expenses: t.expenses,
+      profit,
+      margin: p.sales > 0 ? Math.round((p.grossProfit / p.sales) * 100) : 0,
+    };
   }, [s, selectedPeriod]);
 
   // Balance position snapshot
   const pos = useMemo(() => {
-    try {
-      return position(s);
-    } catch {
-      return {
-        cash: 0,
-        bank: 0,
-        receivables: 0,
-        payables: 0,
-        stockValue: 0,
-        netCash: 0,
-        workingCapital: 0,
-      };
-    }
+    const base = position(s);
+    const fb = floatBalances(s);
+    return {
+      ...base,
+      cash: fb.cash,
+      mpesa: fb.mpesa,
+      bank: fb.bank,
+      netCash: fb.cash + fb.mpesa + fb.bank,
+    };
   }, [s]);
 
   // Total stock inventory valuation
-  const totalStockValuation = useMemo(() => {
-    return (s.products || []).reduce((acc, p) => acc + (p.qty || 0) * (p.buyPrice || 0), 0);
-  }, [s.products]);
+  const totalStockValuation = pos.stock;
 
-  // Chart series derived from actual ERP accounting/journal rows
+  // Daily chart series for the selected period
   const charts = useMemo(() => {
-    try {
-      return chartSeries(s);
-    } catch {
-      return { salesVsPurchases: [], cashInOut: [] };
-    }
-  }, [s]);
+    const from = periodStart(selectedPeriod);
+    const day = 864e5;
+    const start = new Date(from); start.setHours(0, 0, 0, 0);
+    const days = Math.max(1, Math.ceil((Date.now() - start.getTime()) / day));
+    const buckets = Array.from({ length: days }, (_, i) => {
+      const a = start.getTime() + i * day;
+      const label = new Date(a).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      return { a, b: a + day, label };
+    });
+    const sum = <T,>(rows: T[], at: (r: T) => number, val: (r: T) => number, a: number, b: number) =>
+      rows.reduce((acc, r) => { const t = at(r); return t >= a && t < b ? acc + val(r) : acc; }, 0);
+    const salesVsPurchases = buckets.map(({ a, b, label }) => ({
+      label,
+      sales: sum(s.sales, (x) => x.at, (x) => x.total, a, b),
+      purchases: sum(s.purchases, (x) => x.at, (x) => x.total, a, b),
+    }));
+    const moneyRows = s.payments.filter((p) => p.kind !== "TRANSFER" && p.kind !== "OPENING");
+    const cashInOut = buckets.map(({ a, b, label }) => ({
+      label,
+      in: sum(moneyRows, (x) => x.at, (x) => Math.max(0, x.amount), a, b),
+      out: sum(moneyRows, (x) => x.at, (x) => Math.max(0, -x.amount), a, b),
+    }));
+    const hasSp = salesVsPurchases.some((x) => x.sales || x.purchases);
+    const hasCio = cashInOut.some((x) => x.in || x.out);
+    return { salesVsPurchases: hasSp ? salesVsPurchases : [], cashInOut: hasCio ? cashInOut : [] };
+  }, [s, selectedPeriod]);
 
   // Chart 1: Money Position (Cash, M-Pesa, Bank, Credit)
   const moneyPositionData = useMemo(() => {
-    const fb = floatBalances(s.payments || []);
-    const cash = Math.max(0, fb.cash || 0);
-    const mpesa = Math.max(0, fb.mpesa || 0);
-    const bank = Math.max(0, fb.bank || 0);
-    const credit = Math.max(0, pos.receivables || 0);
-
     const list = [
-      { name: "Cash", value: cash, color: "#10b981" },
-      { name: "M-Pesa", value: mpesa, color: "#06b6d4" },
-      { name: "Bank", value: bank, color: "#3b82f6" },
-      { name: "Credit", value: credit, color: "#f59e0b" },
+      { name: "Cash", value: Math.max(0, pos.cash), color: "#10b981" },
+      { name: "M-Pesa", value: Math.max(0, pos.mpesa), color: "#06b6d4" },
+      { name: "Bank", value: Math.max(0, pos.bank), color: "#3b82f6" },
+      { name: "Credit", value: Math.max(0, pos.receivables), color: "#f59e0b" },
     ];
     return list.filter((item) => item.value > 0);
-  }, [s.payments, pos.receivables]);
+  }, [pos]);
 
   // Chart 4: Receivables vs Payables (Solid Pie Meeting at Center)
   const debtPositionData = useMemo(() => {
@@ -280,15 +294,9 @@ export default function Dashboard() {
   }, [pos.receivables, pos.payables, tr]);
 
   // Needs Attention Counts & Totals
-  const lowStockCount = useMemo(() => {
-    return (s.products || []).filter((p) => (p.qty ?? 0) <= (p.minStock ?? 5)).length;
-  }, [s.products]);
+  const lowStockCount = pos.low + pos.out;
 
-  const posCashUpPendingCount = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    const hasCashUpToday = (s.cashUps || []).some((c) => c.at?.slice(0, 10) === today);
-    return hasCashUpToday ? 0 : 1;
-  }, [s.cashUps]);
+  const posCashUpPendingCount = pos.cashUpPending ? 1 : 0;
 
   const pendingApprovalsCount = 0;
   const syncIssuesCount = 0;
