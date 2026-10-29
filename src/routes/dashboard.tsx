@@ -178,7 +178,7 @@ export function Dashboard() {
   const [showCalendarPopover, setShowCalendarPopover] = useState(false);
   const [showShopMenu, setShowShopMenu] = useState(false);
   const [showShopBot, setShowShopBot] = useState(false);
-  const [showAttentionDropdown, setShowAttentionDropdown] = useState(false);
+  const [showAlertsDropdown, setShowAlertsDropdown] = useState(false);
   const [viewSale, setViewSale] = useState<Sale | null>(null);
 
   const daysLeft = useMemo(() => trialDaysLeft(account), [account]);
@@ -248,6 +248,7 @@ export function Dashboard() {
     const sales = chartSeries(s, "sales", chartRange, "Monthly");
     const purchases = chartSeries(s, "purchases", chartRange, "Monthly");
     const labels = Array.from(new Set([...sales.map((d) => d.label), ...purchases.map((d) => d.label)]));
+
     return labels.map((label) => ({
       label,
       sales: Math.max(0, sales.find((d) => d.label === label)?.value ?? 0),
@@ -297,7 +298,7 @@ export function Dashboard() {
     };
   }, [creditDebt, tr]);
 
-  // Needs Attention Counts
+  // Needs Attention Counts (Row 1: Low Stock, Receivables, Payables | Row 2: POS Cash-up, Approvals, Sync)
   const attention = useMemo(() => {
     const lowStock = (s.products || []).filter((p) => p.qty > 0 && p.qty <= (p.minStock ?? 5)).length;
     const debtors = (s.customers || []).filter((c) => c.balance > 0).length;
@@ -384,8 +385,8 @@ export function Dashboard() {
     if (attention.receivables > 0) count++;
     if (attention.payables > 0) count++;
     if (pos.cashUpPending) count++;
-    return count + alerts.length;
-  }, [attention, pos.cashUpPending, alerts.length]);
+    return count;
+  }, [attention, pos.cashUpPending]);
 
   // Recent Activity Records
   const recentSales = useMemo(() => (s.sales || []).slice(0, 5), [s.sales]);
@@ -915,180 +916,186 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* 5. COLLAPSIBLE NEEDS ATTENTION & ACTIONABLE ALERTS (Closed by default, 2 Columns when expanded) */}
-        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl shadow-xs overflow-hidden transition-all">
-          <button
-            type="button"
-            onClick={() => setShowAttentionDropdown(!showAttentionDropdown)}
-            className="flex w-full items-center justify-between p-2 sm:p-2.5 hover:bg-muted/30 transition-colors text-left"
-          >
-            <div className="flex items-center gap-2 min-w-0">
+        {/* 5. ALWAYS-VISIBLE NEEDS ATTENTION (3 columns, 2 rows) */}
+        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2.5 shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-              <span className="text-xs font-bold text-foreground truncate">{tr("Needs Attention & Alerts")}</span>
-              <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[9px] font-mono font-bold">
+              <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
+              <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 text-[9px] font-mono font-bold">
                 {attentionTotal}
               </span>
             </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            {/* 1. Low Stock */}
+            <div className="flex flex-col justify-between p-2 rounded-lg bg-orange-500/10 border border-orange-500/30 min-h-[58px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs shrink-0">🛡️</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Low Stock")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-orange-500 mt-1">{attention.lowStock}</span>
+            </div>
+
+            {/* 2. Receivables */}
+            <div className="flex flex-col justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 min-h-[58px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs shrink-0">👤</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Receivables")}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1 mt-1">
+                <span className="text-xs font-mono font-black text-emerald-500 truncate">
+                  {compactFmt(creditDebt.receivables)}
+                </span>
+                <span className="text-[7.5px] text-muted-foreground font-mono shrink-0">{attention.receivables}</span>
+              </div>
+            </div>
+
+            {/* 3. Payables */}
+            <div className="flex flex-col justify-between p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 min-h-[58px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs shrink-0">🔒</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Payables")}
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between gap-1 mt-1">
+                <span className="text-xs font-mono font-black text-rose-500 truncate">
+                  {compactFmt(creditDebt.payables)}
+                </span>
+                <span className="text-[7.5px] text-muted-foreground font-mono shrink-0">{attention.payables}</span>
+              </div>
+            </div>
+
+            {/* 4. POS Cash-up */}
+            <div className="flex flex-col justify-between p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 min-h-[58px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs shrink-0">💼</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("POS Cash-up")}
+                </span>
+              </div>
+              <span className="text-[9.5px] font-bold text-amber-500 mt-1 truncate">{attention.posCashUp}</span>
+            </div>
+
+            {/* 5. Pending Approvals */}
+            <div className="flex flex-col justify-between p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 min-h-[58px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs shrink-0">🛡️</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Approvals")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-blue-500 mt-1">{attention.pendingApprovals}</span>
+            </div>
+
+            {/* 6. Sync Issues */}
+            <div className="flex flex-col justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 min-h-[58px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-xs shrink-0">🔄</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">{tr("Sync")}</span>
+              </div>
+              <span className="text-xs font-mono font-black text-emerald-500 mt-1">{attention.syncIssues}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 6. ACTIONABLE ALERTS & OVERDUE (Collapsible dropdown, closed by default) */}
+        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl shadow-xs overflow-hidden transition-all">
+          <button
+            type="button"
+            onClick={() => setShowAlertsDropdown(!showAlertsDropdown)}
+            className="flex w-full items-center justify-between p-2 sm:p-2.5 hover:bg-muted/30 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle
+                className={cn("h-3.5 w-3.5 shrink-0", alerts.length > 0 ? "text-rose-500" : "text-emerald-500")}
+              />
+              <span className="text-xs font-bold text-foreground truncate">{tr("Actionable Alerts & Overdue")}</span>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-[9px] font-mono font-bold",
+                  alerts.length > 0
+                    ? "bg-rose-500/20 text-rose-600 dark:text-rose-400"
+                    : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400",
+                )}
+              >
+                {alerts.length}
+              </span>
+            </div>
             <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-medium shrink-0">
-              <span>{showAttentionDropdown ? tr("Collapse") : tr("View Details")}</span>
+              <span>{showAlertsDropdown ? tr("Collapse") : tr("View Details")}</span>
               <ChevronDown
-                className={cn("h-3.5 w-3.5 transition-transform duration-200", showAttentionDropdown && "rotate-180")}
+                className={cn("h-3.5 w-3.5 transition-transform duration-200", showAlertsDropdown && "rotate-180")}
               />
             </div>
           </button>
 
-          {showAttentionDropdown && (
+          {showAlertsDropdown && (
             <div className="p-2 sm:p-2.5 pt-0 space-y-2 border-t border-border/40 dark:border-white/10">
-              {/* 2-Column Grid for Needs Attention Status */}
-              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 pt-2">
-                {/* 1. Low Stock */}
-                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-orange-500/10 border border-orange-500/30">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-orange-500 text-xs shrink-0">🛡️</span>
-                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
-                      {tr("Low Stock")}
-                    </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                {alerts.length === 0 ? (
+                  <div className="col-span-full py-3 text-center text-xs text-muted-foreground">
+                    ✓ {tr("No overdue debts, unpaid bills, or critical stock alerts. All clear!")}
                   </div>
-                  <span className="text-xs font-mono font-black text-orange-500 shrink-0">{attention.lowStock}</span>
-                </div>
-
-                {/* 2. Receivables */}
-                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-emerald-500 text-xs shrink-0">👤</span>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
-                        {tr("Receivables")}
-                      </span>
-                      <span className="text-[7.5px] text-muted-foreground font-mono truncate">
-                        {attention.receivables} {attention.receivables === 1 ? tr("debtor") : tr("debtors")}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-black text-emerald-500 shrink-0">
-                    {compactFmt(creditDebt.receivables)}
-                  </span>
-                </div>
-
-                {/* 3. Payables */}
-                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-rose-500 text-xs shrink-0">🔒</span>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
-                        {tr("Payables")}
-                      </span>
-                      <span className="text-[7.5px] text-muted-foreground font-mono truncate">
-                        {attention.payables} {attention.payables === 1 ? tr("bill") : tr("bills")}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-black text-rose-500 shrink-0">
-                    {compactFmt(creditDebt.payables)}
-                  </span>
-                </div>
-
-                {/* 4. POS Cash-up */}
-                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-amber-500 text-xs shrink-0">💼</span>
-                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
-                      {tr("POS Cash-up")}
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-bold text-amber-500 shrink-0">{attention.posCashUp}</span>
-                </div>
-
-                {/* 5. Pending Approvals */}
-                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-blue-500 text-xs shrink-0">🛡️</span>
-                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
-                      {tr("Approvals")}
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono font-black text-blue-500 shrink-0">
-                    {attention.pendingApprovals}
-                  </span>
-                </div>
-
-                {/* 6. Sync Issues */}
-                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-emerald-500 text-xs shrink-0">🔄</span>
-                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
-                      {tr("Sync Issues")}
-                    </span>
-                  </div>
-                  <span className="text-xs font-mono font-black text-emerald-500 shrink-0">{attention.syncIssues}</span>
-                </div>
-              </div>
-
-              {/* Actionable Alerts (also rendered in 2 Columns) */}
-              <div className="pt-2 border-t border-border/40 dark:border-white/10">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  {tr("Specific Alerts & Overdue")} ({alerts.length})
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {alerts.length === 0 ? (
-                    <div className="col-span-full py-3 text-center text-xs text-muted-foreground">
-                      ✓ {tr("No overdue debts, unpaid bills, or critical stock alerts. All clear!")}
-                    </div>
-                  ) : (
-                    alerts.map((al) => (
-                      <div
-                        key={al.id}
-                        className={cn(
-                          "flex flex-col justify-between p-2 rounded-lg border transition-all text-xs",
-                          al.tone === "bad"
-                            ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-500/15"
-                            : "border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15",
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-1">
-                          <span
-                            className={cn(
-                              "rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider",
-                              al.tone === "bad" ? "bg-rose-500 text-white" : "bg-amber-500 text-white",
-                            )}
-                          >
-                            {al.badge}
-                          </span>
-                          {typeof al.amount === "number" && (
-                            <span className="font-mono font-black text-[11px] text-foreground">
-                              {account?.currency || "KSh"} {compactFmt(al.amount)}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="my-1.5">
-                          <div className="font-bold text-foreground truncate text-[11px]">{al.title}</div>
-                          <div className="text-[9px] text-muted-foreground truncate">{al.subtitle}</div>
-                        </div>
-
-                        <Link
-                          to={al.link as any}
+                ) : (
+                  alerts.map((al) => (
+                    <div
+                      key={al.id}
+                      className={cn(
+                        "flex flex-col justify-between p-2 rounded-lg border transition-all text-xs",
+                        al.tone === "bad"
+                          ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-500/15"
+                          : "border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15",
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-1">
+                        <span
                           className={cn(
-                            "inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors w-full mt-1",
-                            al.tone === "bad"
-                              ? "bg-rose-600 hover:bg-rose-700 text-white"
-                              : "bg-amber-600 hover:bg-amber-700 text-white",
+                            "rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider",
+                            al.tone === "bad" ? "bg-rose-500 text-white" : "bg-amber-500 text-white",
                           )}
                         >
-                          <span>{al.actionLabel}</span>
-                          <ChevronRight className="h-3 w-3" />
-                        </Link>
+                          {al.badge}
+                        </span>
+                        {typeof al.amount === "number" && (
+                          <span className="font-mono font-black text-[11px] text-foreground">
+                            {account?.currency || "KSh"} {compactFmt(al.amount)}
+                          </span>
+                        )}
                       </div>
-                    ))
-                  )}
-                </div>
+
+                      <div className="my-1.5">
+                        <div className="font-bold text-foreground truncate text-[11px]">{al.title}</div>
+                        <div className="text-[9px] text-muted-foreground truncate">{al.subtitle}</div>
+                      </div>
+
+                      <Link
+                        to={al.link as any}
+                        className={cn(
+                          "inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors w-full mt-1",
+                          al.tone === "bad"
+                            ? "bg-rose-600 hover:bg-rose-700 text-white"
+                            : "bg-amber-600 hover:bg-amber-700 text-white",
+                        )}
+                      >
+                        <span>{al.actionLabel}</span>
+                        <ChevronRight className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* 6. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
+        {/* 7. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
           {/* Column 1: Recent Sales */}
           <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
@@ -1192,8 +1199,8 @@ export function Dashboard() {
         </div>
       </main>
 
-      {/* 7. FLOATING SHOPBOT BUTTON (ICON ONLY, NO WHITE PILL/TEXT) */}
-      <div className="fixed bottom-3 right-3 z-30">
+      {/* 8. FLOATING SHOPBOT BUTTON (ICON ONLY, ELEVATED POSITION) */}
+      <div className="fixed bottom-8 sm:bottom-10 right-4 sm:right-6 z-30">
         <button
           type="button"
           onClick={() => setShowShopBot(true)}
@@ -1205,7 +1212,7 @@ export function Dashboard() {
         </button>
       </div>
 
-      {/* 8. SHOPBOT LIVE INTERACTIVE ASSISTANT MODAL */}
+      {/* 9. SHOPBOT LIVE INTERACTIVE ASSISTANT MODAL */}
       <BusinessAssistant
         open={showShopBot}
         onClose={() => setShowShopBot(false)}
@@ -1214,7 +1221,7 @@ export function Dashboard() {
         icon={chatIcons.light}
       />
 
-      {/* 9. RECEIPT PREVIEW MODAL */}
+      {/* 10. RECEIPT PREVIEW MODAL */}
       {viewSale && (
         <ReceiptSheet
           sale={viewSale}
