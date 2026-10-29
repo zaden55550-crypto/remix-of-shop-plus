@@ -544,7 +544,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
       <main className="max-w-7xl mx-auto px-2 sm:px-3 pt-2 space-y-2 sm:space-y-2.5">
         {/* 2. TRIAL BANNER (Visible while on trial) */}
-        {account?.isTrial && (
+        {account?.plan === "trial" && (
           <div className="flex items-center justify-between rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 p-2 sm:px-3 sm:py-2.5 shadow-xs">
             <div className="flex items-center gap-2">
               <span className="text-amber-500 text-base sm:text-lg">👑</span>
@@ -637,7 +637,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <Building2 className="h-3 w-3 text-purple-500 shrink-0" />
             </div>
             <div className="my-0.5">
-              <Amt value={pos?.stockValue ?? 0} size="xs" />
+              <Amt value={pos?.stock ?? 0} size="xs" />
             </div>
             <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-purple-500">
               <TrendingUp className="h-2.5 w-2.5 shrink-0" />
