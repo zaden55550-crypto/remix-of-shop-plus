@@ -166,7 +166,7 @@ function ChartTooltip({ active, payload, label, money }: any) {
 
 export function Dashboard() {
   const account = useAccount("basic");
-  const { state: erpState } = useErp();
+  const erpState = useErp();
   const { tr } = useLanguage();
   const navigate = useNavigate();
 
@@ -213,7 +213,7 @@ export function Dashboard() {
     const cash = Math.max(0, fb?.cash || 0);
     const mpesa = Math.max(0, fb?.mpesa || 0);
     const bank = Math.max(0, fb?.bank || 0);
-    const credit = Math.max(0, fb?.credit || 0);
+    const credit = Math.max(0, pos?.receivables || 0);
     const total = cash + mpesa + bank + credit;
 
     const items = [
@@ -231,32 +231,23 @@ export function Dashboard() {
       bank,
       credit,
     };
-  }, [fb]);
+  }, [fb, pos]);
 
-  // 2. Sales vs Purchases Series Data (Dual Line Chart)
+  // 2. Sales vs Purchases Series Data (Dual Line Chart) — last 7 months from ERP records
+  const chartRange = useMemo(() => {
+    const from = new Date(); from.setDate(1); from.setHours(0, 0, 0, 0); from.setMonth(from.getMonth() - 6);
+    return { from: from.getTime(), to: Date.now() };
+  }, []);
   const salesPurchasesSeries = useMemo(() => {
-    try {
-      const series = chartSeries(s);
-      if (series && series.length > 0) {
-        return series.slice(-7).map((d: any) => ({
-          label: d.label || d.date || "",
-          sales: Math.max(0, Number(d.sales || 0)),
-          purchases: Math.max(0, Number(d.purchases || 0)),
-        }));
-      }
-      throw new Error("No series data");
-    } catch {
-      return [
-        { label: "Jan", sales: 0, purchases: 0 },
-        { label: "Feb", sales: 0, purchases: 0 },
-        { label: "Mar", sales: 0, purchases: 0 },
-        { label: "Apr", sales: 0, purchases: 0 },
-        { label: "May", sales: 0, purchases: 0 },
-        { label: "Jun", sales: 0, purchases: 0 },
-        { label: "Jul", sales: perf?.sales ?? 0, purchases: t?.purchases ?? 0 },
-      ];
-    }
-  }, [s, perf?.sales, t?.purchases]);
+    const sales = chartSeries(s, "sales", chartRange, "Monthly");
+    const purchases = chartSeries(s, "purchases", chartRange, "Monthly");
+    const labels = Array.from(new Set([...sales.map((d) => d.label), ...purchases.map((d) => d.label)]));
+    return labels.map((label) => ({
+      label,
+      sales: Math.max(0, sales.find((d) => d.label === label)?.value ?? 0),
+      purchases: Math.max(0, purchases.find((d) => d.label === label)?.value ?? 0),
+    }));
+  }, [s, chartRange]);
 
   // 3. Receivables vs Payables Breakdown
   const creditDebt = useMemo(() => {
@@ -288,31 +279,15 @@ export function Dashboard() {
     };
   }, [creditDebt, tr]);
 
-  // 4. Money In vs Out Data (Monthly Grouped Bar Chart)
-  const moneyInOutSeries = useMemo(() => {
-    try {
-      const series = chartSeries(s);
-      if (series && series.length > 0) {
-        return series.slice(-6).map((d: any) => ({
-          month: d.label || "",
-          in: Math.max(0, Number(d.moneyIn ?? d.sales ?? 0)),
-          out: Math.max(0, Number(d.moneyOut ?? d.purchases ?? 0)),
-        }));
-      }
-      throw new Error("No series");
-    } catch {
-      return [
-        { month: "Feb", in: 0, out: 0 },
-        { month: "Apr", in: 0, out: 0 },
-        { month: "Jun", in: 0, out: 0 },
-        { month: "Jul", in: perf?.sales ?? 0, out: (t?.purchases ?? 0) + (pnl?.expenses ?? 0) },
-      ];
-    }
-  }, [s, perf?.sales, t?.purchases, pnl?.expenses]);
+  // 4. Money In vs Out Data (Monthly Grouped Bar Chart) — actual account movements
+  const moneyInOutSeries = useMemo(
+    () => chartSeries(s, "float", chartRange, "Monthly").slice(-6).map((d) => ({ month: d.label, in: Math.max(0, d.value), out: Math.max(0, d.secondary ?? 0) })),
+    [s, chartRange],
+  );
 
   // Needs Attention Counts
   const attention = useMemo(() => {
-    const lowStock = (s.products || []).filter((p) => p.stock > 0 && p.stock <= (p.minStock ?? 5)).length;
+    const lowStock = (s.products || []).filter((p) => p.qty > 0 && p.qty <= (p.minStock ?? 5)).length;
     const debtors = (s.customers || []).filter((c) => c.balance > 0).length;
     const bills = (s.suppliers || []).filter((sup) => sup.balance > 0).length;
     return {
@@ -321,12 +296,12 @@ export function Dashboard() {
       payables: bills,
       debtors,
       bills,
-      posCashUp: s.cash?.pending ? tr("Pending") : tr("Done"),
-      cashUpPending: Boolean(s.cash?.pending),
+      posCashUp: pos.cashUpPending ? tr("Pending") : tr("Done"),
+      cashUpPending: pos.cashUpPending,
       pendingApprovals: 0,
       syncIssues: 0,
     };
-  }, [s.products, s.customers, s.suppliers, s.cash, tr]);
+  }, [s.products, s.customers, s.suppliers, pos.cashUpPending, tr]);
 
   // Actionable Overdue & Business Alerts
   const alerts = useMemo(() => {
@@ -375,15 +350,15 @@ export function Dashboard() {
 
     // Critical low stock
     (s.products || []).forEach((p) => {
-      if (p.stock <= (p.minStock ?? 3)) {
+      if (p.qty <= (p.minStock ?? 3)) {
         list.push({
           id: `prod-${p.id}`,
           title: p.name,
-          subtitle: p.stock <= 0 ? tr("Out of stock! Customers cannot buy.") : tr("Stock running low!"),
-          tone: p.stock <= 0 ? "bad" : "warn",
+          subtitle: p.qty <= 0 ? tr("Out of stock! Customers cannot buy.") : tr("Stock running low!"),
+          tone: p.qty <= 0 ? "bad" : "warn",
           link: "/inventory",
           actionLabel: tr("Restock Now"),
-          badge: p.stock <= 0 ? tr("Out of Stock") : tr("Low Stock"),
+          badge: p.qty <= 0 ? tr("Out of Stock") : tr("Low Stock"),
         });
       }
     });
@@ -732,7 +707,7 @@ export function Dashboard() {
                       innerRadius={28}
                       outerRadius={44}
                       paddingAngle={moneyPositionData.total > 0 ? 3 : 0}
-                      label={moneyPositionData.total > 0 ? renderMoneyPieLabel : undefined}
+                      {...(moneyPositionData.total > 0 ? { label: renderMoneyPieLabel } : {})}
                       labelLine={false}
                     >
                       {moneyPositionData.total > 0 ? (
@@ -1096,7 +1071,7 @@ export function Dashboard() {
                     </span>
                     {typeof al.amount === "number" && (
                       <span className="font-mono font-black text-[11px] text-foreground">
-                        {account.currency || "KSh"} {compactFmt(al.amount)}
+                        {account?.currency || "KSh"} {compactFmt(al.amount)}
                       </span>
                     )}
                   </div>
