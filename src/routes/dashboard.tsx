@@ -39,10 +39,8 @@ import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
 import { performance, position, periodStart, type Period } from "@/lib/summary";
 import { floatBalances, purchaseTotals } from "@/lib/finance";
-import { profitAndLoss } from "@/lib/accounting";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { METHOD_LABEL, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
-import { chartSeries } from "@/lib/chart-data";
 import { chatIcons, trialDaysLeft } from "@/lib/shopbook";
 import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { cn } from "@/lib/utils";
@@ -60,6 +58,8 @@ export const Route = createFileRoute("/dashboard")({
   }),
   component: Dashboard,
 });
+
+type DashboardPeriod = "Today" | "Week" | "Month" | "Custom";
 
 /** Compact number formatter: full numbers below 1M with commas, M for >=1M, B for >=1B */
 function compactFmt(n: number): string {
@@ -197,8 +197,11 @@ export default function Dashboard() {
   const { tr } = useLanguage();
   const navigate = useNavigate();
 
-  // Selected quick period filter
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>("Today");
+  // Period state defaulting always to "Today"
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("Today");
+  const [customFrom, setCustomFrom] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [customTo, setCustomTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [showCustomInputs, setShowCustomInputs] = useState(false);
 
   // State drawers & modals
   const [showCalendarPopover, setShowCalendarPopover] = useState(false);
@@ -210,11 +213,25 @@ export default function Dashboard() {
   const cur = account?.currency || "KSh";
   const money = moneyFor(cur);
 
+  // Compute active date boundaries [fromMs, toMs]
+  const dateWindow = useMemo(() => {
+    if (selectedPeriod === "Custom") {
+      const start = new Date(customFrom);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(customTo);
+      end.setHours(23, 59, 59, 999);
+      const fromMs = isNaN(start.getTime()) ? Date.now() : start.getTime();
+      const toMs = isNaN(end.getTime()) ? Date.now() : Math.max(fromMs, end.getTime());
+      return { from: fromMs, to: toMs };
+    }
+    const fromMs = periodStart(selectedPeriod as Period);
+    return { from: fromMs, to: Date.now() };
+  }, [selectedPeriod, customFrom, customTo]);
+
   // Performance for the selected period, read from the shared ERP snapshot
   const perf = useMemo(() => {
-    const from = periodStart(selectedPeriod);
-    const p = performance(s, from);
-    const t = purchaseTotals(s, from);
+    const p = performance(s, dateWindow.from, dateWindow.to);
+    const t = purchaseTotals(s, dateWindow.from, dateWindow.to);
     const profit = p.grossProfit - t.expenses;
     return {
       sales: p.sales,
@@ -223,7 +240,7 @@ export default function Dashboard() {
       profit,
       margin: p.sales > 0 ? Math.round((p.grossProfit / p.sales) * 100) : 0,
     };
-  }, [s, selectedPeriod]);
+  }, [s, dateWindow]);
 
   // Balance position snapshot
   const pos = useMemo(() => {
@@ -243,32 +260,61 @@ export default function Dashboard() {
 
   // Daily chart series for the selected period
   const charts = useMemo(() => {
-    const from = periodStart(selectedPeriod);
+    const from = dateWindow.from;
+    const to = dateWindow.to;
     const day = 864e5;
-    const start = new Date(from); start.setHours(0, 0, 0, 0);
-    const days = Math.max(1, Math.ceil((Date.now() - start.getTime()) / day));
+    const start = new Date(from);
+    start.setHours(0, 0, 0, 0);
+    const days = Math.max(1, Math.min(31, Math.ceil((to - start.getTime()) / day)));
     const buckets = Array.from({ length: days }, (_, i) => {
       const a = start.getTime() + i * day;
       const label = new Date(a).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
       return { a, b: a + day, label };
     });
     const sum = <T,>(rows: T[], at: (r: T) => number, val: (r: T) => number, a: number, b: number) =>
-      rows.reduce((acc, r) => { const t = at(r); return t >= a && t < b ? acc + val(r) : acc; }, 0);
+      rows.reduce((acc, r) => {
+        const t = at(r);
+        return t >= a && t < b ? acc + val(r) : acc;
+      }, 0);
     const salesVsPurchases = buckets.map(({ a, b, label }) => ({
       label,
-      sales: sum(s.sales, (x) => x.at, (x) => x.total, a, b),
-      purchases: sum(s.purchases, (x) => x.at, (x) => x.total, a, b),
+      sales: sum(
+        s.sales,
+        (x) => x.at,
+        (x) => x.total,
+        a,
+        b,
+      ),
+      purchases: sum(
+        s.purchases,
+        (x) => x.at,
+        (x) => x.total,
+        a,
+        b,
+      ),
     }));
     const moneyRows = s.payments.filter((p) => p.kind !== "TRANSFER" && p.kind !== "OPENING");
     const cashInOut = buckets.map(({ a, b, label }) => ({
       label,
-      in: sum(moneyRows, (x) => x.at, (x) => Math.max(0, x.amount), a, b),
-      out: sum(moneyRows, (x) => x.at, (x) => Math.max(0, -x.amount), a, b),
+      in: sum(
+        moneyRows,
+        (x) => x.at,
+        (x) => Math.max(0, x.amount),
+        a,
+        b,
+      ),
+      out: sum(
+        moneyRows,
+        (x) => x.at,
+        (x) => Math.max(0, -x.amount),
+        a,
+        b,
+      ),
     }));
     const hasSp = salesVsPurchases.some((x) => x.sales || x.purchases);
     const hasCio = cashInOut.some((x) => x.in || x.out);
     return { salesVsPurchases: hasSp ? salesVsPurchases : [], cashInOut: hasCio ? cashInOut : [] };
-  }, [s, selectedPeriod]);
+  }, [s, dateWindow]);
 
   // Chart 1: Money Position (Cash, M-Pesa, Bank, Credit)
   const moneyPositionData = useMemo(() => {
@@ -295,9 +341,7 @@ export default function Dashboard() {
 
   // Needs Attention Counts & Totals
   const lowStockCount = pos.low + pos.out;
-
   const posCashUpPendingCount = pos.cashUpPending ? 1 : 0;
-
   const pendingApprovalsCount = 0;
   const syncIssuesCount = 0;
 
@@ -317,8 +361,11 @@ export default function Dashboard() {
       past.setDate(today.getDate() - 7);
       return `${past.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${today.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
     }
-    return today.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-  }, [selectedPeriod]);
+    if (selectedPeriod === "Month") {
+      return today.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+    }
+    return `${new Date(customFrom).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${new Date(customTo).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+  }, [selectedPeriod, customFrom, customTo]);
 
   // Actionable Alerts Items
   const actionableAlerts = useMemo(() => {
@@ -380,6 +427,13 @@ export default function Dashboard() {
       .toUpperCase();
   }, [account?.shopName]);
 
+  const activePeriodLabel = useMemo(() => {
+    if (selectedPeriod === "Today") return tr("Today");
+    if (selectedPeriod === "Week") return tr("7 Days");
+    if (selectedPeriod === "Month") return tr("This Month");
+    return tr("Custom");
+  }, [selectedPeriod, tr]);
+
   return (
     <div className="relative min-h-screen w-full text-foreground pb-20 font-sans select-none antialiased bg-background bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(56,189,248,0.08),transparent_70%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(16,185,129,0.05),transparent_70%)] dark:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(56,189,248,0.10),transparent_70%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(16,185,129,0.07),transparent_70%)] bg-fixed">
       {/* 1. TOP UNIFIED COMPACT HEADER */}
@@ -414,7 +468,7 @@ export default function Dashboard() {
 
           {/* Right Elements: Calendar Popover + Shop Avatar Menu */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Calendar Popover */}
+            {/* Calendar Popover (Defaults to Today, shows icon + label + dropdown) */}
             <div className="relative">
               <button
                 type="button"
@@ -422,48 +476,113 @@ export default function Dashboard() {
                   setShowCalendarPopover(!showCalendarPopover);
                   setShowShopMenu(false);
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all cursor-pointer"
+                className="flex h-7 items-center gap-1 sm:gap-1.5 rounded-lg border border-border/60 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md px-2 text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all cursor-pointer"
                 title={tr("Calendar / Period")}
               >
-                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                <CalendarDays className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-[10px] sm:text-[11px] font-bold text-foreground">{activePeriodLabel}</span>
+                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
               </button>
 
               {showCalendarPopover && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-border/60 dark:border-white/10 bg-popover/90 backdrop-blur-xl p-2 shadow-2xl dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)]">
-                  <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-border/60 text-xs font-bold text-foreground">
-                    <span>{tr("Date Range")}</span>
+                <div className="absolute right-0 top-full mt-1.5 z-50 w-60 rounded-xl border border-border/60 dark:border-white/10 bg-popover/95 backdrop-blur-xl p-2.5 shadow-2xl dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] space-y-2">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-border/60 text-xs font-bold text-foreground">
+                    <span className="flex items-center gap-1">
+                      <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                      {tr("Select Period")}
+                    </span>
                     <button
                       type="button"
                       onClick={() => setShowCalendarPopover(false)}
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground cursor-pointer"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
+
+                  {/* Period Choices */}
                   <div className="space-y-1">
                     {[
-                      { id: "Today" as Period, label: tr("Today") },
-                      { id: "Week" as Period, label: tr("Last 7 Days") },
-                      { id: "Month" as Period, label: tr("This Month") },
+                      { id: "Today" as DashboardPeriod, label: tr("Today") },
+                      { id: "Week" as DashboardPeriod, label: tr("7 Days") },
+                      { id: "Month" as DashboardPeriod, label: tr("This Month") },
                     ].map((item) => (
                       <button
                         key={item.id}
                         type="button"
                         onClick={() => {
                           setSelectedPeriod(item.id);
+                          setShowCustomInputs(false);
                           setShowCalendarPopover(false);
                         }}
                         className={cn(
-                          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
-                          selectedPeriod === item.id
+                          "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors cursor-pointer",
+                          selectedPeriod === item.id && !showCustomInputs
                             ? "bg-primary text-primary-foreground font-bold shadow-xs"
                             : "text-foreground hover:bg-muted dark:hover:bg-white/10",
                         )}
                       >
                         <span>{item.label}</span>
-                        {selectedPeriod === item.id && <span className="text-[10px]">✓</span>}
+                        {selectedPeriod === item.id && !showCustomInputs && <span className="text-[10px]">✓</span>}
                       </button>
                     ))}
+
+                    {/* Custom Option */}
+                    <button
+                      type="button"
+                      onClick={() => setShowCustomInputs(!showCustomInputs)}
+                      className={cn(
+                        "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors cursor-pointer",
+                        selectedPeriod === "Custom"
+                          ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                          : "text-foreground hover:bg-muted dark:hover:bg-white/10",
+                      )}
+                    >
+                      <span>{tr("Custom Range")}</span>
+                      <ChevronDown
+                        className={cn("h-3.5 w-3.5 transition-transform", showCustomInputs && "rotate-180")}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Expandable Custom Date Inputs */}
+                  {showCustomInputs && (
+                    <div className="pt-2 border-t border-border/50 dark:border-white/10 space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground">{tr("From")}</label>
+                        <input
+                          type="date"
+                          value={customFrom}
+                          onChange={(e) => setCustomFrom(e.target.value)}
+                          className="w-full rounded-md border border-border/60 bg-background/80 dark:bg-slate-900/80 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-semibold text-muted-foreground">{tr("To")}</label>
+                        <input
+                          type="date"
+                          value={customTo}
+                          onChange={(e) => setCustomTo(e.target.value)}
+                          className="w-full rounded-md border border-border/60 bg-background/80 dark:bg-slate-900/80 px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPeriod("Custom");
+                          setShowCalendarPopover(false);
+                        }}
+                        className="w-full rounded-lg bg-primary py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors shadow-xs cursor-pointer text-center"
+                      >
+                        {tr("Apply Dates")}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="pt-1 border-t border-border/40 text-[10px] font-mono text-muted-foreground text-center">
+                    {dateRangeLabel}
                   </div>
                 </div>
               )}
@@ -526,33 +645,6 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-2 sm:px-3 pt-2 space-y-2 sm:space-y-2.5">
-        {/* QUICK PERIOD SELECTOR (Glass Pills) */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1 bg-card/75 dark:bg-card/65 backdrop-blur-xl border border-border/50 dark:border-white/10 rounded-lg p-0.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]">
-            {[
-              { id: "Today" as Period, label: tr("Today") },
-              { id: "Week" as Period, label: tr("7 Days") },
-              { id: "Month" as Period, label: tr("This Month") },
-            ].map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setSelectedPeriod(p.id)}
-                className={cn(
-                  "px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold transition-all cursor-pointer",
-                  selectedPeriod === p.id
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="text-[10px] text-muted-foreground font-mono font-medium">{dateRangeLabel}</div>
-        </div>
-
         {/* 2. TRIAL BANNER (Visible while on trial with real days left) */}
         {account?.plan === "trial" && (
           <div className="flex items-center justify-between rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-500/15 backdrop-blur-xl p-2 sm:px-3 sm:py-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)]">
@@ -674,9 +766,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between min-w-0">
                 <span className="text-muted-foreground truncate">{tr("M-Pesa")}</span>
-                <span className="font-mono font-bold text-foreground truncate">
-                  {compactFmt(pos.mpesa)}
-                </span>
+                <span className="font-mono font-bold text-foreground truncate">{compactFmt(pos.mpesa)}</span>
               </div>
               <div className="flex items-center justify-between min-w-0">
                 <span className="text-muted-foreground truncate">{tr("Bank")}</span>
@@ -1048,7 +1138,11 @@ export default function Dashboard() {
                       {s.customers.find((c) => c.id === sale.customerId)?.name || sale.ref || tr("Cash Sale")}
                     </span>
                     <span className="text-[10px] text-muted-foreground">
-                      {(Object.keys(sale.pay) as Method[]).filter((m) => sale.pay[m] > 0).map((m) => METHOD_LABEL[m]).join(" + ")} • {new Date(sale.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                      {(Object.keys(sale.pay) as Method[])
+                        .filter((m) => sale.pay[m] > 0)
+                        .map((m) => METHOD_LABEL[m])
+                        .join(" + ")}{" "}
+                      • {new Date(sale.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                   <span className="font-mono font-bold text-xs text-emerald-500 shrink-0">
@@ -1127,7 +1221,8 @@ export default function Dashboard() {
                     </span>
                   </div>
                 ))}
-              {(!s.payments || s.payments.filter((p) => p.kind === "DEPOSIT" || p.kind === "WITHDRAWAL").length === 0) && (
+              {(!s.payments ||
+                s.payments.filter((p) => p.kind === "DEPOSIT" || p.kind === "WITHDRAWAL").length === 0) && (
                 <div className="py-4 text-center text-xs text-muted-foreground">{tr("No cash moves yet")}</div>
               )}
             </div>
