@@ -1155,7 +1155,7 @@ export function Dashboard() {
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-foreground truncate">
-                        {sale.receipt || sale.id.slice(0, 8)}
+                        {sale.ref || sale.id.slice(0, 8)}
                       </span>
                       <span className="text-[8.5px] text-muted-foreground truncate">
                         {sale.items.length} {sale.items.length === 1 ? tr("item") : tr("items")}
@@ -1186,7 +1186,7 @@ export function Dashboard() {
                   <div key={p.id} className="flex items-center justify-between py-1.5 px-1">
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-foreground truncate">
-                        {p.supplier || tr("Purchase Order")}
+                        {s.suppliers.find((x) => x.id === p.supplierId)?.name || p.ref || tr("Purchase Order")}
                       </span>
                       <span className="text-[8.5px] text-muted-foreground truncate">
                         {new Date(p.at).toLocaleDateString()}
