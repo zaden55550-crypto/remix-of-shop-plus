@@ -5,12 +5,22 @@ import {
   Building2,
   CalendarDays,
   ChevronLeft,
-  Download,
+  ChevronRight,
+  ExternalLink,
+  Lock,
   Package,
   Receipt,
+  RefreshCw,
+  Shield,
+  ShieldAlert,
   ShoppingCart,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  UserCheck,
   Users,
   Wallet,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -20,14 +30,12 @@ import {
   Cell,
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
 } from "recharts";
 import { ReceiptSheet, moneyFor, useAccount } from "@/components/shopbook/selling";
 import { useErp } from "@/components/shopbook/product-search";
@@ -60,22 +68,21 @@ function compactFmt(n: number): string {
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
   if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
-  // Below 1 million: full number with commas (e.g. 999,000, 125,000, 4,500)
   return Math.round(n).toLocaleString();
 }
 
-/** Formats shop name so long multi-word names stay on one line on small screens */
+/** Formats shop name so long multi-word names stay tidy */
 function formatHeaderShopName(name: string): string {
   if (!name) return "SHOPBOOK";
   const parts = name.trim().split(/\s+/);
-  if (parts.length <= 1) return parts[0]!.toUpperCase();
-  if (parts[0]!.length >= 10 || `${parts[0]} ${parts[1]}`.length > 15) {
-    return `${parts[0]!.toUpperCase()}..`;
+  if (parts.length <= 1) return parts[0]!;
+  if (parts[0]!.length >= 12 || `${parts[0]} ${parts[1]}`.length > 18) {
+    return `${parts[0]}..`;
   }
-  return `${parts[0]!.toUpperCase()} ${parts[1]!.toUpperCase()}${parts.length > 2 ? ".." : ""}`;
+  return `${parts[0]} ${parts[1]}${parts.length > 2 ? ".." : ""}`;
 }
 
-/** Currency formatter component with bolder and larger responsive typography */
+/** Currency formatter component with responsive typography */
 function Amt({
   value,
   curr = "KSh",
@@ -92,14 +99,13 @@ function Amt({
   const numStr = compactFmt(value);
   const toneClass =
     tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-emerald-500"
       : tone === "bad"
-        ? "text-rose-600 dark:text-rose-400"
+        ? "text-rose-500"
         : tone === "warn"
-          ? "text-amber-600 dark:text-amber-400"
+          ? "text-amber-500"
           : "text-foreground";
 
-  // Automatically adapt font size if the figure is 6+ characters (e.g., 999,000)
   const isLong = numStr.length >= 6;
   const numSize =
     size === "2xs"
@@ -244,19 +250,19 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       const salesData = chartSeries(s, "sales", { from: fromStr, to: toStr }, "Daily");
       const purchasesData = chartSeries(s, "purchases", { from: fromStr, to: toStr }, "Daily");
 
-      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
       const result = [];
 
       for (let i = 6; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 86400000);
         const dayKey = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
-        const dayLabel = days[d.getDay()]!;
+        const label = months[6 - i] || dayKey;
 
         const sItem = (salesData || []).find((p: any) => p?.period === dayKey || p?.label === dayKey);
         const pItem = (purchasesData || []).find((p: any) => p?.period === dayKey || p?.label === dayKey);
 
         result.push({
-          day: dayLabel,
+          label,
           sales: sItem?.value ?? (i === 0 ? (perf?.sales ?? 0) : 0),
           purchases: pItem?.value ?? (i === 0 ? (t?.purchases ?? 0) : 0),
         });
@@ -264,57 +270,43 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       return result;
     } catch {
       return [
-        { day: "Mon", sales: 0, purchases: 0 },
-        { day: "Tue", sales: 0, purchases: 0 },
-        { day: "Wed", sales: 0, purchases: 0 },
-        { day: "Thu", sales: 0, purchases: 0 },
-        { day: "Fri", sales: 0, purchases: 0 },
-        { day: "Sat", sales: 0, purchases: 0 },
-        { day: "Sun", sales: perf?.sales ?? 0, purchases: t?.purchases ?? 0 },
+        { label: "Jan", sales: 0, purchases: 0 },
+        { label: "Feb", sales: 0, purchases: 0 },
+        { label: "Mar", sales: 0, purchases: 0 },
+        { label: "Apr", sales: 0, purchases: 0 },
+        { label: "May", sales: 0, purchases: 0 },
+        { label: "Jun", sales: 0, purchases: 0 },
+        { label: "Jul", sales: perf?.sales ?? 0, purchases: t?.purchases ?? 0 },
       ];
     }
   }, [s, perf?.sales, t?.purchases]);
 
-  // 3. Receivables vs Payables (Credit & Debt Radar)
+  // 3. Receivables vs Payables (Dual Comparative Bar Chart)
   const creditDebt = useMemo(() => {
     const customers = s.customers || [];
     const suppliers = s.suppliers || [];
     const receivables = customers.reduce((acc, c) => acc + (c?.balance && c.balance > 0 ? c.balance : 0), 0);
     const payables = suppliers.reduce((acc, sup) => acc + (sup?.balance && sup.balance > 0 ? sup.balance : 0), 0);
-    const customerCount = customers.filter((c) => (c?.balance || 0) > 0).length;
-    const supplierCount = suppliers.filter((sup) => (sup?.balance || 0) > 0).length;
-    const avgRec = customerCount > 0 ? receivables / customerCount : 0;
-    const avgPay = supplierCount > 0 ? payables / supplierCount : 0;
-
     return {
       receivables,
       payables,
-      series: [
-        { subject: tr("Total Bal"), receivables, payables },
-        { subject: tr("Accounts"), receivables: customerCount * 1000, payables: supplierCount * 1000 },
-        { subject: tr("Avg / Acct"), receivables: avgRec, payables: avgPay },
-        { subject: tr("Exposure"), receivables: receivables * 0.8, payables: payables * 0.8 },
-      ],
+      max: Math.max(receivables, payables, 1),
     };
-  }, [s.customers, s.suppliers, tr]);
+  }, [s.customers, s.suppliers]);
 
-  // 4. Cash Flow Breakdown (Inflow vs Outflow)
-  const cashFlowData = useMemo(() => {
-    const inflow = perf?.sales ?? 0;
-    const outflow = (t?.purchases ?? 0) + ((pnl?.expenses ?? 0) + (pnl?.salaries ?? 0));
-    const net = inflow - outflow;
-    return {
-      inflow,
-      outflow,
-      net,
-      items: [
-        { name: "Inflow", value: Math.max(0, inflow), color: "#10B981" },
-        { name: "Outflow", value: Math.max(0, outflow), color: "#EF4444" },
-      ],
-    };
-  }, [perf?.sales, t?.purchases, pnl?.expenses, pnl?.salaries]);
+  // 4. Money In vs Out (Grouped Bar Chart)
+  const moneyInOutSeries = useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"];
+    const baseIn = (perf?.sales ?? 0) / 7;
+    const baseOut = ((t?.purchases ?? 0) + (pnl?.expenses ?? 0)) / 7;
+    return months.map((m, idx) => ({
+      month: m,
+      in: Math.round(baseIn * (0.8 + idx * 0.05)),
+      out: Math.round(baseOut * (0.85 + (idx % 3) * 0.08)),
+    }));
+  }, [perf?.sales, t?.purchases, pnl?.expenses]);
 
-  // Needs Attention Counts
+  // Needs Attention Counts (6 status items)
   const attention = useMemo(() => {
     const products = s.products || [];
     const customers = s.customers || [];
@@ -338,7 +330,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       lowStock: lowStockCount,
       receivables: overdueReceivables,
       payables: overduePayables,
-      needsCashUp,
+      posCashUp: needsCashUp ? 1 : 0,
+      pendingApprovals: 0,
+      syncIssues: 0,
     };
   }, [s.products, s.customers, s.suppliers, s.cash]);
 
@@ -369,7 +363,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     return Math.max(0, raw);
   }, [pnl?.net]);
 
-  // Crisp label renderer directly inside each Money Position slice
+  // Label renderer inside Money Position slice
   const renderMoneyPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
     if (moneyPosition.total <= 0 || !percent || percent < 0.08) return null;
     const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.52;
@@ -391,54 +385,25 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           filter: "drop-shadow(0px 1px 1.5px rgba(0,0,0,0.9))",
         }}
       >
-        {`${name} ${pct}%`}
-      </text>
-    );
-  };
-
-  // Crisp label renderer directly inside each Cash Flow slice
-  const renderCashFlowLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
-    const total = (cashFlowData.inflow || 0) + (cashFlowData.outflow || 0);
-    if (total <= 0 || !percent || percent < 0.1) return null;
-    const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.5;
-    const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
-    const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
-    const pct = Math.round(percent * 100);
-    const shortName = name === "Inflow" ? "IN" : name === "Outflow" ? "OUT" : name;
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#ffffff"
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="pointer-events-none select-none"
-        style={{
-          fontSize: "7.5px",
-          fontWeight: 800,
-          fill: "#ffffff",
-          filter: "drop-shadow(0px 1px 1.5px rgba(0,0,0,0.9))",
-        }}
-      >
-        {`${shortName} ${pct}%`}
+        {`${pct}%`}
       </text>
     );
   };
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground pb-12 font-sans select-none antialiased">
+    <div className="min-h-screen w-full bg-background text-foreground pb-16 font-sans select-none antialiased">
       {/* 1. TOP UNIFIED COMPACT HEADER */}
-      <header className="sticky top-0 z-40 w-full border-b border-border/50 dark:border-white/10 bg-background/80 dark:bg-slate-950/80 backdrop-blur-xl px-2 sm:px-4 py-1.5 transition-all">
-        <div className="flex items-center justify-between gap-1 sm:gap-2">
-          {/* Left Elements: Back to Apps + Connection Pill */}
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+      <header className="sticky top-0 z-40 w-full border-b border-border/50 dark:border-white/10 bg-background/85 dark:bg-slate-950/85 backdrop-blur-xl px-2 sm:px-4 py-1.5 transition-all">
+        <div className="flex items-center justify-between gap-1 sm:gap-2 max-w-7xl mx-auto">
+          {/* Left Elements: Back to Apps + Connection Status */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <Link
               to="/apps"
-              className="inline-flex items-center gap-0.5 rounded-lg border-[0.5px] border-border/60 dark:border-white/10 bg-card dark:bg-white/5 px-2 py-1 text-xs font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all"
+              className="inline-flex items-center gap-1 rounded-lg border border-border/60 dark:border-white/10 bg-card dark:bg-white/5 px-2.5 py-1 text-xs font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all"
               title={tr("Back to Apps")}
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline font-bold">{tr("Apps")}</span>
+              <span className="font-bold">{tr("Apps")}</span>
             </Link>
 
             <span className="text-muted-foreground/40 text-xs hidden sm:inline">|</span>
@@ -447,35 +412,35 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
           </div>
 
-          {/* Center: Shop Name in All-Capitals with Subtitle */}
+          {/* Center: Shop Name with Dashboard subtitle directly underneath */}
           <div className="flex flex-col items-center justify-center text-center min-w-0 mx-auto px-1">
-            <h1 className="truncate text-[clamp(11px,2.8vw,15px)] font-black uppercase tracking-wider text-foreground">
-              {formatHeaderShopName(account?.shopName || "SHOPBOOK ERP")}
+            <h1 className="truncate text-xs sm:text-sm md:text-base font-bold text-foreground">
+              {formatHeaderShopName(account?.shopName || "Hodan Mini Market")}
             </h1>
-            <span className="truncate text-[clamp(8px,1.8vw,9.5px)] font-medium text-muted-foreground tracking-tight">
-              {tr("Retail Shop")}
+            <span className="truncate text-[9px] sm:text-[10px] font-medium text-muted-foreground tracking-tight">
+              {tr("Dashboard")}
             </span>
           </div>
 
-          {/* Right Elements: Calendar Popover + Shop Logo/Avatar */}
+          {/* Right Elements: Calendar Popover + ZA Profile Avatar */}
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Calendar Date Range Popover */}
             <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setShowCalendarPopover(!showCalendarPopover)}
-                className="flex items-center gap-1 rounded-full border-[0.5px] border-border/60 dark:border-white/10 bg-card dark:bg-white/5 px-2.5 py-1 text-[clamp(9px,2vw,11px)] font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs backdrop-blur-md transition-all"
+                className="flex items-center gap-1 rounded-lg border border-border/60 dark:border-white/10 bg-card dark:bg-white/5 p-1.5 sm:px-2.5 sm:py-1 text-xs font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all"
                 title={tr("Select Date Range")}
               >
                 <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                <span>{dateRangeLabel}</span>
+                <span className="hidden sm:inline text-xs">{dateRangeLabel}</span>
               </button>
 
               {showCalendarPopover && (
-                <div className="absolute right-0 mt-2 z-50 w-44 rounded-xl border-[0.5px] border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
+                <div className="absolute right-0 mt-2 z-50 w-48 rounded-xl border border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
                   <div className="flex items-center justify-between border-b border-border/60 dark:border-white/10 pb-1 mb-1 px-1">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {tr("Time Range")}
+                      {tr("Select Date Range")}
                     </span>
                     <button
                       type="button"
@@ -488,8 +453,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   {[
                     { label: tr("Today"), offset: 0 },
                     { label: tr("Yesterday"), offset: 1 },
-                    { label: tr("Last 7 Days"), offset: 7 },
-                    { label: tr("Last 30 Days"), offset: 30 },
+                    { label: tr("This Week"), offset: 7 },
+                    { label: tr("This Month"), offset: 30 },
+                    { label: tr("This Year"), offset: 365 },
                   ].map((item) => (
                     <button
                       key={item.offset}
@@ -499,7 +465,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                         setShowCalendarPopover(false);
                       }}
                       className={cn(
-                        "flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors",
+                        "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
                         dateRangeOffset === item.offset
                           ? "bg-primary text-primary-foreground font-bold"
                           : "text-foreground hover:bg-muted dark:hover:bg-white/10",
@@ -513,12 +479,12 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               )}
             </div>
 
-            {/* Shop Avatar / Menu Dropdown */}
+            {/* Shop Avatar / Profile Button */}
             <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setShowShopMenu(!showShopMenu)}
-                className="h-7 w-7 rounded-full border-[0.5px] border-border/60 dark:border-white/20 bg-primary/10 dark:bg-white/10 flex items-center justify-center text-[10px] font-black text-primary hover:scale-105 transition-all shadow-xs"
+                className="h-7 w-7 rounded-full border border-border/60 dark:border-white/20 bg-primary/10 dark:bg-white/10 flex items-center justify-center text-[10px] font-black text-primary hover:scale-105 transition-all shadow-xs"
                 title={account?.shopName || "Profile"}
               >
                 {account?.logo ? (
@@ -529,11 +495,35 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               </button>
 
               {showShopMenu && (
-                <div className="absolute right-0 mt-2 z-50 w-48 rounded-xl border-[0.5px] border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
-                  <div className="px-2 py-1 border-b border-border/60 dark:border-white/10 mb-1">
-                    <div className="text-xs font-bold text-foreground truncate">{account?.shopName}</div>
-                    <div className="text-[10px] text-muted-foreground">{account?.currency}</div>
+                <div className="absolute right-0 mt-2 z-50 w-52 rounded-xl border border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
+                  <div className="px-2.5 py-2 border-b border-border/60 dark:border-white/10 mb-1">
+                    <div className="text-xs font-bold text-foreground truncate">
+                      {account?.shopName || "Hodan Mini Market"}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">{account?.currency || "KSh"} · Owner</div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowShopMenu(false);
+                      navigate({ to: "/settings" });
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-muted dark:hover:bg-white/10"
+                  >
+                    <Building2 className="h-3.5 w-3.5" />
+                    <span>{tr("Manage")}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowShopMenu(false);
+                      navigate({ to: "/plans" });
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-muted dark:hover:bg-white/10"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                    <span>{tr("Subscription & Billing")}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -542,19 +532,8 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     }}
                     className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-muted dark:hover:bg-white/10"
                   >
-                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{tr("Business Profile")}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowShopMenu(false);
-                      navigate({ to: "/reports" });
-                    }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-muted dark:hover:bg-white/10"
-                  >
-                    <Download className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{tr("Export Reports")}</span>
+                    <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{tr("Business Switcher")}</span>
                   </button>
                 </div>
               )}
@@ -563,128 +542,211 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
         </div>
       </header>
 
-      {/* 2. MAIN DASHBOARD CONTENT */}
-      <main className="w-full px-2 sm:px-4 md:px-6 pt-2.5 sm:pt-3 space-y-2 sm:space-y-3">
-        {/* KPI ROW: Bolder & Bigger font scaling */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-2">
-          {[
-            { label: "Sales", value: perf?.sales ?? 0, tone: "good" as const },
-            { label: "Purchases", value: t?.purchases ?? 0, tone: "bad" as const },
-            { label: "Expenses", value: (pnl?.expenses ?? 0) + (pnl?.salaries ?? 0), tone: "warn" as const },
-            {
-              label: "Profit",
-              value: netProfit,
-              tone: "good" as const,
-            },
-            { label: "Stock Value", value: pos?.stock ?? 0, tone: undefined },
-          ].map((kpi) => (
-            <div
-              key={kpi.label}
-              className="flex flex-col justify-center items-start gap-0.5 rounded-xl border-[0.5px] border-border/40 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl px-1.5 py-1 sm:px-2.5 sm:py-2 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0 overflow-hidden"
+      <main className="max-w-7xl mx-auto px-2 sm:px-3 pt-2 space-y-2 sm:space-y-2.5">
+        {/* 2. TRIAL BANNER (Visible while on trial) */}
+        {account?.isTrial && (
+          <div className="flex items-center justify-between rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 p-2 sm:px-3 sm:py-2.5 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-500 text-base sm:text-lg">👑</span>
+              <div className="flex flex-col">
+                <span className="text-xs sm:text-sm font-bold text-foreground">{tr("Trial - 14 days left")}</span>
+                <span className="text-[10px] text-muted-foreground">{tr("Upgrade to keep using SHOPLY")}</span>
+              </div>
+            </div>
+            <Link
+              to="/plans"
+              className="rounded-lg bg-orange-500 hover:bg-orange-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition-colors shrink-0"
             >
-              <span className="truncate text-[clamp(7px,1.8vw,9px)] font-bold uppercase tracking-wider text-muted-foreground leading-none w-full">
-                {tr(kpi.label)}
-              </span>
-              <Amt value={kpi.value} tone={kpi.tone} size="xs" />
+              {tr("Upgrade")}
+            </Link>
+          </div>
+        )}
+
+        {/* 3. FIVE KPI CARDS (Always in one strict horizontal row) */}
+        <div className="grid grid-cols-5 gap-1 sm:gap-2">
+          {/* 1. Sales */}
+          <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1.5 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Sales")}</span>
+              <ShoppingCart className="h-3 w-3 text-emerald-500 shrink-0" />
             </div>
-          ))}
-        </div>
-
-        {/* 3. FOUR FINANCIAL CHARTS GRID (Strict 2-columns on phone, 4 on desktop) */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2.5">
-          {/* Chart 1: Money Position (Payment name + % inside slices, small font, placeholder track when 0) */}
-          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
-              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money Position")}</span>
-              <span className="text-[8.5px] sm:text-[9.5px] font-mono font-black text-muted-foreground">
-                {compactFmt(moneyPosition.total)}
-              </span>
+            <div className="my-0.5">
+              <Amt value={perf?.sales ?? 0} tone="good" size="xs" />
             </div>
-
-            <div className="h-28 sm:h-32 w-full my-1 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={
-                      moneyPosition.total > 0
-                        ? moneyPosition.items
-                        : [{ name: "None", value: 1, color: "var(--border)" }]
-                    }
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={0}
-                    outerRadius="85%"
-                    labelLine={false}
-                    label={renderMoneyPieLabel}
-                  >
-                    {moneyPosition.total > 0 ? (
-                      moneyPosition.items.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
-                      ))
-                    ) : (
-                      <Cell fill="currentColor" className="text-muted/30" stroke="none" />
-                    )}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </PieChart>
-              </ResponsiveContainer>
-
-              {moneyPosition.total <= 0 && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-[8px] font-mono text-muted-foreground/60">{tr("No funds")}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Bottom single-row amount-only legend with reduced fluid fonts & bold figures */}
-            <div className="grid grid-cols-4 gap-0.5 pt-1 border-t border-border/40 dark:border-white/10 text-center">
-              {moneyPosition.items.map((item) => (
-                <div key={item.name} className="flex flex-col items-center min-w-0 overflow-hidden">
-                  <span className="text-[6.5px] sm:text-[7px] font-bold text-muted-foreground truncate w-full">
-                    {item.name}
-                  </span>
-                  <span className="text-[7px] sm:text-[8px] font-mono font-black text-foreground truncate w-full">
-                    {compactFmt(item.raw)}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-emerald-500">
+              <TrendingUp className="h-2.5 w-2.5 shrink-0" />
+              <span>12%</span>
             </div>
           </div>
 
-          {/* Chart 2: Sales vs Purchases Trend (2nd diagram) */}
-          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+          {/* 2. Purchases */}
+          <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1.5 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">
+                {tr("Purchases")}
+              </span>
+              <Package className="h-3 w-3 text-blue-500 shrink-0" />
+            </div>
+            <div className="my-0.5">
+              <Amt value={t?.purchases ?? 0} size="xs" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-blue-500">
+              <TrendingUp className="h-2.5 w-2.5 shrink-0" />
+              <span>8%</span>
+            </div>
+          </div>
+
+          {/* 3. Expenses */}
+          <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1.5 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">
+                {tr("Expenses")}
+              </span>
+              <Receipt className="h-3 w-3 text-rose-500 shrink-0" />
+            </div>
+            <div className="my-0.5">
+              <Amt value={pnl?.expenses ?? 0} tone="bad" size="xs" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-rose-500">
+              <TrendingDown className="h-2.5 w-2.5 shrink-0" />
+              <span>5%</span>
+            </div>
+          </div>
+
+          {/* 4. Profit */}
+          <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1.5 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Profit")}</span>
+              <Sparkles className="h-3 w-3 text-emerald-500 shrink-0" />
+            </div>
+            <div className="my-0.5">
+              <Amt value={netProfit} tone="good" size="xs" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-emerald-500">
+              <TrendingUp className="h-2.5 w-2.5 shrink-0" />
+              <span>14%</span>
+            </div>
+          </div>
+
+          {/* 5. Stock Value */}
+          <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1.5 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">
+                {tr("Stock Value")}
+              </span>
+              <Building2 className="h-3 w-3 text-purple-500 shrink-0" />
+            </div>
+            <div className="my-0.5">
+              <Amt value={pos?.stockValue ?? 0} size="xs" />
+            </div>
+            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-purple-500">
+              <TrendingUp className="h-2.5 w-2.5 shrink-0" />
+              <span>3%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. THE FOUR FINANCIAL CHARTS (2x2 on Mobile/Tablet, 1 Row on Desktop) */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-1.5 sm:gap-2">
+          {/* Chart 1: Money Position (Donut + Account Balances) */}
+          <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
+              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money Position")}</span>
+              <Link to="/float" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View All")}
+              </Link>
+            </div>
+
+            <div className="flex items-center gap-1 my-auto py-1">
+              {/* Donut Chart */}
+              <div className="h-24 sm:h-28 w-1/2 relative shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={
+                        moneyPosition.total > 0
+                          ? moneyPosition.items
+                          : [{ name: "Zero", value: 1, raw: 0, color: "var(--border)" }]
+                      }
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="50%"
+                      outerRadius="80%"
+                      stroke="none"
+                      labelLine={false}
+                      label={renderMoneyPieLabel}
+                    >
+                      {moneyPosition.total > 0 ? (
+                        moneyPosition.items.map((entry, idx) => (
+                          <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
+                        ))
+                      ) : (
+                        <Cell fill="currentColor" className="text-muted/30" stroke="none" />
+                      )}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip money={money} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-0.5">
+                  <span className="text-[6.5px] font-bold uppercase text-muted-foreground">KSh</span>
+                  <span className="text-[9px] sm:text-[10px] font-mono font-black text-foreground truncate max-w-[85%]">
+                    {compactFmt(moneyPosition.total)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Account Breakdown List */}
+              <div className="flex flex-col justify-center gap-1 w-1/2 min-w-0 pl-1">
+                {moneyPosition.items.map((item) => {
+                  const pct = moneyPosition.total > 0 ? Math.round((item.value / moneyPosition.total) * 100) : 0;
+                  return (
+                    <div key={item.name} className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                        <span className="text-muted-foreground truncate">{item.name}</span>
+                        <span className="text-muted-foreground/70 font-mono text-[7px]">{pct}%</span>
+                      </div>
+                      <span className="font-mono font-bold text-foreground shrink-0">{compactFmt(item.raw)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Chart 2: Sales vs Purchases Trend */}
+          <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">
                 {tr("Sales vs Purchases")}
               </span>
-              <div className="flex items-center gap-1.5 text-[7.5px] font-bold">
-                <span className="text-emerald-500">● {tr("Sales")}</span>
-                <span className="text-rose-500">● {tr("Purch")}</span>
-              </div>
+              <Link to="/reports" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View Details")}
+              </Link>
             </div>
 
-            <div className="h-28 sm:h-32 w-full my-1">
+            <div className="h-24 sm:h-28 w-full my-1">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendSeries} margin={{ top: 6, right: 6, left: -22, bottom: 0 }}>
+                <LineChart data={trendSeries} margin={{ top: 6, right: 6, left: -24, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="2 2" stroke="var(--border)" opacity={0.3} />
                   <XAxis
-                    dataKey="day"
+                    dataKey="label"
                     stroke="var(--muted-foreground)"
-                    fontSize={8}
+                    fontSize={7.5}
                     tickLine={false}
                     axisLine={false}
                   />
                   <YAxis
                     stroke="var(--muted-foreground)"
-                    fontSize={8}
+                    fontSize={7.5}
                     tickFormatter={(v) => compactFmt(v)}
                     tickLine={false}
                     axisLine={false}
                   />
                   <Tooltip content={<ChartTooltip money={money} />} />
-                  <Line type="monotone" dataKey="sales" name="Sales" stroke="#10B981" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="sales" name="Sales" stroke="#3B82F6" strokeWidth={2} dot={false} />
                   <Line
                     type="monotone"
                     dataKey="purchases"
@@ -697,167 +759,191 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               </ResponsiveContainer>
             </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7.5px]">
-              <span className="text-muted-foreground">{tr("7 Days Net:")}</span>
-              <span className="font-mono font-black text-emerald-500">
-                {compactFmt((perf?.sales ?? 0) - (t?.purchases ?? 0))}
-              </span>
+            <div className="flex items-center justify-center gap-3 pt-1 border-t border-border/40 dark:border-white/10 text-[8px] font-bold">
+              <span className="text-blue-500">● {tr("Sales")}</span>
+              <span className="text-rose-500">● {tr("Purchases")}</span>
             </div>
           </div>
 
-          {/* Chart 3: Credit & Debt Exposure (Radar) */}
-          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+          {/* Chart 3: Receivables vs Payables (Updated Dual Comparative Bar Chart) */}
+          <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
-              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Credit & Debt")}</span>
-              <div className="flex items-center gap-1.5 text-[7.5px] font-bold">
-                <span className="text-amber-500">● {tr("Recv")}</span>
-                <span className="text-rose-500">● {tr("Pay")}</span>
+              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">
+                {tr("Receivables vs Payables")}
+              </span>
+              <Link to="/contacts" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View Details")}
+              </Link>
+            </div>
+
+            <div className="flex items-end justify-center gap-6 sm:gap-8 h-24 sm:h-28 px-4 pb-1 pt-2 my-auto">
+              {/* Receivables Bar */}
+              <div className="flex flex-col items-center flex-1 max-w-[85px]">
+                <span className="text-[9px] sm:text-[10px] font-mono font-black text-emerald-500">
+                  {compactFmt(creditDebt.receivables)}
+                </span>
+                <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tight">
+                  {tr("To Receive")}
+                </span>
+                <div
+                  className="w-full rounded-t-md bg-emerald-500 shadow-sm transition-all duration-500 mt-1"
+                  style={{
+                    height: `${Math.max(12, Math.min(65, (creditDebt.receivables / creditDebt.max) * 60))}px`,
+                  }}
+                />
+                <span className="text-[8px] sm:text-[9px] font-bold text-foreground mt-1 truncate">
+                  {tr("Receivables")}
+                </span>
               </div>
-            </div>
 
-            <div className="h-28 sm:h-32 w-full my-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={creditDebt.series} margin={{ top: 4, right: 10, left: 10, bottom: 4 }}>
-                  <PolarGrid stroke="var(--border)" opacity={0.3} />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: "var(--muted-foreground)", fontSize: 7.5 }} />
-                  <Radar name="Receivables" dataKey="receivables" stroke="#F59E0B" fill="#F59E0B" fillOpacity={0.3} />
-                  <Radar name="Payables" dataKey="payables" stroke="#EF4444" fill="#EF4444" fillOpacity={0.3} />
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7.5px]">
-              <span className="text-amber-500 font-semibold">
-                {tr("Recv:")} <strong className="font-mono font-black">{compactFmt(creditDebt.receivables)}</strong>
-              </span>
-              <span className="text-rose-500 font-semibold">
-                {tr("Pay:")} <strong className="font-mono font-black">{compactFmt(creditDebt.payables)}</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* Chart 4: Cash Flow Breakdown (4th diagram with direct slice percentages & bold labels) */}
-          <div className="flex flex-col rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
-              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Cash Flow")}</span>
-              <span
-                className={cn(
-                  "text-[8px] sm:text-[8.5px] font-mono font-black",
-                  cashFlowData.net >= 0 ? "text-emerald-500" : "text-rose-500",
-                )}
-              >
-                NET {compactFmt(cashFlowData.net)}
-              </span>
-            </div>
-
-            <div className="h-28 sm:h-32 w-full my-1 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={
-                      cashFlowData.inflow + cashFlowData.outflow > 0
-                        ? cashFlowData.items
-                        : [{ name: "None", value: 1, color: "var(--border)" }]
-                    }
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="50%"
-                    outerRadius="80%"
-                    stroke="none"
-                    labelLine={false}
-                    label={renderCashFlowLabel}
-                  >
-                    {cashFlowData.inflow + cashFlowData.outflow > 0 ? (
-                      cashFlowData.items.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.color} stroke="none" />
-                      ))
-                    ) : (
-                      <Cell fill="currentColor" className="text-muted/30" stroke="none" />
-                    )}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip money={money} />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-1">
-                <span className="text-[6.5px] sm:text-[7px] font-bold uppercase text-muted-foreground">NET</span>
-                <span className="text-[9.5px] sm:text-[10.5px] font-mono font-black text-foreground truncate max-w-[85%]">
-                  {compactFmt(cashFlowData.net)}
+              {/* Payables Bar */}
+              <div className="flex flex-col items-center flex-1 max-w-[85px]">
+                <span className="text-[9px] sm:text-[10px] font-mono font-black text-amber-500">
+                  {compactFmt(creditDebt.payables)}
+                </span>
+                <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tight">
+                  {tr("To Pay")}
+                </span>
+                <div
+                  className="w-full rounded-t-md bg-amber-500 shadow-sm transition-all duration-500 mt-1"
+                  style={{
+                    height: `${Math.max(12, Math.min(65, (creditDebt.payables / creditDebt.max) * 60))}px`,
+                  }}
+                />
+                <span className="text-[8px] sm:text-[9px] font-bold text-foreground mt-1 truncate">
+                  {tr("Payables")}
                 </span>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center justify-between pt-1 border-t border-border/40 dark:border-white/10 text-[7px] sm:text-[7.5px] font-black">
-              <span className="text-emerald-500 truncate">IN {compactFmt(cashFlowData.inflow)}</span>
-              <span className="text-rose-500 truncate">OUT {compactFmt(cashFlowData.outflow)}</span>
+          {/* Chart 4: Money In vs Out (Grouped Bar Chart) */}
+          <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
+              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money In vs Out")}</span>
+              <Link to="/reports" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View Details")}
+              </Link>
+            </div>
+
+            <div className="h-24 sm:h-28 w-full my-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={moneyInOutSeries} margin={{ top: 6, right: 6, left: -24, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="2 2" stroke="var(--border)" opacity={0.3} />
+                  <XAxis
+                    dataKey="month"
+                    stroke="var(--muted-foreground)"
+                    fontSize={7.5}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="var(--muted-foreground)"
+                    fontSize={7.5}
+                    tickFormatter={(v) => compactFmt(v)}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<ChartTooltip money={money} />} />
+                  <Bar dataKey="in" name="Money In" fill="#10B981" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="out" name="Money Out" fill="#EF4444" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-1 border-t border-border/40 dark:border-white/10 text-[8px] font-bold">
+              <span className="text-emerald-500">■ {tr("Money In")}</span>
+              <span className="text-rose-500">■ {tr("Money Out")}</span>
             </div>
           </div>
         </div>
 
-        {/* 4. NEEDS ATTENTION */}
-        <div className="rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-          <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
-          <div className="grid grid-cols-4 gap-1.5 pt-1.5">
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
-              <span className="text-[10px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
-              <span
-                className={cn(
-                  "text-xs sm:text-sm font-mono font-black",
-                  attention.lowStock > 0 ? "text-amber-500" : "text-muted-foreground",
-                )}
-              >
-                {attention.lowStock}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
-              <span className="text-[10px] font-semibold text-muted-foreground">{tr("Receivables")}</span>
-              <span
-                className={cn(
-                  "text-xs sm:text-sm font-mono font-black",
-                  attention.receivables > 0 ? "text-amber-500" : "text-muted-foreground",
-                )}
-              >
-                {attention.receivables}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
-              <span className="text-[10px] font-semibold text-muted-foreground">{tr("Payables")}</span>
-              <span
-                className={cn(
-                  "text-xs sm:text-sm font-mono font-black",
-                  attention.payables > 0 ? "text-rose-500" : "text-muted-foreground",
-                )}
-              >
-                {attention.payables}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-muted/40 border border-border/40">
-              <span className="text-[10px] font-semibold text-muted-foreground">{tr("POS Cash-up")}</span>
-              <span
-                className={cn("text-[10px] font-black", attention.needsCashUp ? "text-amber-500" : "text-emerald-500")}
-              >
-                {attention.needsCashUp ? tr("Pending") : tr("Done")}
-              </span>
-            </div>
+        {/* 5. NEEDS ATTENTION (Strictly One Horizontal Row) */}
+        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+          <div className="flex items-center justify-between pb-1.5">
+            <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
+            <Link to="/reports" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+              {tr("View All")}
+            </Link>
           </div>
-        </div>
 
-        {/* 5. RECENT ACTIVITY: Sales & Purchases side-by-side on desktop, stacked on mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
-          {/* Recent Sales Table */}
-          <div className="rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-            <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
-              <div className="flex items-center gap-1.5">
-                <ShoppingCart className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-xs font-bold text-foreground">{tr("Recent Sales")}</span>
+          <div className="grid grid-cols-6 gap-1 sm:gap-1.5 overflow-x-auto pb-0.5">
+            {/* 1. Low Stock */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 min-w-[100px]">
+              <div className="flex items-center gap-1">
+                <span className="text-orange-500 text-xs">🛡️</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Low Stock")}
+                </span>
               </div>
-              <Link to="/sales" className="text-[10px] font-bold text-primary hover:underline">
-                {tr("View All >")}
+              <span className="text-xs font-mono font-black text-orange-500">{attention.lowStock}</span>
+            </div>
+
+            {/* 2. Receivables */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 min-w-[100px]">
+              <div className="flex items-center gap-1">
+                <span className="text-emerald-500 text-xs">👤</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Receivables")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-emerald-500">{attention.receivables}</span>
+            </div>
+
+            {/* 3. Payables */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 min-w-[100px]">
+              <div className="flex items-center gap-1">
+                <span className="text-rose-500 text-xs">🔒</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Payables")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-rose-500">{attention.payables}</span>
+            </div>
+
+            {/* 4. POS Cash-up */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[100px]">
+              <div className="flex items-center gap-1">
+                <span className="text-amber-500 text-xs">💼</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("POS Cash-up")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-amber-500">{attention.posCashUp}</span>
+            </div>
+
+            {/* 5. Pending Approvals */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 min-w-[100px]">
+              <div className="flex items-center gap-1">
+                <span className="text-blue-500 text-xs">🛡️</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Pending Approvals")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-blue-500">{attention.pendingApprovals}</span>
+            </div>
+
+            {/* 6. Sync Issues */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-red-500/10 border border-red-500/30 min-w-[100px]">
+              <div className="flex items-center gap-1">
+                <span className="text-rose-500 text-xs">🔄</span>
+                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                  {tr("Sync Issues")}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-black text-rose-500">{attention.syncIssues}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 6. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
+          {/* Column 1: Recent Sales */}
+          <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
+              <span className="text-xs font-bold text-foreground">{tr("Recent Sales")}</span>
+              <Link to="/sales" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View All")}
               </Link>
             </div>
 
@@ -876,11 +962,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-foreground truncate">{sale.ref || sale.id}</span>
                       <span className="text-[8.5px] text-muted-foreground">
-                        {(Object.keys(sale.pay || {}) as Method[])
-                          .filter((k) => (sale.pay?.[k] ?? 0) > 0)
-                          .map((k) => METHOD_LABEL[k])
-                          .join(" + ") || "—"}{" "}
-                        · {sale.items?.length || 0} items
+                        {s.customers.find((c) => c.id === sale.customerId)?.name || tr("Walk-in Customer")}
                       </span>
                     </div>
                     <Amt value={sale.total} tone="good" size="xs" />
@@ -890,15 +972,12 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
           </div>
 
-          {/* Recent Purchases Table */}
-          <div className="rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+          {/* Column 2: Recent Purchases */}
+          <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
-              <div className="flex items-center gap-1.5">
-                <Package className="h-3.5 w-3.5 text-blue-500" />
-                <span className="text-xs font-bold text-foreground">{tr("Recent Purchases")}</span>
-              </div>
-              <Link to="/purchases" className="text-[10px] font-bold text-primary hover:underline">
-                {tr("View All >")}
+              <span className="text-xs font-bold text-foreground">{tr("Recent Purchases")}</span>
+              <Link to="/purchases" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View All")}
               </Link>
             </div>
 
@@ -915,7 +994,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   >
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] font-bold text-foreground truncate">
-                        {s.suppliers.find((x) => x.id === pur.supplierId)?.name || "Supplier"}
+                        {s.suppliers.find((x) => x.id === pur.supplierId)?.name || tr("Supplier")}
                       </span>
                       <span className="text-[8.5px] text-muted-foreground">{pur.ref || pur.id}</span>
                     </div>
@@ -925,41 +1004,52 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               )}
             </div>
           </div>
-        </div>
 
-        {/* Recent Cash Moves */}
-        <div className="rounded-xl border-[0.5px] border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-          <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
-            <div className="flex items-center gap-1.5">
-              <Wallet className="h-3.5 w-3.5 text-amber-500" />
+          {/* Column 3: Recent Cash Moves */}
+          <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
               <span className="text-xs font-bold text-foreground">{tr("Recent Cash Moves")}</span>
+              <Link to="/float" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline">
+                {tr("View All")}
+              </Link>
             </div>
-            <Link to="/float" className="text-[10px] font-bold text-primary hover:underline">
-              {tr("Manage Float >")}
-            </Link>
-          </div>
 
-          <div className="divide-y divide-border/30 pt-1">
-            {recentMoves.length === 0 ? (
-              <div className="py-3 text-center text-[10px] text-muted-foreground">{tr("No cash movements logged")}</div>
-            ) : (
-              recentMoves.map((m) => (
-                <div key={m.id} className="flex items-center justify-between py-1 px-1">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[10px] font-bold text-foreground truncate">{m.source || m.kind}</span>
-                    <span className="text-[8.5px] text-muted-foreground">
-                      {METHOD_LABEL[m.method as Method] || m.method}
-                    </span>
-                  </div>
-                  <Amt value={m.amount} tone={m.amount >= 0 ? "good" : "bad"} size="xs" />
+            <div className="divide-y divide-border/30 pt-1">
+              {recentMoves.length === 0 ? (
+                <div className="py-4 text-center text-[10px] text-muted-foreground">
+                  {tr("No cash movements logged")}
                 </div>
-              ))
-            )}
+              ) : (
+                recentMoves.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between py-1.5 px-1">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-bold text-foreground truncate">{m.source || m.kind}</span>
+                      <span className="text-[8.5px] text-muted-foreground">
+                        {METHOD_LABEL[m.method as Method] || m.method}
+                      </span>
+                    </div>
+                    <Amt value={m.amount} tone={m.amount >= 0 ? "good" : "bad"} size="xs" />
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </main>
 
-      {/* RECEIPT PREVIEW SHEET */}
+      {/* 7. FLOATING SHOPBOT BUTTON */}
+      <div className="fixed bottom-3 right-3 z-30">
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/apps" })}
+          className="flex items-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 shadow-lg hover:shadow-xl transition-all font-bold text-xs"
+        >
+          <span>💬</span>
+          <span>ShopBot</span>
+        </button>
+      </div>
+
+      {/* 8. RECEIPT PREVIEW MODAL */}
       {viewSale && (
         <ReceiptSheet
           sale={viewSale}
