@@ -165,13 +165,13 @@ function ChartTooltip({ active, payload, label, money }: any) {
 }
 
 export function Dashboard() {
-  const { account } = useAccount();
+  const account = useAccount("basic");
   const { state: erpState } = useErp();
   const { tr } = useLanguage();
   const navigate = useNavigate();
 
   const s: ErpState = erpState || empty();
-  const money = (n: number) => moneyFor(n, account?.currency || "KSh");
+  const money = (n: number) => moneyFor(account?.currency || "KSh")(n);
 
   const [dateRangeOffset, setDateRangeOffset] = useState<number>(0);
   const [showCalendarPopover, setShowCalendarPopover] = useState(false);
@@ -179,7 +179,7 @@ export function Dashboard() {
   const [showShopBot, setShowShopBot] = useState(false);
   const [viewSale, setViewSale] = useState<Sale | null>(null);
 
-  const daysLeft = useMemo(() => trialDaysLeft(account), [account]);
+  const daysLeft = useMemo(() => (account ? trialDaysLeft(account) : 0), [account]);
 
   const perf = useMemo(() => performance(s, 0), [s]);
   const pos = useMemo(() => position(s), [s]);
@@ -1096,7 +1096,7 @@ export function Dashboard() {
                     </span>
                     {typeof al.amount === "number" && (
                       <span className="font-mono font-black text-[11px] text-foreground">
-                        {account.currency || "KSh"} {compactFmt(al.amount)}
+                        {account?.currency || "KSh"} {compactFmt(al.amount)}
                       </span>
                     )}
                   </div>
