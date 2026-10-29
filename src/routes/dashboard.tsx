@@ -9,15 +9,11 @@ import {
   ChevronRight,
   ExternalLink,
   Lock,
-  Package,
-  Receipt,
   RefreshCw,
   Shield,
   ShieldAlert,
-  ShoppingCart,
   Sparkles,
   TrendingDown,
-  TrendingUp,
   UserCheck,
   Users,
   Wallet,
@@ -299,7 +295,7 @@ export function Dashboard() {
     };
   }, [creditDebt, tr]);
 
-  // Needs Attention Counts (Row 1: Low Stock, Receivables, Payables | Row 2: POS Cash-up, Approvals, Sync)
+  // Needs Attention Counts (3 columns x 2 rows, clean same line)
   const attention = useMemo(() => {
     const lowStock = (s.products || []).filter((p) => p.qty > 0 && p.qty <= (p.minStock ?? 5)).length;
     const debtors = (s.customers || []).filter((c) => c.balance > 0).length;
@@ -637,16 +633,11 @@ export function Dashboard() {
           </div>
         )}
 
-        {/* 3. FIVE KPI CARDS (Compressed, fully legible, no truncation) */}
+        {/* 3. FIVE KPI CARDS (No icons, clean compressed layout) */}
         <div className="grid grid-cols-5 gap-1 sm:gap-2">
           {/* 1. Sales */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs min-w-0">
-            <div className="flex items-center justify-between gap-0.5">
-              <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
-                {tr("Sales")}
-              </span>
-              <ShoppingCart className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-emerald-500 shrink-0" />
-            </div>
+            <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Sales")}</span>
             <div className="my-0.5 truncate">
               <Amt value={perf?.sales ?? 0} tone="good" size="xs" />
             </div>
@@ -654,12 +645,9 @@ export function Dashboard() {
 
           {/* 2. Purchases */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs min-w-0">
-            <div className="flex items-center justify-between gap-0.5">
-              <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
-                {tr("Purchases")}
-              </span>
-              <Package className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-blue-500 shrink-0" />
-            </div>
+            <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
+              {tr("Purchases")}
+            </span>
             <div className="my-0.5 truncate">
               <Amt value={t?.purchases ?? 0} size="xs" />
             </div>
@@ -667,12 +655,9 @@ export function Dashboard() {
 
           {/* 3. Expenses */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs min-w-0">
-            <div className="flex items-center justify-between gap-0.5">
-              <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
-                {tr("Expenses")}
-              </span>
-              <Receipt className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-rose-500 shrink-0" />
-            </div>
+            <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
+              {tr("Expenses")}
+            </span>
             <div className="my-0.5 truncate">
               <Amt value={t?.expenses ?? 0} tone="bad" size="xs" />
             </div>
@@ -680,26 +665,18 @@ export function Dashboard() {
 
           {/* 4. Profit */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs min-w-0">
-            <div className="flex items-center justify-between gap-0.5">
-              <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
-                {tr("Profit")}
-              </span>
-              <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-emerald-500 shrink-0" />
-            </div>
+            <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Profit")}</span>
             <div className="my-0.5 truncate">
               <Amt value={netProfit} tone="good" size="xs" />
             </div>
           </div>
 
-          {/* 5. Stock Value (Responsive label: Stock on mobile, Stock Value on desktop) */}
+          {/* 5. Stock Value */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs min-w-0">
-            <div className="flex items-center justify-between gap-0.5">
-              <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
-                <span className="sm:hidden">{tr("Stock")}</span>
-                <span className="hidden sm:inline">{tr("Stock Value")}</span>
-              </span>
-              <Building2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-amber-500 shrink-0" />
-            </div>
+            <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
+              <span className="sm:hidden">{tr("Stock")}</span>
+              <span className="hidden sm:inline">{tr("Stock Value")}</span>
+            </span>
             <div className="my-0.5 truncate">
               <Amt value={pos?.stock ?? 0} size="xs" />
             </div>
@@ -939,7 +916,7 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* 5. ALWAYS-VISIBLE NEEDS ATTENTION (3 columns, 2 rows, same line with 1-tap navigation) */}
+        {/* 5. ALWAYS-VISIBLE NEEDS ATTENTION (3 columns, 2 rows, same line with 1-tap navigation, no icons) */}
         <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2.5 shadow-xs space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -948,6 +925,9 @@ export function Dashboard() {
               <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 text-[9px] font-mono font-bold">
                 {attentionTotal}
               </span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <span>{tr("Tap any item to open")}</span>
             </div>
           </div>
 
@@ -958,12 +938,9 @@ export function Dashboard() {
               onClick={() => navigate({ to: "/inventory" })}
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 transition-all text-left cursor-pointer"
             >
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs shrink-0">🛡️</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Low Stock")}
-                </span>
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                {tr("Low Stock")}
+              </span>
               <span className="text-xs font-mono font-black text-orange-500 shrink-0 ml-1">{attention.lowStock}</span>
             </button>
 
@@ -973,12 +950,9 @@ export function Dashboard() {
               onClick={() => navigate({ to: "/contacts" })}
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all text-left cursor-pointer"
             >
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs shrink-0">👤</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Receivables")}
-                </span>
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                {tr("Receivables")}
+              </span>
               <span className="text-xs font-mono font-black text-emerald-500 shrink-0 ml-1">
                 {creditDebt.receivables > 0 ? compactFmt(creditDebt.receivables) : attention.receivables}
               </span>
@@ -990,12 +964,7 @@ export function Dashboard() {
               onClick={() => navigate({ to: "/purchases" })}
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-all text-left cursor-pointer"
             >
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs shrink-0">🔒</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Payables")}
-                </span>
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">{tr("Payables")}</span>
               <span className="text-xs font-mono font-black text-rose-500 shrink-0 ml-1">
                 {creditDebt.payables > 0 ? compactFmt(creditDebt.payables) : attention.payables}
               </span>
@@ -1007,12 +976,9 @@ export function Dashboard() {
               onClick={() => navigate({ to: "/pos" })}
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all text-left cursor-pointer"
             >
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs shrink-0">💼</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("POS Cash-up")}
-                </span>
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                {tr("POS Cash-up")}
+              </span>
               <span className="text-[9.5px] font-bold text-amber-500 shrink-0 ml-1 truncate">
                 {attention.posCashUp}
               </span>
@@ -1024,12 +990,9 @@ export function Dashboard() {
               onClick={() => navigate({ to: "/settings" })}
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-all text-left cursor-pointer"
             >
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs shrink-0">🛡️</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Approvals")}
-                </span>
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                {tr("Approvals")}
+              </span>
               <span className="text-xs font-mono font-black text-blue-500 shrink-0 ml-1">
                 {attention.pendingApprovals}
               </span>
@@ -1043,10 +1006,7 @@ export function Dashboard() {
               }}
               className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all text-left cursor-pointer"
             >
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-xs shrink-0">🔄</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">{tr("Sync")}</span>
-              </div>
+              <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">{tr("Sync")}</span>
               <span className="text-xs font-mono font-black text-cyan-500 shrink-0 ml-1">{attention.syncIssues}</span>
             </button>
           </div>
