@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Building2,
   CalendarDays,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -177,6 +178,7 @@ export function Dashboard() {
   const [showCalendarPopover, setShowCalendarPopover] = useState(false);
   const [showShopMenu, setShowShopMenu] = useState(false);
   const [showShopBot, setShowShopBot] = useState(false);
+  const [showAttentionDropdown, setShowAttentionDropdown] = useState(false);
   const [viewSale, setViewSale] = useState<Sale | null>(null);
 
   const daysLeft = useMemo(() => trialDaysLeft(account), [account]);
@@ -208,7 +210,7 @@ export function Dashboard() {
     return tr("Custom Range");
   }, [dateRangeOffset, tr]);
 
-  // 1. Money Position Chart Data (Donut)
+  // 1. Money Position Chart Data (Solid Pie meeting at center)
   const moneyPositionData = useMemo(() => {
     const cash = Math.max(0, fb?.cash || 0);
     const mpesa = Math.max(0, fb?.mpesa || 0);
@@ -233,11 +235,15 @@ export function Dashboard() {
     };
   }, [fb, pos]);
 
-  // 2. Sales vs Purchases Series Data (Dual Line Chart) — last 7 months from ERP records
+  // 2. Sales vs Purchases Series Data (Dual Line Chart)
   const chartRange = useMemo(() => {
-    const from = new Date(); from.setDate(1); from.setHours(0, 0, 0, 0); from.setMonth(from.getMonth() - 6);
+    const from = new Date();
+    from.setDate(1);
+    from.setHours(0, 0, 0, 0);
+    from.setMonth(from.getMonth() - 6);
     return { from: from.getTime(), to: Date.now() };
   }, []);
+
   const salesPurchasesSeries = useMemo(() => {
     const sales = chartSeries(s, "sales", chartRange, "Monthly");
     const purchases = chartSeries(s, "purchases", chartRange, "Monthly");
@@ -249,7 +255,20 @@ export function Dashboard() {
     }));
   }, [s, chartRange]);
 
-  // 3. Receivables vs Payables Breakdown
+  // 3. Money In vs Out Data (Monthly Grouped Bar Chart)
+  const moneyInOutSeries = useMemo(
+    () =>
+      chartSeries(s, "float", chartRange, "Monthly")
+        .slice(-6)
+        .map((d) => ({
+          month: d.label,
+          in: Math.max(0, d.value),
+          out: Math.max(0, d.secondary ?? 0),
+        })),
+    [s, chartRange],
+  );
+
+  // 4. Receivables vs Payables Breakdown (Solid Pie meeting at center)
   const creditDebt = useMemo(() => {
     const customers = s.customers || [];
     const suppliers = s.suppliers || [];
@@ -262,7 +281,6 @@ export function Dashboard() {
     };
   }, [s.customers, s.suppliers]);
 
-  // Receivables vs Payables Pie / Donut Model
   const recPayDonut = useMemo(() => {
     const rec = creditDebt.receivables;
     const pay = creditDebt.payables;
@@ -278,12 +296,6 @@ export function Dashboard() {
       pay,
     };
   }, [creditDebt, tr]);
-
-  // 4. Money In vs Out Data (Monthly Grouped Bar Chart) — actual account movements
-  const moneyInOutSeries = useMemo(
-    () => chartSeries(s, "float", chartRange, "Monthly").slice(-6).map((d) => ({ month: d.label, in: Math.max(0, d.value), out: Math.max(0, d.secondary ?? 0) })),
-    [s, chartRange],
-  );
 
   // Needs Attention Counts
   const attention = useMemo(() => {
@@ -366,26 +378,26 @@ export function Dashboard() {
     return list.slice(0, 8);
   }, [s.customers, s.suppliers, s.products, tr]);
 
+  const attentionTotal = useMemo(() => {
+    let count = 0;
+    if (attention.lowStock > 0) count++;
+    if (attention.receivables > 0) count++;
+    if (attention.payables > 0) count++;
+    if (pos.cashUpPending) count++;
+    return count + alerts.length;
+  }, [attention, pos.cashUpPending, alerts.length]);
+
   // Recent Activity Records
-  const recentSales = useMemo(() => {
-    return (s.sales || []).slice(0, 5);
-  }, [s.sales]);
+  const recentSales = useMemo(() => (s.sales || []).slice(0, 5), [s.sales]);
+  const recentPurchases = useMemo(() => (s.purchases || []).slice(0, 5), [s.purchases]);
+  const recentMoves = useMemo(() => (s.payments || []).slice(0, 5), [s.payments]);
 
-  const recentPurchases = useMemo(() => {
-    return (s.purchases || []).slice(0, 5);
-  }, [s.purchases]);
-
-  const recentMoves = useMemo(() => {
-    return (s.payments || []).slice(0, 5);
-  }, [s.payments]);
-
-  // Label renderer inside Money Position slice
-  const renderMoneyPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    if (moneyPositionData.total <= 0 || !percent || percent < 0.1) return null;
-    const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.52;
+  // Label renderer inside solid Money Position slice (shows payment type name on slice)
+  const renderMoneyPieLabel = ({ cx, cy, midAngle, outerRadius, percent, name }: any) => {
+    if (moneyPositionData.total <= 0 || !percent || percent < 0.12) return null;
+    const radius = Number(outerRadius || 44) * 0.65;
     const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
-    const pct = Math.round(percent * 100);
 
     return (
       <text
@@ -396,20 +408,19 @@ export function Dashboard() {
         dominantBaseline="central"
         fontSize={7.5}
         fontWeight={800}
-        style={{ pointerEvents: "none", filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.8))" }}
+        style={{ pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.9))" }}
       >
-        {`${pct}%`}
+        {name}
       </text>
     );
   };
 
-  // Label renderer inside Receivables vs Payables slice
-  const renderRecPayPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-    if (recPayDonut.total <= 0 || !percent || percent < 0.1) return null;
-    const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.52;
+  // Label renderer inside solid Receivables vs Payables slice
+  const renderRecPayPieLabel = ({ cx, cy, midAngle, outerRadius, percent, name }: any) => {
+    if (recPayDonut.total <= 0 || !percent || percent < 0.12) return null;
+    const radius = Number(outerRadius || 44) * 0.65;
     const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
-    const pct = Math.round(percent * 100);
 
     return (
       <text
@@ -420,9 +431,9 @@ export function Dashboard() {
         dominantBaseline="central"
         fontSize={7.5}
         fontWeight={800}
-        style={{ pointerEvents: "none", filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.8))" }}
+        style={{ pointerEvents: "none", filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.9))" }}
       >
-        {`${pct}%`}
+        {name}
       </text>
     );
   };
@@ -648,7 +659,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* 5. Stock Value (Responsive label: Stock on mobile, Stock Value on tablet/desktop) */}
+          {/* 5. Stock Value (Responsive label: Stock on mobile, Stock Value on desktop) */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs min-w-0">
             <div className="flex items-center justify-between gap-0.5">
               <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">
@@ -666,9 +677,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* 4. THE FOUR FINANCIAL CHARTS (2x2 on Mobile/Tablet, 1 Horizontal Row on Big Screens lg:1024px+) */}
+        {/* 4. THE FOUR FINANCIAL CHARTS (2x2 on Mobile/Tablet, 1 Horizontal Row on Desktop) */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2">
-          {/* Chart 1: Money Position (Donut + Account Balances) */}
+          {/* Chart 1: Money Position (Solid Pie Meeting at Center + Clean Account Balances) */}
           <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money Position")}</span>
@@ -678,8 +689,8 @@ export function Dashboard() {
             </div>
 
             <div className="flex items-center gap-1.5 sm:gap-2 py-1 min-h-[105px]">
-              {/* Donut Chart */}
-              <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0">
+              {/* Solid Pie Chart */}
+              <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -688,9 +699,9 @@ export function Dashboard() {
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      innerRadius={28}
+                      innerRadius={0}
                       outerRadius={44}
-                      paddingAngle={moneyPositionData.total > 0 ? 3 : 0}
+                      paddingAngle={moneyPositionData.total > 0 ? 1.5 : 0}
                       {...(moneyPositionData.total > 0 ? { label: renderMoneyPieLabel } : {})}
                       labelLine={false}
                     >
@@ -705,31 +716,19 @@ export function Dashboard() {
                     <Tooltip content={<ChartTooltip money={money} />} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-[6.5px] uppercase font-bold text-muted-foreground tracking-wider">
-                    {account?.currency || "KSh"}
-                  </span>
-                  <span className="text-[10px] sm:text-[11px] font-black font-mono text-foreground leading-tight">
-                    {compactFmt(moneyPositionData.total)}
-                  </span>
-                </div>
               </div>
 
-              {/* Four Account Legend Details */}
-              <div className="flex flex-col justify-center flex-1 space-y-1 min-w-0 pr-0.5">
-                {moneyPositionData.items.map((acc) => {
-                  const pct = moneyPositionData.total > 0 ? Math.round((acc.value / moneyPositionData.total) * 100) : 0;
-                  return (
-                    <div key={acc.name} className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
-                      <div className="flex items-center gap-1 min-w-0">
-                        <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: acc.color }} />
-                        <span className="text-muted-foreground truncate">{acc.name}</span>
-                        <span className="text-[7px] text-muted-foreground/70 font-mono font-semibold">{pct}%</span>
-                      </div>
-                      <span className="font-mono font-bold text-foreground shrink-0">{compactFmt(acc.value)}</span>
+              {/* Clean Legend Details (No Percentages, Clean Dot + Label + Amount) */}
+              <div className="flex flex-col justify-center flex-1 space-y-1.5 min-w-0 pr-0.5">
+                {moneyPositionData.items.map((acc) => (
+                  <div key={acc.name} className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: acc.color }} />
+                      <span className="text-muted-foreground truncate">{acc.name}</span>
                     </div>
-                  );
-                })}
+                    <span className="font-mono font-bold text-foreground shrink-0">{compactFmt(acc.value)}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -799,91 +798,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Chart 3: Receivables vs Payables (Pie / Donut Chart with fixed spacing) */}
-          <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-            <div className="flex items-center justify-between gap-2 pb-1 border-b border-border/40 dark:border-white/10">
-              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">
-                {tr("Receivables vs Payables")}
-              </span>
-              <Link
-                to="/contacts"
-                className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline shrink-0"
-              >
-                {tr("View Details")}
-              </Link>
-            </div>
-
-            <div className="flex items-center gap-1.5 sm:gap-2 py-1 min-h-[105px]">
-              {/* Donut Chart */}
-              <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={recPayDonut.total > 0 ? recPayDonut.items : [{ name: "Zero", value: 1 }]}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={28}
-                      outerRadius={44}
-                      paddingAngle={recPayDonut.total > 0 ? 3 : 0}
-                      {...(recPayDonut.total > 0 ? { label: renderRecPayPieLabel } : {})}
-                      labelLine={false}
-                    >
-                      {recPayDonut.total > 0 ? (
-                        recPayDonut.items.map((entry, index) => (
-                          <Cell key={`rec-cell-${index}`} fill={entry.color} stroke="transparent" />
-                        ))
-                      ) : (
-                        <Cell fill="var(--border)" opacity={0.3} stroke="transparent" />
-                      )}
-                    </Pie>
-                    <Tooltip content={<ChartTooltip money={money} />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-[6.5px] uppercase font-bold text-muted-foreground tracking-wider">
-                    {account?.currency || "KSh"}
-                  </span>
-                  <span className="text-[10px] sm:text-[11px] font-black font-mono text-foreground leading-tight">
-                    {compactFmt(recPayDonut.total)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Receivables & Payables Legend Details */}
-              <div className="flex flex-col justify-center flex-1 space-y-2 min-w-0 pr-0.5">
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span className="text-muted-foreground truncate">{tr("Receivables")}</span>
-                    </div>
-                    <span className="font-mono font-bold text-emerald-500 shrink-0">{compactFmt(recPayDonut.rec)}</span>
-                  </div>
-                  <span className="text-[7px] text-muted-foreground/70 pl-2.5 font-medium">{tr("To Receive")}</span>
-                </div>
-
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span className="text-muted-foreground truncate">{tr("Payables")}</span>
-                    </div>
-                    <span className="font-mono font-bold text-amber-500 shrink-0">{compactFmt(recPayDonut.pay)}</span>
-                  </div>
-                  <span className="text-[7px] text-muted-foreground/70 pl-2.5 font-medium">{tr("To Pay")}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-center gap-3 pt-1 border-t border-border/40 dark:border-white/10 text-[8px] font-bold">
-              <span className="text-emerald-500">● {tr("To Receive")}</span>
-              <span className="text-amber-500">● {tr("To Pay")}</span>
-            </div>
-          </div>
-
-          {/* Chart 4: Money In vs Out (Grouped Bar Chart) */}
+          {/* Chart 3: Money In vs Out (Grouped Bar Chart) */}
           <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{tr("Money In vs Out")}</span>
@@ -922,168 +837,258 @@ export function Dashboard() {
               <span className="text-rose-500">■ {tr("Money Out")}</span>
             </div>
           </div>
-        </div>
 
-        {/* 5. NEEDS ATTENTION (Strictly One Horizontal Row without overlapping) */}
-        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-          <div className="flex items-center justify-between pb-1.5">
-            <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
-            <Link to="/reports" className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline shrink-0">
-              {tr("View All")}
-            </Link>
-          </div>
-
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none sm:grid sm:grid-cols-6 sm:overflow-visible">
-            {/* 1. Low Stock */}
-            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 shrink-0 sm:shrink min-w-[110px] sm:min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-orange-500 text-xs shrink-0">🛡️</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Low Stock")}
-                </span>
-              </div>
-              <span className="text-xs font-mono font-black text-orange-500 shrink-0">{attention.lowStock}</span>
-            </div>
-
-            {/* 2. Receivables with Amount */}
-            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 shrink-0 sm:shrink min-w-[125px] sm:min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-emerald-500 text-xs shrink-0">👤</span>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                    {tr("Receivables")}
-                  </span>
-                  <span className="text-[7.5px] text-muted-foreground font-mono truncate">
-                    {attention.receivables} {attention.receivables === 1 ? tr("debtor") : tr("debtors")}
-                  </span>
-                </div>
-              </div>
-              <span className="text-xs font-mono font-black text-emerald-500 shrink-0">
-                {compactFmt(creditDebt.receivables)}
+          {/* Chart 4: Receivables vs Payables (Solid Pie Meeting at Center, 4th Diagram) */}
+          <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+            <div className="flex items-center justify-between gap-2 pb-1 border-b border-border/40 dark:border-white/10">
+              <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">
+                {tr("Receivables vs Payables")}
               </span>
+              <Link
+                to="/contacts"
+                className="text-[9px] sm:text-[10px] font-bold text-primary hover:underline shrink-0"
+              >
+                {tr("View Details")}
+              </Link>
             </div>
 
-            {/* 3. Payables with Amount */}
-            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 shrink-0 sm:shrink min-w-[125px] sm:min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-rose-500 text-xs shrink-0">🔒</span>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                    {tr("Payables")}
-                  </span>
-                  <span className="text-[7.5px] text-muted-foreground font-mono truncate">
-                    {attention.payables} {attention.payables === 1 ? tr("bill") : tr("bills")}
-                  </span>
-                </div>
-              </div>
-              <span className="text-xs font-mono font-black text-rose-500 shrink-0">
-                {compactFmt(creditDebt.payables)}
-              </span>
-            </div>
-
-            {/* 4. POS Cash-up */}
-            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 shrink-0 sm:shrink min-w-[115px] sm:min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-amber-500 text-xs shrink-0">💼</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("POS Cash-up")}
-                </span>
-              </div>
-              <span className="text-[8px] font-bold text-amber-500 shrink-0">{attention.posCashUp}</span>
-            </div>
-
-            {/* 5. Pending Approvals */}
-            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 shrink-0 sm:shrink min-w-[120px] sm:min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-blue-500 text-xs shrink-0">🛡️</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Approvals")}
-                </span>
-              </div>
-              <span className="text-xs font-mono font-black text-blue-500 shrink-0">{attention.pendingApprovals}</span>
-            </div>
-
-            {/* 6. Sync Issues */}
-            <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 shrink-0 sm:shrink min-w-[110px] sm:min-w-0">
-              <div className="flex items-center gap-1 min-w-0">
-                <span className="text-emerald-500 text-xs shrink-0">🔄</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Sync Issues")}
-                </span>
-              </div>
-              <span className="text-xs font-mono font-black text-emerald-500 shrink-0">{attention.syncIssues}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 6. ACTIONABLE OVERDUE & BUSINESS ALERTS (Customers who haven't paid, unpaid supplier bills, stock alerts) */}
-        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
-          <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-xs font-bold text-foreground">{tr("Actionable Business Alerts & Overdue")}</span>
-            </div>
-            <span className="text-[9px] sm:text-[10px] font-mono font-bold text-muted-foreground">
-              {alerts.length} {alerts.length === 1 ? tr("alert") : tr("alerts")}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-2">
-            {alerts.length === 0 ? (
-              <div className="col-span-full py-3 text-center text-xs text-muted-foreground">
-                ✓ {tr("No overdue debts, unpaid bills, or critical stock alerts. All clear!")}
-              </div>
-            ) : (
-              alerts.map((al) => (
-                <div
-                  key={al.id}
-                  className={cn(
-                    "flex flex-col justify-between p-2 rounded-lg border transition-all text-xs",
-                    al.tone === "bad"
-                      ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-500/15"
-                      : "border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-1">
-                    <span
-                      className={cn(
-                        "rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider",
-                        al.tone === "bad" ? "bg-rose-500 text-white" : "bg-amber-500 text-white",
-                      )}
+            <div className="flex items-center gap-1.5 sm:gap-2 py-1 min-h-[105px]">
+              {/* Solid Pie Chart */}
+              <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={recPayDonut.total > 0 ? recPayDonut.items : [{ name: "Zero", value: 1 }]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={0}
+                      outerRadius={44}
+                      paddingAngle={recPayDonut.total > 0 ? 1.5 : 0}
+                      {...(recPayDonut.total > 0 ? { label: renderRecPayPieLabel } : {})}
+                      labelLine={false}
                     >
-                      {al.badge}
-                    </span>
-                    {typeof al.amount === "number" && (
-                      <span className="font-mono font-black text-[11px] text-foreground">
-                        {account?.currency || "KSh"} {compactFmt(al.amount)}
-                      </span>
-                    )}
-                  </div>
+                      {recPayDonut.total > 0 ? (
+                        recPayDonut.items.map((entry, index) => (
+                          <Cell key={`rec-cell-${index}`} fill={entry.color} stroke="transparent" />
+                        ))
+                      ) : (
+                        <Cell fill="var(--border)" opacity={0.3} stroke="transparent" />
+                      )}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip money={money} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-                  <div className="my-1.5">
-                    <div className="font-bold text-foreground truncate text-[11px]">{al.title}</div>
-                    <div className="text-[9px] text-muted-foreground truncate">{al.subtitle}</div>
+              {/* Receivables & Payables Legend Details */}
+              <div className="flex flex-col justify-center flex-1 space-y-2 min-w-0 pr-0.5">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="text-muted-foreground truncate">{tr("Receivables")}</span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-500 shrink-0">{compactFmt(recPayDonut.rec)}</span>
                   </div>
-
-                  <Link
-                    to={al.link as any}
-                    className={cn(
-                      "inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors w-full mt-1",
-                      al.tone === "bad"
-                        ? "bg-rose-600 hover:bg-rose-700 text-white"
-                        : "bg-amber-600 hover:bg-amber-700 text-white",
-                    )}
-                  >
-                    <span>{al.actionLabel}</span>
-                    <ChevronRight className="h-3 w-3" />
-                  </Link>
+                  <span className="text-[7px] text-muted-foreground/70 pl-2.5 font-medium">{tr("To Receive")}</span>
                 </div>
-              ))
-            )}
+
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="text-muted-foreground truncate">{tr("Payables")}</span>
+                    </div>
+                    <span className="font-mono font-bold text-amber-500 shrink-0">{compactFmt(recPayDonut.pay)}</span>
+                  </div>
+                  <span className="text-[7px] text-muted-foreground/70 pl-2.5 font-medium">{tr("To Pay")}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-1 border-t border-border/40 dark:border-white/10 text-[8px] font-bold">
+              <span className="text-emerald-500">● {tr("To Receive")}</span>
+              <span className="text-amber-500">● {tr("To Pay")}</span>
+            </div>
           </div>
         </div>
 
-        {/* 7. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
+        {/* 5. COLLAPSIBLE NEEDS ATTENTION & ACTIONABLE ALERTS (Closed by default, 2 Columns when expanded) */}
+        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl shadow-xs overflow-hidden transition-all">
+          <button
+            type="button"
+            onClick={() => setShowAttentionDropdown(!showAttentionDropdown)}
+            className="flex w-full items-center justify-between p-2 sm:p-2.5 hover:bg-muted/30 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+              <span className="text-xs font-bold text-foreground truncate">{tr("Needs Attention & Alerts")}</span>
+              <span className="rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 text-[9px] font-mono font-bold">
+                {attentionTotal}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-medium shrink-0">
+              <span>{showAttentionDropdown ? tr("Collapse") : tr("View Details")}</span>
+              <ChevronDown
+                className={cn("h-3.5 w-3.5 transition-transform duration-200", showAttentionDropdown && "rotate-180")}
+              />
+            </div>
+          </button>
+
+          {showAttentionDropdown && (
+            <div className="p-2 sm:p-2.5 pt-0 space-y-2 border-t border-border/40 dark:border-white/10">
+              {/* 2-Column Grid for Needs Attention Status */}
+              <div className="grid grid-cols-2 gap-1.5 sm:gap-2 pt-2">
+                {/* 1. Low Stock */}
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-orange-500 text-xs shrink-0">🛡️</span>
+                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
+                      {tr("Low Stock")}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-black text-orange-500 shrink-0">{attention.lowStock}</span>
+                </div>
+
+                {/* 2. Receivables */}
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-emerald-500 text-xs shrink-0">👤</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
+                        {tr("Receivables")}
+                      </span>
+                      <span className="text-[7.5px] text-muted-foreground font-mono truncate">
+                        {attention.receivables} {attention.receivables === 1 ? tr("debtor") : tr("debtors")}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-black text-emerald-500 shrink-0">
+                    {compactFmt(creditDebt.receivables)}
+                  </span>
+                </div>
+
+                {/* 3. Payables */}
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-rose-500 text-xs shrink-0">🔒</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
+                        {tr("Payables")}
+                      </span>
+                      <span className="text-[7.5px] text-muted-foreground font-mono truncate">
+                        {attention.payables} {attention.payables === 1 ? tr("bill") : tr("bills")}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-xs font-mono font-black text-rose-500 shrink-0">
+                    {compactFmt(creditDebt.payables)}
+                  </span>
+                </div>
+
+                {/* 4. POS Cash-up */}
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-amber-500 text-xs shrink-0">💼</span>
+                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
+                      {tr("POS Cash-up")}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold text-amber-500 shrink-0">{attention.posCashUp}</span>
+                </div>
+
+                {/* 5. Pending Approvals */}
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-blue-500 text-xs shrink-0">🛡️</span>
+                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
+                      {tr("Approvals")}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-black text-blue-500 shrink-0">
+                    {attention.pendingApprovals}
+                  </span>
+                </div>
+
+                {/* 6. Sync Issues */}
+                <div className="flex items-center justify-between gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-emerald-500 text-xs shrink-0">🔄</span>
+                    <span className="text-[9.5px] sm:text-[10px] font-semibold text-foreground truncate">
+                      {tr("Sync Issues")}
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-black text-emerald-500 shrink-0">{attention.syncIssues}</span>
+                </div>
+              </div>
+
+              {/* Actionable Alerts (also rendered in 2 Columns) */}
+              <div className="pt-2 border-t border-border/40 dark:border-white/10">
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  {tr("Specific Alerts & Overdue")} ({alerts.length})
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {alerts.length === 0 ? (
+                    <div className="col-span-full py-3 text-center text-xs text-muted-foreground">
+                      ✓ {tr("No overdue debts, unpaid bills, or critical stock alerts. All clear!")}
+                    </div>
+                  ) : (
+                    alerts.map((al) => (
+                      <div
+                        key={al.id}
+                        className={cn(
+                          "flex flex-col justify-between p-2 rounded-lg border transition-all text-xs",
+                          al.tone === "bad"
+                            ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-500/15"
+                            : "border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <span
+                            className={cn(
+                              "rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider",
+                              al.tone === "bad" ? "bg-rose-500 text-white" : "bg-amber-500 text-white",
+                            )}
+                          >
+                            {al.badge}
+                          </span>
+                          {typeof al.amount === "number" && (
+                            <span className="font-mono font-black text-[11px] text-foreground">
+                              {account?.currency || "KSh"} {compactFmt(al.amount)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="my-1.5">
+                          <div className="font-bold text-foreground truncate text-[11px]">{al.title}</div>
+                          <div className="text-[9px] text-muted-foreground truncate">{al.subtitle}</div>
+                        </div>
+
+                        <Link
+                          to={al.link as any}
+                          className={cn(
+                            "inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors w-full mt-1",
+                            al.tone === "bad"
+                              ? "bg-rose-600 hover:bg-rose-700 text-white"
+                              : "bg-amber-600 hover:bg-amber-700 text-white",
+                          )}
+                        >
+                          <span>{al.actionLabel}</span>
+                          <ChevronRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 6. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
           {/* Column 1: Recent Sales */}
           <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
@@ -1187,21 +1192,20 @@ export function Dashboard() {
         </div>
       </main>
 
-      {/* 8. FLOATING SHOPBOT BUTTON WITH OFFICIAL ICON */}
+      {/* 7. FLOATING SHOPBOT BUTTON (ICON ONLY, NO WHITE PILL/TEXT) */}
       <div className="fixed bottom-3 right-3 z-30">
         <button
           type="button"
           onClick={() => setShowShopBot(true)}
-          className="flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 pl-2 pr-3.5 py-1.5 shadow-xl hover:scale-105 active:scale-95 transition-all font-bold text-xs border border-white/20 dark:border-black/10 backdrop-blur-md"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-900/90 dark:bg-white/10 text-white hover:bg-slate-800 dark:hover:bg-white/20 shadow-2xl hover:scale-105 active:scale-95 transition-all border border-white/20 backdrop-blur-md"
           aria-label={tr("Ask ShopBot")}
         >
-          <img src={chatIcons.light} alt="ShopBot" className="h-5 w-5 rounded-full object-contain dark:hidden" />
-          <img src={chatIcons.dark} alt="ShopBot" className="h-5 w-5 rounded-full object-contain hidden dark:block" />
-          <span>ShopBot</span>
+          <img src={chatIcons.light} alt="ShopBot" className="h-6 w-6 rounded-full object-contain dark:hidden" />
+          <img src={chatIcons.dark} alt="ShopBot" className="h-6 w-6 rounded-full object-contain hidden dark:block" />
         </button>
       </div>
 
-      {/* 9. SHOPBOT LIVE INTERACTIVE ASSISTANT MODAL */}
+      {/* 8. SHOPBOT LIVE INTERACTIVE ASSISTANT MODAL */}
       <BusinessAssistant
         open={showShopBot}
         onClose={() => setShowShopBot(false)}
@@ -1210,7 +1214,7 @@ export function Dashboard() {
         icon={chatIcons.light}
       />
 
-      {/* 10. RECEIPT PREVIEW MODAL */}
+      {/* 9. RECEIPT PREVIEW MODAL */}
       {viewSale && (
         <ReceiptSheet
           sale={viewSale}
