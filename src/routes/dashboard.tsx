@@ -46,6 +46,8 @@ import { profitAndLoss } from "@/lib/accounting";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { METHOD_LABEL, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
 import { chartSeries } from "@/lib/chart-data";
+import { chatIcons, trialDaysLeft } from "@/lib/shopbook";
+import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
@@ -213,7 +215,10 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   const [dateRangeOffset, setDateRangeOffset] = useState<number>(0);
   const [showCalendarPopover, setShowCalendarPopover] = useState(false);
   const [showShopMenu, setShowShopMenu] = useState(false);
+  const [showShopBot, setShowShopBot] = useState(false);
   const [viewSale, setViewSale] = useState<Sale | null>(null);
+
+  const daysLeft = useMemo(() => trialDaysLeft(account), [account]);
 
   const perf = useMemo(() => performance(s, 0), [s]);
   const pos = useMemo(() => position(s), [s]);
@@ -281,7 +286,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     }
   }, [s, perf?.sales, t?.purchases]);
 
-  // 3. Receivables vs Payables (Dual Comparative Bar Chart)
+  // 3. Receivables vs Payables Breakdown
   const creditDebt = useMemo(() => {
     const customers = s.customers || [];
     const suppliers = s.suppliers || [];
@@ -290,9 +295,21 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     return {
       receivables,
       payables,
-      max: Math.max(receivables, payables, 1),
+      total: receivables + payables,
     };
   }, [s.customers, s.suppliers]);
+
+  // Receivables vs Payables Pie / Donut Model
+  const recPayDonut = useMemo(() => {
+    const rec = creditDebt.receivables;
+    const pay = creditDebt.payables;
+    const total = rec + pay;
+    const items = [
+      { name: tr("Receivables"), value: Math.max(0, rec), raw: rec, color: "#10B981" },
+      { name: tr("Payables"), value: Math.max(0, pay), raw: pay, color: "#F59E0B" },
+    ];
+    return { total, items, rec, pay };
+  }, [creditDebt, tr]);
 
   // 4. Money In vs Out (Grouped Bar Chart)
   const moneyInOutSeries = useMemo(() => {
@@ -336,6 +353,93 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
     };
   }, [s.products, s.customers, s.suppliers, s.cash]);
 
+  // Actionable Overdue & Business Alerts
+  const alerts = useMemo(() => {
+    const list: {
+      id: string;
+      title: string;
+      subtitle: string;
+      amount?: number;
+      badge: string;
+      tone: "bad" | "warn";
+      link: string;
+      actionLabel: string;
+    }[] = [];
+
+    // 1. Customers who haven't paid (overdue debtors)
+    const debtors = (s.customers || [])
+      .filter((c) => (c?.balance || 0) > 0)
+      .sort((a, b) => (b.balance || 0) - (a.balance || 0));
+
+    for (const debtor of debtors.slice(0, 3)) {
+      list.push({
+        id: `cust-${debtor.id}`,
+        title: debtor.name || tr("Customer"),
+        subtitle: debtor.phone ? `${debtor.phone} · ${tr("Unpaid debt")}` : tr("Unpaid customer credit balance"),
+        amount: debtor.balance,
+        badge: tr("Overdue Debt"),
+        tone: "bad",
+        link: "/contacts",
+        actionLabel: tr("Remind"),
+      });
+    }
+
+    // 2. Unpaid supplier purchases/payables
+    const creditors = (s.suppliers || [])
+      .filter((sup) => (sup?.balance || 0) > 0)
+      .sort((a, b) => (b.balance || 0) - (a.balance || 0));
+
+    for (const creditor of creditors.slice(0, 2)) {
+      list.push({
+        id: `sup-${creditor.id}`,
+        title: creditor.name || tr("Supplier"),
+        subtitle: tr("Outstanding supplier payable"),
+        amount: creditor.balance,
+        badge: tr("To Pay"),
+        tone: "warn",
+        link: "/purchases",
+        actionLabel: tr("Pay Bill"),
+      });
+    }
+
+    // 3. Out of stock / critical items
+    const stockAlerts = (s.products || [])
+      .filter((p) => {
+        const q = typeof p?.qty === "number" ? p.qty : 0;
+        return q <= 0;
+      })
+      .slice(0, 2);
+
+    for (const item of stockAlerts) {
+      list.push({
+        id: `stock-${item.id}`,
+        title: item.name || tr("Product"),
+        subtitle: tr("0 units available in stock"),
+        badge: tr("Out of Stock"),
+        tone: "bad",
+        link: "/inventory",
+        actionLabel: tr("Restock"),
+      });
+    }
+
+    // 4. POS Cash-up reminder if > 24 hours
+    const cash = s.cash || [];
+    const lastCashUp = cash[0]?.at ? new Date(cash[0].at).getTime() : 0;
+    if (Date.now() - lastCashUp > 86400000) {
+      list.push({
+        id: "cash-up-needed",
+        title: tr("Daily POS Cash-Up"),
+        subtitle: tr("Register cash count has not been performed today"),
+        badge: tr("Pending Cash-Up"),
+        tone: "warn",
+        link: "/pos",
+        actionLabel: tr("Cash Up"),
+      });
+    }
+
+    return list;
+  }, [s.customers, s.suppliers, s.products, s.cash, tr]);
+
   // Date Range Display Label
   const dateRangeLabel = useMemo(() => {
     if (dateRangeOffset === 0) return tr("Today");
@@ -364,8 +468,35 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
   }, [pnl?.net]);
 
   // Label renderer inside Money Position slice
-  const renderMoneyPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
+  const renderMoneyPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     if (moneyPosition.total <= 0 || !percent || percent < 0.08) return null;
+    const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.52;
+    const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
+    const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
+    const pct = Math.round(percent * 100);
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#ffffff"
+        textAnchor="middle"
+        dominantBaseline="central"
+        className="pointer-events-none select-none"
+        style={{
+          fontSize: "7.5px",
+          fontWeight: 800,
+          fill: "#ffffff",
+          filter: "drop-shadow(0px 1px 1.5px rgba(0,0,0,0.9))",
+        }}
+      >
+        {`${pct}%`}
+      </text>
+    );
+  };
+
+  // Label renderer inside Receivables vs Payables slice
+  const renderRecPayPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+    if (recPayDonut.total <= 0 || !percent || percent < 0.1) return null;
     const radius = Number(innerRadius || 0) + (Number(outerRadius || 0) - Number(innerRadius || 0)) * 0.52;
     const x = Number(cx || 0) + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = Number(cy || 0) + radius * Math.sin(-midAngle * (Math.PI / 180));
@@ -415,103 +546,96 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           {/* Center: Shop Name with Dashboard subtitle directly underneath */}
           <div className="flex flex-col items-center justify-center text-center min-w-0 mx-auto px-1">
             <h1 className="truncate text-xs sm:text-sm md:text-base font-bold text-foreground">
-              {formatHeaderShopName(account?.shopName || "Hodan Mini Market")}
+              {formatHeaderShopName(account?.shopName || "SHOPBOOK")}
             </h1>
             <span className="truncate text-[9px] sm:text-[10px] font-medium text-muted-foreground tracking-tight">
               {tr("Dashboard")}
             </span>
           </div>
 
-          {/* Right Elements: Calendar Popover + ZA Profile Avatar */}
+          {/* Right Elements: Calendar Popover + ZA Avatar Menu */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Calendar Date Range Popover */}
-            <div className="relative shrink-0">
+            {/* Calendar Popover */}
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowCalendarPopover(!showCalendarPopover)}
-                className="flex items-center gap-1 rounded-lg border border-border/60 dark:border-white/10 bg-card dark:bg-white/5 p-1.5 sm:px-2.5 sm:py-1 text-xs font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all"
-                title={tr("Select Date Range")}
+                className="flex items-center gap-1 rounded-lg border border-border/60 dark:border-white/10 bg-card dark:bg-white/5 px-2 py-1 text-xs font-semibold text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all"
               >
-                <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                <span className="hidden sm:inline text-xs">{dateRangeLabel}</span>
+                <CalendarDays className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="hidden sm:inline font-mono text-[11px]">{dateRangeLabel}</span>
               </button>
 
               {showCalendarPopover && (
-                <div className="absolute right-0 mt-2 z-50 w-48 rounded-xl border border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
-                  <div className="flex items-center justify-between border-b border-border/60 dark:border-white/10 pb-1 mb-1 px-1">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                      {tr("Select Date Range")}
-                    </span>
+                <div className="absolute right-0 top-full mt-1.5 z-50 w-52 rounded-xl border border-border bg-popover/95 backdrop-blur-xl p-2 shadow-xl">
+                  <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-border/60 text-xs font-bold text-foreground">
+                    <span>{tr("Date Range")}</span>
                     <button
                       type="button"
                       onClick={() => setShowCalendarPopover(false)}
-                      className="text-[10px] text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground"
                     >
-                      ✕
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  {[
-                    { label: tr("Today"), offset: 0 },
-                    { label: tr("Yesterday"), offset: 1 },
-                    { label: tr("This Week"), offset: 7 },
-                    { label: tr("This Month"), offset: 30 },
-                    { label: tr("This Year"), offset: 365 },
-                  ].map((item) => (
-                    <button
-                      key={item.offset}
-                      type="button"
-                      onClick={() => {
-                        setDateRangeOffset(item.offset);
-                        setShowCalendarPopover(false);
-                      }}
-                      className={cn(
-                        "flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-xs transition-colors",
-                        dateRangeOffset === item.offset
-                          ? "bg-primary text-primary-foreground font-bold"
-                          : "text-foreground hover:bg-muted dark:hover:bg-white/10",
-                      )}
-                    >
-                      <span>{item.label}</span>
-                      {dateRangeOffset === item.offset && <span className="text-xs">✓</span>}
-                    </button>
-                  ))}
+                  <div className="space-y-1">
+                    {[
+                      { label: tr("Today"), val: 0 },
+                      { label: tr("Yesterday"), val: 1 },
+                      { label: tr("Last 7 Days"), val: 7 },
+                      { label: tr("Last 30 Days"), val: 30 },
+                    ].map((opt) => (
+                      <button
+                        key={opt.val}
+                        type="button"
+                        onClick={() => {
+                          setDateRangeOffset(opt.val);
+                          setShowCalendarPopover(false);
+                        }}
+                        className={cn(
+                          "flex w-full items-center justify-between rounded-lg px-2 py-1 text-xs transition-colors",
+                          dateRangeOffset === opt.val
+                            ? "bg-primary text-primary-foreground font-bold"
+                            : "hover:bg-muted text-foreground",
+                        )}
+                      >
+                        <span>{opt.label}</span>
+                        {dateRangeOffset === opt.val && <span>✓</span>}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Shop Avatar / Profile Button */}
-            <div className="relative shrink-0">
+            {/* Profile Avatar & Drawer Menu */}
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowShopMenu(!showShopMenu)}
-                className="h-7 w-7 rounded-full border border-border/60 dark:border-white/20 bg-primary/10 dark:bg-white/10 flex items-center justify-center text-[10px] font-black text-primary hover:scale-105 transition-all shadow-xs"
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 dark:bg-primary/30 border border-primary/40 text-primary hover:bg-primary/30 text-xs font-black shadow-xs transition-all"
                 title={account?.shopName || "Profile"}
               >
-                {account?.logo ? (
-                  <img src={account.logo} alt="" className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  shopInitials
-                )}
+                {shopInitials}
               </button>
 
               {showShopMenu && (
-                <div className="absolute right-0 mt-2 z-50 w-52 rounded-xl border border-border/80 dark:border-white/15 bg-card/95 dark:bg-slate-900/95 backdrop-blur-2xl p-1.5 shadow-2xl">
-                  <div className="px-2.5 py-2 border-b border-border/60 dark:border-white/10 mb-1">
-                    <div className="text-xs font-bold text-foreground truncate">
-                      {account?.shopName || "Hodan Mini Market"}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground">{account?.currency || "KSh"} · Owner</div>
+                <div className="absolute right-0 top-full mt-1.5 z-50 w-56 rounded-xl border border-border bg-popover/95 backdrop-blur-xl p-2 shadow-2xl space-y-1">
+                  <div className="px-2 py-1 border-b border-border/60 mb-1">
+                    <div className="text-xs font-bold text-foreground truncate">{account?.shopName}</div>
+                    <div className="text-[10px] text-muted-foreground truncate">{account?.email || "owner"}</div>
                   </div>
+
                   <button
                     type="button"
                     onClick={() => {
                       setShowShopMenu(false);
                       navigate({ to: "/settings" });
                     }}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-muted dark:hover:bg-white/10"
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-foreground hover:bg-muted dark:hover:bg-white/10"
                   >
-                    <Building2 className="h-3.5 w-3.5" />
-                    <span>{tr("Manage")}</span>
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{tr("Manage & Settings")}</span>
                   </button>
                   <button
                     type="button"
@@ -543,13 +667,15 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
       </header>
 
       <main className="max-w-7xl mx-auto px-2 sm:px-3 pt-2 space-y-2 sm:space-y-2.5">
-        {/* 2. TRIAL BANNER (Visible while on trial) */}
+        {/* 2. TRIAL BANNER (Visible while on trial with real days left) */}
         {account?.plan === "trial" && (
           <div className="flex items-center justify-between rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 p-2 sm:px-3 sm:py-2.5 shadow-xs">
             <div className="flex items-center gap-2">
               <span className="text-amber-500 text-base sm:text-lg">👑</span>
               <div className="flex flex-col">
-                <span className="text-xs sm:text-sm font-bold text-foreground">{tr("Trial - 14 days left")}</span>
+                <span className="text-xs sm:text-sm font-bold text-foreground">
+                  {tr("Trial")} - {daysLeft} {daysLeft === 1 ? tr("day left") : tr("days left")}
+                </span>
                 <span className="text-[10px] text-muted-foreground">{tr("Upgrade to keep using SHOPLY")}</span>
               </div>
             </div>
@@ -609,7 +735,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
             <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-rose-500">
               <TrendingDown className="h-2.5 w-2.5 shrink-0" />
-              <span>5%</span>
+              <span>3%</span>
             </div>
           </div>
 
@@ -617,14 +743,14 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1.5 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Profit")}</span>
-              <Sparkles className="h-3 w-3 text-emerald-500 shrink-0" />
+              <TrendingUp className="h-3 w-3 text-emerald-500 shrink-0" />
             </div>
             <div className="my-0.5">
               <Amt value={netProfit} tone="good" size="xs" />
             </div>
             <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-emerald-500">
               <TrendingUp className="h-2.5 w-2.5 shrink-0" />
-              <span>14%</span>
+              <span>18%</span>
             </div>
           </div>
 
@@ -634,20 +760,19 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <span className="text-[9px] sm:text-xs font-semibold text-muted-foreground truncate">
                 {tr("Stock Value")}
               </span>
-              <Building2 className="h-3 w-3 text-purple-500 shrink-0" />
+              <Building2 className="h-3 w-3 text-amber-500 shrink-0" />
             </div>
             <div className="my-0.5">
               <Amt value={pos?.stock ?? 0} size="xs" />
             </div>
-            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-purple-500">
-              <TrendingUp className="h-2.5 w-2.5 shrink-0" />
-              <span>3%</span>
+            <div className="flex items-center gap-0.5 text-[8px] sm:text-[10px] font-bold text-muted-foreground">
+              <span>{s.products?.length || 0} items</span>
             </div>
           </div>
         </div>
 
-        {/* 4. THE FOUR FINANCIAL CHARTS (2x2 on Mobile/Tablet, 1 Row on Desktop) */}
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-1.5 sm:gap-2">
+        {/* 4. THE FOUR FINANCIAL CHARTS (2x2 on Mobile/Tablet, 1 Horizontal Row on Big Screens lg:1024px+) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2">
           {/* Chart 1: Money Position (Donut + Account Balances) */}
           <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
@@ -690,7 +815,9 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-0.5">
-                  <span className="text-[6.5px] font-bold uppercase text-muted-foreground">KSh</span>
+                  <span className="text-[6.5px] font-bold uppercase text-muted-foreground">
+                    {account.currency || "KSh"}
+                  </span>
                   <span className="text-[9px] sm:text-[10px] font-mono font-black text-foreground truncate max-w-[85%]">
                     {compactFmt(moneyPosition.total)}
                   </span>
@@ -765,7 +892,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
           </div>
 
-          {/* Chart 3: Receivables vs Payables (Updated Dual Comparative Bar Chart) */}
+          {/* Chart 3: Receivables vs Payables (Pie / Donut Chart) */}
           <div className="flex flex-col rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
             <div className="flex items-center justify-between pb-1 border-b border-border/40 dark:border-white/10">
               <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">
@@ -776,44 +903,77 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               </Link>
             </div>
 
-            <div className="flex items-end justify-center gap-6 sm:gap-8 h-24 sm:h-28 px-4 pb-1 pt-2 my-auto">
-              {/* Receivables Bar */}
-              <div className="flex flex-col items-center flex-1 max-w-[85px]">
-                <span className="text-[9px] sm:text-[10px] font-mono font-black text-emerald-500">
-                  {compactFmt(creditDebt.receivables)}
-                </span>
-                <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tight">
-                  {tr("To Receive")}
-                </span>
-                <div
-                  className="w-full rounded-t-md bg-emerald-500 shadow-sm transition-all duration-500 mt-1"
-                  style={{
-                    height: `${Math.max(12, Math.min(65, (creditDebt.receivables / creditDebt.max) * 60))}px`,
-                  }}
-                />
-                <span className="text-[8px] sm:text-[9px] font-bold text-foreground mt-1 truncate">
-                  {tr("Receivables")}
-                </span>
+            <div className="flex items-center gap-1 my-auto py-1">
+              {/* Donut Chart */}
+              <div className="h-24 sm:h-28 w-1/2 relative shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={
+                        recPayDonut.total > 0
+                          ? recPayDonut.items
+                          : [{ name: "Zero", value: 1, raw: 0, color: "var(--border)" }]
+                      }
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius="50%"
+                      outerRadius="80%"
+                      stroke="none"
+                      labelLine={false}
+                      label={renderRecPayPieLabel}
+                    >
+                      {recPayDonut.total > 0 ? (
+                        recPayDonut.items.map((entry, idx) => (
+                          <Cell key={`recpay-cell-${idx}`} fill={entry.color} stroke="none" />
+                        ))
+                      ) : (
+                        <Cell fill="currentColor" className="text-muted/30" stroke="none" />
+                      )}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip money={money} />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none px-0.5">
+                  <span className="text-[6.5px] font-bold uppercase text-muted-foreground">
+                    {account.currency || "KSh"}
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] font-mono font-black text-foreground truncate max-w-[85%]">
+                    {compactFmt(recPayDonut.total)}
+                  </span>
+                </div>
               </div>
 
-              {/* Payables Bar */}
-              <div className="flex flex-col items-center flex-1 max-w-[85px]">
-                <span className="text-[9px] sm:text-[10px] font-mono font-black text-amber-500">
-                  {compactFmt(creditDebt.payables)}
-                </span>
-                <span className="text-[7px] text-muted-foreground uppercase font-bold tracking-tight">
-                  {tr("To Pay")}
-                </span>
-                <div
-                  className="w-full rounded-t-md bg-amber-500 shadow-sm transition-all duration-500 mt-1"
-                  style={{
-                    height: `${Math.max(12, Math.min(65, (creditDebt.payables / creditDebt.max) * 60))}px`,
-                  }}
-                />
-                <span className="text-[8px] sm:text-[9px] font-bold text-foreground mt-1 truncate">
-                  {tr("Payables")}
-                </span>
+              {/* Breakdown List */}
+              <div className="flex flex-col justify-center gap-1.5 w-1/2 min-w-0 pl-1">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      <span className="text-muted-foreground truncate">{tr("Receivables")}</span>
+                    </div>
+                    <span className="font-mono font-bold text-emerald-500 shrink-0">{compactFmt(recPayDonut.rec)}</span>
+                  </div>
+                  <span className="text-[7px] text-muted-foreground/70 pl-2.5 font-medium">{tr("To Receive")}</span>
+                </div>
+
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between text-[8px] sm:text-[9.5px]">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                      <span className="text-muted-foreground truncate">{tr("Payables")}</span>
+                    </div>
+                    <span className="font-mono font-bold text-amber-500 shrink-0">{compactFmt(recPayDonut.pay)}</span>
+                  </div>
+                  <span className="text-[7px] text-muted-foreground/70 pl-2.5 font-medium">{tr("To Pay")}</span>
+                </div>
               </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 pt-1 border-t border-border/40 dark:border-white/10 text-[8px] font-bold">
+              <span className="text-emerald-500">● {tr("To Receive")}</span>
+              <span className="text-amber-500">● {tr("To Pay")}</span>
             </div>
           </div>
 
@@ -858,7 +1018,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           </div>
         </div>
 
-        {/* 5. NEEDS ATTENTION (Strictly One Horizontal Row) */}
+        {/* 5. NEEDS ATTENTION (Strictly One Horizontal Row with Amounts for Receivables & Payables) */}
         <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
           <div className="flex items-center justify-between pb-1.5">
             <span className="text-xs font-bold text-foreground">{tr("Needs Attention")}</span>
@@ -869,7 +1029,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
 
           <div className="grid grid-cols-6 gap-1 sm:gap-1.5 overflow-x-auto pb-0.5">
             {/* 1. Low Stock */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 min-w-[100px]">
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 min-w-[105px]">
               <div className="flex items-center gap-1">
                 <span className="text-orange-500 text-xs">🛡️</span>
                 <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
@@ -879,30 +1039,44 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
               <span className="text-xs font-mono font-black text-orange-500">{attention.lowStock}</span>
             </div>
 
-            {/* 2. Receivables */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 min-w-[100px]">
-              <div className="flex items-center gap-1">
-                <span className="text-emerald-500 text-xs">👤</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Receivables")}
-                </span>
+            {/* 2. Receivables with Amount */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 min-w-[110px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-emerald-500 text-xs shrink-0">👤</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                    {tr("Receivables")}
+                  </span>
+                  <span className="text-[7.5px] text-muted-foreground font-mono truncate">
+                    {attention.receivables} {attention.receivables === 1 ? tr("debtor") : tr("debtors")}
+                  </span>
+                </div>
               </div>
-              <span className="text-xs font-mono font-black text-emerald-500">{attention.receivables}</span>
+              <span className="text-xs font-mono font-black text-emerald-500 shrink-0">
+                {compactFmt(creditDebt.receivables)}
+              </span>
             </div>
 
-            {/* 3. Payables */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 min-w-[100px]">
-              <div className="flex items-center gap-1">
-                <span className="text-rose-500 text-xs">🔒</span>
-                <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
-                  {tr("Payables")}
-                </span>
+            {/* 3. Payables with Amount */}
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/30 min-w-[110px]">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="text-rose-500 text-xs shrink-0">🔒</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
+                    {tr("Payables")}
+                  </span>
+                  <span className="text-[7.5px] text-muted-foreground font-mono truncate">
+                    {attention.payables} {attention.payables === 1 ? tr("bill") : tr("bills")}
+                  </span>
+                </div>
               </div>
-              <span className="text-xs font-mono font-black text-rose-500">{attention.payables}</span>
+              <span className="text-xs font-mono font-black text-rose-500 shrink-0">
+                {compactFmt(creditDebt.payables)}
+              </span>
             </div>
 
             {/* 4. POS Cash-up */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[100px]">
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 min-w-[105px]">
               <div className="flex items-center gap-1">
                 <span className="text-amber-500 text-xs">💼</span>
                 <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
@@ -913,7 +1087,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
 
             {/* 5. Pending Approvals */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 min-w-[100px]">
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 min-w-[105px]">
               <div className="flex items-center gap-1">
                 <span className="text-blue-500 text-xs">🛡️</span>
                 <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
@@ -924,7 +1098,7 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
             </div>
 
             {/* 6. Sync Issues */}
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-red-500/10 border border-red-500/30 min-w-[100px]">
+            <div className="flex items-center justify-between p-1.5 rounded-lg bg-red-500/10 border border-red-500/30 min-w-[105px]">
               <div className="flex items-center gap-1">
                 <span className="text-rose-500 text-xs">🔄</span>
                 <span className="text-[9px] sm:text-[10px] font-semibold text-foreground truncate">
@@ -936,7 +1110,74 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
           </div>
         </div>
 
-        {/* 6. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
+        {/* 6. ACTIONABLE OVERDUE & BUSINESS ALERTS (Customers who haven't paid, unpaid supplier bills, stock alerts) */}
+        <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
+          <div className="flex items-center justify-between pb-1.5 border-b border-border/40 dark:border-white/10">
+            <div className="flex items-center gap-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-xs font-bold text-foreground">{tr("Actionable Business Alerts & Overdue")}</span>
+            </div>
+            <span className="text-[9px] sm:text-[10px] font-mono font-bold text-muted-foreground">
+              {alerts.length} {alerts.length === 1 ? tr("alert") : tr("alerts")}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-2">
+            {alerts.length === 0 ? (
+              <div className="col-span-full py-3 text-center text-xs text-muted-foreground">
+                ✓ {tr("No overdue debts, unpaid bills, or critical stock alerts. All clear!")}
+              </div>
+            ) : (
+              alerts.map((al) => (
+                <div
+                  key={al.id}
+                  className={cn(
+                    "flex flex-col justify-between p-2 rounded-lg border transition-all text-xs",
+                    al.tone === "bad"
+                      ? "border-rose-500/30 bg-rose-500/10 dark:bg-rose-500/15"
+                      : "border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-1">
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider",
+                        al.tone === "bad" ? "bg-rose-500 text-white" : "bg-amber-500 text-white",
+                      )}
+                    >
+                      {al.badge}
+                    </span>
+                    {typeof al.amount === "number" && (
+                      <span className="font-mono font-black text-[11px] text-foreground">
+                        {account.currency || "KSh"} {compactFmt(al.amount)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="my-1.5">
+                    <div className="font-bold text-foreground truncate text-[11px]">{al.title}</div>
+                    <div className="text-[9px] text-muted-foreground truncate">{al.subtitle}</div>
+                  </div>
+
+                  <Link
+                    to={al.link as any}
+                    className={cn(
+                      "inline-flex items-center justify-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors w-full mt-1",
+                      al.tone === "bad"
+                        ? "bg-rose-600 hover:bg-rose-700 text-white"
+                        : "bg-amber-600 hover:bg-amber-700 text-white",
+                    )}
+                  >
+                    <span>{al.actionLabel}</span>
+                    <ChevronRight className="h-3 w-3" />
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* 7. RECENT ACTIVITY (3 Columns on Desktop, Stacked on Mobile) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-2.5">
           {/* Column 1: Recent Sales */}
           <div className="rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-2 sm:p-2.5 shadow-xs">
@@ -1037,19 +1278,30 @@ function DashboardView({ account }: { account: NonNullable<ReturnType<typeof use
         </div>
       </main>
 
-      {/* 7. FLOATING SHOPBOT BUTTON */}
+      {/* 8. FLOATING SHOPBOT BUTTON WITH OFFICIAL ICON */}
       <div className="fixed bottom-3 right-3 z-30">
         <button
           type="button"
-          onClick={() => navigate({ to: "/apps" })}
-          className="flex items-center gap-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 shadow-lg hover:shadow-xl transition-all font-bold text-xs"
+          onClick={() => setShowShopBot(true)}
+          className="flex items-center gap-2 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-100 pl-2 pr-3.5 py-1.5 shadow-xl hover:scale-105 active:scale-95 transition-all font-bold text-xs border border-white/20 dark:border-black/10 backdrop-blur-md"
+          aria-label={tr("Ask ShopBot")}
         >
-          <span>💬</span>
+          <img src={chatIcons.light} alt="ShopBot" className="h-5 w-5 rounded-full object-contain dark:hidden" />
+          <img src={chatIcons.dark} alt="ShopBot" className="h-5 w-5 rounded-full object-contain hidden dark:block" />
           <span>ShopBot</span>
         </button>
       </div>
 
-      {/* 8. RECEIPT PREVIEW MODAL */}
+      {/* 9. SHOPBOT LIVE INTERACTIVE ASSISTANT MODAL */}
+      <BusinessAssistant
+        open={showShopBot}
+        onClose={() => setShowShopBot(false)}
+        shop={account?.shopName || "Shop"}
+        currency={account?.currency || "KSh"}
+        icon={chatIcons.light}
+      />
+
+      {/* 10. RECEIPT PREVIEW MODAL */}
       {viewSale && (
         <ReceiptSheet
           sale={viewSale}
