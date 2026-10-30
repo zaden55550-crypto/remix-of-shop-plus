@@ -73,7 +73,7 @@ export const Route = createFileRoute("/inventory")({
   component: Inventory,
 });
 
-/** 4-Menu Architecture matching uploaded specification */
+/** 4-Menu Architecture matching specification */
 const MENUS = {
   overview: [],
   "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments"],
@@ -136,16 +136,24 @@ function Amt({
           tone === "bad" && "text-rose-500",
           tone === "warn" && "text-amber-500",
           !tone && "text-foreground",
-          size === "xs" && (isHuge ? "text-xs" : isLarge ? "text-sm" : "text-base sm:text-lg"),
-          size === "sm" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg sm:text-xl"),
-          size === "md" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl sm:text-2xl"),
-          size === "lg" && (isHuge ? "text-xl" : isLarge ? "text-2xl" : "text-3xl sm:text-4xl"),
+          size === "xs" && "text-xs",
+          size === "sm" && "text-sm",
+          size === "md" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg"),
+          size === "lg" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl"),
         )}
       >
         {formatted}
       </span>
       {curr && (
-        <span className="text-[9px] sm:text-[10px] font-semibold text-muted-foreground/80 lowercase shrink-0">
+        <span
+          className={cn(
+            "font-semibold text-muted-foreground/75 shrink-0 select-none",
+            size === "xs" && "text-[8px]",
+            size === "sm" && "text-[9px]",
+            size === "md" && "text-[10px]",
+            size === "lg" && "text-xs",
+          )}
+        >
           {curr}
         </span>
       )}
@@ -157,11 +165,13 @@ function Inventory() {
   const nav = useNavigate();
   const { tr } = useLanguage();
   const { dark, toggle: toggleTheme } = useTheme();
+  const theme = dark ? "dark" : "light";
   const [acct, setAcct] = useState<Account | null>(null);
   const [menu, setMenu] = useState<Menu>("overview");
   const [sub, setSub] = useState<string>("");
   const [prefillBarcode, setPrefill] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarRange, setCalendarRange] = useState<"today" | "week" | "month" | "all">("today");
   const [showShopMenu, setShowShopMenu] = useState(false);
 
   useEffect(() => {
@@ -195,122 +205,139 @@ function Inventory() {
     go,
     cur,
     shop: acct?.shopName || "Main Shop",
+    onUnknown: (code: string) => {
+      setPrefill(code);
+      go("products & stock", "Add Product");
+    },
   };
 
-  const getShopInitials = (name?: string) => {
-    if (!name) return "SB";
-    const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return (parts[0] ?? "").slice(0, 2).toUpperCase();
-    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
-  };
+  const shopInitials =
+    (acct?.shopName || "SB")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") || "SB";
 
   return (
-    <main className="inventory-theme min-h-screen flex flex-col bg-background text-foreground pb-20 select-none">
-      {/* 1. LIQUID GLASS STICKY HEADER */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-3 py-2 sm:px-5 sm:py-2.5 bg-card/65 backdrop-blur-xl border-b border-border/40 shadow-sm">
-        <div className="flex items-center gap-2">
+    <main className="inventory-screen app-screen flex flex-col min-h-screen">
+      {/* 1. RESTORED PREVIOUS HEADER */}
+      <header className="inventory-header sticky top-0 z-30 flex items-center justify-between gap-1.5 px-3 py-2 border-b border-border/40 backdrop-blur-md bg-background/80">
+        <div className="flex items-center gap-1.5 shrink-0">
           <ShopButton
-            variant="ghost"
-            size="sm"
+            variant="bare"
+            className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md hover:bg-muted/60 transition-colors"
             onClick={() => nav({ to: "/apps" })}
-            className="h-8 px-2 text-xs font-semibold rounded-lg hover:bg-muted/60 transition-colors"
+            aria-label={tr("Back to Apps")}
           >
-            <ChevronLeft className="w-4 h-4 mr-0.5 text-muted-foreground" />
+            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
             <span>{tr("Apps")}</span>
           </ShopButton>
-
           <ConnectionStatus />
         </div>
 
-        {/* Center: Shop name & Inventory title */}
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-[11px] font-medium text-muted-foreground tracking-tight">
-            {acct?.shopName || tr("Shop")}
+        {/* Center: Inventory title on top, Shop name below */}
+        <div className="flex flex-col items-center justify-center min-w-0 px-2 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate">
+            {tr("Inventory")}
           </span>
-          <span className="text-sm font-bold text-foreground tracking-tight">{tr("Inventory")}</span>
+          <span className="text-[10px] text-muted-foreground truncate leading-tight">{acct?.shopName}</span>
         </div>
 
-        {/* Right: Calendar, Theme & Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="relative">
-            <ShopButton
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowCalendar(!showCalendar)}
-              className="h-8 w-8 p-0 rounded-lg hover:bg-muted/60 text-muted-foreground"
-              aria-label={tr("Calendar")}
-            >
-              <CalendarDays className="w-4 h-4" />
-            </ShopButton>
-            {showCalendar && (
-              <div className="absolute right-0 mt-2 z-50 p-3 rounded-xl bg-popover/90 backdrop-blur-xl border border-border shadow-xl text-xs w-48 animate-in fade-in zoom-in-95">
-                <p className="font-semibold text-foreground mb-1">{tr("Today")}</p>
-                <p className="text-muted-foreground">
-                  {new Date().toLocaleDateString(undefined, {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
-            )}
-          </div>
-
+        {/* Right: Theme toggle, Calendar filter, Avatar */}
+        <div className="flex items-center gap-1 shrink-0 relative">
           <ShopButton
-            variant="ghost"
-            size="sm"
+            variant="bare"
+            className="h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors text-foreground"
             onClick={toggleTheme}
-            className="h-8 w-8 p-0 rounded-lg hover:bg-muted/60 text-muted-foreground"
-            aria-label={tr("Toggle theme")}
+            aria-label={tr("Toggle Theme")}
+            title={theme === "dark" ? tr("Switch to Light mode") : tr("Switch to Dark mode")}
           >
-            {dark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-700" />
+            )}
           </ShopButton>
 
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowShopMenu(!showShopMenu)}
-              className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary/80 to-primary text-primary-foreground font-bold text-xs flex items-center justify-center shadow-sm hover:scale-105 active:scale-95 transition-transform"
-            >
-              {getShopInitials(acct?.shopName)}
-            </button>
-            {showShopMenu && (
-              <div className="absolute right-0 mt-2 z-50 p-2 rounded-xl bg-popover/95 backdrop-blur-xl border border-border shadow-xl text-xs w-44 animate-in fade-in zoom-in-95 flex flex-col gap-1">
-                <p className="px-2 py-1 font-semibold text-foreground truncate">{acct?.shopName}</p>
-                <div className="h-px bg-border/50 my-1" />
-                <ShopButton
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs h-7"
-                  onClick={() => {
-                    setShowShopMenu(false);
-                    nav({ to: "/settings" });
-                  }}
-                >
-                  <Settings2 className="w-3.5 h-3.5 mr-2" />
-                  {tr("Settings")}
-                </ShopButton>
-                <ShopButton
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs h-7"
-                  onClick={() => {
-                    setShowShopMenu(false);
-                    nav({ to: "/apps" });
-                  }}
-                >
-                  <Package className="w-3.5 h-3.5 mr-2" />
-                  {tr("All Apps")}
-                </ShopButton>
-              </div>
+          <ShopButton
+            variant="bare"
+            className={cn(
+              "h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors",
+              showCalendar && "bg-muted text-primary",
             )}
-          </div>
+            onClick={() => {
+              setShowCalendar(!showCalendar);
+              setShowShopMenu(false);
+            }}
+            aria-label={tr("Filter by date")}
+            title={tr("Calendar filter")}
+          >
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </ShopButton>
+
+          {showCalendar && (
+            <div className="absolute right-9 top-10 z-50 w-36 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              {(["today", "week", "month", "all"] as const).map((r) => (
+                <button
+                  key={r}
+                  className={cn(
+                    "w-full text-start px-2 py-1 rounded capitalize font-medium transition-colors",
+                    calendarRange === r ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
+                  )}
+                  onClick={() => {
+                    setCalendarRange(r);
+                    setShowCalendar(false);
+                    toast.success(`${tr("Date filter")}: ${tr(r)}`);
+                  }}
+                >
+                  {tr(r === "all" ? "All time" : r === "today" ? "Today" : r === "week" ? "This week" : "This month")}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <ShopButton
+            variant="bare"
+            className="h-7 w-7 rounded-full bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity"
+            onClick={() => {
+              setShowShopMenu(!showShopMenu);
+              setShowCalendar(false);
+            }}
+            aria-label={acct?.shopName}
+            title={acct?.shopName}
+          >
+            {shopInitials}
+          </ShopButton>
+
+          {showShopMenu && (
+            <div className="absolute right-0 top-10 z-50 w-44 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              <div className="px-2 py-1 border-b border-border/50 font-bold truncate">{acct?.shopName}</div>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/settings" });
+                }}
+              >
+                {tr("Shop Settings")}
+              </button>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/apps" });
+                }}
+              >
+                {tr("All Apps")}
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* 2. NAVIGATION BAR (4 MENUS & SUBMENUS) */}
-      <nav aria-label={tr("Inventory navigation")} className="inventory-nav-wrap px-3 pt-2">
+      {/* 2. 4 MAIN NAVIGATION MENUS & SUBMENUS */}
+      <nav aria-label={tr("Inventory navigation")} className="inventory-nav-wrap">
         <Tabs
           items={Object.keys(MENUS)}
           value={menu}
@@ -330,8 +357,8 @@ function Inventory() {
         )}
       </nav>
 
-      {/* 3. SCREEN CONTENT */}
-      <section className="inventory-content flex-1 px-3 sm:px-5 py-3">
+      {/* 3. WORKING CONTENT CANVAS (All screens & workflows preserved) */}
+      <section className="inventory-content flex-1">
         {/* Menu 1: Overview */}
         {menu === "overview" && <Overview {...ctx} />}
 
@@ -401,27 +428,19 @@ function Tabs({
     <div
       role="tablist"
       aria-label={small ? "Inventory submenu" : "Inventory navigation"}
-      className={cn(
-        "inventory-tabs flex gap-1 overflow-x-auto no-scrollbar py-1",
-        small && "inventory-tabs-sub text-xs",
-      )}
+      className={cn("inventory-tabs", small && "inventory-tabs-sub")}
     >
       {items.map((k) => (
-        <button
-          type="button"
+        <ShopButton
+          variant="bare"
           role="tab"
           aria-selected={value === k}
           key={k}
           onClick={() => onChange(k)}
-          className={cn(
-            "inventory-tab px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition-all",
-            value === k
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted/40",
-          )}
+          className="inventory-tab"
         >
           {label(k)}
-        </button>
+        </ShopButton>
       ))}
     </div>
   );
