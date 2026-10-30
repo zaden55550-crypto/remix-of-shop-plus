@@ -7,6 +7,7 @@ export type Product = {
   id: string; name: string; buy: number; sell: number; qty: number;
   sku?: string | undefined; barcode?: string | undefined; categoryId?: string | undefined; brandId?: string | undefined;
   unit?: string | undefined; image?: string | undefined; minStock?: number | undefined; createdAt: number;
+  variants?: { id: string; name: string; qty: number; sell?: number | undefined }[] | undefined;
 };
 export type Named = { id: string; name: string };
 export type MoveType = "OPENING" | "PURCHASE" | "STOCK IN" | "SALE" | "STOCK OUT" | "ADJUSTMENT" | "RETURN" | "TRANSFER OUT" | "TRANSFER IN" | "TRANSFER CANCEL";
