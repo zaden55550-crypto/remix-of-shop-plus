@@ -167,10 +167,10 @@ function Inventory() {
   useEffect(() => {
     const a = store.get();
     if (!a) {
-      nav({ to: "/login" });
+      nav({ to: "/" });
       return;
     }
-    if (!canOpen(a, "inventory")) {
+    if (!canOpen(a, "basic")) {
       toast.error(tr("Upgrade to access Inventory"));
       nav({ to: "/apps" });
       return;
@@ -200,8 +200,8 @@ function Inventory() {
   const getShopInitials = (name?: string) => {
     if (!name) return "SB";
     const parts = name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (parts.length === 1) return (parts[0] ?? "").slice(0, 2).toUpperCase();
+    return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase();
   };
 
   return (
@@ -505,7 +505,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
           className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
           <span className="text-[11px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
-          <Amt value={lowStock.length} tone={lowStock.length > 0 ? "warn" : undefined} size="lg" />
+          <Amt value={lowStock.length} {...(lowStock.length > 0 ? { tone: "warn" as const } : {})} size="lg" />
         </div>
 
         <div
@@ -513,7 +513,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
           className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
           <span className="text-[11px] font-semibold text-muted-foreground">{tr("Out of Stock")}</span>
-          <Amt value={outOfStock.length} tone={outOfStock.length > 0 ? "bad" : undefined} size="lg" />
+          <Amt value={outOfStock.length} {...(outOfStock.length > 0 ? { tone: "bad" as const } : {})} size="lg" />
         </div>
       </div>
 
@@ -574,7 +574,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
                       {s.products.find((p) => p.id === m.productId)?.name || "—"}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {dt(m.at)} · {m.ref}
+                      {dt(m.at)} · {m.source}
                     </p>
                   </div>
                   <span className="font-bold text-emerald-600 dark:text-emerald-400">+{m.qty}</span>
@@ -840,7 +840,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           };
           state.products.unshift(p);
           if (finalQty > 0) {
-            c.move(id, "OPENING STOCK", finalQty, "Initial registration", c.nextRef("STK"));
+            c.move(id, "OPENING", finalQty, "Initial registration", c.nextRef("STK"));
           }
           c.audit("PRODUCT CREATED", p.name);
         });
@@ -1315,7 +1315,7 @@ function StockOutScreen({ s, tr }: Ctx) {
           />
         </InventoryField>
 
-        <ShopButton variant="destructive" className="w-full mt-2" onClick={submit}>
+        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
           {tr("Record Stock Out")}
         </ShopButton>
       </div>
@@ -1335,7 +1335,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
       const matchQ =
         !q.trim() ||
         (p?.name && p.name.toLowerCase().includes(q.toLowerCase())) ||
-        (m.ref && m.ref.toLowerCase().includes(q.toLowerCase()));
+        (m.source && m.source.toLowerCase().includes(q.toLowerCase()));
       return matchType && matchQ;
     });
   }, [s.movements, s.products, filterType, q]);
@@ -1381,7 +1381,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {dt(m.at)} · {m.ref} · {m.reason || "—"}
+                      {dt(m.at)} · {m.source} · {m.reason || "—"}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -1394,7 +1394,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                       {m.qty > 0 ? `+${m.qty}` : m.qty}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {tr("Balance")}: {m.balance}
+                      {tr("Balance")}: {m.next}
                     </p>
                   </div>
                 </div>
@@ -1710,7 +1710,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
           </select>
         </InventoryField>
 
-        <ShopButton variant="destructive" className="w-full mt-2" onClick={submit}>
+        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
           {tr("Dispatch Supplier Return")}
         </ShopButton>
       </div>
@@ -2154,7 +2154,7 @@ function ProductDetailSheet({
                     <div>
                       <p className="font-medium text-foreground">{m.type}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {dt(m.at)} · {m.ref}
+                        {dt(m.at)} · {m.source}
                       </p>
                     </div>
                     <span
