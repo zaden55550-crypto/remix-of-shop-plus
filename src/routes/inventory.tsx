@@ -2171,7 +2171,7 @@ function ProductSetupScreen({ s, tr }: Ctx) {
                 {tr("Choose a Category...")} ({s.categories.length})
               </option>
               {s.categories.map((c) => {
-                const count = s.products.filter((p) => p.category === c.name).length;
+                const count = s.products.filter((p) => p.categoryId === c.id).length;
                 return (
                   <option key={c.id} value={c.id}>
                     {c.name} ({count} {tr("products")})
@@ -2214,7 +2214,7 @@ function ProductSetupScreen({ s, tr }: Ctx) {
                 {tr("Choose a Brand...")} ({s.brands.length})
               </option>
               {s.brands.map((b) => {
-                const count = s.products.filter((p) => p.brand === b.name).length;
+                const count = s.products.filter((p) => p.brandId === b.id).length;
                 return (
                   <option key={b.id} value={b.id}>
                     {b.name} ({count} {tr("products")})
