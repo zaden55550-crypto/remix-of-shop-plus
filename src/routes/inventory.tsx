@@ -872,22 +872,74 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("Register New Product")}</h2>
+      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
+      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+        <h2 className="text-base font-bold text-foreground">{tr("Register New Product")}</h2>
+        <div className="flex items-center gap-2">
+          <ShopButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={done}
+            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
+          >
+            {tr("Cancel")}
+          </ShopButton>
+          <ShopButton
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={save}
+            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+          >
+            {tr("Save Product")}
+          </ShopButton>
+        </div>
+      </div>
 
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-4 shadow-sm">
-        {/* Name */}
-        <InventoryField label={tr("Product Name")} required>
-          <input
-            className={inventoryInput}
-            value={f.name}
-            onChange={(e) => setF({ ...f, name: e.target.value })}
-            placeholder={tr("e.g. Cotton T-Shirt, Milk 1L")}
-            required
-          />
-        </InventoryField>
+        {/* ROW 1: Product Name, Quantity, and Unit in the same line */}
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+          <div className="sm:col-span-6">
+            <InventoryField label={tr("Product Name")} required>
+              <input
+                className={inventoryInput}
+                value={f.name}
+                onChange={(e) => setF({ ...f, name: e.target.value })}
+                placeholder={tr("e.g. Cotton T-Shirt, Milk 1L")}
+                required
+              />
+            </InventoryField>
+          </div>
+          <div className="sm:col-span-3">
+            <InventoryField label={tr("Quantity")}>
+              <input
+                type="number"
+                step="any"
+                disabled={hasVariants}
+                className={cn(inventoryInput, hasVariants && "opacity-60 bg-muted")}
+                value={hasVariants ? totalVariantQty : f.qty}
+                onChange={(e) => setF({ ...f, qty: e.target.value })}
+              />
+            </InventoryField>
+          </div>
+          <div className="sm:col-span-3">
+            <InventoryField label={tr("Unit")}>
+              <select className={inventoryInput} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })}>
+                <option value="Piece">{tr("Piece")}</option>
+                <option value="Kg">{tr("Kg")}</option>
+                <option value="Gram">{tr("Gram")}</option>
+                <option value="Litre">{tr("Litre")}</option>
+                <option value="Box">{tr("Box")}</option>
+                <option value="Carton">{tr("Carton")}</option>
+                <option value="Packet">{tr("Packet")}</option>
+              </select>
+            </InventoryField>
+          </div>
+        </div>
 
-        {/* 1-ROW: Buying, Selling, Quantity, Unit */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* ROW 2: Buying Price & Selling Price below */}
+        <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Buying Price")} required>
             <input
               type="number"
@@ -906,36 +958,15 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
               onChange={(e) => setF({ ...f, sell: e.target.value })}
             />
           </InventoryField>
-          <InventoryField label={tr("Quantity")}>
-            <input
-              type="number"
-              step="any"
-              disabled={hasVariants}
-              className={cn(inventoryInput, hasVariants && "opacity-60 bg-muted")}
-              value={hasVariants ? totalVariantQty : f.qty}
-              onChange={(e) => setF({ ...f, qty: e.target.value })}
-            />
-          </InventoryField>
-          <InventoryField label={tr("Unit")}>
-            <select className={inventoryInput} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })}>
-              <option value="Piece">{tr("Piece")}</option>
-              <option value="Kg">{tr("Kg")}</option>
-              <option value="Gram">{tr("Gram")}</option>
-              <option value="Litre">{tr("Litre")}</option>
-              <option value="Box">{tr("Box")}</option>
-              <option value="Carton">{tr("Carton")}</option>
-              <option value="Packet">{tr("Packet")}</option>
-            </select>
-          </InventoryField>
         </div>
 
-        {/* Collapsible Optional Controls Bar */}
-        <div className="flex flex-wrap gap-2 pt-1 border-t border-border/30">
+        {/* ROW 3: Category, Brand, Barcode, SKU & Alert Level in one row */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 border-t border-border/30">
           <ShopButton
             type="button"
             variant="outline"
             size="sm"
-            className="text-xs h-7"
+            className={cn("text-xs h-7.5 w-full justify-center", showCategory && "bg-muted font-bold")}
             onClick={() => setShowCategory(!showCategory)}
           >
             + {tr("Category")}
@@ -944,7 +975,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             type="button"
             variant="outline"
             size="sm"
-            className="text-xs h-7"
+            className={cn("text-xs h-7.5 w-full justify-center", showBrand && "bg-muted font-bold")}
             onClick={() => setShowBrand(!showBrand)}
           >
             + {tr("Brand")}
@@ -953,7 +984,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             type="button"
             variant="outline"
             size="sm"
-            className="text-xs h-7"
+            className={cn("text-xs h-7.5 w-full justify-center", showBarcode && "bg-muted font-bold")}
             onClick={() => setShowBarcode(!showBarcode)}
           >
             + {tr("Barcode")}
@@ -962,57 +993,66 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             type="button"
             variant="outline"
             size="sm"
-            className="text-xs h-7"
+            className={cn("text-xs h-7.5 w-full justify-center", showSKU && "bg-muted font-bold")}
             onClick={() => setShowSKU(!showSKU)}
           >
-            + {tr("SKU & Alert Level")}
+            + {tr("SKU & Alert")}
           </ShopButton>
         </div>
 
-        {/* Collapsible Fields */}
+        {/* Expandable Optional Fields */}
         {showCategory && (
-          <InventoryField label={tr("Category")}>
-            <select
-              className={inventoryInput}
-              value={f.categoryId}
-              onChange={(e) => setF({ ...f, categoryId: e.target.value })}
-            >
-              <option value="">{tr("Select Category")}</option>
-              {s.categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </InventoryField>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+            <InventoryField label={tr("Category")}>
+              <select
+                className={inventoryInput}
+                value={f.categoryId}
+                onChange={(e) => setF({ ...f, categoryId: e.target.value })}
+              >
+                <option value="">{tr("— No Category —")}</option>
+                {s.categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </InventoryField>
+          </div>
         )}
 
         {showBrand && (
-          <InventoryField label={tr("Brand")}>
-            <select
-              className={inventoryInput}
-              value={f.brandId}
-              onChange={(e) => setF({ ...f, brandId: e.target.value })}
-            >
-              <option value="">{tr("Select Brand")}</option>
-              {s.brands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </InventoryField>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+            <InventoryField label={tr("Brand")}>
+              <select
+                className={inventoryInput}
+                value={f.brandId}
+                onChange={(e) => setF({ ...f, brandId: e.target.value })}
+              >
+                <option value="">{tr("— No Brand —")}</option>
+                {s.brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </InventoryField>
+          </div>
         )}
 
         {showBarcode && (
-          <InventoryField label={tr("Barcode")}>
-            <BarcodeField value={f.barcode} onChange={(val) => setF({ ...f, barcode: val })} tr={tr} />
-          </InventoryField>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+            <BarcodeField
+              value={f.barcode}
+              onChange={(barcode) => setF({ ...f, barcode })}
+              tr={tr}
+              label={tr("Barcode / Scan")}
+            />
+          </div>
         )}
 
         {showSKU && (
-          <div className="grid grid-cols-2 gap-2">
-            <InventoryField label={tr("SKU / Code")}>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 grid grid-cols-2 gap-2">
+            <InventoryField label={tr("SKU / Item Code")}>
               <input
                 className={inventoryInput}
                 value={f.sku}
@@ -1020,9 +1060,10 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
                 placeholder="SKU-1001"
               />
             </InventoryField>
-            <InventoryField label={tr("Min Stock Alert")}>
+            <InventoryField label={tr("Min Stock Alert Level")}>
               <input
                 type="number"
+                step="1"
                 className={inventoryInput}
                 value={f.minStock}
                 onChange={(e) => setF({ ...f, minStock: e.target.value })}
@@ -1031,106 +1072,143 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           </div>
         )}
 
-        {/* Product Variants Toggle */}
-        <div className="pt-2 border-t border-border/30">
-          <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
+        {/* Variants / Sizes Section */}
+        <div className="pt-2 border-t border-border/30 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
+              className="rounded border-border text-primary focus:ring-primary w-4 h-4"
               checked={hasVariants}
-              onChange={(e) => setHasVariants(e.target.checked)}
-              className="rounded"
+              onChange={(e) => {
+                const next = e.target.checked;
+                setHasVariants(next);
+                if (!next) setVariants([]);
+              }}
             />
-            <span>{tr("This product has sizes / variants")}</span>
+            <span className="text-xs font-semibold text-foreground">
+              {tr("This product has sizes / variants (S, M, L, 44–60, etc.)")}
+            </span>
           </label>
 
           {hasVariants && (
-            <div className="mt-3 p-3 rounded-lg bg-muted/40 border border-border/40 space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="p-3 rounded-lg bg-muted/40 border border-border/40 space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 {/* Numeric range generator */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-muted-foreground">
-                    {tr("Size Range (e.g. 38 to 45)")}
-                  </span>
-                  <div className="flex gap-1">
+                <div className="p-2 rounded bg-background/60 border border-border/30 space-y-1.5">
+                  <p className="font-semibold text-foreground">{tr("Generate Numeric Range (e.g. 44 to 60)")}</p>
+                  <div className="flex items-center gap-1.5">
                     <input
-                      placeholder="From"
                       className={cn(inventoryInput, "h-7 text-xs")}
+                      placeholder={tr("From")}
                       value={fromSize}
                       onChange={(e) => setFromSize(e.target.value)}
                     />
                     <input
-                      placeholder="To"
                       className={cn(inventoryInput, "h-7 text-xs")}
+                      placeholder={tr("To")}
                       value={toSize}
                       onChange={(e) => setToSize(e.target.value)}
                     />
-                    <ShopButton size="sm" className="h-7 text-xs px-2" onClick={generateRange}>
+                    <input
+                      className={cn(inventoryInput, "h-7 text-xs w-14")}
+                      placeholder={tr("Step")}
+                      value={stepSize}
+                      onChange={(e) => setStepSize(e.target.value)}
+                    />
+                    <ShopButton type="button" size="sm" className="h-7 text-xs shrink-0" onClick={generateRange}>
                       {tr("Add")}
                     </ShopButton>
                   </div>
                 </div>
 
-                {/* Freeform sizes */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-muted-foreground">
-                    {tr("Freeform (e.g. S, M, L, XL)")}
-                  </span>
-                  <div className="flex gap-1">
+                {/* Freeform text generator */}
+                <div className="p-2 rounded bg-background/60 border border-border/30 space-y-1.5">
+                  <p className="font-semibold text-foreground">{tr("Add Custom Sizes (comma or space separated)")}</p>
+                  <div className="flex items-center gap-1.5">
                     <input
-                      placeholder="S, M, L, XL"
                       className={cn(inventoryInput, "h-7 text-xs")}
+                      placeholder="S, M, L, XL, 2XL"
                       value={freeform}
                       onChange={(e) => setFreeform(e.target.value)}
                     />
-                    <ShopButton size="sm" className="h-7 text-xs px-2" onClick={addFreeformTokens}>
+                    <ShopButton type="button" size="sm" className="h-7 text-xs shrink-0" onClick={addFreeformTokens}>
                       {tr("Add")}
                     </ShopButton>
                   </div>
                 </div>
               </div>
 
-              {/* Variant rows */}
+              {/* Variant Rows Table */}
               {variants.length > 0 && (
-                <div className="divide-y divide-border/30 max-h-48 overflow-y-auto pt-1">
-                  {variants.map((v) => (
-                    <div key={v.id} className="py-1.5 flex items-center justify-between text-xs gap-2">
-                      <span className="font-semibold text-foreground w-20">{v.name}</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-muted-foreground">{tr("Qty")}:</span>
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground px-1">
+                    <span>{tr("Size / Variant")}</span>
+                    <div className="flex items-center gap-4">
+                      <span>{tr("Opening Qty")}</span>
+                      <span>{tr("Sell Price (Opt)")}</span>
+                      <span className="w-6"></span>
+                    </div>
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                    {variants.map((v, i) => (
+                      <div
+                        key={v.id + i}
+                        className="flex items-center justify-between gap-2 p-1.5 rounded bg-background/80 border border-border/30 text-xs"
+                      >
                         <input
-                          type="number"
-                          className={cn(inventoryInput, "h-6 w-16 text-center text-xs")}
-                          value={v.qty}
+                          className={cn(inventoryInput, "h-7 text-xs font-semibold max-w-[120px]")}
+                          value={v.name}
                           onChange={(e) => {
                             const val = e.target.value;
-                            setVariants((cur) => cur.map((x) => (x.id === v.id ? { ...x, qty: val } : x)));
+                            setVariants((prev) => prev.map((x, idx) => (idx === i ? { ...x, name: val } : x)));
                           }}
                         />
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            step="any"
+                            className={cn(inventoryInput, "h-7 text-xs w-20 text-right")}
+                            placeholder="0"
+                            value={v.qty}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setVariants((prev) => prev.map((x, idx) => (idx === i ? { ...x, qty: val } : x)));
+                            }}
+                          />
+                          <input
+                            type="number"
+                            step="any"
+                            className={cn(inventoryInput, "h-7 text-xs w-24 text-right")}
+                            placeholder={f.sell || "Default"}
+                            value={v.sell || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setVariants((prev) => prev.map((x, idx) => (idx === i ? { ...x, sell: val } : x)));
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setVariants((prev) => prev.filter((_, idx) => idx !== i))}
+                            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
-                      <ShopButton
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={() => setVariants((cur) => cur.filter((x) => x.id !== v.id))}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </ShopButton>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1 px-1 font-bold text-foreground border-t border-border/20">
+                    <span>{tr("Total Opening Stock across all sizes")}:</span>
+                    <span className="tabular-nums text-sm">
+                      {totalVariantQty} {f.unit}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
           )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-3 border-t border-border/40">
-          <ShopButton variant="primary" className="flex-1" onClick={save}>
-            {tr("Save Product")}
-          </ShopButton>
-          <ShopButton variant="outline" onClick={done}>
-            {tr("Cancel")}
-          </ShopButton>
         </div>
       </div>
     </div>
@@ -1173,9 +1251,42 @@ function StockInScreen({ s, tr }: Ctx) {
     }
   };
 
+  const cancel = () => {
+    setPid("");
+    setQty("");
+    setCost("");
+    setSupplier("");
+    setRef("");
+    setNotes("");
+  };
+
   return (
     <div className="max-w-xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("Stock In — Record Received Goods")}</h2>
+      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
+      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+        <h2 className="text-base font-bold text-foreground">{tr("Stock In — Record Received Goods")}</h2>
+        <div className="flex items-center gap-2">
+          <ShopButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={cancel}
+            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
+          >
+            {tr("Cancel")}
+          </ShopButton>
+          <ShopButton
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={submit}
+            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+          >
+            {tr("Save Stock In")}
+          </ShopButton>
+        </div>
+      </div>
+
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         <InventoryField label={tr("Product")} required>
           <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
@@ -1199,44 +1310,45 @@ function StockInScreen({ s, tr }: Ctx) {
               className={inventoryInput}
               value={cost}
               onChange={(e) => setCost(e.target.value)}
-              placeholder="Optional"
+              placeholder="0"
             />
           </InventoryField>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Supplier")}>
+          <InventoryField label={tr("Supplier / Vendor")}>
             <input
               className={inventoryInput}
               value={supplier}
               onChange={(e) => setSupplier(e.target.value)}
-              placeholder="Supplier name"
+              placeholder={tr("Supplier name...")}
             />
           </InventoryField>
-          <InventoryField label={tr("Purchase / Receipt Ref")}>
+          <InventoryField label={tr("Reference / Invoice No.")}>
             <input
               className={inventoryInput}
               value={ref}
               onChange={(e) => setRef(e.target.value)}
-              placeholder="PO-00123"
+              placeholder="INV-001"
             />
           </InventoryField>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Warehouse / Location")}>
+          <InventoryField label={tr("Location / Warehouse")}>
             <select className={inventoryInput} value={location} onChange={(e) => setLocation(e.target.value)}>
               <option value="Main Warehouse">{tr("Main Warehouse")}</option>
-              <option value="Shop Floor">{tr("Shop Floor")}</option>
-              <option value="Storage Room">{tr("Storage Room")}</option>
+              <option value="Front Store">{tr("Front Store")}</option>
+              <option value="Backroom">{tr("Backroom")}</option>
+              <option value="Shelf A">{tr("Shelf A")}</option>
             </select>
           </InventoryField>
-          <InventoryField label={tr("Batch # (Optional)")}>
+          <InventoryField label={tr("Batch / Lot Number")}>
             <input
               className={inventoryInput}
               value={batch}
               onChange={(e) => setBatch(e.target.value)}
-              placeholder="B-2026-X"
+              placeholder="LOT-2026A"
             />
           </InventoryField>
         </div>
@@ -1253,10 +1365,6 @@ function StockInScreen({ s, tr }: Ctx) {
             placeholder={tr("Delivery notes, condition, etc.")}
           />
         </InventoryField>
-
-        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
-          {tr("Save Stock In")}
-        </ShopButton>
       </div>
     </div>
   );
@@ -1290,22 +1398,52 @@ function StockOutScreen({ s, tr }: Ctx) {
       return;
     }
     const detail = `${reason}${notes ? ` • ${notes}` : ""}`;
-    if (run(() => erp.stockOut(pid, qNum, detail), tr("Stock reduction recorded"))) {
+    if (run(() => erp.stockOut(pid, qNum, detail), tr("Stock out recorded successfully"))) {
       setQty("");
       setNotes("");
     }
   };
 
+  const cancel = () => {
+    setPid("");
+    setQty("");
+    setNotes("");
+  };
+
   return (
     <div className="max-w-xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("Stock Out — Non-Sale Write-Off")}</h2>
+      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
+      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+        <h2 className="text-base font-bold text-foreground">{tr("Stock Out — Non-Sale Write-Off")}</h2>
+        <div className="flex items-center gap-2">
+          <ShopButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={cancel}
+            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
+          >
+            {tr("Cancel")}
+          </ShopButton>
+          <ShopButton
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={submit}
+            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+          >
+            {tr("Record Stock Out")}
+          </ShopButton>
+        </div>
+      </div>
+
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         <InventoryField label={tr("Product")} required>
           <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
         </InventoryField>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Quantity Removed")} required>
+          <InventoryField label={tr("Quantity Written Off")} required>
             <input
               type="number"
               step="any"
@@ -1315,7 +1453,7 @@ function StockOutScreen({ s, tr }: Ctx) {
               placeholder="0"
             />
           </InventoryField>
-          <InventoryField label={tr("Reason")} required>
+          <InventoryField label={tr("Reason Category")} required>
             <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
               {reasons.map((r) => (
                 <option key={r} value={r}>
@@ -1334,10 +1472,6 @@ function StockOutScreen({ s, tr }: Ctx) {
             placeholder={tr("Reason for write-off, incident details...")}
           />
         </InventoryField>
-
-        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
-          {tr("Record Stock Out")}
-        </ShopButton>
       </div>
     </div>
   );
@@ -1360,50 +1494,77 @@ function StockHistoryScreen({ s, tr }: Ctx) {
     });
   }, [s.movements, s.products, filterType, q]);
 
+  const typeColor = (t: string) => {
+    switch (t) {
+      case "SALE":
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+      case "IN":
+      case "OPENING":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+      case "ADJUST":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
+      case "TRANSFER":
+        return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="flex-1">
-          <InventorySearch q={q} setQ={setQ} tr={tr} placeholder="Search by product or ref..." />
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+        <div className="relative flex-1">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className={cn(inventoryInput, "pl-8 text-xs")}
+            placeholder={tr("Search by product or reference...")}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
         </div>
-        <select
-          value={filterType}
-          onChange={(e) => setFilterType(e.target.value)}
-          className="inventory-input text-xs w-40"
-        >
-          <option value="all">{tr("All Transactions")}</option>
-          <option value="STOCK IN">{tr("Stock In")}</option>
-          <option value="STOCK OUT">{tr("Stock Out")}</option>
-          <option value="SALE">{tr("Sales")}</option>
-          <option value="RETURN">{tr("Returns")}</option>
-          <option value="ADJUSTMENT">{tr("Adjustments")}</option>
-          <option value="TRANSFER OUT">{tr("Transfers")}</option>
-        </select>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0">
+          {["all", "IN", "SALE", "OUT", "ADJUST", "TRANSFER"].map((t) => (
+            <button
+              key={t}
+              onClick={() => setFilterType(t)}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap",
+                filterType === t ? "bg-primary text-primary-foreground font-bold" : "bg-muted text-muted-foreground",
+              )}
+            >
+              {t === "all" ? tr("All Movements") : t}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm">
-        <div className="divide-y divide-border/30">
+      <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
+        <div className="p-2.5 bg-muted/40 border-b border-border/40 text-[11px] font-bold text-muted-foreground flex justify-between">
+          <span>{tr("Stock Audit Trail")}</span>
+          <span>
+            {moves.length} {tr("entries")}
+          </span>
+        </div>
+
+        <div className="divide-y divide-border/20 max-h-[600px] overflow-y-auto">
           {moves.length ? (
-            moves.slice(0, 100).map((m) => {
+            moves.map((m) => {
               const p = s.products.find((prod) => prod.id === m.productId);
               return (
-                <div
-                  key={m.id}
-                  className="p-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors"
-                >
-                  <div>
+                <div key={m.id} className="p-3 text-xs flex items-center justify-between gap-2">
+                  <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-foreground text-sm tracking-tight">
-                        {p?.name || tr("Unknown Product")}
-                      </span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-muted text-foreground">
+                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold", typeColor(m.type))}>
                         {m.type}
                       </span>
+                      <p className="font-bold text-foreground text-sm truncate">{p?.name || tr("Unknown Item")}</p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {dt(m.at)} · {m.source} · {m.reason || "—"}
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {m.source} · {dt(m.createdAt)}
                     </p>
                   </div>
+
                   <div className="text-right shrink-0">
                     <p
                       className={cn(
@@ -1413,15 +1574,15 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                     >
                       {m.qty > 0 ? `+${m.qty}` : m.qty}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {tr("Balance")}: {m.next}
+                    <p className="text-[10px] text-muted-foreground tabular-nums">
+                      {tr("Bal")}: {m.next} {p?.unit || "pcs"}
                     </p>
                   </div>
                 </div>
               );
             })
           ) : (
-            <Empty>{tr("No movement history recorded")}</Empty>
+            <Empty>{tr("No stock movements found")}</Empty>
           )}
         </div>
       </div>
@@ -1457,9 +1618,39 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
     }
   };
 
+  const cancel = () => {
+    setPid("");
+    setCounted("");
+    setNotes("");
+  };
+
   return (
     <div className="max-w-xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("Stock Adjustment — Physical Count Correction")}</h2>
+      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
+      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+        <h2 className="text-base font-bold text-foreground">{tr("Stock Adjustment — Physical Count Correction")}</h2>
+        <div className="flex items-center gap-2">
+          <ShopButton
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={cancel}
+            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
+          >
+            {tr("Cancel")}
+          </ShopButton>
+          <ShopButton
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={submit}
+            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+          >
+            {tr("Save Adjustment")}
+          </ShopButton>
+        </div>
+      </div>
+
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         <InventoryField label={tr("Product")} required>
           <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
@@ -1518,18 +1709,10 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
             placeholder={tr("Audit explanation...")}
           />
         </InventoryField>
-
-        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
-          {tr("Save Adjustment")}
-        </ShopButton>
       </div>
     </div>
   );
 }
-
-/* =========================================================================
-   3. RETURNS & TRANSFERS
-   ========================================================================= */
 
 /** 3.1 Customer Returns */
 function CustomerReturnsScreen({ s, tr }: Ctx) {
