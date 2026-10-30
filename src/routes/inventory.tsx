@@ -626,6 +626,21 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
   );
 }
 
+/** 2.2 Add Product Screen */
+function AddProductScreen({ s, tr, prefill, done }: Ctx & { prefill: string; done: () => void }) {
+  const barcode = prefill;
+  const [f, setF] = useState({
+    name: "",
+    buy: "0",
+    sell: "0",
+    qty: "0",
+    categoryId: "",
+    brandId: "",
+    sku: "",
+    barcode: barcode || "",
+    unit: "Piece",
+    minStock: "5",
+  });
 
   const [showCategory, setShowCategory] = useState(false);
   const [showBrand, setShowBrand] = useState(false);
