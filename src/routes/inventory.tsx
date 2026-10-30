@@ -1045,7 +1045,6 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
               value={f.barcode}
               onChange={(barcode) => setF({ ...f, barcode })}
               tr={tr}
-              label={tr("Barcode / Scan")}
             />
           </div>
         )}
@@ -1561,7 +1560,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                       <p className="font-bold text-foreground text-sm truncate">{p?.name || tr("Unknown Item")}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                      {m.source} · {dt(m.createdAt)}
+                      {m.source} · {dt(m.at)}
                     </p>
                   </div>
 
