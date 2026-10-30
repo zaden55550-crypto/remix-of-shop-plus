@@ -2388,7 +2388,7 @@ function ProductDetailSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: e
       <div className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-bold truncate">{p.name}</h3>
-          <ShopButton variant="secondary" onClick={onClose}>{tr("Close")}</ShopButton>
+          <ShopButton variant="outline" onClick={onClose}>{tr("Close")}</ShopButton>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           {rows.map(([k, v]) => (
