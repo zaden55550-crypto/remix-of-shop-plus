@@ -2368,3 +2368,37 @@ function StockSetupScreen({ tr }: Ctx) {
     </div>
   );
 }
+
+/** Read-only product details popup opened from All Products */
+function ProductDetailSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: erp.ErpState; money: (n: number) => string; tr: (t: string) => string; onClose: () => void }) {
+  const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
+  const brand = s.brands.find((b) => b.id === p.brandId)?.name;
+  const rows: [string, string][] = [
+    [tr("Quantity"), `${p.qty} ${p.unit ?? ""}`.trim()],
+    [tr("Buying price"), money(p.buy)],
+    [tr("Selling price"), money(p.sell)],
+    [tr("Stock value"), money(p.qty * p.buy)],
+    [tr("Category"), cat ?? "—"],
+    [tr("Brand"), brand ?? "—"],
+    [tr("Barcode"), p.barcode || "—"],
+    [tr("SKU"), p.sku || "—"],
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-bold truncate">{p.name}</h3>
+          <ShopButton variant="secondary" onClick={onClose}>{tr("Close")}</ShopButton>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          {rows.map(([k, v]) => (
+            <div key={k} className="rounded-lg border border-border p-2">
+              <p className="text-[10px] text-muted-foreground">{k}</p>
+              <p className="font-semibold truncate">{v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
