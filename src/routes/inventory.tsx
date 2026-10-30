@@ -1041,11 +1041,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
 
         {showBarcode && (
           <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
-            <BarcodeField
-              value={f.barcode}
-              onChange={(barcode) => setF({ ...f, barcode })}
-              tr={tr}
-            />
+            <BarcodeField value={f.barcode} onChange={(barcode) => setF({ ...f, barcode })} tr={tr} />
           </div>
         )}
 
@@ -1712,6 +1708,9 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
     </div>
   );
 }
+/* =========================================================================
+   3. RETURNS & TRANSFERS
+   ========================================================================= */
 
 /** 3.1 Customer Returns */
 function CustomerReturnsScreen({ s, tr }: Ctx) {
@@ -1722,6 +1721,12 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
   const [condition, setCondition] = useState("Good (Resalable)");
   const [resolution, setResolution] = useState("Refund");
   const [outcome, setOutcome] = useState("Return to available stock");
+
+  const resetForm = () => {
+    setQty("");
+    setSaleRef("");
+    setPid("");
+  };
 
   const submit = () => {
     if (!pid) {
@@ -1749,14 +1754,35 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
         });
       }, tr("Customer return processed"))
     ) {
-      setQty("");
-      setSaleRef("");
+      resetForm();
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("Customer Returns — Receive Returned Goods")}</h2>
+    <div className="max-w-xl mx-auto space-y-3">
+      {/* Header with right-aligned Cancel & Save buttons */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
+          {tr("Customer Returns — Receive Returned Goods")}
+        </h2>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={resetForm}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
+          >
+            {tr("Cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm"
+          >
+            {tr("Save")}
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         <InventoryField label={tr("Original Sale / Receipt Ref (Optional)")}>
           <input
@@ -1819,10 +1845,6 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
             <option value="Move to damaged stock">{tr("Quarantine / Move to Damaged (Do Not Restock)")}</option>
           </select>
         </InventoryField>
-
-        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
-          {tr("Process Customer Return")}
-        </ShopButton>
       </div>
     </div>
   );
@@ -1837,6 +1859,13 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
   const [reason, setReason] = useState("Damaged on delivery");
   const [resolution, setResolution] = useState("Supplier Credit Note");
 
+  const resetForm = () => {
+    setQty("");
+    setPurchaseRef("");
+    setSupplier("");
+    setPid("");
+  };
+
   const submit = () => {
     if (!pid) {
       toast.error(tr("Select product"));
@@ -1849,14 +1878,35 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
     }
     const detail = `Supplier Return • ${supplier || "Supplier"} • ${purchaseRef || "PO"} • ${reason} • ${resolution}`;
     if (run(() => erp.stockOut(pid, qNum, detail), tr("Supplier return dispatched"))) {
-      setQty("");
-      setPurchaseRef("");
+      resetForm();
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("Supplier Returns — Return Goods to Supplier")}</h2>
+    <div className="max-w-xl mx-auto space-y-3">
+      {/* Header with right-aligned Cancel & Save buttons */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
+          {tr("Supplier Returns — Return Goods to Supplier")}
+        </h2>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={resetForm}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
+          >
+            {tr("Cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm"
+          >
+            {tr("Save")}
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Supplier")}>
@@ -1911,10 +1961,6 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
             <option value="Awaiting Response">{tr("Awaiting Supplier Response")}</option>
           </select>
         </InventoryField>
-
-        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
-          {tr("Dispatch Supplier Return")}
-        </ShopButton>
       </div>
     </div>
   );
@@ -1927,6 +1973,12 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
   const [to, setTo] = useState("Branch 1");
   const [notes, setNotes] = useState("");
 
+  const resetForm = () => {
+    setQty("");
+    setNotes("");
+    setPid("");
+  };
+
   const submit = () => {
     if (!pid) {
       toast.error(tr("Select product"));
@@ -1938,14 +1990,35 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
       return;
     }
     if (run(() => erp.createTransfer(pid, qNum, to, shop), tr("Transfer created and dispatched"))) {
-      setQty("");
-      setNotes("");
+      resetForm();
     }
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
-      <h2 className="text-base font-bold text-foreground">{tr("New Transfer — Move Stock Between Locations")}</h2>
+    <div className="max-w-xl mx-auto space-y-3">
+      {/* Header with right-aligned Cancel & Save buttons */}
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
+          {tr("New Transfer — Move Stock Between Locations")}
+        </h2>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={resetForm}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-500/15 text-rose-500 hover:bg-rose-500/25 border border-rose-500/30 transition-colors"
+          >
+            {tr("Cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-sm"
+          >
+            {tr("Save")}
+          </button>
+        </div>
+      </div>
+
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("From Location")}>
@@ -1984,10 +2057,6 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
             placeholder={tr("Vehicle, driver, transfer reason...")}
           />
         </InventoryField>
-
-        <ShopButton variant="primary" className="w-full mt-2" onClick={submit}>
-          {tr("Create & Dispatch Transfer")}
-        </ShopButton>
       </div>
     </div>
   );
@@ -2062,6 +2131,8 @@ function TransferHistoryScreen({ s, tr }: Ctx) {
 
 /** 4.1 Product Setup */
 function ProductSetupScreen({ s, tr }: Ctx) {
+  const [selectedCatId, setSelectedCatId] = useState("");
+  const [selectedBrandId, setSelectedBrandId] = useState("");
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
   const [variantsEnabled, setVariantsEnabled] = useState(true);
@@ -2080,51 +2151,96 @@ function ProductSetupScreen({ s, tr }: Ctx) {
     }
   };
 
+  const activeCategory = s.categories.find((c) => c.id === selectedCatId);
+  const activeBrand = s.brands.find((b) => b.id === selectedBrandId);
+
   return (
     <div className="max-w-3xl mx-auto space-y-4">
       <h2 className="text-base font-bold text-foreground">{tr("Product Setup & Master Catalog Configuration")}</h2>
 
-      {/* Categories */}
-      <Box title={tr("Categories")} sub={tr("Group products for easy selling and reporting")}>
-        <div className="flex gap-2 mb-3">
-          <input
-            className={cn(inventoryInput, "text-xs")}
-            placeholder={tr("New category name...")}
-            value={newCat}
-            onChange={(e) => setNewCat(e.target.value)}
-          />
-          <ShopButton size="sm" onClick={addCategory}>
-            {tr("Add Category")}
-          </ShopButton>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {s.categories.map((c) => (
-            <span key={c.id} className="text-xs px-2.5 py-1 rounded-lg bg-muted text-foreground font-medium">
-              {c.name}
-            </span>
-          ))}
+      {/* Categories Dropdown & Quick Add */}
+      <Box title={tr("Categories")} sub={tr("Select and manage registered product categories")}>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <select
+              className={cn(inventoryInput, "text-xs flex-1")}
+              value={selectedCatId}
+              onChange={(e) => setSelectedCatId(e.target.value)}
+            >
+              <option value="">
+                {tr("Choose a Category...")} ({s.categories.length})
+              </option>
+              {s.categories.map((c) => {
+                const count = s.products.filter((p) => p.category === c.name).length;
+                return (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({count} {tr("products")})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="flex gap-2 pt-1 border-t border-border/30">
+            <input
+              className={cn(inventoryInput, "text-xs flex-1")}
+              placeholder={tr("Add new category name...")}
+              value={newCat}
+              onChange={(e) => setNewCat(e.target.value)}
+            />
+            <ShopButton size="sm" onClick={addCategory}>
+              {tr("Add Category")}
+            </ShopButton>
+          </div>
+
+          {activeCategory && (
+            <p className="text-[11px] text-muted-foreground pt-1">
+              {tr("Selected")}: <span className="font-semibold text-foreground">{activeCategory.name}</span>
+            </p>
+          )}
         </div>
       </Box>
 
-      {/* Brands */}
-      <Box title={tr("Brands")} sub={tr("Manage registered manufacturers and labels")}>
-        <div className="flex gap-2 mb-3">
-          <input
-            className={cn(inventoryInput, "text-xs")}
-            placeholder={tr("New brand name...")}
-            value={newBrand}
-            onChange={(e) => setNewBrand(e.target.value)}
-          />
-          <ShopButton size="sm" onClick={addBrand}>
-            {tr("Add Brand")}
-          </ShopButton>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {s.brands.map((b) => (
-            <span key={b.id} className="text-xs px-2.5 py-1 rounded-lg bg-muted text-foreground font-medium">
-              {b.name}
-            </span>
-          ))}
+      {/* Brands Dropdown & Quick Add */}
+      <Box title={tr("Brands")} sub={tr("Select and manage registered manufacturers and labels")}>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <select
+              className={cn(inventoryInput, "text-xs flex-1")}
+              value={selectedBrandId}
+              onChange={(e) => setSelectedBrandId(e.target.value)}
+            >
+              <option value="">
+                {tr("Choose a Brand...")} ({s.brands.length})
+              </option>
+              {s.brands.map((b) => {
+                const count = s.products.filter((p) => p.brand === b.name).length;
+                return (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({count} {tr("products")})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="flex gap-2 pt-1 border-t border-border/30">
+            <input
+              className={cn(inventoryInput, "text-xs flex-1")}
+              placeholder={tr("Add new brand name...")}
+              value={newBrand}
+              onChange={(e) => setNewBrand(e.target.value)}
+            />
+            <ShopButton size="sm" onClick={addBrand}>
+              {tr("Add Brand")}
+            </ShopButton>
+          </div>
+
+          {activeBrand && (
+            <p className="text-[11px] text-muted-foreground pt-1">
+              {tr("Selected")}: <span className="font-semibold text-foreground">{activeBrand.name}</span>
+            </p>
+          )}
         </div>
       </Box>
 
@@ -2134,7 +2250,7 @@ function ProductSetupScreen({ s, tr }: Ctx) {
           {["Piece", "Kg", "Gram", "Litre", "Millilitre", "Box", "Carton", "Packet", "Metre"].map((u) => (
             <span
               key={u}
-              className="text-xs px-2.5 py-1 rounded-lg bg-muted/60 border border-border/40 text-foreground"
+              className="text-xs px-2.5 py-1 rounded-lg bg-muted/60 border border-border/40 text-foreground font-medium"
             >
               {tr(u)}
             </span>
@@ -2242,140 +2358,13 @@ function StockSetupScreen({ tr }: Ctx) {
             </div>
             <input
               type="number"
-              className={cn(inventoryInput, "w-20 text-center h-8 text-xs")}
+              className={cn(inventoryInput, "w-20 text-right")}
               value={minStockDefault}
               onChange={(e) => setMinStockDefault(e.target.value)}
             />
           </div>
         </div>
       </Box>
-    </div>
-  );
-}
-
-/* =========================================================================
-   DETAIL MODAL
-   ========================================================================= */
-
-function ProductDetailSheet({
-  p,
-  s,
-  money,
-  tr,
-  onClose,
-}: {
-  p: erp.Product;
-  s: erp.ErpState;
-  money: (n: number) => string;
-  tr: (t: string) => string;
-  onClose: () => void;
-}) {
-  const category = s.categories.find((c) => c.id === p.categoryId)?.name || "—";
-  const brand = s.brands.find((b) => b.id === p.brandId)?.name || "—";
-  const recentMoves = s.movements.filter((m) => m.productId === p.id).slice(0, 5);
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex justify-end animate-in fade-in">
-      <div className="w-full max-w-md bg-background border-l border-border h-full flex flex-col p-4 shadow-2xl overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-border/40 pb-3">
-          <div>
-            <h3 className="text-base font-bold text-foreground">{p.name}</h3>
-            <p className="text-xs text-muted-foreground">
-              SKU: {p.sku || "—"} · Barcode: {p.barcode || "—"}
-            </p>
-          </div>
-          <ShopButton variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0 rounded-full">
-            <X className="w-4 h-4" />
-          </ShopButton>
-        </div>
-
-        <div className="py-4 space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-lg bg-card/65 border border-border/40">
-              <span className="text-muted-foreground">{tr("Available Stock")}</span>
-              <p className="font-extrabold text-base text-foreground mt-0.5">
-                {p.qty} <span className="text-xs font-normal text-muted-foreground">{p.unit || "pcs"}</span>
-              </p>
-            </div>
-            <div className="p-3 rounded-lg bg-card/65 border border-border/40">
-              <span className="text-muted-foreground">{tr("Stock Status")}</span>
-              <div className="mt-1">
-                <Status p={p} />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-3 rounded-lg bg-card/65 border border-border/40">
-              <span className="text-muted-foreground">{tr("Buying Price")}</span>
-              <p className="font-bold text-sm text-foreground mt-0.5">{money(p.buy)}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-card/65 border border-border/40">
-              <span className="text-muted-foreground">{tr("Selling Price")}</span>
-              <p className="font-bold text-sm text-foreground mt-0.5">{money(p.sell)}</p>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-lg bg-card/65 border border-border/40 space-y-1">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{tr("Category")}:</span>
-              <span className="font-semibold text-foreground">{category}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{tr("Brand")}:</span>
-              <span className="font-semibold text-foreground">{brand}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">{tr("Reorder Level")}:</span>
-              <span className="font-semibold text-foreground">{p.minStock ?? 5}</span>
-            </div>
-          </div>
-
-          {/* Size Variants */}
-          {p.variants && p.variants.length > 0 && (
-            <div className="space-y-1.5">
-              <h4 className="font-bold text-foreground">{tr("Size Breakdown")}</h4>
-              <div className="rounded-lg border border-border/40 overflow-hidden divide-y divide-border/30">
-                {p.variants.map((v) => (
-                  <div key={v.id} className="p-2 flex justify-between">
-                    <span className="font-medium text-foreground">{v.name}</span>
-                    <span className="font-bold text-foreground">{v.qty}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recent Movements for this Product */}
-          <div className="space-y-1.5 pt-2">
-            <h4 className="font-bold text-foreground">{tr("Recent Movements")}</h4>
-            {recentMoves.length ? (
-              <div className="rounded-lg border border-border/40 divide-y divide-border/30 overflow-hidden">
-                {recentMoves.map((m) => (
-                  <div key={m.id} className="p-2 flex justify-between">
-                    <div>
-                      <p className="font-medium text-foreground">{m.type}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {dt(m.at)} · {m.source}
-                      </p>
-                    </div>
-                    <span
-                      className={cn(
-                        "font-bold tabular-nums",
-                        m.qty > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
-                      )}
-                    >
-                      {m.qty > 0 ? `+${m.qty}` : m.qty}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-[11px]">{tr("No movements logged yet")}</p>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
