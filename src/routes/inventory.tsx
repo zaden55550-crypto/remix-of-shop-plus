@@ -1,46 +1,71 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, type ReactNode } from "react";
-import * as erp from "@/lib/erp";
-import { useErp } from "@/lib/erp-context";
-import { useAccount } from "@/lib/shopbook";
-import { useLanguage } from "@/lib/i18n";
+import { clean } from "@/lib/format";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  MoreVertical,
   Package,
-  ArrowDownLeft,
-  ArrowUpRight,
-  RefreshCw,
-  Sliders,
-  RotateCcw,
+  Coins,
+  TriangleAlert,
+  ArchiveX,
+  Layers,
+  ShoppingCart,
   Plus,
   Trash2,
-  Calendar,
-  AlertTriangle,
-  FileSpreadsheet,
-  Download,
-  Barcode,
+  X,
+  Sun,
+  Moon,
   Search,
+  ScanLine,
+  ArrowRight,
+  ArrowDownLeft,
+  ArrowUpRight,
   CheckCircle2,
-  Layers,
-  ArchiveX,
-  Share2,
+  Clock,
+  RotateCcw,
+  Truck,
+  SlidersHorizontal,
+  Settings2,
+  Download,
+  AlertTriangle,
+  Building2,
+  ShieldAlert,
 } from "lucide-react";
-import { ShopButton } from "@/components/shopbook/shop-button";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ShopButton } from "@/components/ui/shop-button";
+import { store, canOpen, APPS, type Account } from "@/lib/shopbook";
+import { useLanguage } from "@/hooks/use-language";
+import { useTheme } from "@/components/shopbook/ui";
+import { Kpi, KpiRow } from "@/components/shopbook/kpi";
+import { translateCurrent } from "@/lib/interface-translations";
+import { cn } from "@/lib/utils";
+import * as erp from "@/lib/erp";
+import { lastBackup } from "@/lib/backup";
+import { BackupStatus } from "@/components/shopbook/backup-status";
+import { ConnectionStatus } from "@/components/shopbook/connection-status";
+import { useErp } from "@/components/shopbook/product-search";
+import {
+  InventorySearch,
+  InventoryField,
+  BarcodeField,
+  InventoryProductPicker,
+  inventoryProducts,
+  inventoryInput,
+} from "@/components/shopbook/inventory-controls";
 
 export const Route = createFileRoute("/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — SHOPPLUS+" },
-      { property: "og:title", content: "Inventory — SHOPPLUS+" },
+      { title: "Inventory — SHOPBOOK ERP" },
       {
         name: "description",
-        content: "Multi-location inventory tracking, stock movements, returns, and catalog master setup.",
+        content: "Products, stock levels, stock in/out, customer and supplier returns, transfers and configuration.",
       },
-      {
-        property: "og:description",
-        content: "Multi-location inventory tracking, stock movements, returns, and catalog master setup.",
-      },
+      { property: "og:title", content: "Inventory — SHOPBOOK ERP" },
+      { property: "og:description", content: "The single source of truth for products and stock in SHOPBOOK." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -48,6 +73,7 @@ export const Route = createFileRoute("/inventory")({
   component: Inventory,
 });
 
+/** 4-Menu Architecture matching specification */
 const MENUS = {
   overview: [],
   "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments"],
@@ -62,32 +88,32 @@ const run = (fn: () => unknown, ok: string) => {
     fn();
     toast.success(ok);
     return true;
-  } catch (err: unknown) {
-    toast.error(err instanceof Error ? err.message : "Action failed");
+  } catch (e) {
+    toast.error(translateCurrent(e instanceof Error ? e.message : "Failed"));
     return false;
   }
 };
 
 const dt = (n: number) =>
-  new Date(n).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
+  new Date(n).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
   });
 
+/** Compact number formatter: full numbers below 1M with commas, M for >=1M, B for >=1B */
 function compactFmt(n: number): string {
-  if (Math.abs(n) >= 1_000_000) {
-    const v = n / 1_000_000;
-    return `${v >= 10 ? Math.round(v) : v.toFixed(1)}M`;
-  }
-  if (Math.abs(n) >= 1_000) {
-    const v = n / 1_000;
-    return `${v >= 10 ? Math.round(v) : v.toFixed(1)}k`;
-  }
-  return n.toLocaleString();
+  if (typeof n !== "number" || isNaN(n) || Object.is(n, -0) || Math.abs(n) < 0.0001) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  const [intPart, decPart] = n.toFixed(2).split(".");
+  const formattedInt = Number(intPart).toLocaleString("en-US");
+  return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
 }
 
+/** Fluid KPI number component */
 function Amt({
   value,
   curr,
@@ -96,141 +122,260 @@ function Amt({
 }: {
   value: number;
   curr?: string;
-  tone?: "good" | "bad" | "warn";
-  size?: "sm" | "md" | "lg";
+  tone?: "warn" | "bad";
+  size?: "sm" | "md" | "lg" | "xs";
 }) {
-  const isPos = value > 0;
-  const isNeg = value < 0;
+  const formatted = compactFmt(value);
+  const isLarge = formatted.length > 7;
+  const isHuge = formatted.length > 10;
   return (
-    <span
-      className={cn(
-        "font-bold tabular-nums tracking-tight",
-        size === "sm" && "text-xs",
-        size === "md" && "text-xs sm:text-sm",
-        size === "lg" && "text-sm sm:text-base",
-        tone === "good" && (isPos ? "text-emerald-600 dark:text-emerald-400" : ""),
-        tone === "bad" && (isNeg ? "text-rose-600 dark:text-rose-400" : isPos ? "text-rose-600 dark:text-rose-400" : ""),
-        tone === "warn" && "text-amber-600 dark:text-amber-400",
+    <div className="flex items-baseline gap-0.5 leading-none min-w-0 max-w-full">
+      <span
+        className={cn(
+          "font-extrabold tracking-tight tabular-nums truncate",
+          tone === "bad" && "text-rose-500",
+          tone === "warn" && "text-amber-500",
+          !tone && "text-foreground",
+          size === "xs" && "text-xs",
+          size === "sm" && "text-sm",
+          size === "md" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg"),
+          size === "lg" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl"),
+        )}
+      >
+        {formatted}
+      </span>
+      {curr && (
+        <span
+          className={cn(
+            "font-semibold text-muted-foreground/75 shrink-0 select-none",
+            size === "xs" && "text-[8px]",
+            size === "sm" && "text-[9px]",
+            size === "md" && "text-[10px]",
+            size === "lg" && "text-xs",
+          )}
+        >
+          {curr}
+        </span>
       )}
-    >
-      {curr && <span className="text-[9px] font-normal opacity-70 mr-0.5">{curr}</span>}
-      {compactFmt(value)}
-    </span>
+    </div>
   );
 }
 
 function Inventory() {
-  const account = useAccount("basic");
-  const s = useErp();
+  const nav = useNavigate();
   const { tr } = useLanguage();
-  const navigate = useNavigate();
-
-  const [menu, setMenu] = useState<Menu>("products & stock");
-  const [sub, setSub] = useState<string>("All Products");
-  const [prefill, setPrefill] = useState("");
-  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const { dark, toggle: toggleTheme } = useTheme();
+  const theme = dark ? "dark" : "light";
+  const [acct, setAcct] = useState<Account | null>(null);
+  const [menu, setMenu] = useState<Menu>("overview");
+  const [sub, setSub] = useState<string>("");
+  const [prefillBarcode, setPrefill] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarRange, setCalendarRange] = useState<"today" | "week" | "month" | "all">("today");
+  const [showShopMenu, setShowShopMenu] = useState(false);
 
   useEffect(() => {
-    const on = () => setIsOnline(true);
-    const off = () => setIsOnline(false);
-    window.addEventListener("online", on);
-    window.addEventListener("offline", off);
-    return () => {
-      window.removeEventListener("online", on);
-      window.removeEventListener("offline", off);
-    };
-  }, []);
+    const a = store.get();
+    if (!a) {
+      nav({ to: "/" });
+      return;
+    }
+    if (!canOpen(a, "basic")) {
+      toast.error(tr("Upgrade to access Inventory"));
+      nav({ to: "/apps" });
+      return;
+    }
+    setAcct(a);
+  }, [nav, tr]);
 
-  const cur = account?.currency || "KSh";
-  const money = (n: number) => `${cur} ${compactFmt(n)}`;
+  const s = useErp();
+  const cur = acct?.currency || "USD";
+  const money = (n: number) =>
+    `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const setTopMenu = (m: Menu) => {
+  const go = (m: Menu, sm?: string) => {
     setMenu(m);
-    const subList = MENUS[m];
-    setSub(subList && subList.length > 0 ? subList[0] : "");
-  };
-
-  const handleUnknownProduct = (code: string) => {
-    setPrefill(code);
-    setMenu("products & stock");
-    setSub("Add Product");
+    setSub(sm ?? MENUS[m][0] ?? "");
   };
 
   const ctx: Ctx = {
     s,
     money,
     tr,
-    go: (m: Menu, sm?: string) => {
-      setMenu(m);
-      if (sm) setSub(sm);
-      else setSub(MENUS[m]?.[0] || "");
-    },
+    go,
     cur,
-    shop: account?.shop || "SHOPPLUS",
-    onUnknown: handleUnknownProduct,
+    shop: acct?.shopName || "Main Shop",
+    onUnknown: (code: string) => {
+      setPrefill(code);
+      go("products & stock", "Add Product");
+    },
   };
 
-  const subItems = MENUS[menu] || [];
+  const shopInitials =
+    (acct?.shopName || "SB")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") || "SB";
 
   return (
-    <main className="inventory-screen app-screen flex flex-col min-h-screen bg-background">
-      {/* 1. Universal Shop Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-3 py-2.5 bg-card/85 backdrop-blur-xl border-b border-border/50">
-        <div className="flex items-center gap-2">
-          <Link
-            to="/apps"
-            className="flex items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+    <main className="inventory-screen app-screen flex flex-col min-h-screen">
+      {/* 1. RESTORED PREVIOUS HEADER */}
+      <header className="inventory-header sticky top-0 z-30 flex items-center justify-between gap-1.5 px-3 py-2 border-b border-border/40 backdrop-blur-md bg-background/80">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <ShopButton
+            variant="bare"
+            className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md hover:bg-muted/60 transition-colors"
+            onClick={() => nav({ to: "/apps" })}
+            aria-label={tr("Back to Apps")}
           >
-            &lt; {tr("Apps")}
-          </Link>
-          <span className="text-border">|</span>
-          <div className="flex items-center gap-1.5">
-            <span
-              className={cn("w-2 h-2 rounded-full", isOnline ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground")}
-            />
-            <span className="text-[11px] font-bold tracking-tight text-foreground">{tr("INVENTORY")}</span>
-          </div>
+            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            <span>{tr("Apps")}</span>
+          </ShopButton>
+          <ConnectionStatus />
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-muted-foreground truncate max-w-[120px]">
-            {account?.shop || "Shop"}
+        {/* Center: Inventory title on top, Shop name below */}
+        <div className="flex flex-col items-center justify-center min-w-0 px-2 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate">
+            {tr("Inventory")}
           </span>
-          <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold">
-            {(account?.shop || "S").slice(0, 2).toUpperCase()}
-          </div>
+          <span className="text-[10px] text-muted-foreground truncate leading-tight">{acct?.shopName}</span>
+        </div>
+
+        {/* Right: Theme toggle, Calendar filter, Avatar */}
+        <div className="flex items-center gap-1 shrink-0 relative">
+          <ShopButton
+            variant="bare"
+            className="h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors text-foreground"
+            onClick={toggleTheme}
+            aria-label={tr("Toggle Theme")}
+            title={theme === "dark" ? tr("Switch to Light mode") : tr("Switch to Dark mode")}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-700" />
+            )}
+          </ShopButton>
+
+          <ShopButton
+            variant="bare"
+            className={cn(
+              "h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors",
+              showCalendar && "bg-muted text-primary",
+            )}
+            onClick={() => {
+              setShowCalendar(!showCalendar);
+              setShowShopMenu(false);
+            }}
+            aria-label={tr("Filter by date")}
+            title={tr("Calendar filter")}
+          >
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </ShopButton>
+
+          {showCalendar && (
+            <div className="absolute right-9 top-10 z-50 w-36 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              {(["today", "week", "month", "all"] as const).map((r) => (
+                <button
+                  key={r}
+                  className={cn(
+                    "w-full text-start px-2 py-1 rounded capitalize font-medium transition-colors",
+                    calendarRange === r ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
+                  )}
+                  onClick={() => {
+                    setCalendarRange(r);
+                    setShowCalendar(false);
+                    toast.success(`${tr("Date filter")}: ${tr(r)}`);
+                  }}
+                >
+                  {tr(r === "all" ? "All time" : r === "today" ? "Today" : r === "week" ? "This week" : "This month")}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <ShopButton
+            variant="bare"
+            className="h-7 w-7 rounded-full bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity"
+            onClick={() => {
+              setShowShopMenu(!showShopMenu);
+              setShowCalendar(false);
+            }}
+            aria-label={acct?.shopName}
+            title={acct?.shopName}
+          >
+            {shopInitials}
+          </ShopButton>
+
+          {showShopMenu && (
+            <div className="absolute right-0 top-10 z-50 w-44 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              <div className="px-2 py-1 border-b border-border/50 font-bold truncate">{acct?.shopName}</div>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/settings" });
+                }}
+              >
+                {tr("Shop Settings")}
+              </button>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/apps" });
+                }}
+              >
+                {tr("All Apps")}
+              </button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* 2. Navigation Tabs */}
-      <div className="sticky top-[45px] z-20 bg-background/95 backdrop-blur border-b border-border/40 px-2 pt-2 pb-1 space-y-1">
+      {/* 2. 4 MAIN NAVIGATION MENUS & SUBMENUS */}
+      <nav aria-label={tr("Inventory navigation")} className="inventory-nav-wrap">
         <Tabs
-          items={["overview", "products & stock", "returns & transfers", "configuration"]}
+          items={Object.keys(MENUS)}
           value={menu}
-          onChange={(k) => setTopMenu(k as Menu)}
-          label={(k) => tr(k === "overview" ? "Overview" : k === "products & stock" ? "Products & Stock" : k === "returns & transfers" ? "Returns & Transfers" : "Configuration")}
+          onChange={(k) => go(k as Menu)}
+          label={(k) =>
+            k === "overview"
+              ? tr("Overview")
+              : k === "products & stock"
+                ? tr("Products & Stock")
+                : k === "returns & transfers"
+                  ? tr("Returns & Transfers")
+                  : tr("Configuration")
+          }
         />
-
-        {subItems.length > 0 && (
-          <Tabs
-            small
-            items={[...subItems]}
-            value={sub}
-            onChange={(sm) => setSub(sm)}
-            label={(k) => tr(k)}
-          />
+        {MENUS[menu].length > 0 && (
+          <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />
         )}
-      </div>
+      </nav>
 
-      {/* 3. Main Screen Viewport */}
-      <section className="inventory-content flex-1 p-2.5 sm:p-4 max-w-6xl mx-auto w-full">
+      {/* 3. WORKING CONTENT CANVAS (All screens & workflows preserved) */}
+      <section className="inventory-content flex-1">
+        {/* Menu 1: Overview */}
         {menu === "overview" && <Overview {...ctx} />}
 
-        {menu === "products & stock" && sub === "All Products" && <ProductList {...ctx} onUnknown={handleUnknownProduct} />}
-        {menu === "products & stock" && sub === "Add Product" && (
-          <AddProductScreen
+        {/* Menu 2: Products & Stock */}
+        {menu === "products & stock" && sub === "All Products" && (
+          <ProductList
             {...ctx}
-            prefill={prefill}
+            onUnknown={(code) => {
+              setPrefill(code);
+              setSub("Add Product");
+            }}
+          />
+        )}
+        {menu === "products & stock" && sub === "Add Product" && (
+          <AddProduct
+            {...ctx}
+            barcode={prefillBarcode}
             done={() => {
               setPrefill("");
               setSub("All Products");
@@ -242,11 +387,13 @@ function Inventory() {
         {menu === "products & stock" && sub === "Stock History" && <StockHistoryScreen {...ctx} />}
         {menu === "products & stock" && sub === "Adjustments" && <AdjustmentsScreen {...ctx} />}
 
+        {/* Menu 3: Returns & Transfers */}
         {menu === "returns & transfers" && sub === "Customer Returns" && <CustomerReturnsScreen {...ctx} />}
         {menu === "returns & transfers" && sub === "Supplier Returns" && <SupplierReturnsScreen {...ctx} />}
         {menu === "returns & transfers" && sub === "New Transfer" && <NewTransferScreen {...ctx} />}
         {menu === "returns & transfers" && sub === "Transfer History" && <TransferHistoryScreen {...ctx} />}
 
+        {/* Menu 4: Configuration */}
         {menu === "configuration" && sub === "Product Setup" && <ProductSetupScreen {...ctx} />}
         {menu === "configuration" && sub === "Stock Setup" && <StockSetupScreen {...ctx} />}
       </section>
@@ -354,38 +501,38 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
 
   return (
     <div className="space-y-4">
-      {/* 4 Fluid KPI Cards in 1 Row across mobile and desktop */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
+      {/* 4 Fluid KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[9px] sm:text-[11px] font-semibold text-muted-foreground truncate">{tr("Products")}</span>
-          <Amt value={totalProducts} size="md" />
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Total Products")}</span>
+          <Amt value={totalProducts} size="lg" />
         </div>
 
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[9px] sm:text-[11px] font-semibold text-muted-foreground truncate">{tr("Stock Value")}</span>
-          <Amt value={totalStockVal} curr={cur} size="md" />
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Stock Value (Cost)")}</span>
+          <Amt value={totalStockVal} curr={cur} size="lg" />
         </div>
 
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[9px] sm:text-[11px] font-semibold text-muted-foreground truncate">{tr("Low Stock")}</span>
-          <Amt value={lowStock.length} {...(lowStock.length > 0 ? { tone: "warn" as const } : {})} size="md" />
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
+          <Amt value={lowStock.length} {...(lowStock.length > 0 ? { tone: "warn" as const } : {})} size="lg" />
         </div>
 
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[9px] sm:text-[11px] font-semibold text-muted-foreground truncate">{tr("Out Stock")}</span>
-          <Amt value={outOfStock.length} {...(outOfStock.length > 0 ? { tone: "bad" as const } : {})} size="md" />
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Out of Stock")}</span>
+          <Amt value={outOfStock.length} {...(outOfStock.length > 0 ? { tone: "bad" as const } : {})} size="lg" />
         </div>
       </div>
 
@@ -522,24 +669,13 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
 
   return (
     <div className="space-y-3">
-      {/* Search & Export in Top Row, Categories & Status Below */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-1.5">
-          <div className="flex-1 min-w-0">
-            <InventorySearch q={q} setQ={setQ} tr={tr} onScan={onUnknown} />
-          </div>
-          <button
-            type="button"
-            onClick={exportCSV}
-            className="h-10 px-3 rounded-xl border border-border/60 bg-card/70 hover:bg-muted/80 text-foreground flex items-center justify-center shrink-0 transition-colors shadow-sm"
-            title={tr("Export CSV")}
-          >
-            <Download className="w-4 h-4" />
-          </button>
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="flex-1">
+          <InventorySearch q={q} setQ={setQ} tr={tr} onScan={onUnknown} />
         </div>
-
-        <div className="flex items-center gap-2">
-          <select value={cat} onChange={(e) => setCat(e.target.value)} className="inventory-input text-xs flex-1">
+        <div className="flex gap-2">
+          <select value={cat} onChange={(e) => setCat(e.target.value)} className="inventory-input text-xs w-32">
             <option value="all">{tr("All Categories")}</option>
             {s.categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -547,12 +683,21 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
               </option>
             ))}
           </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="inventory-input text-xs flex-1">
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="inventory-input text-xs w-28">
             <option value="all">{tr("All Status")}</option>
             <option value="OK">{tr("In Stock")}</option>
             <option value="LOW">{tr("Low Stock")}</option>
             <option value="OUT">{tr("Out of Stock")}</option>
           </select>
+          <ShopButton
+            variant="outline"
+            size="sm"
+            onClick={exportCSV}
+            className="h-9 px-2 text-xs"
+            title={tr("Export CSV")}
+          >
+            <Download className="w-4 h-4" />
+          </ShopButton>
         </div>
       </div>
 
@@ -607,28 +752,21 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
               );
             })
           ) : (
-            <Empty>{tr("No products registered yet")}</Empty>
+            <Empty>{tr("No products found")}</Empty>
           )}
         </div>
       </div>
 
+      {/* Product Detail Sheet */}
       {selectedProduct && (
-        <ProductDetailSheet
-          p={selectedProduct}
-          s={s}
-          tr={tr}
-          money={money}
-          cur={cur}
-          onClose={() => setSelectedProduct(null)}
-        />
+        <ProductDetailSheet p={selectedProduct} s={s} money={money} tr={tr} onClose={() => setSelectedProduct(null)} />
       )}
     </div>
   );
 }
 
-/** 2.2 Add Product Screen */
-function AddProductScreen({ s, tr, prefill, done }: Ctx & { prefill: string; done: () => void }) {
-  const barcode = prefill;
+/** 2.2 Add Product */
+function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
   const [f, setF] = useState({
     name: "",
     buy: "0",
