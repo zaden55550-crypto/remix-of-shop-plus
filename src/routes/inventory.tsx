@@ -113,7 +113,45 @@ function compactFmt(n: number): string {
   const formattedInt = Number(intPart).toLocaleString("en-US");
   return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
 }
+/** Universal currency symbol resolver for all global currencies */
+function toCurrencySymbol(code?: string): string {
+  if (!code) return "";
+  const upper = code.trim().toUpperCase();
 
+  // 1. Regional East African standard notations
+  if (upper === "KES" || upper === "KSH" || code === "KSh") return "KSh";
+  if (upper === "UGX" || upper === "USH" || code === "USh") return "USh";
+  if (upper === "TZS" || upper === "TSH" || code === "TSh") return "TSh";
+  if (upper === "RWF" || code === "FRw") return "FRw";
+  if (upper === "SOS" || upper === "SH.SO." || code === "Sh.So.") return "Sh.So.";
+
+  // 2. Project curated world currency symbols (150+ countries)
+  const fromWorld = findByCurrency(upper);
+  if (fromWorld?.currencySymbol) return fromWorld.currencySymbol;
+
+  // 3. Native Intl engine covering all remaining global ISO currencies ($ for USD, € for EUR, ¥, ₹, etc.)
+  try {
+    const parts = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: upper,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(1);
+    const sym = parts.find((p) => p.type === "currency")?.value;
+    if (sym && sym !== upper) return sym;
+
+    const partsFallback = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: upper,
+      currencyDisplay: "symbol",
+    }).formatToParts(1);
+    const symFallback = partsFallback.find((p) => p.type === "currency")?.value;
+    if (symFallback) return symFallback;
+  } catch {
+    // If an unknown string is provided, fall back cleanly
+  }
+
+  return code;
+}
 /** Fluid KPI number component */
 function Amt({
   value,
