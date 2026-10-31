@@ -972,9 +972,9 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
       </div>
 
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-4 shadow-sm">
-        {/* ROW 1: Product Name, Quantity, and Unit in the same line */}
-        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-          <div className="sm:col-span-6">
+        {/* ROW 1: Product Name, Quantity, and Unit in the same line on all screens */}
+        <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
+          <div className="col-span-6">
             <InventoryField label={tr("Product Name")} required>
               <input
                 className={inventoryInput}
@@ -985,7 +985,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
               />
             </InventoryField>
           </div>
-          <div className="sm:col-span-3">
+          <div className="col-span-3">
             <InventoryField label={tr("Quantity")}>
               <input
                 type="number"
@@ -997,7 +997,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
               />
             </InventoryField>
           </div>
-          <div className="sm:col-span-3">
+          <div className="col-span-3">
             <InventoryField label={tr("Unit")}>
               <select className={inventoryInput} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })}>
                 <option value="Piece">{tr("Piece")}</option>
@@ -1034,13 +1034,16 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           </InventoryField>
         </div>
 
-        {/* ROW 3: Category, Brand, Barcode, SKU & Alert Level in one row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1 border-t border-border/30">
+        {/* ROW 3: Category, Brand, Barcode, SKU & Alert Level all in 1 row */}
+        <div className="grid grid-cols-4 gap-1 sm:gap-1.5 pt-1 border-t border-border/30">
           <ShopButton
             type="button"
             variant="outline"
             size="sm"
-            className={cn("text-xs h-7.5 w-full justify-center", showCategory && "bg-muted font-bold")}
+            className={cn(
+              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
+              showCategory && "bg-muted font-bold",
+            )}
             onClick={() => setShowCategory(!showCategory)}
           >
             + {tr("Category")}
@@ -1049,7 +1052,10 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             type="button"
             variant="outline"
             size="sm"
-            className={cn("text-xs h-7.5 w-full justify-center", showBrand && "bg-muted font-bold")}
+            className={cn(
+              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
+              showBrand && "bg-muted font-bold",
+            )}
             onClick={() => setShowBrand(!showBrand)}
           >
             + {tr("Brand")}
@@ -1058,7 +1064,10 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             type="button"
             variant="outline"
             size="sm"
-            className={cn("text-xs h-7.5 w-full justify-center", showBarcode && "bg-muted font-bold")}
+            className={cn(
+              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
+              showBarcode && "bg-muted font-bold",
+            )}
             onClick={() => setShowBarcode(!showBarcode)}
           >
             + {tr("Barcode")}
@@ -1067,7 +1076,10 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
             type="button"
             variant="outline"
             size="sm"
-            className={cn("text-xs h-7.5 w-full justify-center", showSKU && "bg-muted font-bold")}
+            className={cn(
+              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
+              showSKU && "bg-muted font-bold",
+            )}
             onClick={() => setShowSKU(!showSKU)}
           >
             + {tr("SKU & Alert")}
