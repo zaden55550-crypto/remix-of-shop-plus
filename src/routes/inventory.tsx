@@ -1705,9 +1705,9 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
     setNotes("");
   };
 
-  return (
-    <div className="max-w-xl mx-auto space-y-4">
-      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
+    return (
+    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
+      {/* Header with Title + Red Cancel & Green Save on the right */}
       <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
         <h2 className="text-base font-bold text-foreground">{tr("Stock Adjustment — Physical Count Correction")}</h2>
         <div className="flex items-center gap-2">
@@ -1732,12 +1732,12 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        <InventoryField label={tr("Product")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-        </InventoryField>
+      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
+        {/* Row 1: Select Product + Search or Scan Product in 1 row */}
+        <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
 
-        <div className="grid grid-cols-2 gap-2">
+        {/* Row 2: System Quantity + Physical Counted Quantity + Reason * in 1 row */}
+        <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("System Quantity")}>
             <input className={cn(inventoryInput, "bg-muted font-bold")} readOnly value={p ? p.qty : "—"} />
           </InventoryField>
@@ -1752,14 +1752,23 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
               placeholder="0"
             />
           </InventoryField>
+          <InventoryField label={tr("Reason")} required>
+            <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
+              <option value="Physical stock count">{tr("Physical count")}</option>
+              <option value="Damaged goods discovered">{tr("Damaged goods")}</option>
+              <option value="Lost or missing inventory">{tr("Lost / missing")}</option>
+              <option value="Discrepancy correction">{tr("Discrepancy")}</option>
+              <option value="Other">{tr("Other")}</option>
+            </select>
+          </InventoryField>
         </div>
 
         {counted !== "" && p && (
-          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/40 flex items-center justify-between text-xs">
+          <div className="p-2 rounded-lg bg-muted/40 border border-border/40 flex items-center justify-between text-xs">
             <span className="text-muted-foreground">{tr("Variance (Difference)")}:</span>
             <span
               className={cn(
-                "font-extrabold text-sm tabular-nums",
+                "font-extrabold text-xs sm:text-sm tabular-nums",
                 diff === 0
                   ? "text-foreground"
                   : diff > 0
@@ -1772,16 +1781,7 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
           </div>
         )}
 
-        <InventoryField label={tr("Reason")} required>
-          <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="Physical stock count">{tr("Physical stock count")}</option>
-            <option value="Damaged goods discovered">{tr("Damaged goods discovered")}</option>
-            <option value="Lost or missing inventory">{tr("Lost or missing inventory")}</option>
-            <option value="Discrepancy correction">{tr("Discrepancy correction")}</option>
-            <option value="Other">{tr("Other")}</option>
-          </select>
-        </InventoryField>
-
+        {/* Row 3: Notes on its own */}
         <InventoryField label={tr("Notes")}>
           <input
             className={inventoryInput}
@@ -1793,7 +1793,7 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
       </div>
     </div>
   );
-}
+
 /* =========================================================================
    3. RETURNS & TRANSFERS
    ========================================================================= */
