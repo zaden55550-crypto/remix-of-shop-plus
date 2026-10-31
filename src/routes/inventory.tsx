@@ -152,7 +152,7 @@ function toCurrencySymbol(code?: string): string {
 
   return code;
 }
-    /** Fluid KPI number component */
+/** Fluid KPI number component */
 function Amt({
   value,
   curr,
@@ -185,25 +185,6 @@ function Amt({
           size === "lg" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl"),
         )}
       >
-        {formatted}
-      </span>
-      {symbol && (
-        <sup
-          className={cn(
-            "font-semibold text-muted-foreground/75 shrink-0 select-none ml-0.5 mt-0.5",
-            size === "xs" && "text-[7px]",
-            size === "sm" && "text-[8px]",
-            size === "md" && "text-[9px]",
-            size === "lg" && "text-[10px]",
-          )}
-        >
-          {symbol}
-        </sup>
-      )}
-    </div>
-  );
-}
-
         {formatted}
       </span>
       {symbol && (
