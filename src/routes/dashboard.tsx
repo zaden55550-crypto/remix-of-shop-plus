@@ -719,12 +719,13 @@ export default function Dashboard() {
         )}
 
         {/* 3. FIVE KPI CARDS (Liquid Glass with Top Specular Glow) */}
+        {/* 3. FIVE KPI CARDS (Liquid Glass with Top Specular Glow) */}
         <div className="grid grid-cols-5 gap-1 sm:gap-2">
           {/* 1. Sales */}
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0">
             <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Sales")}</span>
             <div className="my-0.5 truncate">
-              <Amt value={perf?.sales ?? 0} tone="good" size="xs" />
+              <Amt value={perf?.sales ?? 0} curr={cur} tone="good" size="xs" />
             </div>
           </div>
 
@@ -734,7 +735,7 @@ export default function Dashboard() {
               {tr("Purchases")}
             </span>
             <div className="my-0.5 truncate">
-              <Amt value={perf?.purchases ?? 0} size="xs" />
+              <Amt value={perf?.purchases ?? 0} curr={cur} size="xs" />
             </div>
           </div>
 
@@ -744,7 +745,7 @@ export default function Dashboard() {
               {tr("Expenses")}
             </span>
             <div className="my-0.5 truncate">
-              <Amt value={perf?.expenses ?? 0} tone="bad" size="xs" />
+              <Amt value={perf?.expenses ?? 0} curr={cur} tone="bad" size="xs" />
             </div>
           </div>
 
@@ -752,7 +753,7 @@ export default function Dashboard() {
           <div className="flex flex-col justify-between rounded-xl border border-border/50 dark:border-white/10 bg-card/75 dark:bg-card/65 backdrop-blur-xl p-1 sm:p-2.5 shadow-xs dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)] min-w-0">
             <span className="text-[8.5px] sm:text-xs font-semibold text-muted-foreground truncate">{tr("Profit")}</span>
             <div className="my-0.5 truncate">
-              <Amt value={Math.max(0, perf?.profit ?? 0)} tone="good" size="xs" />
+              <Amt value={Math.max(0, perf?.profit ?? 0)} curr={cur} tone="good" size="xs" />
             </div>
           </div>
 
@@ -763,7 +764,7 @@ export default function Dashboard() {
               <span className="hidden sm:inline">{tr("Stock Value")}</span>
             </span>
             <div className="my-0.5 truncate">
-              <Amt value={totalStockValuation} size="xs" />
+              <Amt value={totalStockValuation} curr={cur} size="xs" />
             </div>
           </div>
         </div>
