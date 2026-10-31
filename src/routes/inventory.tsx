@@ -1923,67 +1923,24 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Reject">{tr("Reject Return")}</option>
             </select>
           </InventoryField>
+                 <InventoryField label={tr("Resolution")}>
+            <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
+              <option value="Refund">{tr("Refund Cash / M-Pesa")}</option>
+              <option value="Exchange">{tr("Exchange with another product")}</option>
+              <option value="Store Credit">{tr("Store Credit")}</option>
+              <option value="Reject">{tr("Reject Return")}</option>
+            </select>
+          </InventoryField>
         </div>
-function InlineProductPicker({
-  s,
-  value,
-  onChange,
-  tr,
-}: {
-  s: erp.ErpState;
-  value: string;
-  onChange: (id: string) => void;
-  tr: (t: string) => string;
-}) {
-  const [q, setQ] = useState("");
-  const rows = inventoryProducts(s, q);
 
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      <InventoryField label={tr("Select Product")} required>
-        <select
-          aria-label={tr("Select product")}
-          className={inventoryInput}
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setQ("");
-          }}
-        >
-          <option value="">{tr("Select product...")}</option>
-          {rows.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.qty} {p.unit || "pcs"})
-            </option>
-          ))}
-        </select>
-      </InventoryField>
-      <InventoryField label={tr("Search or Scan Product")}>
-        <InventorySearch
-          q={q}
-          setQ={(v) => {
-            setQ(v);
-            const found = s.products.find(
-              (p) => p.name.toLowerCase() === v.trim().toLowerCase() || p.barcode === v.trim(),
-            );
-            if (found) onChange(found.id);
-          }}
-          onScan={(code) => {
-            const p = erp.findByCode(s, code);
-            if (p) {
-              onChange(p.id);
-              setQ(p.name);
-            } else {
-              setQ(code);
-            }
-          }}
-          tr={tr}
-          placeholder="Search name, barcode..."
-        />
-      </InventoryField>
+        <InventoryField label={tr("Inventory Outcome")}>
+          <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+            <option value="Return to available stock">{tr("Return to Available Stock (Restock)")}</option>
+            <option value="Move to damaged stock">{tr("Quarantine / Move to Damaged (Do Not Restock)")}</option>
+          </select>
+        </InventoryField>
+      </div>
     </div>
-  );
-}
 
         <InventoryField label={tr("Inventory Outcome")}>
           <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
