@@ -145,17 +145,17 @@ function Amt({
         {formatted}
       </span>
       {curr && (
-        <span
+        <sub
           className={cn(
-            "font-semibold text-muted-foreground/75 shrink-0 select-none",
-            size === "xs" && "text-[8px]",
-            size === "sm" && "text-[9px]",
-            size === "md" && "text-[10px]",
-            size === "lg" && "text-xs",
+            "font-semibold text-muted-foreground/75 shrink-0 select-none bottom-0 ml-0.5",
+            size === "xs" && "text-[7px]",
+            size === "sm" && "text-[8px]",
+            size === "md" && "text-[9px]",
+            size === "lg" && "text-[10px]",
           )}
         >
           {curr}
-        </span>
+        </sub>
       )}
     </div>
   );
