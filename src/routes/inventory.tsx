@@ -1402,17 +1402,19 @@ function StockInScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
+    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
       {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
-        <h2 className="text-base font-bold text-foreground">{tr("Stock In — Record Received Goods")}</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 pb-1">
+        <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
+          {tr("Stock In — Record Received Goods")}
+        </h2>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <ShopButton
             type="button"
             variant="outline"
             size="sm"
             onClick={cancel}
-            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
+            className="text-xs h-8 px-2.5 sm:px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
           >
             {tr("Cancel")}
           </ShopButton>
@@ -1421,19 +1423,27 @@ function StockInScreen({ s, tr }: Ctx) {
             variant="primary"
             size="sm"
             onClick={submit}
-            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            className="text-xs h-8 px-3 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
           >
             {tr("Save Stock In")}
           </ShopButton>
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        <InventoryField label={tr("Product")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-        </InventoryField>
+      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
+        {/* Row 1: Select Product + Search or Scan Product in 1 row */}
+        <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
 
-        <div className="grid grid-cols-2 gap-2">
+        {/* Row 2: Supplier / Vendor + Quantity Received + Cost Price */}
+        <div className="grid grid-cols-3 gap-2">
+          <InventoryField label={tr("Supplier / Vendor")}>
+            <input
+              className={inventoryInput}
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+              placeholder={tr("Supplier...")}
+            />
+          </InventoryField>
           <InventoryField label={tr("Quantity Received")} required>
             <input
               type="number"
@@ -1456,26 +1466,8 @@ function StockInScreen({ s, tr }: Ctx) {
           </InventoryField>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Supplier / Vendor")}>
-            <input
-              className={inventoryInput}
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              placeholder={tr("Supplier name...")}
-            />
-          </InventoryField>
-          <InventoryField label={tr("Reference / Invoice No.")}>
-            <input
-              className={inventoryInput}
-              value={ref}
-              onChange={(e) => setRef(e.target.value)}
-              placeholder="INV-001"
-            />
-          </InventoryField>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
+        {/* Row 3: Location / Warehouse + Invoice Number + Batch / Lot Number */}
+        <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Location / Warehouse")}>
             <select className={inventoryInput} value={location} onChange={(e) => setLocation(e.target.value)}>
               <option value="Main Warehouse">{tr("Main Warehouse")}</option>
@@ -1483,6 +1475,14 @@ function StockInScreen({ s, tr }: Ctx) {
               <option value="Backroom">{tr("Backroom")}</option>
               <option value="Shelf A">{tr("Shelf A")}</option>
             </select>
+          </InventoryField>
+          <InventoryField label={tr("Invoice Number")}>
+            <input
+              className={inventoryInput}
+              value={ref}
+              onChange={(e) => setRef(e.target.value)}
+              placeholder="INV-001"
+            />
           </InventoryField>
           <InventoryField label={tr("Batch / Lot Number")}>
             <input
@@ -1494,18 +1494,20 @@ function StockInScreen({ s, tr }: Ctx) {
           </InventoryField>
         </div>
 
-        <InventoryField label={tr("Expiry Date (Optional)")}>
-          <input type="date" className={inventoryInput} value={expiry} onChange={(e) => setExpiry(e.target.value)} />
-        </InventoryField>
-
-        <InventoryField label={tr("Notes")}>
-          <input
-            className={inventoryInput}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={tr("Delivery notes, condition, etc.")}
-          />
-        </InventoryField>
+        {/* Row 4: Expiry Date + Notes */}
+        <div className="grid grid-cols-2 gap-2">
+          <InventoryField label={tr("Expiry Date (Optional)")}>
+            <input type="date" className={inventoryInput} value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+          </InventoryField>
+          <InventoryField label={tr("Notes")}>
+            <input
+              className={inventoryInput}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={tr("Delivery notes, condition...")}
+            />
+          </InventoryField>
+        </div>
       </div>
     </div>
   );
