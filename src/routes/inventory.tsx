@@ -1765,7 +1765,7 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
     setNotes("");
   };
 
-    return (
+  return (
     <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
       {/* Header with Title + Red Cancel & Green Save on the right */}
       <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
@@ -1983,24 +1983,7 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Reject">{tr("Reject Return")}</option>
             </select>
           </InventoryField>
-                 <InventoryField label={tr("Resolution")}>
-            <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
-              <option value="Refund">{tr("Refund Cash / M-Pesa")}</option>
-              <option value="Exchange">{tr("Exchange with another product")}</option>
-              <option value="Store Credit">{tr("Store Credit")}</option>
-              <option value="Reject">{tr("Reject Return")}</option>
-            </select>
-          </InventoryField>
         </div>
-
-        <InventoryField label={tr("Inventory Outcome")}>
-          <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-            <option value="Return to available stock">{tr("Return to Available Stock (Restock)")}</option>
-            <option value="Move to damaged stock">{tr("Quarantine / Move to Damaged (Do Not Restock)")}</option>
-          </select>
-        </InventoryField>
-      </div>
-    </div>
 
         <InventoryField label={tr("Inventory Outcome")}>
           <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
