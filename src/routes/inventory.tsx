@@ -542,37 +542,24 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
 
   return (
     <div className="space-y-4">
-      {/* 4 Fluid KPI Cards */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
-        >
-          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Total Products")}</span>
+      {/* 2-Row Unified KPI Strip */}
+      <div
+        onClick={() => go("products & stock", "All Products")}
+        className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2.5 sm:p-3 hover:border-primary/40 transition-colors"
+      >
+        {/* Row 1: All 4 Labels */}
+        <div className="grid grid-cols-4 gap-1.5 pb-1.5 border-b border-border/30 text-[9.5px] sm:text-xs font-semibold text-muted-foreground">
+          <span className="truncate">{tr("Total Products")}</span>
+          <span className="truncate">{tr("Stock Value")}</span>
+          <span className="truncate">{tr("Low Stock")}</span>
+          <span className="truncate">{tr("Out of Stock")}</span>
+        </div>
+
+        {/* Row 2: All 4 Figures */}
+        <div className="grid grid-cols-4 gap-1.5 pt-2 items-baseline">
           <Amt value={totalProducts} size="lg" />
-        </div>
-
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
-        >
-          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Stock Value (Cost)")}</span>
           <Amt value={totalStockVal} curr={cur} size="lg" />
-        </div>
-
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
-        >
-          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
           <Amt value={lowStock.length} {...(lowStock.length > 0 ? { tone: "warn" as const } : {})} size="lg" />
-        </div>
-
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
-        >
-          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Out of Stock")}</span>
           <Amt value={outOfStock.length} {...(outOfStock.length > 0 ? { tone: "bad" as const } : {})} size="lg" />
         </div>
       </div>
