@@ -522,7 +522,7 @@ export default function Dashboard() {
             </span>
           </div>
 
-                   {/* Right Elements: Theme Toggle + Calendar Icon + Shop Avatar */}
+          {/* Right Elements: Theme Toggle + Calendar Icon + Shop Avatar */}
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Theme Toggle (Sun in Dark Mode, Moon in Light Mode) */}
             <button
