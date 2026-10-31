@@ -42,7 +42,8 @@ import { floatBalances, purchaseTotals } from "@/lib/finance";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { METHOD_LABEL, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
 import { chatIcons, trialDaysLeft } from "@/lib/shopbook";
-import { BusinessAssistant } from "@/components/shopbook/business-assistant";
+import { findByCurrency } from "@/lib/world-data";
+
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
@@ -81,7 +82,47 @@ function formatHeaderShopName(name: string): string {
   return `${parts[0]} ${parts[1]}${parts.length > 2 ? ".." : ""}`;
 }
 
-/** Currency formatter component with responsive typography */
+/** Resolves any global currency code to its exact symbol */
+function toCurrencySymbol(code: string): string {
+  if (!code) return "";
+  const upper = code.trim().toUpperCase();
+
+  // 1. Common regional East African notations
+  if (upper === "KES" || upper === "KSH" || code === "KSh") return "KSh";
+  if (upper === "UGX" || upper === "USH" || code === "USh") return "USh";
+  if (upper === "TZS" || upper === "TSH" || code === "TSh") return "TSh";
+  if (upper === "RWF" || code === "FRw") return "FRw";
+  if (upper === "SOS" || upper === "SH.SO." || code === "Sh.So.") return "Sh.So.";
+
+  // 2. Curated world-data lookup (150+ countries)
+  const fromWorld = findByCurrency(upper);
+  if (fromWorld?.currencySymbol) return fromWorld.currencySymbol;
+
+  // 3. Global ISO currencies ($ for USD, £ for GBP, € for EUR, ¥ for JPY, ₹ for INR, etc.)
+  try {
+    const parts = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: upper,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(1);
+    const sym = parts.find((p) => p.type === "currency")?.value;
+    if (sym && sym !== upper) return sym;
+
+    const partsFallback = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: upper,
+      currencyDisplay: "symbol",
+    }).formatToParts(1);
+    const symFallback = partsFallback.find((p) => p.type === "currency")?.value;
+    if (symFallback) return symFallback;
+  } catch {
+    // Graceful fallback
+  }
+
+  return code;
+}
+
+/** Currency formatter component with responsive typography and superscript currency */
 function Amt({
   value,
   curr = "KSh",
@@ -91,11 +132,12 @@ function Amt({
 }: {
   value: number;
   curr?: string;
-  tone?: "good" | "warn" | "bad" | undefined;
+  tone?: "good" | "warn" | "bad" | "info" | undefined;
   size?: "2xs" | "xs" | "sm" | "md" | "lg";
   className?: string;
 }) {
   const numStr = compactFmt(value);
+  const symbol = curr ? toCurrencySymbol(curr) : undefined;
   const toneClass =
     tone === "good"
       ? "text-emerald-500"
@@ -103,7 +145,9 @@ function Amt({
         ? "text-rose-500"
         : tone === "warn"
           ? "text-amber-500"
-          : "text-foreground";
+          : tone === "info"
+            ? "text-sky-500"
+            : "text-foreground";
 
   const isLong = numStr.length >= 6;
   const numSize =
@@ -121,21 +165,29 @@ function Amt({
             ? "text-sm sm:text-base"
             : "text-base sm:text-lg";
 
-  const currSize =
-    size === "2xs"
-      ? "text-[6.5px]"
-      : size === "xs"
-        ? isLong
-          ? "text-[6.5px] sm:text-[7.5px]"
-          : "text-[7px] sm:text-[8px]"
-        : size === "sm"
-          ? "text-[8px] sm:text-[9px]"
-          : "text-[9px] sm:text-xs";
-
   return (
-    <span className={cn("inline-flex items-baseline gap-0.5 font-bold font-mono tracking-tight", toneClass, className)}>
-      <span className={cn("font-medium text-muted-foreground", currSize)}>{curr.toLowerCase()}</span>
+    <span
+      className={cn(
+        "inline-flex items-start gap-0.5 font-bold font-mono tracking-tight leading-none",
+        toneClass,
+        className,
+      )}
+    >
       <span className={cn("font-black", numSize)}>{numStr}</span>
+      {symbol && (
+        <sup
+          className={cn(
+            "font-semibold text-muted-foreground/75 shrink-0 select-none ml-0.5 mt-0.5",
+            size === "2xs" && "text-[6px]",
+            size === "xs" && "text-[7px]",
+            size === "sm" && "text-[8px]",
+            size === "md" && "text-[9px]",
+            size === "lg" && "text-[10px]",
+          )}
+        >
+          {symbol}
+        </sup>
+      )}
     </span>
   );
 }
