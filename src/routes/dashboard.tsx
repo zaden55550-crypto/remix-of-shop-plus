@@ -248,6 +248,7 @@ export default function Dashboard() {
   const s: ErpState = erpState || empty();
   const { tr } = useLanguage();
   const navigate = useNavigate();
+  const { dark, toggle: toggleTheme } = useTheme();
 
   // Period state defaulting always to "Today"
   const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("Today");
