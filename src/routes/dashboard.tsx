@@ -1,7 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useTheme } from "@/components/shopbook/ui";
 import { useMemo, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
+  Sun,
+  Moon,
   Building2,
   CalendarDays,
   ChevronDown,
