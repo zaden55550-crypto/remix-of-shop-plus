@@ -1743,7 +1743,8 @@ function StockHistoryScreen({ s, tr }: Ctx) {
           </div>
         )}
       </div>
-
+    </div>
+  );
 }
 
 /** 2.6 Adjustments Screen */
