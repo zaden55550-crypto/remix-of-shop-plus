@@ -610,7 +610,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
         </div>
       </div>
 
-      {/* Recent Activity Grid */}
+      {/* Recent Activity Grid (2 Columns on Top) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Box title={tr("Recent Stock In")} sub={tr("Goods received into inventory")}>
           {recentIn.length ? (
@@ -630,7 +630,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
               ))}
             </div>
           ) : (
-            <Empty>{tr("No recent receipts")}</Empty>
+            <Empty compact>{tr("No recent receipts")}</Empty>
           )}
         </Box>
 
@@ -652,59 +652,58 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
               ))}
             </div>
           ) : (
-            <Empty>{tr("No non-sale write-offs")}</Empty>
+            <Empty compact>{tr("No non-sale write-offs")}</Empty>
           )}
         </Box>
       </div>
+
+      {/* Low Stock Replenishment List (Below the 2 Columns) */}
+      <Box
+        title={tr("Low Stock Products")}
+        sub={tr("Products that require immediate replenishment")}
+        extra={
+          <ShopButton
+            variant="ghost"
+            size="sm"
+            onClick={() => go("products & stock", "Stock In")}
+            className="text-xs font-semibold h-7"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            {tr("Stock In")}
+          </ShopButton>
+        }
+      >
+        {lowStock.length || outOfStock.length ? (
+          <div className="divide-y divide-border/30">
+            {[...outOfStock, ...lowStock].slice(0, 6).map((p) => (
+              <div key={p.id} className="py-2 flex items-center justify-between text-xs">
+                <div>
+                  <p className="font-semibold text-foreground">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {tr("Available")}: {p.qty} {p.unit || "pcs"} · {tr("Reorder level")}: {p.minStock ?? 5}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Status p={p} />
+                  <ShopButton
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-[10px] px-2"
+                    onClick={() => go("products & stock", "Stock In")}
+                  >
+                    {tr("Restock")}
+                  </ShopButton>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Empty compact>{tr("All products are well stocked")}</Empty>
+        )}
+      </Box>
     </div>
   );
 }
-{
-  /* Low Stock Replenishment List */
-}
-<Box
-  title={tr("Low Stock Products")}
-  sub={tr("Products that require immediate replenishment")}
-  extra={
-    <ShopButton
-      variant="ghost"
-      size="sm"
-      onClick={() => go("products & stock", "Stock In")}
-      className="text-xs font-semibold h-7"
-    >
-      <Plus className="w-3.5 h-3.5 mr-1" />
-      {tr("Stock In")}
-    </ShopButton>
-  }
->
-  {lowStock.length || outOfStock.length ? (
-    <div className="divide-y divide-border/30">
-      {[...outOfStock, ...lowStock].slice(0, 6).map((p) => (
-        <div key={p.id} className="py-2 flex items-center justify-between text-xs">
-          <div>
-            <p className="font-semibold text-foreground">{p.name}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {tr("Available")}: {p.qty} {p.unit || "pcs"} · {tr("Reorder level")}: {p.minStock ?? 5}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Status p={p} />
-            <ShopButton
-              variant="outline"
-              size="sm"
-              className="h-6 text-[10px] px-2"
-              onClick={() => go("products & stock", "Stock In")}
-            >
-              {tr("Restock")}
-            </ShopButton>
-          </div>
-        </div>
-      ))}
-    </div>
-  ) : (
-    <Empty>{tr("All products are well stocked")}</Empty>
-  )}
-</Box>;
 
 /* =========================================================================
    2. PRODUCTS & STOCK
