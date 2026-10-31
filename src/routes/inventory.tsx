@@ -788,48 +788,48 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
         </div>
       )}
 
-      {/* Product List Table */}
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm">
-        <div className="divide-y divide-border/30">
-          {filtered.length ? (
-            filtered.map((p) => {
-              const categoryName = s.categories.find((c) => c.id === p.categoryId)?.name;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => setSelectedProduct(p)}
-                  className="p-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors cursor-pointer"
-                >
-                  <div className="min-w-0 pr-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="font-bold text-foreground text-sm tracking-tight truncate">{p.name}</p>
-                      <Status p={p} />
-                      {p.variants && p.variants.length > 0 && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted font-medium text-muted-foreground">
-                          {p.variants.length} {tr("sizes")}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                      {categoryName ? `${categoryName} · ` : ""}
-                      {p.sku ? `SKU: ${p.sku} · ` : ""}
-                      {tr("Buy")}: {money(p.buy)} · {tr("Sell")}: {money(p.sell)}
-                    </p>
+      {/* Product List Grid: 1 col on phone, 2 cols on iPad (md), 3 cols on desktop/laptop (lg) */}
+      {filtered.length ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+          {filtered.map((p) => {
+            const categoryName = s.categories.find((c) => c.id === p.categoryId)?.name;
+            return (
+              <div
+                key={p.id}
+                onClick={() => setSelectedProduct(p)}
+                className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3 flex items-center justify-between text-xs hover:border-primary/40 hover:bg-muted/30 transition-colors cursor-pointer shadow-sm min-w-0"
+              >
+                <div className="min-w-0 pr-2 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-bold text-foreground text-sm tracking-tight truncate">{p.name}</p>
+                    <Status p={p} />
+                    {p.variants && p.variants.length > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted font-medium text-muted-foreground">
+                        {p.variants.length} {tr("sizes")}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="font-extrabold text-sm text-foreground tabular-nums">
-                      {p.qty} <span className="text-[10px] font-normal text-muted-foreground">{p.unit || "pcs"}</span>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">{money(p.qty * p.sell)}</p>
-                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate mt-1">
+                    {categoryName ? `${categoryName} · ` : ""}
+                    {p.sku ? `SKU: ${p.sku} · ` : ""}
+                    {tr("Buy")}: {money(p.buy)} · {tr("Sell")}: {money(p.sell)}
+                  </p>
                 </div>
-              );
-            })
-          ) : (
-            <Empty>{tr("No products found")}</Empty>
-          )}
+                <div className="text-right shrink-0 pl-2">
+                  <p className="font-extrabold text-sm text-foreground tabular-nums">
+                    {p.qty} <span className="text-[10px] font-normal text-muted-foreground">{p.unit || "pcs"}</span>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{money(p.qty * p.sell)}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      ) : (
+        <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm p-4">
+          <Empty>{tr("No products found")}</Empty>
+        </div>
+      )}
 
       {/* Product Detail Sheet */}
       {selectedProduct && (
@@ -945,7 +945,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-3 sm:space-y-3.5">
       {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
       <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
         <h2 className="text-base font-bold text-foreground">{tr("Register New Product")}</h2>
