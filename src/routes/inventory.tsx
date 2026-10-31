@@ -502,7 +502,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
   return (
     <div className="space-y-4">
       {/* 4 Fluid KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
         <div
           onClick={() => go("products & stock", "All Products")}
           className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
@@ -2370,7 +2370,19 @@ function StockSetupScreen({ tr }: Ctx) {
 }
 
 /** Read-only product details popup opened from All Products */
-function ProductDetailSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: erp.ErpState; money: (n: number) => string; tr: (t: string) => string; onClose: () => void }) {
+function ProductDetailSheet({
+  p,
+  s,
+  money,
+  tr,
+  onClose,
+}: {
+  p: erp.Product;
+  s: erp.ErpState;
+  money: (n: number) => string;
+  tr: (t: string) => string;
+  onClose: () => void;
+}) {
   const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
   const brand = s.brands.find((b) => b.id === p.brandId)?.name;
   const rows: [string, string][] = [
@@ -2384,11 +2396,19 @@ function ProductDetailSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: e
     [tr("SKU"), p.sku || "—"],
   ];
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-bold truncate">{p.name}</h3>
-          <ShopButton variant="outline" onClick={onClose}>{tr("Close")}</ShopButton>
+          <ShopButton variant="outline" onClick={onClose}>
+            {tr("Close")}
+          </ShopButton>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           {rows.map(([k, v]) => (
