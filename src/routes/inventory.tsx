@@ -945,7 +945,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
   };
 
   return (
-    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-3 sm:space-y-3.5">
+    <div className="w-full space-y-3 sm:space-y-3.5">
       {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
       <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
         <h2 className="text-base font-bold text-foreground">{tr("Register New Product")}</h2>
@@ -1402,7 +1402,7 @@ function StockInScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
       <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
@@ -1554,7 +1554,8 @@ function StockOutScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
+    // With:
+    <div className="w-full space-y-4">
       {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
       <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
@@ -1684,7 +1685,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-           <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
         <div className="p-2.5 bg-muted/40 border-b border-border/40 text-[11px] font-bold text-muted-foreground flex justify-between">
           <span>{tr("Stock Audit Trail")}</span>
           <span>
@@ -1703,15 +1704,15 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase", typeColor(m.type))}>
+                      <span
+                        className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase", typeColor(m.type))}
+                      >
                         {m.type}
                       </span>
                       <h4 className="font-bold text-foreground text-sm truncate mt-1">
                         {p?.name || tr("Unknown Item")}
                       </h4>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                        {m.source}
-                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">{m.source}</p>
                     </div>
 
                     <div className="text-right shrink-0">
@@ -1782,7 +1783,7 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       {/* Header with Title + Red Cancel & Green Save on the right */}
       <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
         <h2 className="text-base font-bold text-foreground">{tr("Stock Adjustment — Physical Count Correction")}</h2>
