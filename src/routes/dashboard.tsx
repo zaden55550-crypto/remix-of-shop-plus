@@ -519,9 +519,24 @@ export default function Dashboard() {
             </span>
           </div>
 
-          {/* Right Elements: Calendar Popover + Shop Avatar Menu */}
+                   {/* Right Elements: Theme Toggle + Calendar Icon + Shop Avatar */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {/* Calendar Popover (Defaults to Today, shows icon + label + dropdown) */}
+            {/* Theme Toggle (Sun in Dark Mode, Moon in Light Mode) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all cursor-pointer"
+              title={dark ? tr("Switch to Light Mode") : tr("Switch to Dark Mode")}
+              aria-label="Toggle theme"
+            >
+              {dark ? (
+                <Sun className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+              ) : (
+                <Moon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              )}
+            </button>
+
+            {/* Calendar Popover (Icon Only) */}
             <div className="relative">
               <button
                 type="button"
@@ -529,13 +544,14 @@ export default function Dashboard() {
                   setShowCalendarPopover(!showCalendarPopover);
                   setShowShopMenu(false);
                 }}
-                className="flex h-7 items-center gap-1 sm:gap-1.5 rounded-lg border border-border/60 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md px-2 text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all cursor-pointer"
-                title={tr("Calendar / Period")}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border/60 dark:border-white/10 bg-card/80 dark:bg-white/5 backdrop-blur-md text-foreground hover:bg-muted dark:hover:bg-white/10 shadow-xs transition-all cursor-pointer"
+                title={`${tr("Calendar / Period")}: ${activePeriodLabel}`}
+                aria-label="Select period"
               >
                 <CalendarDays className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="text-[10px] sm:text-[11px] font-bold text-foreground">{activePeriodLabel}</span>
-                <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
               </button>
+
+              {showCalendarPopover && (
 
               {showCalendarPopover && (
                 <div className="absolute right-0 top-full mt-1.5 z-50 w-60 rounded-xl border border-border/60 dark:border-white/10 bg-popover/95 backdrop-blur-xl p-2.5 shadow-2xl dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] space-y-2">
