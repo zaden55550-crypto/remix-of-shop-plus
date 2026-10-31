@@ -523,11 +523,18 @@ function Box({ title, sub, extra, children }: { title: string; sub?: string; ext
     </section>
   );
 }
-
-function Empty({ children }: { children: ReactNode }) {
+function Empty({ children, compact }: { children: ReactNode; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="py-2.5 text-center text-xs text-muted-foreground/80 font-medium flex items-center justify-center gap-1.5">
+        <ArchiveX className="w-3.5 h-3.5 stroke-1 text-muted-foreground/50 shrink-0" />
+        <span>{children}</span>
+      </div>
+    );
+  }
   return (
-    <div className="py-8 text-center text-xs text-muted-foreground font-medium flex flex-col items-center justify-center gap-1">
-      <ArchiveX className="w-6 h-6 stroke-1 text-muted-foreground/60 mb-1" />
+    <div className="py-3 sm:py-4 text-center text-xs text-muted-foreground font-medium flex flex-col items-center justify-center gap-1">
+      <ArchiveX className="w-5 h-5 stroke-1 text-muted-foreground/60 mb-0.5" />
       {children}
     </div>
   );
@@ -603,51 +610,6 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
         </div>
       </div>
 
-      {/* Low Stock Replenishment List */}
-      <Box
-        title={tr("Low Stock Products")}
-        sub={tr("Products that require immediate replenishment")}
-        extra={
-          <ShopButton
-            variant="ghost"
-            size="sm"
-            onClick={() => go("products & stock", "Stock In")}
-            className="text-xs font-semibold h-7"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            {tr("Stock In")}
-          </ShopButton>
-        }
-      >
-        {lowStock.length || outOfStock.length ? (
-          <div className="divide-y divide-border/30">
-            {[...outOfStock, ...lowStock].slice(0, 6).map((p) => (
-              <div key={p.id} className="py-2 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-semibold text-foreground">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {tr("Available")}: {p.qty} {p.unit || "pcs"} · {tr("Reorder level")}: {p.minStock ?? 5}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Status p={p} />
-                  <ShopButton
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[10px] px-2"
-                    onClick={() => go("products & stock", "Stock In")}
-                  >
-                    {tr("Restock")}
-                  </ShopButton>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Empty>{tr("All products are well stocked")}</Empty>
-        )}
-      </Box>
-
       {/* Recent Activity Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Box title={tr("Recent Stock In")} sub={tr("Goods received into inventory")}>
@@ -697,6 +659,52 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
     </div>
   );
 }
+{
+  /* Low Stock Replenishment List */
+}
+<Box
+  title={tr("Low Stock Products")}
+  sub={tr("Products that require immediate replenishment")}
+  extra={
+    <ShopButton
+      variant="ghost"
+      size="sm"
+      onClick={() => go("products & stock", "Stock In")}
+      className="text-xs font-semibold h-7"
+    >
+      <Plus className="w-3.5 h-3.5 mr-1" />
+      {tr("Stock In")}
+    </ShopButton>
+  }
+>
+  {lowStock.length || outOfStock.length ? (
+    <div className="divide-y divide-border/30">
+      {[...outOfStock, ...lowStock].slice(0, 6).map((p) => (
+        <div key={p.id} className="py-2 flex items-center justify-between text-xs">
+          <div>
+            <p className="font-semibold text-foreground">{p.name}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {tr("Available")}: {p.qty} {p.unit || "pcs"} · {tr("Reorder level")}: {p.minStock ?? 5}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Status p={p} />
+            <ShopButton
+              variant="outline"
+              size="sm"
+              className="h-6 text-[10px] px-2"
+              onClick={() => go("products & stock", "Stock In")}
+            >
+              {tr("Restock")}
+            </ShopButton>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <Empty>{tr("All products are well stocked")}</Empty>
+  )}
+</Box>;
 
 /* =========================================================================
    2. PRODUCTS & STOCK
