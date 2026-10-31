@@ -1684,7 +1684,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
+           <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
         <div className="p-2.5 bg-muted/40 border-b border-border/40 text-[11px] font-bold text-muted-foreground flex justify-between">
           <span>{tr("Stock Audit Trail")}</span>
           <span>
@@ -1692,47 +1692,58 @@ function StockHistoryScreen({ s, tr }: Ctx) {
           </span>
         </div>
 
-        <div className="divide-y divide-border/20 max-h-[600px] overflow-y-auto">
-          {moves.length ? (
-            moves.map((m) => {
+        {moves.length ? (
+          <div className="p-2.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[640px] overflow-y-auto">
+            {moves.map((m) => {
               const p = s.products.find((prod) => prod.id === m.productId);
               return (
-                <div key={m.id} className="p-3 text-xs flex items-center justify-between gap-2">
-                  <div className="min-w-0 pr-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold", typeColor(m.type))}>
+                <div
+                  key={m.id}
+                  className="p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/30 transition-colors flex flex-col justify-between gap-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase", typeColor(m.type))}>
                         {m.type}
                       </span>
-                      <p className="font-bold text-foreground text-sm truncate">{p?.name || tr("Unknown Item")}</p>
+                      <h4 className="font-bold text-foreground text-sm truncate mt-1">
+                        {p?.name || tr("Unknown Item")}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                        {m.source}
+                      </p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
-                      {m.source} · {dt(m.at)}
-                    </p>
+
+                    <div className="text-right shrink-0">
+                      <p
+                        className={cn(
+                          "font-extrabold text-sm tabular-nums",
+                          m.qty > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                        )}
+                      >
+                        {m.qty > 0 ? `+${m.qty}` : m.qty}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground tabular-nums">
+                        {tr("Bal")}: {m.next} {p?.unit || "pcs"}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <p
-                      className={cn(
-                        "font-extrabold text-sm tabular-nums",
-                        m.qty > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
-                      )}
-                    >
-                      {m.qty > 0 ? `+${m.qty}` : m.qty}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground tabular-nums">
-                      {tr("Bal")}: {m.next} {p?.unit || "pcs"}
-                    </p>
+                  <div className="text-[10px] text-muted-foreground/80 pt-1 border-t border-border/20 flex justify-between">
+                    <span>{dt(m.at)}</span>
+                    <span className="font-medium text-foreground/70">{p?.category || "General"}</span>
                   </div>
                 </div>
               );
-            })
-          ) : (
+            })}
+          </div>
+        ) : (
+          <div className="p-6">
             <Empty>{tr("No stock movements found")}</Empty>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+
 }
 
 /** 2.6 Adjustments Screen */
