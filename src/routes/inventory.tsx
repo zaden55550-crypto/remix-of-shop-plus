@@ -544,25 +544,58 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
 
   return (
     <div className="space-y-4">
-      {/* 2-Row Unified KPI Strip */}
-      <div
-        onClick={() => go("products & stock", "All Products")}
-        className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2.5 sm:p-3 hover:border-primary/40 transition-colors"
-      >
-        {/* Row 1: All 4 Labels */}
-        <div className="grid grid-cols-4 gap-1.5 pb-1.5 border-b border-border/30 text-[9.5px] sm:text-xs font-semibold text-muted-foreground">
-          <span className="truncate">{tr("Total Products")}</span>
-          <span className="truncate">{tr("Stock Value")}</span>
-          <span className="truncate">{tr("Low Stock")}</span>
-          <span className="truncate">{tr("Out of Stock")}</span>
+      {/* 4 Separate KPI Cards in 1 Row */}
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
+        {/* 1. Total Products (Sky Blue) */}
+        <div
+          onClick={() => go("products & stock", "All Products")}
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
+        >
+          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
+            {tr("Total Products")}
+          </span>
+          <div className="mt-1">
+            <Amt value={totalProducts} tone="info" size="lg" />
+          </div>
         </div>
 
-        {/* Row 2: All 4 Figures */}
-        <div className="grid grid-cols-4 gap-1.5 pt-2 items-baseline">
-          <Amt value={totalProducts} size="lg" />
-          <Amt value={totalStockVal} curr={cur} size="lg" />
-          <Amt value={lowStock.length} {...(lowStock.length > 0 ? { tone: "warn" as const } : {})} size="lg" />
-          <Amt value={outOfStock.length} {...(outOfStock.length > 0 ? { tone: "bad" as const } : {})} size="lg" />
+        {/* 2. Stock Value (Emerald Green + Superscript Currency) */}
+        <div
+          onClick={() => go("products & stock", "All Products")}
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
+        >
+          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
+            {tr("Stock Value")}
+          </span>
+          <div className="mt-1">
+            <Amt value={totalStockVal} curr={cur} tone="good" size="lg" />
+          </div>
+        </div>
+
+        {/* 3. Low Stock (Amber Orange) */}
+        <div
+          onClick={() => go("products & stock", "All Products")}
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
+        >
+          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
+            {tr("Low Stock")}
+          </span>
+          <div className="mt-1">
+            <Amt value={lowStock.length} tone="warn" size="lg" />
+          </div>
+        </div>
+
+        {/* 4. Out of Stock (Rose Red) */}
+        <div
+          onClick={() => go("products & stock", "All Products")}
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
+        >
+          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
+            {tr("Out of Stock")}
+          </span>
+          <div className="mt-1">
+            <Amt value={outOfStock.length} tone="bad" size="lg" />
+          </div>
         </div>
       </div>
 
