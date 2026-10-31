@@ -170,7 +170,7 @@ function Amt({
   const symbol = curr ? toCurrencySymbol(curr) : undefined;
 
   return (
-    <div className="flex items-baseline gap-0.5 leading-none min-w-0 max-w-full">
+    <div className="flex items-start gap-0.5 leading-none min-w-0 max-w-full">
       <span
         className={cn(
           "font-extrabold tracking-tight tabular-nums truncate",
@@ -186,9 +186,9 @@ function Amt({
         {formatted}
       </span>
       {symbol && (
-        <sub
+        <sup
           className={cn(
-            "font-semibold text-muted-foreground/75 shrink-0 select-none bottom-0 ml-0.5",
+            "font-semibold text-muted-foreground/75 shrink-0 select-none ml-0.5 mt-0.5",
             size === "xs" && "text-[7px]",
             size === "sm" && "text-[8px]",
             size === "md" && "text-[9px]",
@@ -196,7 +196,7 @@ function Amt({
           )}
         >
           {symbol}
-        </sub>
+        </sup>
       )}
     </div>
   );
