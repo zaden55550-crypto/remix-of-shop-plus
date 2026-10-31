@@ -152,7 +152,7 @@ function toCurrencySymbol(code?: string): string {
 
   return code;
 }
-/** Fluid KPI number component */
+    /** Fluid KPI number component */
 function Amt({
   value,
   curr,
@@ -161,7 +161,7 @@ function Amt({
 }: {
   value: number;
   curr?: string;
-  tone?: "warn" | "bad";
+  tone?: "info" | "good" | "warn" | "bad";
   size?: "sm" | "md" | "lg" | "xs";
 }) {
   const formatted = compactFmt(value);
@@ -174,8 +174,10 @@ function Amt({
       <span
         className={cn(
           "font-extrabold tracking-tight tabular-nums truncate",
-          tone === "bad" && "text-rose-500",
-          tone === "warn" && "text-amber-500",
+          tone === "info" && "text-sky-500 dark:text-sky-400",
+          tone === "good" && "text-emerald-500 dark:text-emerald-400",
+          tone === "warn" && "text-amber-500 dark:text-amber-400",
+          tone === "bad" && "text-rose-500 dark:text-rose-400",
           !tone && "text-foreground",
           size === "xs" && "text-xs",
           size === "sm" && "text-sm",
@@ -183,6 +185,25 @@ function Amt({
           size === "lg" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl"),
         )}
       >
+        {formatted}
+      </span>
+      {symbol && (
+        <sup
+          className={cn(
+            "font-semibold text-muted-foreground/75 shrink-0 select-none ml-0.5 mt-0.5",
+            size === "xs" && "text-[7px]",
+            size === "sm" && "text-[8px]",
+            size === "md" && "text-[9px]",
+            size === "lg" && "text-[10px]",
+          )}
+        >
+          {symbol}
+        </sup>
+      )}
+    </div>
+  );
+}
+
         {formatted}
       </span>
       {symbol && (
