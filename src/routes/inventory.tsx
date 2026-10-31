@@ -48,310 +48,364 @@ import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { useErp } from "@/components/shopbook/product-search";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  InventorySearch,
+  InventoryField,
+  BarcodeField,
+  InventoryProductPicker,
+  inventoryProducts,
+  inventoryInput,
+} from "@/components/shopbook/inventory-controls";
 
 export const Route = createFileRoute("/inventory")({
+  head: () => ({
+    meta: [
+      { title: "Inventory — SHOPBOOK ERP" },
+      {
+        name: "description",
+        content: "Products, stock levels, stock in/out, customer and supplier returns, transfers and configuration.",
+      },
+      { property: "og:title", content: "Inventory — SHOPBOOK ERP" },
+      { property: "og:description", content: "The single source of truth for products and stock in SHOPBOOK." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Inventory,
 });
 
-/* =========================================================================
-   TYPES & 4-MENU TAXONOMY
-   ========================================================================= */
-
-type MainMenu = "overview" | "products & stock" | "returns & transfers" | "configuration";
-
-const SUBMENUS: Record<MainMenu, string[]> = {
-  overview: ["Dashboard", "Low Stock Alerts"],
-  "products & stock": [
-    "All Products",
-    "Add Product",
-    "Stock In (Receive)",
-    "Stock Out (Write-Off)",
-    "Stock History",
-    "Stock Adjustments",
-  ],
+/** 4-Menu Architecture matching specification */
+const MENUS = {
+  overview: [],
+  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments"],
   "returns & transfers": ["Customer Returns", "Supplier Returns", "New Transfer", "Transfer History"],
-  configuration: ["Product Setup", "Stock Configuration", "Valuation Report", "Profits Report"],
+  configuration: ["Product Setup", "Stock Setup"],
+} as const;
+
+type Menu = keyof typeof MENUS;
+
+const run = (fn: () => unknown, ok: string) => {
+  try {
+    fn();
+    toast.success(ok);
+    return true;
+  } catch (e) {
+    toast.error(translateCurrent(e instanceof Error ? e.message : "Failed"));
+    return false;
+  }
 };
 
-const MENU_LABELS: Record<MainMenu, string> = {
-  overview: "Overview",
-  "products & stock": "Products & Stock",
-  "returns & transfers": "Returns & Transfers",
-  configuration: "Configuration",
-};
+const dt = (n: number) =>
+  new Date(n).toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
-/* =========================================================================
-   COMPACT NUMBER & METRIC FORMATTERS
-   ========================================================================= */
-
+/** Compact number formatter: full numbers below 1M with commas, M for >=1M, B for >=1B */
 function compactFmt(n: number): string {
-  if (Math.abs(n) >= 1_000_000) {
-    const v = n / 1_000_000;
-    return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}M`;
-  }
-  if (Math.abs(n) >= 1_000) {
-    const v = n / 1_000;
-    return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}k`;
-  }
-  return n.toLocaleString();
+  if (typeof n !== "number" || isNaN(n) || Object.is(n, -0) || Math.abs(n) < 0.0001) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  const [intPart, decPart] = n.toFixed(2).split(".");
+  const formattedInt = Number(intPart).toLocaleString("en-US");
+  return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
 }
 
+/** Fluid KPI number component */
 function Amt({
   value,
   curr,
-  tone = "default",
+  tone,
   size = "md",
 }: {
   value: number;
   curr?: string;
-  tone?: "default" | "good" | "warn" | "bad";
-  size?: "sm" | "md" | "lg";
+  tone?: "warn" | "bad";
+  size?: "sm" | "md" | "lg" | "xs";
 }) {
-  const tones = {
-    default: "text-foreground",
-    good: "text-emerald-600 dark:text-emerald-400",
-    warn: "text-amber-600 dark:text-amber-400",
-    bad: "text-rose-600 dark:text-rose-400",
-  };
-  const sizes = {
-    sm: "text-xs",
-    md: "text-sm",
-    lg: "text-base sm:text-lg",
-  };
-
+  const formatted = compactFmt(value);
+  const isLarge = formatted.length > 7;
+  const isHuge = formatted.length > 10;
   return (
-    <span className={cn("font-bold tracking-tight tabular-nums", tones[tone], sizes[size])}>
-      {curr && <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground mr-0.5">{curr}</span>}
-      {compactFmt(value)}
-    </span>
-  );
-}
-
-function run(fn: () => boolean, msg: string): boolean {
-  const ok = fn();
-  if (ok) toast.success(msg);
-  else toast.error("Action could not be completed");
-  return ok;
-}
-
-const inventoryInput =
-  "w-full h-8 px-2.5 rounded-lg border border-border/60 bg-background/80 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50 transition-colors";
-
-/* =========================================================================
-   MAIN INVENTORY COMPONENT
-   ========================================================================= */
-
-function Inventory() {
-  const navigate = useNavigate();
-  const [acct, setAcct] = useState<Account | null>(null);
-  const { lang } = useLanguage();
-  const tr = (k: string) => translateCurrent(k, lang);
-  const { theme, toggleTheme } = useTheme();
-
-  // Navigation State
-  const [main, setMain] = useState<MainMenu>("overview");
-  const [sub, setSub] = useState<string>("Dashboard");
-
-  // Deep-link barcode or search query passed from search
-  const [searchBarcode, setSearchBarcode] = useState<string>("");
-
-  useEffect(() => {
-    const a = store.getAccount();
-    if (!a) {
-      navigate({ to: "/signup" });
-      return;
-    }
-    if (!canOpen(a, "inventory")) {
-      toast.error(tr("Inventory requires ShopBook Plus or Business plan"));
-      navigate({ to: "/dashboard" });
-      return;
-    }
-    setAcct(a);
-  }, []);
-
-  const s = useErp();
-  const cur = acct?.currency || "KSh";
-  const money = (n: number) => `${cur} ${clean(n)}`;
-  const shopName = acct?.shopName || "My Shop";
-
-  // Change main menu and auto-select its first sub-menu
-  const changeMain = (m: MainMenu) => {
-    setMain(m);
-    setSub(SUBMENUS[m][0]);
-  };
-
-  // Direct jumper helper
-  const go = (m: MainMenu, sName: string) => {
-    setMain(m);
-    setSub(sName);
-  };
-
-  const handleUnknownProduct = (code: string) => {
-    setSearchBarcode(code);
-    go("products & stock", "Add Product");
-  };
-
-  if (!acct) return null;
-
-  return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors duration-200">
-      {/* 1. TOP APP BAR */}
-      <header className="sticky top-0 z-30 bg-card/85 backdrop-blur-xl border-b border-border/40 px-3 sm:px-6 py-2.5 transition-colors">
-        <div className="flex items-center justify-between gap-2 max-w-7xl mx-auto">
-          {/* Left: Back + App Name + Shop Name */}
-          <div className="flex items-center gap-2 min-w-0">
-            <ShopButton
-              variant="outline"
-              size="sm"
-              onClick={() => navigate({ to: "/dashboard" })}
-              className="h-8 px-2 text-xs flex items-center gap-1 shrink-0 rounded-lg hover:bg-muted"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline font-medium">{tr("Apps")}</span>
-            </ShopButton>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-sm sm:text-base tracking-tight text-foreground truncate">
-                  {tr("Inventory")}
-                </span>
-                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
-                  ERP
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground truncate leading-none mt-0.5">{shopName}</p>
-            </div>
-          </div>
-
-          {/* Right: Theme Toggle + Connection + User Shop Avatar */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <ShopButton
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground rounded-lg"
-              title={theme === "dark" ? tr("Switch to Light Mode") : tr("Switch to Dark Mode")}
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-            </ShopButton>
-
-            <ConnectionStatus />
-
-            <div className="w-7 h-7 rounded-full bg-primary/15 text-primary border border-primary/30 flex items-center justify-center text-xs font-bold shrink-0 ml-1">
-              {shopName.charAt(0).toUpperCase()}
-            </div>
-          </div>
-        </div>
-
-        {/* 2. MAIN HORIZONTAL NAVIGATION ROW */}
-        <div className="max-w-7xl mx-auto mt-2 pt-2 border-t border-border/30">
-          <Tabs
-            items={["overview", "products & stock", "returns & transfers", "configuration"]}
-            value={main}
-            onChange={(k) => changeMain(k as MainMenu)}
-            label={(k) => tr(MENU_LABELS[k as MainMenu])}
-          />
-        </div>
-
-        {/* 3. SELECTED SUB-MENU ROW */}
-        <div className="max-w-7xl mx-auto mt-1.5">
-          <Tabs items={SUBMENUS[main]} value={sub} onChange={setSub} label={(k) => tr(k)} small />
-        </div>
-      </header>
-
-      {/* 4. MAIN WORKSPACE CONTENT */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 overflow-y-auto">
-        {/* OVERVIEW SUBVIEWS */}
-        {main === "overview" && sub === "Dashboard" && (
-          <Overview s={s} money={money} tr={tr} go={go} cur={cur} shop={shopName} />
+    <div className="flex items-baseline gap-0.5 leading-none min-w-0 max-w-full">
+      <span
+        className={cn(
+          "font-extrabold tracking-tight tabular-nums truncate",
+          tone === "bad" && "text-rose-500",
+          tone === "warn" && "text-amber-500",
+          !tone && "text-foreground",
+          size === "xs" && "text-xs",
+          size === "sm" && "text-sm",
+          size === "md" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg"),
+          size === "lg" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl"),
         )}
-        {main === "overview" && sub === "Low Stock Alerts" && (
-          <ProductList
-            s={s}
-            money={money}
-            tr={tr}
-            shop={shopName}
-            onUnknown={handleUnknownProduct}
-            forcedStatus="LOW"
-          />
-        )}
-
-        {/* PRODUCTS & STOCK SUBVIEWS */}
-        {main === "products & stock" && sub === "All Products" && (
-          <ProductList s={s} money={money} tr={tr} shop={shopName} onUnknown={handleUnknownProduct} />
-        )}
-        {main === "products & stock" && sub === "Add Product" && (
-          <AddProduct
-            s={s}
-            money={money}
-            tr={tr}
-            shop={shopName}
-            barcode={searchBarcode}
-            done={() => {
-              setSearchBarcode("");
-              setSub("All Products");
-            }}
-          />
-        )}
-        {main === "products & stock" && sub === "Stock In (Receive)" && (
-          <StockInScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "products & stock" && sub === "Stock Out (Write-Off)" && (
-          <StockOutScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "products & stock" && sub === "Stock History" && (
-          <StockHistoryScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "products & stock" && sub === "Stock Adjustments" && (
-          <AdjustmentsScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-
-        {/* RETURNS & TRANSFERS SUBVIEWS */}
-        {main === "returns & transfers" && sub === "Customer Returns" && (
-          <CustomerReturnsScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "returns & transfers" && sub === "Supplier Returns" && (
-          <SupplierReturnsScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "returns & transfers" && sub === "New Transfer" && (
-          <NewTransferScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "returns & transfers" && sub === "Transfer History" && (
-          <TransferHistoryScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-
-        {/* CONFIGURATION & REPORTS SUBVIEWS */}
-        {main === "configuration" && sub === "Product Setup" && (
-          <ProductSetupScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "configuration" && sub === "Stock Configuration" && (
-          <StockSetupScreen s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "configuration" && sub === "Valuation Report" && (
-          <ValuationReport s={s} money={money} tr={tr} shop={shopName} />
-        )}
-        {main === "configuration" && sub === "Profits Report" && (
-          <ProfitReport s={s} money={money} tr={tr} shop={shopName} />
-        )}
-      </main>
+      >
+        {formatted}
+      </span>
+      {curr && (
+        <span
+          className={cn(
+            "font-semibold text-muted-foreground/75 shrink-0 select-none",
+            size === "xs" && "text-[8px]",
+            size === "sm" && "text-[9px]",
+            size === "md" && "text-[10px]",
+            size === "lg" && "text-xs",
+          )}
+        >
+          {curr}
+        </span>
+      )}
     </div>
   );
 }
 
-/* =========================================================================
-   UI PRIMITIVES & CONTEXT HELPERS
-   ========================================================================= */
+function Inventory() {
+  const nav = useNavigate();
+  const { tr } = useLanguage();
+  const { dark, toggle: toggleTheme } = useTheme();
+  const theme = dark ? "dark" : "light";
+  const [acct, setAcct] = useState<Account | null>(null);
+  const [menu, setMenu] = useState<Menu>("overview");
+  const [sub, setSub] = useState<string>("");
+  const [prefillBarcode, setPrefill] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarRange, setCalendarRange] = useState<"today" | "week" | "month" | "all">("today");
+  const [showShopMenu, setShowShopMenu] = useState(false);
+
+  useEffect(() => {
+    const a = store.get();
+    if (!a) {
+      nav({ to: "/" });
+      return;
+    }
+    if (!canOpen(a, "basic")) {
+      toast.error(tr("Upgrade to access Inventory"));
+      nav({ to: "/apps" });
+      return;
+    }
+    setAcct(a);
+  }, [nav, tr]);
+
+  const s = useErp();
+  const cur = acct?.currency || "USD";
+  const money = (n: number) =>
+    `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const go = (m: Menu, sm?: string) => {
+    setMenu(m);
+    setSub(sm ?? MENUS[m][0] ?? "");
+  };
+
+  const ctx: Ctx = {
+    s,
+    money,
+    tr,
+    go,
+    cur,
+    shop: acct?.shopName || "Main Shop",
+    onUnknown: (code: string) => {
+      setPrefill(code);
+      go("products & stock", "Add Product");
+    },
+  };
+
+  const shopInitials =
+    (acct?.shopName || "SB")
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase())
+      .join("") || "SB";
+
+  return (
+    <main className="inventory-screen app-screen flex flex-col min-h-screen">
+      {/* 1. RESTORED PREVIOUS HEADER */}
+      <header className="inventory-header sticky top-0 z-30 flex items-center justify-between gap-1.5 px-3 py-2 border-b border-border/40 backdrop-blur-md bg-background/80">
+        <div className="flex items-center gap-1.5 shrink-0">
+          <ShopButton
+            variant="bare"
+            className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md hover:bg-muted/60 transition-colors"
+            onClick={() => nav({ to: "/apps" })}
+            aria-label={tr("Back to Apps")}
+          >
+            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+            <span>{tr("Apps")}</span>
+          </ShopButton>
+          <ConnectionStatus />
+        </div>
+
+        {/* Center: Inventory title on top, Shop name below */}
+        <div className="flex flex-col items-center justify-center min-w-0 px-2 text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate">
+            {tr("Inventory")}
+          </span>
+          <span className="text-[10px] text-muted-foreground truncate leading-tight">{acct?.shopName}</span>
+        </div>
+
+        {/* Right: Theme toggle, Calendar filter, Avatar */}
+        <div className="flex items-center gap-1 shrink-0 relative">
+          <ShopButton
+            variant="bare"
+            className="h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors text-foreground"
+            onClick={toggleTheme}
+            aria-label={tr("Toggle Theme")}
+            title={theme === "dark" ? tr("Switch to Light mode") : tr("Switch to Dark mode")}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-700" />
+            )}
+          </ShopButton>
+
+          <ShopButton
+            variant="bare"
+            className={cn(
+              "h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors",
+              showCalendar && "bg-muted text-primary",
+            )}
+            onClick={() => {
+              setShowCalendar(!showCalendar);
+              setShowShopMenu(false);
+            }}
+            aria-label={tr("Filter by date")}
+            title={tr("Calendar filter")}
+          >
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          </ShopButton>
+
+          {showCalendar && (
+            <div className="absolute right-9 top-10 z-50 w-36 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              {(["today", "week", "month", "all"] as const).map((r) => (
+                <button
+                  key={r}
+                  className={cn(
+                    "w-full text-start px-2 py-1 rounded capitalize font-medium transition-colors",
+                    calendarRange === r ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
+                  )}
+                  onClick={() => {
+                    setCalendarRange(r);
+                    setShowCalendar(false);
+                    toast.success(`${tr("Date filter")}: ${tr(r)}`);
+                  }}
+                >
+                  {tr(r === "all" ? "All time" : r === "today" ? "Today" : r === "week" ? "This week" : "This month")}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <ShopButton
+            variant="bare"
+            className="h-7 w-7 rounded-full bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity"
+            onClick={() => {
+              setShowShopMenu(!showShopMenu);
+              setShowCalendar(false);
+            }}
+            aria-label={acct?.shopName}
+            title={acct?.shopName}
+          >
+            {shopInitials}
+          </ShopButton>
+
+          {showShopMenu && (
+            <div className="absolute right-0 top-10 z-50 w-44 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
+              <div className="px-2 py-1 border-b border-border/50 font-bold truncate">{acct?.shopName}</div>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/settings" });
+                }}
+              >
+                {tr("Shop Settings")}
+              </button>
+              <button
+                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
+                onClick={() => {
+                  setShowShopMenu(false);
+                  nav({ to: "/apps" });
+                }}
+              >
+                {tr("All Apps")}
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* 2. 4 MAIN NAVIGATION MENUS & SUBMENUS */}
+      <nav aria-label={tr("Inventory navigation")} className="inventory-nav-wrap">
+        <Tabs
+          items={Object.keys(MENUS)}
+          value={menu}
+          onChange={(k) => go(k as Menu)}
+          label={(k) =>
+            k === "overview"
+              ? tr("Overview")
+              : k === "products & stock"
+                ? tr("Products & Stock")
+                : k === "returns & transfers"
+                  ? tr("Returns & Transfers")
+                  : tr("Configuration")
+          }
+        />
+        {MENUS[menu].length > 0 && (
+          <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />
+        )}
+      </nav>
+
+      {/* 3. WORKING CONTENT CANVAS (All screens & workflows preserved) */}
+      <section className="inventory-content flex-1">
+        {/* Menu 1: Overview */}
+        {menu === "overview" && <Overview {...ctx} />}
+
+        {/* Menu 2: Products & Stock */}
+        {menu === "products & stock" && sub === "All Products" && (
+          <ProductList
+            {...ctx}
+            onUnknown={(code) => {
+              setPrefill(code);
+              setSub("Add Product");
+            }}
+          />
+        )}
+        {menu === "products & stock" && sub === "Add Product" && (
+          <AddProduct
+            {...ctx}
+            barcode={prefillBarcode}
+            done={() => {
+              setPrefill("");
+              setSub("All Products");
+            }}
+          />
+        )}
+        {menu === "products & stock" && sub === "Stock In" && <StockInScreen {...ctx} />}
+        {menu === "products & stock" && sub === "Stock Out" && <StockOutScreen {...ctx} />}
+        {menu === "products & stock" && sub === "Stock History" && <StockHistoryScreen {...ctx} />}
+        {menu === "products & stock" && sub === "Adjustments" && <AdjustmentsScreen {...ctx} />}
+
+        {/* Menu 3: Returns & Transfers */}
+        {menu === "returns & transfers" && sub === "Customer Returns" && <CustomerReturnsScreen {...ctx} />}
+        {menu === "returns & transfers" && sub === "Supplier Returns" && <SupplierReturnsScreen {...ctx} />}
+        {menu === "returns & transfers" && sub === "New Transfer" && <NewTransferScreen {...ctx} />}
+        {menu === "returns & transfers" && sub === "Transfer History" && <TransferHistoryScreen {...ctx} />}
+
+        {/* Menu 4: Configuration */}
+        {menu === "configuration" && sub === "Product Setup" && <ProductSetupScreen {...ctx} />}
+        {menu === "configuration" && sub === "Stock Setup" && <StockSetupScreen {...ctx} />}
+      </section>
+    </main>
+  );
+}
 
 type Ctx = {
   s: erp.ErpState;
   money: (n: number) => string;
-  tr: (k: string) => string;
-  go: (m: MainMenu, sub: string) => void;
+  tr: (t: string) => string;
+  go: (m: Menu, sm?: string) => void;
   cur: string;
   shop: string;
   onUnknown?: (code: string) => void;
@@ -431,6 +485,7 @@ function Empty({ children }: { children: ReactNode }) {
     </div>
   );
 }
+
 /* =========================================================================
    1. OVERVIEW
    ========================================================================= */
@@ -446,45 +501,37 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
 
   return (
     <div className="space-y-4">
-      {/* 4 Fluid KPI Cards — Single Row across phone and laptop */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
+      {/* 4 Fluid KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">
-            {tr("Total Products")}
-          </span>
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Total Products")}</span>
           <Amt value={totalProducts} size="lg" />
         </div>
 
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">
-            {tr("Stock Value (Cost)")}
-          </span>
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Stock Value (Cost)")}</span>
           <Amt value={totalStockVal} curr={cur} size="lg" />
         </div>
 
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">
-            {tr("Low Stock")}
-          </span>
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Low Stock")}</span>
           <Amt value={lowStock.length} {...(lowStock.length > 0 ? { tone: "warn" as const } : {})} size="lg" />
         </div>
 
         <div
           onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
+          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-3 flex flex-col justify-between hover:border-primary/40 transition-colors"
         >
-          <span className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">
-            {tr("Out of Stock")}
-          </span>
+          <span className="text-[11px] font-semibold text-muted-foreground">{tr("Out of Stock")}</span>
           <Amt value={outOfStock.length} {...(outOfStock.length > 0 ? { tone: "bad" as const } : {})} size="lg" />
         </div>
       </div>
@@ -497,7 +544,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
           <ShopButton
             variant="ghost"
             size="sm"
-            onClick={() => go("products & stock", "Stock In (Receive)")}
+            onClick={() => go("products & stock", "Stock In")}
             className="text-xs font-semibold h-7"
           >
             <Plus className="w-3.5 h-3.5 mr-1" />
@@ -521,7 +568,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
                     variant="outline"
                     size="sm"
                     className="h-6 text-[10px] px-2"
-                    onClick={() => go("products & stock", "Stock In (Receive)")}
+                    onClick={() => go("products & stock", "Stock In")}
                   >
                     {tr("Restock")}
                   </ShopButton>
@@ -589,17 +636,10 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
    ========================================================================= */
 
 /** 2.1 All Products */
-function ProductList({
-  s,
-  money,
-  tr,
-  shop,
-  onUnknown,
-  forcedStatus,
-}: Ctx & { onUnknown: (code: string) => void; forcedStatus?: string }) {
+function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
-  const [status, setStatus] = useState(forcedStatus || "all");
+  const [status, setStatus] = useState("all");
   const [selectedProduct, setSelectedProduct] = useState<erp.Product | null>(null);
 
   const filtered = useMemo(() => {
@@ -629,43 +669,36 @@ function ProductList({
 
   return (
     <div className="space-y-3">
-      {/* Row 1: Search & Scan on left + Export CSV on right */}
-      <div className="flex items-center gap-2">
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-2">
         <div className="flex-1">
           <InventorySearch q={q} setQ={setQ} tr={tr} onScan={onUnknown} />
         </div>
-        <ShopButton
-          variant="outline"
-          size="sm"
-          onClick={exportCSV}
-          className="h-9 px-3 text-xs shrink-0 flex items-center gap-1.5"
-          title={tr("Export CSV")}
-        >
-          <Download className="w-4 h-4" />
-          <span className="hidden sm:inline font-medium">{tr("Export CSV")}</span>
-        </ShopButton>
-      </div>
-
-      {/* Row 2: Category and Status Filter Dropdowns */}
-      <div className="flex gap-2">
-        <select value={cat} onChange={(e) => setCat(e.target.value)} className="inventory-input text-xs flex-1 sm:w-40">
-          <option value="all">{tr("All Categories")}</option>
-          {s.categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="inventory-input text-xs flex-1 sm:w-36"
-        >
-          <option value="all">{tr("All Status")}</option>
-          <option value="OK">{tr("In Stock")}</option>
-          <option value="LOW">{tr("Low Stock")}</option>
-          <option value="OUT">{tr("Out of Stock")}</option>
-        </select>
+        <div className="flex gap-2">
+          <select value={cat} onChange={(e) => setCat(e.target.value)} className="inventory-input text-xs w-32">
+            <option value="all">{tr("All Categories")}</option>
+            {s.categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} className="inventory-input text-xs w-28">
+            <option value="all">{tr("All Status")}</option>
+            <option value="OK">{tr("In Stock")}</option>
+            <option value="LOW">{tr("Low Stock")}</option>
+            <option value="OUT">{tr("Out of Stock")}</option>
+          </select>
+          <ShopButton
+            variant="outline"
+            size="sm"
+            onClick={exportCSV}
+            className="h-9 px-2 text-xs"
+            title={tr("Export CSV")}
+          >
+            <Download className="w-4 h-4" />
+          </ShopButton>
+        </div>
       </div>
 
       {/* If unknown product typed */}
@@ -681,9 +714,9 @@ function ProductList({
         </div>
       )}
 
-      {/* Squeezed POS-Style Compact Product Rows */}
+      {/* Product List Table */}
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm">
-        <div className="divide-y divide-border/25">
+        <div className="divide-y divide-border/30">
           {filtered.length ? (
             filtered.map((p) => {
               const categoryName = s.categories.find((c) => c.id === p.categoryId)?.name;
@@ -691,11 +724,11 @@ function ProductList({
                 <div
                   key={p.id}
                   onClick={() => setSelectedProduct(p)}
-                  className="py-1.5 px-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors cursor-pointer"
+                  className="p-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors cursor-pointer"
                 >
                   <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="font-bold text-foreground text-xs sm:text-sm tracking-tight truncate">{p.name}</p>
+                      <p className="font-bold text-foreground text-sm tracking-tight truncate">{p.name}</p>
                       <Status p={p} />
                       {p.variants && p.variants.length > 0 && (
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted font-medium text-muted-foreground">
@@ -703,14 +736,14 @@ function ProductList({
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate mt-0.5">
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                       {categoryName ? `${categoryName} · ` : ""}
                       {p.sku ? `SKU: ${p.sku} · ` : ""}
                       {tr("Buy")}: {money(p.buy)} · {tr("Sell")}: {money(p.sell)}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="font-extrabold text-xs sm:text-sm text-foreground tabular-nums">
+                    <p className="font-extrabold text-sm text-foreground tabular-nums">
                       {p.qty} <span className="text-[10px] font-normal text-muted-foreground">{p.unit || "pcs"}</span>
                     </p>
                     <p className="text-[10px] text-muted-foreground">{money(p.qty * p.sell)}</p>
@@ -731,6 +764,7 @@ function ProductList({
     </div>
   );
 }
+
 /** 2.2 Add Product */
 function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
   const [f, setF] = useState({
@@ -795,27 +829,25 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
       toast.error(tr("Enter a product name"));
       return;
     }
-    const buy = parseFloat(f.buy) || 0;
-    const sell = parseFloat(f.sell) || 0;
-    const finalQty = hasVariants ? totalVariantQty : parseFloat(f.qty) || 0;
-    const minStock = parseFloat(f.minStock) || 5;
+    const finalQty = hasVariants && variants.length > 0 ? totalVariantQty : Number(f.qty);
 
     if (
       run(() => {
-        return erp.commit((state, c) => {
-          const id = c.id();
+        erp.commit((state, c) => {
+          const id = erp.uid();
           const p: erp.Product = {
             id,
             name: f.name.trim(),
-            buy,
-            sell,
-            qty: finalQty,
-            minStock,
+            buy: Number(f.buy) || 0,
+            sell: Number(f.sell) || 0,
+            qty: 0,
+            createdAt: Date.now(),
+            categoryId: f.categoryId || undefined,
+            brandId: f.brandId || undefined,
+            sku: f.sku.trim() || undefined,
+            barcode: f.barcode.trim() || undefined,
             unit: f.unit,
-            categoryId: showCategory && f.categoryId ? f.categoryId : undefined,
-            brandId: showBrand && f.brandId ? f.brandId : undefined,
-            barcode: showBarcode && f.barcode ? f.barcode.trim() : undefined,
-            sku: showSKU && f.sku ? f.sku.trim() : undefined,
+            minStock: Number(f.minStock) || 5,
             variants:
               hasVariants && variants.length > 0
                 ? variants.map((v) => ({
@@ -968,16 +1000,16 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           </ShopButton>
         </div>
 
-        {/* Optional Expandable Panels */}
+        {/* Expandable Optional Fields */}
         {showCategory && (
-          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/30 space-y-1">
-            <InventoryField label={tr("Product Category")}>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+            <InventoryField label={tr("Category")}>
               <select
                 className={inventoryInput}
                 value={f.categoryId}
                 onChange={(e) => setF({ ...f, categoryId: e.target.value })}
               >
-                <option value="">{tr("Select Category (Optional)")}</option>
+                <option value="">{tr("— No Category —")}</option>
                 {s.categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -989,14 +1021,14 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
         )}
 
         {showBrand && (
-          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/30 space-y-1">
-            <InventoryField label={tr("Brand / Manufacturer")}>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+            <InventoryField label={tr("Brand")}>
               <select
                 className={inventoryInput}
                 value={f.brandId}
                 onChange={(e) => setF({ ...f, brandId: e.target.value })}
               >
-                <option value="">{tr("Select Brand (Optional)")}</option>
+                <option value="">{tr("— No Brand —")}</option>
                 {s.brands.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -1008,29 +1040,22 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
         )}
 
         {showBarcode && (
-          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/30 space-y-1">
-            <InventoryField label={tr("Barcode")}>
-              <input
-                className={inventoryInput}
-                value={f.barcode}
-                onChange={(e) => setF({ ...f, barcode: e.target.value })}
-                placeholder={tr("Scan or enter barcode")}
-              />
-            </InventoryField>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
+            <BarcodeField value={f.barcode} onChange={(barcode) => setF({ ...f, barcode })} tr={tr} />
           </div>
         )}
 
         {showSKU && (
-          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/30 grid grid-cols-2 gap-2">
-            <InventoryField label={tr("SKU (Stock Keeping Unit)")}>
+          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 grid grid-cols-2 gap-2">
+            <InventoryField label={tr("SKU / Item Code")}>
               <input
                 className={inventoryInput}
                 value={f.sku}
                 onChange={(e) => setF({ ...f, sku: e.target.value })}
-                placeholder={tr("e.g. TSH-COT-001")}
+                placeholder="SKU-1001"
               />
             </InventoryField>
-            <InventoryField label={tr("Low Stock Alert Level")}>
+            <InventoryField label={tr("Min Stock Alert Level")}>
               <input
                 type="number"
                 step="1"
@@ -1042,71 +1067,66 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           </div>
         )}
 
-        {/* SIZES & VARIANTS SECTION */}
+        {/* Variants / Sizes Section */}
         <div className="pt-2 border-t border-border/30 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-foreground">{tr("Size Variants")}</p>
-              <p className="text-[11px] text-muted-foreground">{tr("Track distinct sizes, quantities, and prices")}</p>
-            </div>
-            <label className="flex items-center gap-1.5 cursor-pointer text-xs font-semibold select-none">
-              <input
-                type="checkbox"
-                checked={hasVariants}
-                onChange={(e) => setHasVariants(e.target.checked)}
-                className="rounded border-border"
-              />
-              {tr("Enable Sizes")}
-            </label>
-          </div>
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-border text-primary focus:ring-primary w-4 h-4"
+              checked={hasVariants}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setHasVariants(next);
+                if (!next) setVariants([]);
+              }}
+            />
+            <span className="text-xs font-semibold text-foreground">
+              {tr("This product has sizes / variants (S, M, L, 44–60, etc.)")}
+            </span>
+          </label>
 
           {hasVariants && (
-            <div className="p-3 rounded-lg bg-muted/30 border border-border/30 space-y-3">
-              {/* Range & Freeform Generators */}
+            <div className="p-3 rounded-lg bg-muted/40 border border-border/40 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {/* Number Range */}
+                {/* Numeric range generator */}
                 <div className="p-2 rounded bg-background/60 border border-border/30 space-y-1.5">
-                  <p className="font-semibold text-muted-foreground text-[11px]">
-                    {tr("Number Range (e.g. 40 to 46)")}
-                  </p>
+                  <p className="font-semibold text-foreground">{tr("Generate Numeric Range (e.g. 44 to 60)")}</p>
                   <div className="flex items-center gap-1.5">
                     <input
                       className={cn(inventoryInput, "h-7 text-xs")}
-                      placeholder="From"
+                      placeholder={tr("From")}
                       value={fromSize}
                       onChange={(e) => setFromSize(e.target.value)}
                     />
                     <input
                       className={cn(inventoryInput, "h-7 text-xs")}
-                      placeholder="To"
+                      placeholder={tr("To")}
                       value={toSize}
                       onChange={(e) => setToSize(e.target.value)}
                     />
                     <input
-                      className={cn(inventoryInput, "h-7 text-xs w-16")}
-                      placeholder="Step"
+                      className={cn(inventoryInput, "h-7 text-xs w-14")}
+                      placeholder={tr("Step")}
                       value={stepSize}
                       onChange={(e) => setStepSize(e.target.value)}
                     />
-                    <ShopButton size="sm" type="button" onClick={generateRange} className="h-7 text-xs shrink-0">
+                    <ShopButton type="button" size="sm" className="h-7 text-xs shrink-0" onClick={generateRange}>
                       {tr("Add")}
                     </ShopButton>
                   </div>
                 </div>
 
-                {/* Freeform Tokens */}
+                {/* Freeform text generator */}
                 <div className="p-2 rounded bg-background/60 border border-border/30 space-y-1.5">
-                  <p className="font-semibold text-muted-foreground text-[11px]">
-                    {tr("Custom Sizes (e.g. S, M, L, XL, 2XL)")}
-                  </p>
+                  <p className="font-semibold text-foreground">{tr("Add Custom Sizes (comma or space separated)")}</p>
                   <div className="flex items-center gap-1.5">
                     <input
-                      className={cn(inventoryInput, "h-7 text-xs flex-1")}
+                      className={cn(inventoryInput, "h-7 text-xs")}
                       placeholder="S, M, L, XL, 2XL"
                       value={freeform}
                       onChange={(e) => setFreeform(e.target.value)}
                     />
-                    <ShopButton size="sm" type="button" onClick={addFreeformTokens} className="h-7 text-xs shrink-0">
+                    <ShopButton type="button" size="sm" className="h-7 text-xs shrink-0" onClick={addFreeformTokens}>
                       {tr("Add")}
                     </ShopButton>
                   </div>
@@ -1115,17 +1135,17 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
 
               {/* Variant Rows Table */}
               {variants.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground px-1">
-                    <span>{tr("Size Name")}</span>
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground px-1">
+                    <span>{tr("Size / Variant")}</span>
                     <div className="flex items-center gap-4">
-                      <span>{tr("Opening Stock")}</span>
-                      <span>{tr("Sell Price Override")}</span>
-                      <span className="w-4"></span>
+                      <span>{tr("Opening Qty")}</span>
+                      <span>{tr("Sell Price (Opt)")}</span>
+                      <span className="w-6"></span>
                     </div>
                   </div>
 
-                  <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
+                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
                     {variants.map((v, i) => (
                       <div
                         key={v.id + i}
@@ -1189,6 +1209,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     </div>
   );
 }
+
 /** 2.3 Stock In Screen */
 function StockInScreen({ s, tr }: Ctx) {
   const [pid, setPid] = useState("");
@@ -1277,55 +1298,52 @@ function StockInScreen({ s, tr }: Ctx) {
               placeholder="0"
             />
           </InventoryField>
-
-          <InventoryField label={tr("Unit Cost (Optional)")}>
+          <InventoryField label={tr("Cost Price")}>
             <input
               type="number"
               step="any"
               className={inventoryInput}
               value={cost}
               onChange={(e) => setCost(e.target.value)}
-              placeholder="Supplier price"
+              placeholder="0"
             />
           </InventoryField>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Supplier / Source")}>
+          <InventoryField label={tr("Supplier / Vendor")}>
             <input
               className={inventoryInput}
               value={supplier}
               onChange={(e) => setSupplier(e.target.value)}
-              placeholder="e.g. Nairobi Distributors"
+              placeholder={tr("Supplier name...")}
             />
           </InventoryField>
-
-          <InventoryField label={tr("Invoice / Delivery Ref")}>
+          <InventoryField label={tr("Reference / Invoice No.")}>
             <input
               className={inventoryInput}
               value={ref}
               onChange={(e) => setRef(e.target.value)}
-              placeholder="e.g. INV-2026-081"
+              placeholder="INV-001"
             />
           </InventoryField>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Receiving Location")}>
-            <input
-              className={inventoryInput}
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Store / Shelf"
-            />
+          <InventoryField label={tr("Location / Warehouse")}>
+            <select className={inventoryInput} value={location} onChange={(e) => setLocation(e.target.value)}>
+              <option value="Main Warehouse">{tr("Main Warehouse")}</option>
+              <option value="Front Store">{tr("Front Store")}</option>
+              <option value="Backroom">{tr("Backroom")}</option>
+              <option value="Shelf A">{tr("Shelf A")}</option>
+            </select>
           </InventoryField>
-
           <InventoryField label={tr("Batch / Lot Number")}>
             <input
               className={inventoryInput}
               value={batch}
               onChange={(e) => setBatch(e.target.value)}
-              placeholder="e.g. BATCH-A1"
+              placeholder="LOT-2026A"
             />
           </InventoryField>
         </div>
@@ -1334,12 +1352,12 @@ function StockInScreen({ s, tr }: Ctx) {
           <input type="date" className={inventoryInput} value={expiry} onChange={(e) => setExpiry(e.target.value)} />
         </InventoryField>
 
-        <InventoryField label={tr("Notes / Remarks")}>
-          <textarea
-            className="w-full h-16 p-2 rounded-lg border border-border/60 bg-background/80 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+        <InventoryField label={tr("Notes")}>
+          <input
+            className={inventoryInput}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={tr("Add any observations, packaging state, or carrier details")}
+            placeholder={tr("Delivery notes, condition, etc.")}
           />
         </InventoryField>
       </div>
@@ -1354,7 +1372,15 @@ function StockOutScreen({ s, tr }: Ctx) {
   const [reason, setReason] = useState("Damaged");
   const [notes, setNotes] = useState("");
 
-  const p = s.products.find((x) => x.id === pid);
+  const reasons = [
+    "Damaged",
+    "Expired",
+    "Broken",
+    "Lost or missing",
+    "Sample or demonstration",
+    "Internal use",
+    "Other",
+  ];
 
   const submit = () => {
     if (!pid) {
@@ -1366,12 +1392,8 @@ function StockOutScreen({ s, tr }: Ctx) {
       toast.error(tr("Enter a valid quantity"));
       return;
     }
-    if (p && qNum > p.qty) {
-      toast.error(tr("Quantity exceeds current stock"));
-      return;
-    }
     const detail = `${reason}${notes ? ` • ${notes}` : ""}`;
-    if (run(() => erp.stockOut(pid, qNum, detail), tr("Stock out recorded"))) {
+    if (run(() => erp.stockOut(pid, qNum, detail), tr("Stock out recorded successfully"))) {
       setQty("");
       setNotes("");
     }
@@ -1416,11 +1438,7 @@ function StockOutScreen({ s, tr }: Ctx) {
         </InventoryField>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Current Stock")}>
-            <input className={cn(inventoryInput, "bg-muted font-bold")} readOnly value={p ? p.qty : "—"} />
-          </InventoryField>
-
-          <InventoryField label={tr("Quantity to Remove")} required>
+          <InventoryField label={tr("Quantity Written Off")} required>
             <input
               type="number"
               step="any"
@@ -1430,25 +1448,23 @@ function StockOutScreen({ s, tr }: Ctx) {
               placeholder="0"
             />
           </InventoryField>
+          <InventoryField label={tr("Reason Category")} required>
+            <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
+              {reasons.map((r) => (
+                <option key={r} value={r}>
+                  {tr(r)}
+                </option>
+              ))}
+            </select>
+          </InventoryField>
         </div>
 
-        <InventoryField label={tr("Reason for Write-Off")} required>
-          <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="Damaged">{tr("Damaged Goods")}</option>
-            <option value="Expired">{tr("Expired / Outdated")}</option>
-            <option value="Lost / Stolen">{tr("Lost / Stolen / Discrepancy")}</option>
-            <option value="Personal Use">{tr("Owner Personal Use")}</option>
-            <option value="Internal Consumption">{tr("Shop / Office Consumption")}</option>
-            <option value="Sample">{tr("Marketing / Free Sample")}</option>
-          </select>
-        </InventoryField>
-
-        <InventoryField label={tr("Notes / Authorization")}>
-          <textarea
-            className="w-full h-16 p-2 rounded-lg border border-border/60 bg-background/80 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+        <InventoryField label={tr("Description / Notes")}>
+          <input
+            className={inventoryInput}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={tr("Authorized by, incident description, or disposal ref")}
+            placeholder={tr("Reason for write-off, incident details...")}
           />
         </InventoryField>
       </div>
@@ -1456,44 +1472,60 @@ function StockOutScreen({ s, tr }: Ctx) {
   );
 }
 
-/** 2.5 Stock History Screen */
+/** 2.5 Stock History */
 function StockHistoryScreen({ s, tr }: Ctx) {
-  const [filterType, setFilterType] = useState<string>("all");
+  const [filterType, setFilterType] = useState("all");
+  const [q, setQ] = useState("");
 
   const moves = useMemo(() => {
-    return s.movements.filter((m) => filterType === "all" || m.type === filterType);
-  }, [s.movements, filterType]);
+    return s.movements.filter((m) => {
+      const matchType = filterType === "all" || m.type === filterType;
+      const p = s.products.find((prod) => prod.id === m.productId);
+      const matchQ =
+        !q.trim() ||
+        (p?.name && p.name.toLowerCase().includes(q.toLowerCase())) ||
+        (m.source && m.source.toLowerCase().includes(q.toLowerCase()));
+      return matchType && matchQ;
+    });
+  }, [s.movements, s.products, filterType, q]);
 
   const typeColor = (t: string) => {
     switch (t) {
-      case "OPENING":
-      case "PURCHASE":
-      case "TRANSFER_IN":
-      case "RETURN_CUSTOMER":
-        return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400";
       case "SALE":
-      case "TRANSFER_OUT":
-      case "RETURN_SUPPLIER":
-        return "bg-rose-500/15 text-rose-600 dark:text-rose-400";
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-400";
+      case "IN":
+      case "OPENING":
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+      case "ADJUST":
+        return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
+      case "TRANSFER":
+        return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400";
       default:
-        return "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+        return "bg-muted text-muted-foreground";
     }
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h2 className="text-base font-bold text-foreground">{tr("Stock Movement Audit Trail")}</h2>
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {["all", "OPENING", "PURCHASE", "SALE", "ADJUST", "TRANSFER_IN", "TRANSFER_OUT"].map((t) => (
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
+        <div className="relative flex-1">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            className={cn(inventoryInput, "pl-8 text-xs")}
+            placeholder={tr("Search by product or reference...")}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0">
+          {["all", "IN", "SALE", "OUT", "ADJUST", "TRANSFER"].map((t) => (
             <button
               key={t}
               onClick={() => setFilterType(t)}
               className={cn(
-                "px-2 py-0.5 rounded text-[11px] font-semibold transition-colors shrink-0",
-                filterType === t
-                  ? "bg-primary text-primary-foreground font-bold"
-                  : "bg-muted/60 text-muted-foreground hover:bg-muted",
+                "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors whitespace-nowrap",
+                filterType === t ? "bg-primary text-primary-foreground font-bold" : "bg-muted text-muted-foreground",
               )}
             >
               {t === "all" ? tr("All Movements") : t}
@@ -1515,17 +1547,15 @@ function StockHistoryScreen({ s, tr }: Ctx) {
             moves.map((m) => {
               const p = s.products.find((prod) => prod.id === m.productId);
               return (
-                <div key={m.id} className="py-1.5 px-3 text-xs flex items-center justify-between gap-2">
+                <div key={m.id} className="p-3 text-xs flex items-center justify-between gap-2">
                   <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold", typeColor(m.type))}>
                         {m.type}
                       </span>
-                      <p className="font-bold text-foreground text-xs sm:text-sm truncate">
-                        {p?.name || tr("Unknown Item")}
-                      </p>
+                      <p className="font-bold text-foreground text-sm truncate">{p?.name || tr("Unknown Item")}</p>
                     </div>
-                    <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate mt-0.5">
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                       {m.source} · {dt(m.at)}
                     </p>
                   </div>
@@ -1533,7 +1563,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                   <div className="text-right shrink-0">
                     <p
                       className={cn(
-                        "font-extrabold text-xs sm:text-sm tabular-nums",
+                        "font-extrabold text-sm tabular-nums",
                         m.qty > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
                       )}
                     >
@@ -1554,6 +1584,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
     </div>
   );
 }
+
 /** 2.6 Adjustments Screen */
 function AdjustmentsScreen({ s, tr }: Ctx) {
   const [pid, setPid] = useState("");
@@ -1628,53 +1659,55 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
             <input
               type="number"
               step="any"
+              min="0"
               className={inventoryInput}
               value={counted}
               onChange={(e) => setCounted(e.target.value)}
-              placeholder="Counted units"
+              placeholder="0"
             />
           </InventoryField>
         </div>
 
-        {counted !== "" && (
-          <div
-            className={cn(
-              "p-2 rounded-lg text-xs font-semibold flex items-center justify-between",
-              diff === 0 && "bg-muted/50 text-muted-foreground",
-              diff > 0 && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
-              diff < 0 && "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20",
-            )}
-          >
-            <span>{tr("Stock Discrepancy Variance")}:</span>
-            <span className="font-extrabold text-sm tabular-nums">
-              {diff > 0 ? `+${diff}` : diff} {p?.unit || "units"}
+        {counted !== "" && p && (
+          <div className="p-2.5 rounded-lg bg-muted/40 border border-border/40 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">{tr("Variance (Difference)")}:</span>
+            <span
+              className={cn(
+                "font-extrabold text-sm tabular-nums",
+                diff === 0
+                  ? "text-foreground"
+                  : diff > 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-rose-600 dark:text-rose-400",
+              )}
+            >
+              {diff > 0 ? `+${diff}` : diff} {p.unit || "pcs"}
             </span>
           </div>
         )}
 
-        <InventoryField label={tr("Adjustment Reason")} required>
+        <InventoryField label={tr("Reason")} required>
           <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="Physical stock count">{tr("Routine Stock Count Audit")}</option>
-            <option value="Shrinkage / Theft">{tr("Unexplained Shrinkage / Theft")}</option>
-            <option value="Found Stock">{tr("Found / Unrecorded Stock")}</option>
-            <option value="Damaged in Storage">{tr("Damaged in Storage")}</option>
-            <option value="Unit Conversion / Packing Error">{tr("Unit Conversion / Packing Error")}</option>
+            <option value="Physical stock count">{tr("Physical stock count")}</option>
+            <option value="Damaged goods discovered">{tr("Damaged goods discovered")}</option>
+            <option value="Lost or missing inventory">{tr("Lost or missing inventory")}</option>
+            <option value="Discrepancy correction">{tr("Discrepancy correction")}</option>
+            <option value="Other">{tr("Other")}</option>
           </select>
         </InventoryField>
 
-        <InventoryField label={tr("Notes / Justification")}>
-          <textarea
-            className="w-full h-16 p-2 rounded-lg border border-border/60 bg-background/80 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+        <InventoryField label={tr("Notes")}>
+          <input
+            className={inventoryInput}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder={tr("Detailed discrepancy explanation or audit reference")}
+            placeholder={tr("Audit explanation...")}
           />
         </InventoryField>
       </div>
     </div>
   );
 }
-
 /* =========================================================================
    3. RETURNS & TRANSFERS
    ========================================================================= */
@@ -1684,9 +1717,10 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
   const [saleRef, setSaleRef] = useState("");
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
-  const [condition, setCondition] = useState<"RESTOCK" | "DAMAGED">("RESTOCK");
-  const [reason, setReason] = useState("Defective item");
-  const [refundMethod, setRefundMethod] = useState("Cash");
+  const [reason, setReason] = useState("Faulty or not working");
+  const [condition, setCondition] = useState("Good (Resalable)");
+  const [resolution, setResolution] = useState("Refund");
+  const [outcome, setOutcome] = useState("Return to available stock");
 
   const resetForm = () => {
     setQty("");
@@ -1696,23 +1730,26 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
 
   const submit = () => {
     if (!pid) {
-      toast.error(tr("Select product"));
+      toast.error(tr("Select a product to return"));
       return;
     }
     const qNum = Number(qty);
     if (!qNum || qNum <= 0) {
-      toast.error(tr("Enter valid quantity"));
+      toast.error(tr("Enter return quantity"));
       return;
     }
 
+    const detail = `Customer Return • ${saleRef || "Direct"} • ${reason} • ${condition} • ${resolution}`;
+
     if (
       run(() => {
-        return erp.commit((state, c) => {
-          const detail = `Customer Return • ${saleRef || "Direct"} • ${reason} • Refund: ${refundMethod}`;
-          if (condition === "RESTOCK") {
-            c.move(pid, "RETURN_CUSTOMER", qNum, detail, c.nextRef("RET"));
+        erp.commit((state, c) => {
+          if (outcome === "Return to available stock") {
+            const p = state.products.find((x) => x.id === pid);
+            if (p) p.qty += qNum;
+            c.move(pid, "RETURN", qNum, detail, c.nextRef("RET"));
           } else {
-            c.audit("RETURN DAMAGED", `${pid} qty ${qNum} not restocked (${reason})`);
+            c.audit("RETURN QUARANTINED", `${pid} • ${qNum} • ${detail}`);
           }
         });
       }, tr("Customer return processed"))
@@ -1747,25 +1784,14 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
       </div>
 
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Original Sale Ref / Customer")}>
-            <input
-              className={inventoryInput}
-              value={saleRef}
-              onChange={(e) => setSaleRef(e.target.value)}
-              placeholder="e.g. REC-1024 or Walk-in"
-            />
-          </InventoryField>
-          <InventoryField label={tr("Refund Method")}>
-            <select className={inventoryInput} value={refundMethod} onChange={(e) => setRefundMethod(e.target.value)}>
-              <option value="Cash">{tr("Cash Refund")}</option>
-              <option value="M-Pesa">{tr("M-Pesa")}</option>
-              <option value="Bank">{tr("Bank Transfer")}</option>
-              <option value="Credit">{tr("Store Credit Note")}</option>
-              <option value="Exchange">{tr("Direct Exchange (No Cash)")}</option>
-            </select>
-          </InventoryField>
-        </div>
+        <InventoryField label={tr("Original Sale / Receipt Ref (Optional)")}>
+          <input
+            className={inventoryInput}
+            value={saleRef}
+            onChange={(e) => setSaleRef(e.target.value)}
+            placeholder="REC-00123"
+          />
+        </InventoryField>
 
         <InventoryField label={tr("Product Returned")} required>
           <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
@@ -1782,24 +1808,41 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               placeholder="0"
             />
           </InventoryField>
-          <InventoryField label={tr("Item Condition")} required>
-            <select
-              className={inventoryInput}
-              value={condition}
-              onChange={(e) => setCondition(e.target.value as "RESTOCK" | "DAMAGED")}
-            >
-              <option value="RESTOCK">{tr("Restock to Inventory")}</option>
-              <option value="DAMAGED">{tr("Damaged (Do Not Restock)")}</option>
+          <InventoryField label={tr("Reason for Return")}>
+            <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
+              <option value="Faulty or not working">{tr("Faulty or not working")}</option>
+              <option value="Wrong product supplied">{tr("Wrong product supplied")}</option>
+              <option value="Wrong size, colour or variant">{tr("Wrong size, colour or variant")}</option>
+              <option value="Damaged product">{tr("Damaged product")}</option>
+              <option value="Customer changed mind">{tr("Customer changed mind")}</option>
+              <option value="Other">{tr("Other")}</option>
             </select>
           </InventoryField>
         </div>
 
-        <InventoryField label={tr("Return Reason")}>
-          <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="Defective item">{tr("Defective / Faulty Item")}</option>
-            <option value="Wrong size/color">{tr("Wrong Size / Color / Model")}</option>
-            <option value="Customer changed mind">{tr("Customer Changed Mind")}</option>
-            <option value="Expired">{tr("Expired / Stale")}</option>
+        <div className="grid grid-cols-2 gap-2">
+          <InventoryField label={tr("Inspection Condition")}>
+            <select className={inventoryInput} value={condition} onChange={(e) => setCondition(e.target.value)}>
+              <option value="Good (Resalable)">{tr("Good (Resalable)")}</option>
+              <option value="Damaged">{tr("Damaged")}</option>
+              <option value="Faulty">{tr("Faulty")}</option>
+              <option value="Needs Inspection">{tr("Needs Further Inspection")}</option>
+            </select>
+          </InventoryField>
+          <InventoryField label={tr("Resolution")}>
+            <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
+              <option value="Refund">{tr("Refund Cash / M-Pesa")}</option>
+              <option value="Exchange">{tr("Exchange with another product")}</option>
+              <option value="Store Credit">{tr("Store Credit")}</option>
+              <option value="Reject">{tr("Reject Return")}</option>
+            </select>
+          </InventoryField>
+        </div>
+
+        <InventoryField label={tr("Inventory Outcome")}>
+          <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+            <option value="Return to available stock">{tr("Return to Available Stock (Restock)")}</option>
+            <option value="Move to damaged stock">{tr("Quarantine / Move to Damaged (Do Not Restock)")}</option>
           </select>
         </InventoryField>
       </div>
@@ -1871,15 +1914,15 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               className={inventoryInput}
               value={supplier}
               onChange={(e) => setSupplier(e.target.value)}
-              placeholder="e.g. Kenya Breweries Ltd"
+              placeholder="Supplier name"
             />
           </InventoryField>
-          <InventoryField label={tr("Original Purchase Order / Inv")}>
+          <InventoryField label={tr("Purchase Order Ref")}>
             <input
               className={inventoryInput}
               value={purchaseRef}
               onChange={(e) => setPurchaseRef(e.target.value)}
-              placeholder="e.g. PO-8891"
+              placeholder="PO-0089"
             />
           </InventoryField>
         </div>
@@ -1889,7 +1932,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
         </InventoryField>
 
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Quantity to Return")} required>
+          <InventoryField label={tr("Quantity Being Returned")} required>
             <input
               type="number"
               step="any"
@@ -1899,27 +1942,30 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               placeholder="0"
             />
           </InventoryField>
-          <InventoryField label={tr("Resolution Expected")} required>
-            <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
-              <option value="Supplier Credit Note">{tr("Supplier Credit Note")}</option>
-              <option value="Cash Refund">{tr("Cash / Bank Refund")}</option>
-              <option value="Replacement Pending">{tr("Replacement Goods Pending")}</option>
+          <InventoryField label={tr("Reason")}>
+            <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
+              <option value="Damaged on delivery">{tr("Damaged on delivery")}</option>
+              <option value="Faulty or not working">{tr("Faulty or not working")}</option>
+              <option value="Wrong product delivered">{tr("Wrong product delivered")}</option>
+              <option value="Expired goods">{tr("Expired goods")}</option>
+              <option value="Other">{tr("Other")}</option>
             </select>
           </InventoryField>
         </div>
 
-        <InventoryField label={tr("Reason for Return")}>
-          <select className={inventoryInput} value={reason} onChange={(e) => setReason(e.target.value)}>
-            <option value="Damaged on delivery">{tr("Damaged on Delivery / Packaging Compromised")}</option>
-            <option value="Expired">{tr("Received Near Expiry or Expired")}</option>
-            <option value="Wrong item shipped">{tr("Wrong Item / Incorrect Spec Shipped")}</option>
-            <option value="Over-supplied">{tr("Over-Supplied Beyond Purchase Order")}</option>
+        <InventoryField label={tr("Supplier Resolution")}>
+          <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
+            <option value="Supplier Credit Note">{tr("Supplier Credit Note")}</option>
+            <option value="Replacement Goods">{tr("Replacement Goods")}</option>
+            <option value="Refund">{tr("Cash / Bank Refund")}</option>
+            <option value="Awaiting Response">{tr("Awaiting Supplier Response")}</option>
           </select>
         </InventoryField>
       </div>
     </div>
   );
 }
+
 /** 3.3 New Transfer */
 function NewTransferScreen({ s, tr, shop }: Ctx) {
   const [pid, setPid] = useState("");
@@ -2324,19 +2370,7 @@ function StockSetupScreen({ tr }: Ctx) {
 }
 
 /** Read-only product details popup opened from All Products */
-function ProductDetailSheet({
-  p,
-  s,
-  money,
-  tr,
-  onClose,
-}: {
-  p: erp.Product;
-  s: erp.ErpState;
-  money: (n: number) => string;
-  tr: (t: string) => string;
-  onClose: () => void;
-}) {
+function ProductDetailSheet({ p, s, money, tr, onClose }: { p: erp.Product; s: erp.ErpState; money: (n: number) => string; tr: (t: string) => string; onClose: () => void }) {
   const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
   const brand = s.brands.find((b) => b.id === p.brandId)?.name;
   const rows: [string, string][] = [
@@ -2350,19 +2384,11 @@ function ProductDetailSheet({
     [tr("SKU"), p.sku || "—"],
   ];
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-bold truncate">{p.name}</h3>
-          <ShopButton variant="outline" onClick={onClose}>
-            {tr("Close")}
-          </ShopButton>
+          <ShopButton variant="outline" onClick={onClose}>{tr("Close")}</ShopButton>
         </div>
         <div className="grid grid-cols-2 gap-2 text-sm">
           {rows.map(([k, v]) => (
