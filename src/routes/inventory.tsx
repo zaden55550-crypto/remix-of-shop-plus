@@ -164,6 +164,9 @@ function Amt({
   tone?: "info" | "good" | "warn" | "bad";
   size?: "sm" | "md" | "lg" | "xs";
 }) {
+  const formatted = compactFmt(value);
+  const isLarge = formatted.length > 7;
+  const isHuge = formatted.length > 10;
   const symbol = curr ? toCurrencySymbol(curr) : undefined;
   const toneClass = cn(
     tone === "info" && "text-sky-500 dark:text-sky-400",
