@@ -43,7 +43,7 @@ import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { METHOD_LABEL, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
 import { chatIcons, trialDaysLeft } from "@/lib/shopbook";
 import { findByCurrency } from "@/lib/world-data";
-
+import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
