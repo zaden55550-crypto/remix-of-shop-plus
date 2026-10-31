@@ -1731,7 +1731,7 @@ function StockHistoryScreen({ s, tr }: Ctx) {
 
                   <div className="text-[10px] text-muted-foreground/80 pt-1 border-t border-border/20 flex justify-between">
                     <span>{dt(m.at)}</span>
-                    <span className="font-medium text-foreground/70">{p?.category || "General"}</span>
+                    <span className="font-medium text-foreground/70">{tr("General")}</span>
                   </div>
                 </div>
               );
@@ -1743,7 +1743,8 @@ function StockHistoryScreen({ s, tr }: Ctx) {
           </div>
         )}
       </div>
-
+    </div>
+  );
 }
 
 /** 2.6 Adjustments Screen */
