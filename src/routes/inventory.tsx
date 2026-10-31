@@ -1307,51 +1307,259 @@ function InlineProductPicker({
   tr: (t: string) => string;
 }) {
   const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newProdName, setNewProdName] = useState("");
+  const [newProdQty, setNewProdQty] = useState("0");
+  const [newProdUnit, setNewProdUnit] = useState("Piece");
+  const [newProdBuy, setNewProdBuy] = useState("0");
+  const [newProdSell, setNewProdSell] = useState("0");
+
+  const selectedProduct = s.products.find((p) => p.id === value);
   const rows = inventoryProducts(s, q);
 
+  const handleQuickAdd = () => {
+    if (!newProdName.trim()) {
+      toast.error(tr("Product name is required"));
+      return;
+    }
+    const newId = erp.uid();
+    const created = run(() => {
+      erp.commit((state, c) => {
+        const prod: erp.Product = {
+          id: newId,
+          name: newProdName.trim(),
+          buy: Number(newProdBuy) || 0,
+          sell: Number(newProdSell) || 0,
+          qty: 0,
+          createdAt: Date.now(),
+          unit: newProdUnit,
+          minStock: 5,
+        };
+        state.products.push(prod);
+        const initQty = Number(newProdQty) || 0;
+        if (initQty > 0) {
+          prod.qty = initQty;
+          c.move(newId, "OPENING", initQty, "Opening stock balance", c.nextRef("STK"));
+        }
+      });
+    }, tr("Product registered & selected"));
+
+    if (created) {
+      onChange(newId);
+      setShowAddModal(false);
+      setOpen(false);
+      setQ("");
+    }
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="relative w-full">
       <InventoryField label={tr("Select Product")} required>
-        <select
-          aria-label={tr("Select product")}
-          className={inventoryInput}
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setQ("");
-          }}
-        >
-          <option value="">{tr("Select product...")}</option>
-          {rows.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name} ({p.qty} {p.unit || "pcs"})
-            </option>
-          ))}
-        </select>
+        <div className="relative flex items-center">
+          {selectedProduct ? (
+            <div
+              className={cn(inventoryInput, "flex items-center justify-between pr-2 cursor-pointer")}
+              onClick={() => setOpen(true)}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <span className="font-semibold text-foreground truncate">{selectedProduct.name}</span>
+                <span className="text-xs text-muted-foreground shrink-0 font-mono">
+                  ({selectedProduct.qty} {selectedProduct.unit || "pcs"})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange("");
+                  setQ("");
+                  setOpen(true);
+                }}
+                className="h-6 w-6 rounded flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground"
+                title={tr("Change product")}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative w-full">
+              <input
+                type="text"
+                className={cn(inventoryInput, "pr-10")}
+                placeholder={tr("Select, search or scan product...")}
+                value={q}
+                onFocus={() => setOpen(true)}
+                onChange={(e) => {
+                  setQ(e.target.value);
+                  setOpen(true);
+                }}
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setOpen(!open)}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </InventoryField>
-      <InventoryField label={tr("Search or Scan Product")}>
-        <InventorySearch
-          q={q}
-          setQ={(v) => {
-            setQ(v);
-            const found = s.products.find(
-              (p) => p.name.toLowerCase() === v.trim().toLowerCase() || p.barcode === v.trim(),
-            );
-            if (found) onChange(found.id);
-          }}
-          onScan={(code) => {
-            const p = erp.findByCode(s, code);
-            if (p) {
-              onChange(p.id);
-              setQ(p.name);
-            } else {
-              setQ(code);
-            }
-          }}
-          tr={tr}
-          placeholder="Search name, barcode..."
-        />
-      </InventoryField>
+
+      {/* Dropdown list */}
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xl p-1.5 max-h-60 overflow-y-auto space-y-1">
+          {rows.length > 0 ? (
+            rows.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  onChange(p.id);
+                  setOpen(false);
+                  setQ("");
+                }}
+                className={cn(
+                  "w-full text-start px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs hover:bg-primary/10 transition-colors",
+                  value === p.id && "bg-primary/15 font-bold text-primary",
+                )}
+              >
+                <span className="truncate">{p.name}</span>
+                <span className="text-muted-foreground text-[11px] shrink-0 font-mono">
+                  {p.qty} {p.unit || "pcs"}
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="p-2 text-center text-xs text-muted-foreground">{tr("No existing product found")}</div>
+          )}
+
+          {/* Quick Add Option */}
+          <div className="pt-1 border-t border-border/50">
+            <button
+              type="button"
+              onClick={() => {
+                setNewProdName(q.trim());
+                setNewProdQty("0");
+                setNewProdUnit("Piece");
+                setNewProdBuy("0");
+                setNewProdSell("0");
+                setShowAddModal(true);
+                setOpen(false);
+              }}
+              className="w-full text-start px-2.5 py-2 rounded-lg flex items-center gap-2 text-xs font-semibold text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>{q.trim() ? `${tr("Add new product")} "${q.trim()}"` : tr("Register New Product")}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Inline Quick Add Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+              <span className="font-bold text-sm text-foreground">{tr("Quick Register Product")}</span>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {/* Product Name */}
+              <InventoryField label={tr("Product Name")} required>
+                <input
+                  className={inventoryInput}
+                  value={newProdName}
+                  onChange={(e) => setNewProdName(e.target.value)}
+                  placeholder={tr("e.g. Sugar 1kg, Milk 1L")}
+                  autoFocus
+                />
+              </InventoryField>
+
+              {/* Quantity & Unit in 1 row */}
+              <div className="grid grid-cols-2 gap-2">
+                <InventoryField label={tr("Quantity")} required>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inventoryInput}
+                    value={newProdQty}
+                    onChange={(e) => setNewProdQty(e.target.value)}
+                    placeholder="0"
+                  />
+                </InventoryField>
+                <InventoryField label={tr("Unit of Measurement")} required>
+                  <select
+                    className={inventoryInput}
+                    value={newProdUnit}
+                    onChange={(e) => setNewProdUnit(e.target.value)}
+                  >
+                    {["Piece", "kg", "g", "L", "ml", "box", "packet", "carton", "pair", "set"].map((u) => (
+                      <option key={u} value={u}>
+                        {tr(u)}
+                      </option>
+                    ))}
+                  </select>
+                </InventoryField>
+              </div>
+
+              {/* Buying & Selling Price in 1 row */}
+              <div className="grid grid-cols-2 gap-2">
+                <InventoryField label={tr("Buying Price")}>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inventoryInput}
+                    value={newProdBuy}
+                    onChange={(e) => setNewProdBuy(e.target.value)}
+                    placeholder="0"
+                  />
+                </InventoryField>
+                <InventoryField label={tr("Selling Price")}>
+                  <input
+                    type="number"
+                    step="any"
+                    className={inventoryInput}
+                    value={newProdSell}
+                    onChange={(e) => setNewProdSell(e.target.value)}
+                    placeholder="0"
+                  />
+                </InventoryField>
+              </div>
+            </div>
+
+            {/* Footer buttons */}
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border/50">
+              <ShopButton
+                variant="bare"
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="h-8 px-3 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground"
+              >
+                {tr("Cancel")}
+              </ShopButton>
+              <ShopButton
+                variant="primary"
+                type="button"
+                onClick={handleQuickAdd}
+                className="h-8 px-3.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs"
+              >
+                {tr("Save & Select")}
+              </ShopButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
