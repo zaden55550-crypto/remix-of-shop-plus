@@ -552,8 +552,6 @@ export default function Dashboard() {
               </button>
 
               {showCalendarPopover && (
-
-              {showCalendarPopover && (
                 <div className="absolute right-0 top-full mt-1.5 z-50 w-60 rounded-xl border border-border/60 dark:border-white/10 bg-popover/95 backdrop-blur-xl p-2.5 shadow-2xl dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)] space-y-2">
                   <div className="flex items-center justify-between pb-1.5 border-b border-border/60 text-xs font-bold text-foreground">
                     <span className="flex items-center gap-1">
