@@ -33,6 +33,7 @@ import {
   AlertTriangle,
   Building2,
   ShieldAlert,
+  import { findByCurrency } from "@/lib/world-data";
 } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
