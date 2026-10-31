@@ -233,7 +233,7 @@ function Inventory() {
       return;
     }
     setAcct(a);
-  }, [nav, tr]);
+  }, [nav]);
 
   const s = useErp();
   const cur = acct?.currency || "USD";
