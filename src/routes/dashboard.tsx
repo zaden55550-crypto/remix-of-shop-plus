@@ -177,24 +177,24 @@ function Amt({
       )}
     >
       <span className={cn("font-black", numSize)}>{numStr}</span>
-            {symbol && (
+      {symbol && (
         <sup
           className={cn(
-            "font-semibold shrink-0 select-none ml-0.5 relative top-0 leading-tight",
-            tone === "good" && "text-emerald-600 dark:text-emerald-400/85",
-            tone === "info" && "text-sky-600 dark:text-sky-400/85",
-            tone === "warn" && "text-amber-600 dark:text-amber-400/85",
-            tone === "bad" && "text-rose-600 dark:text-rose-400/85",
-            !tone && "text-foreground",
+            "font-bold shrink-0 select-none ml-0.5 relative top-0 leading-tight",
+            toneClass,
+            size === "2xs" && "text-[6px]",
             size === "xs" && "text-[7px]",
             size === "sm" && "text-[8px]",
-            size === "md" && "text-[9px]",
-            size === "lg" && "text-[10px]",
+            size === "md" && "text-[8.5px]",
+            size === "lg" && "text-[9.5px]",
           )}
         >
           {symbol}
         </sup>
       )}
+    </span>
+  );
+}
 
 /** Reusable Glass Card Tooltip for Charts */
 function ChartTooltip({ active, payload, label, curr = "KSh" }: any) {
