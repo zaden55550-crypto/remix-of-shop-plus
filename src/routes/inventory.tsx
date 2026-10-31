@@ -1554,17 +1554,19 @@ function StockOutScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-4">
+    <div className="max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto space-y-4">
       {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
-        <h2 className="text-base font-bold text-foreground">{tr("Stock Out — Non-Sale Write-Off")}</h2>
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2 pb-1">
+        <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
+          {tr("Stock Out — Non-Sale Write-Off")}
+        </h2>
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <ShopButton
             type="button"
             variant="outline"
             size="sm"
             onClick={cancel}
-            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
+            className="text-xs h-8 px-2.5 sm:px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
           >
             {tr("Cancel")}
           </ShopButton>
@@ -1573,18 +1575,18 @@ function StockOutScreen({ s, tr }: Ctx) {
             variant="primary"
             size="sm"
             onClick={submit}
-            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            className="text-xs h-8 px-3 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
           >
             {tr("Record Stock Out")}
           </ShopButton>
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        <InventoryField label={tr("Product")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-        </InventoryField>
+      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
+        {/* Row 1: Select Product + Search or Scan Product in 1 row */}
+        <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
 
+        {/* Row 2: Quantity Written Off * + Reason Category * in 1 row */}
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Quantity Written Off")} required>
             <input
@@ -1607,6 +1609,7 @@ function StockOutScreen({ s, tr }: Ctx) {
           </InventoryField>
         </div>
 
+        {/* Row 3: Description / Notes */}
         <InventoryField label={tr("Description / Notes")}>
           <input
             className={inventoryInput}
@@ -1619,7 +1622,6 @@ function StockOutScreen({ s, tr }: Ctx) {
     </div>
   );
 }
-
 /** 2.5 Stock History */
 function StockHistoryScreen({ s, tr }: Ctx) {
   const [filterType, setFilterType] = useState("all");
