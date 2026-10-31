@@ -167,6 +167,8 @@ function Amt({
   const formatted = compactFmt(value);
   const isLarge = formatted.length > 7;
   const isHuge = formatted.length > 10;
+  const symbol = curr ? toCurrencySymbol(curr) : undefined;
+
   return (
     <div className="flex items-baseline gap-0.5 leading-none min-w-0 max-w-full">
       <span
@@ -183,7 +185,7 @@ function Amt({
       >
         {formatted}
       </span>
-      {curr && (
+      {symbol && (
         <sub
           className={cn(
             "font-semibold text-muted-foreground/75 shrink-0 select-none bottom-0 ml-0.5",
@@ -193,7 +195,7 @@ function Amt({
             size === "lg" && "text-[10px]",
           )}
         >
-          {curr}
+          {symbol}
         </sub>
       )}
     </div>
