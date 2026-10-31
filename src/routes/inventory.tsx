@@ -164,21 +164,21 @@ function Amt({
   tone?: "info" | "good" | "warn" | "bad";
   size?: "sm" | "md" | "lg" | "xs";
 }) {
-  const formatted = compactFmt(value);
-  const isLarge = formatted.length > 7;
-  const isHuge = formatted.length > 10;
   const symbol = curr ? toCurrencySymbol(curr) : undefined;
+  const toneClass = cn(
+    tone === "info" && "text-sky-500 dark:text-sky-400",
+    tone === "good" && "text-emerald-500 dark:text-emerald-400",
+    tone === "warn" && "text-amber-500 dark:text-amber-400",
+    tone === "bad" && "text-rose-500 dark:text-rose-400",
+    !tone && "text-foreground",
+  );
 
   return (
     <div className="flex items-start gap-0.5 leading-none min-w-0 max-w-full">
       <span
         className={cn(
           "font-extrabold tracking-tight tabular-nums truncate",
-          tone === "info" && "text-sky-500 dark:text-sky-400",
-          tone === "good" && "text-emerald-500 dark:text-emerald-400",
-          tone === "warn" && "text-amber-500 dark:text-amber-400",
-          tone === "bad" && "text-rose-500 dark:text-rose-400",
-          !tone && "text-foreground",
+          toneClass,
           size === "xs" && "text-xs",
           size === "sm" && "text-sm",
           size === "md" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg"),
@@ -190,7 +190,8 @@ function Amt({
       {symbol && (
         <sup
           className={cn(
-            "font-semibold text-muted-foreground/75 shrink-0 select-none ml-0.5 mt-0.5",
+            "font-semibold shrink-0 select-none ml-0.5 relative top-0 leading-tight",
+            toneClass,
             size === "xs" && "text-[7px]",
             size === "sm" && "text-[8px]",
             size === "md" && "text-[9px]",
