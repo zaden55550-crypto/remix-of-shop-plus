@@ -2154,20 +2154,24 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        <InventoryField label={tr("Original Sale / Receipt Ref (Optional)")}>
-          <input
-            className={inventoryInput}
-            value={saleRef}
-            onChange={(e) => setSaleRef(e.target.value)}
-            placeholder="REC-00123"
-          />
-        </InventoryField>
-
-        <InventoryField label={tr("Product Returned")} required>
-          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-        </InventoryField>
+          <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+        {/* Row 1: Receipt Ref + Product Returned in 1 row across all screens */}
         <div className="grid grid-cols-2 gap-2">
+          <InventoryField label={tr("Original Sale / Receipt Ref (Optional)")}>
+            <input
+              className={inventoryInput}
+              value={saleRef}
+              onChange={(e) => setSaleRef(e.target.value)}
+              placeholder="REC-00123"
+            />
+          </InventoryField>
+          <InventoryField label={tr("Product Returned")} required>
+            <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+          </InventoryField>
+        </div>
+
+        {/* Row 2: Quantity Returned + Reason + Inspection Condition in 1 row across all screens */}
+        <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Quantity Returned")} required>
             <input
               type="number"
@@ -2188,9 +2192,6 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Other">{tr("Other")}</option>
             </select>
           </InventoryField>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Inspection Condition")}>
             <select className={inventoryInput} value={condition} onChange={(e) => setCondition(e.target.value)}>
               <option value="Good (Resalable)">{tr("Good (Resalable)")}</option>
@@ -2199,6 +2200,10 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Needs Inspection">{tr("Needs Further Inspection")}</option>
             </select>
           </InventoryField>
+        </div>
+
+        {/* Row 3: Resolution + Inventory Outcome in 1 row across all screens */}
+        <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Resolution")}>
             <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
               <option value="Refund">{tr("Refund Cash / M-Pesa")}</option>
@@ -2207,16 +2212,14 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Reject">{tr("Reject Return")}</option>
             </select>
           </InventoryField>
+          <InventoryField label={tr("Inventory Outcome")}>
+            <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+              <option value="Return to available stock">{tr("Return to Available Stock (Restock)")}</option>
+              <option value="Move to damaged stock">{tr("Quarantine / Move to Damaged (Do Not Restock)")}</option>
+            </select>
+          </InventoryField>
         </div>
-
-        <InventoryField label={tr("Inventory Outcome")}>
-          <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
-            <option value="Return to available stock">{tr("Return to Available Stock (Restock)")}</option>
-            <option value="Move to damaged stock">{tr("Quarantine / Move to Damaged (Do Not Restock)")}</option>
-          </select>
-        </InventoryField>
       </div>
-    </div>
   );
 }
 
