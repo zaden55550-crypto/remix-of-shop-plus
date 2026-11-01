@@ -2737,27 +2737,6 @@ function ProductSetupScreen({ s, tr }: Ctx) {
   );
 }
 
-      {/* Product Variants & Attributes Toggle */}
-      <Box title={tr("Product Variants & Attributes")} sub={tr("Enable or disable variant matrix on registration")}>
-        <label className="flex items-center justify-between py-1 cursor-pointer">
-          <div>
-            <p className="text-xs font-semibold text-foreground">{tr("Enable Size & Color Variants")}</p>
-            <p className="text-[10px] text-muted-foreground">
-              {tr("Allows Add Product to generate multi-size matrices")}
-            </p>
-          </div>
-          <input
-            type="checkbox"
-            checked={variantsEnabled}
-            onChange={(e) => setVariantsEnabled(e.target.checked)}
-            className="rounded"
-          />
-        </label>
-      </Box>
-    </div>
-  );
-}
-
 /** 4.2 Stock Setup */
 function StockSetupScreen({ tr }: Ctx) {
   const [preventNegative, setPreventNegative] = useState(true);
