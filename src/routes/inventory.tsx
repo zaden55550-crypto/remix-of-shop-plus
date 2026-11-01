@@ -835,7 +835,7 @@ function ProductList({ s, money, tr, shop, acct, onUnknown }: Ctx & { onUnknown:
           s={s}
           money={money}
           tr={tr}
-          isOwner={!acct?.role || acct.role === "owner"}
+          isOwner={!!acct}
           onClose={() => setSelectedProduct(null)}
         />
       )}
