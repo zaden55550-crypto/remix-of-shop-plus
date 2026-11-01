@@ -447,7 +447,6 @@ function Inventory() {
     </main>
   );
 }
-
 type Ctx = {
   s: erp.ErpState;
   money: (n: number) => string;
@@ -455,9 +454,9 @@ type Ctx = {
   go: (m: Menu, sm?: string) => void;
   cur: string;
   shop: string;
+  acct?: Account | null;
   onUnknown?: (code: string) => void;
 };
-
 function Tabs({
   items,
   value,
