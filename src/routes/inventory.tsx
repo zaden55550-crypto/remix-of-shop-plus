@@ -2303,7 +2303,9 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               placeholder="Supplier name"
             />
           </InventoryField>
-                   <InlineProductPicker label={tr("Product to Return")} s={s} value={pid} onChange={setPid} tr={tr} />
+          <InlineProductPicker label={tr("Product to Return")} s={s} value={pid} onChange={setPid} tr={tr} />
+        </div>
+
 
 
         {/* Row 2: Quantity + Reason + Supplier Resolution in 1 row across all screens */}
