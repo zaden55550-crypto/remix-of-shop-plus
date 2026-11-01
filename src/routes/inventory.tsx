@@ -2030,7 +2030,7 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
           <InventoryField label={tr("System Quantity")}>
             <input className={cn(inventoryInput, "bg-muted font-bold")} readOnly value={p ? p.qty : "—"} />
           </InventoryField>
-          <InventoryField label={tr("Physical Counted Quantity")} required>
+          <InventoryField label={tr("Corrected Quantity")} required>
             <input
               type="number"
               step="any"
@@ -2169,8 +2169,7 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               placeholder="REC-00123"
             />
           </InventoryField>
-                   <InlineProductPicker label={tr("Product Returned")} s={s} value={pid} onChange={setPid} tr={tr} />
-
+          <InlineProductPicker label={tr("Product Returned")} s={s} value={pid} onChange={setPid} tr={tr} />
         </div>
 
         {/* Row 2: Quantity Returned + Reason + Inspection Condition in 1 row across all screens */}
@@ -2306,8 +2305,6 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
           <InlineProductPicker label={tr("Product to Return")} s={s} value={pid} onChange={setPid} tr={tr} />
         </div>
 
-
-
         {/* Row 2: Quantity + Reason + Supplier Resolution in 1 row across all screens */}
         <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Quantity Being Returned")} required>
@@ -2414,7 +2411,7 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
 
         {/* Row 2: Product + Quantity in 1 row across all screens */}
         <div className="grid grid-cols-2 gap-2">
-                    <InlineProductPicker label={tr("Product")} s={s} value={pid} onChange={setPid} tr={tr} />
+          <InlineProductPicker label={tr("Product")} s={s} value={pid} onChange={setPid} tr={tr} />
 
           <InventoryField label={tr("Quantity")} required>
             <input
