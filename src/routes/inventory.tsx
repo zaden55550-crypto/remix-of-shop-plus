@@ -2130,7 +2130,7 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-3">
+    <div className="w-full space-y-3">
       {/* Header with right-aligned Cancel & Save buttons */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
@@ -2165,9 +2165,8 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
         </InventoryField>
 
         <InventoryField label={tr("Product Returned")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
         </InventoryField>
-
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Quantity Returned")} required>
             <input
@@ -2299,9 +2298,8 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
         </div>
 
         <InventoryField label={tr("Product to Return")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
         </InventoryField>
-
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Quantity Being Returned")} required>
             <input
@@ -2406,7 +2404,7 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
         </div>
 
         <InventoryField label={tr("Product")} required>
-          <InventoryProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
         </InventoryField>
 
         <InventoryField label={tr("Quantity")} required>
@@ -2526,7 +2524,7 @@ function ProductSetupScreen({ s, tr }: Ctx) {
   const activeBrand = s.brands.find((b) => b.id === selectedBrandId);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       <h2 className="text-base font-bold text-foreground">{tr("Product Setup & Master Catalog Configuration")}</h2>
 
       {/* Categories Dropdown & Quick Add */}
@@ -2658,7 +2656,7 @@ function StockSetupScreen({ tr }: Ctx) {
   const [minStockDefault, setMinStockDefault] = useState("5");
 
   return (
-    <div className="max-w-3xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       <h2 className="text-base font-bold text-foreground">{tr("Stock Setup & Warehouse Rules")}</h2>
 
       {/* Warehouses & Locations */}
