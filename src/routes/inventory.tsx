@@ -2280,16 +2280,9 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Supplier")}>
-            <input
-              className={inventoryInput}
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              placeholder="Supplier name"
-            />
-          </InventoryField>
+          <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+        {/* Row 1: Purchase Order Ref + Supplier + Product to Return in 1 row across all screens */}
+        <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Purchase Order Ref")}>
             <input
               className={inventoryInput}
@@ -2298,12 +2291,21 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               placeholder="PO-0089"
             />
           </InventoryField>
+          <InventoryField label={tr("Supplier")}>
+            <input
+              className={inventoryInput}
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+              placeholder="Supplier name"
+            />
+          </InventoryField>
+          <InventoryField label={tr("Product to Return")} required>
+            <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
+          </InventoryField>
         </div>
 
-        <InventoryField label={tr("Product to Return")} required>
-          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-        </InventoryField>
-        <div className="grid grid-cols-2 gap-2">
+        {/* Row 2: Quantity + Reason + Supplier Resolution in 1 row across all screens */}
+        <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Quantity Being Returned")} required>
             <input
               type="number"
@@ -2323,18 +2325,16 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               <option value="Other">{tr("Other")}</option>
             </select>
           </InventoryField>
+          <InventoryField label={tr("Supplier Resolution")}>
+            <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
+              <option value="Supplier Credit Note">{tr("Supplier Credit Note")}</option>
+              <option value="Replacement Goods">{tr("Replacement Goods")}</option>
+              <option value="Refund">{tr("Cash / Bank Refund")}</option>
+              <option value="Awaiting Response">{tr("Awaiting Supplier Response")}</option>
+            </select>
+          </InventoryField>
         </div>
-
-        <InventoryField label={tr("Supplier Resolution")}>
-          <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
-            <option value="Supplier Credit Note">{tr("Supplier Credit Note")}</option>
-            <option value="Replacement Goods">{tr("Replacement Goods")}</option>
-            <option value="Refund">{tr("Cash / Bank Refund")}</option>
-            <option value="Awaiting Response">{tr("Awaiting Supplier Response")}</option>
-          </select>
-        </InventoryField>
       </div>
-    </div>
   );
 }
 
