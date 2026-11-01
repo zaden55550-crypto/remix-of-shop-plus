@@ -788,38 +788,44 @@ function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code
         </div>
       )}
 
-      {/* Product List Grid: 1 col on phone, 2 cols on iPad (md), 3 cols on desktop/laptop (lg) */}
+      {/* Compact Product List (Sales & POS style) */}
       {filtered.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+        <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl divide-y divide-border/30 overflow-hidden shadow-sm">
           {filtered.map((p) => {
             const categoryName = s.categories.find((c) => c.id === p.categoryId)?.name;
+            const st = erp.stockStatus(p);
+            const dotTone = st === "OK" ? "bg-emerald-500" : st === "LOW" ? "bg-amber-500" : "bg-rose-500";
             return (
               <div
                 key={p.id}
                 onClick={() => setSelectedProduct(p)}
-                className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3 flex items-center justify-between text-xs hover:border-primary/40 hover:bg-muted/30 transition-colors cursor-pointer shadow-sm min-w-0"
+                className="px-3 py-2 flex items-center justify-between gap-2 text-xs hover:bg-muted/40 transition-colors cursor-pointer min-h-[36px]"
               >
-                <div className="min-w-0 pr-2 flex-1">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="font-bold text-foreground text-sm tracking-tight truncate">{p.name}</p>
-                    <Status p={p} />
-                    {p.variants && p.variants.length > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted font-medium text-muted-foreground">
-                        {p.variants.length} {tr("sizes")}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate mt-1">
-                    {categoryName ? `${categoryName} · ` : ""}
-                    {p.sku ? `SKU: ${p.sku} · ` : ""}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", dotTone)} />
+                  <span className="font-bold text-foreground text-xs truncate max-w-[170px] sm:max-w-xs">{p.name}</span>
+                  <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
+                    {categoryName ? `${categoryName}` : ""}
+                    {p.sku ? ` · SKU: ${p.sku}` : ""}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground/80 truncate hidden md:inline">
                     {tr("Buy")}: {money(p.buy)} · {tr("Sell")}: {money(p.sell)}
-                  </p>
+                  </span>
                 </div>
-                <div className="text-right shrink-0 pl-2">
-                  <p className="font-extrabold text-sm text-foreground tabular-nums">
-                    {p.qty} <span className="text-[10px] font-normal text-muted-foreground">{p.unit || "pcs"}</span>
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{money(p.qty * p.sell)}</p>
+
+                <div className="flex items-center gap-3 shrink-0 text-right">
+                  <div className="text-right">
+                    <span className="font-extrabold text-xs text-foreground tabular-nums">
+                      {p.qty} <span className="text-[9.5px] font-normal text-muted-foreground">{p.unit || "pcs"}</span>
+                    </span>
+                    <span className="text-[9.5px] text-muted-foreground block sm:hidden">{money(p.qty * p.sell)}</span>
+                  </div>
+
+                  <span className="text-[10px] text-muted-foreground hidden sm:inline tabular-nums min-w-[70px] text-right">
+                    {money(p.qty * p.sell)}
+                  </span>
+
+                  <Status p={p} />
                 </div>
               </div>
             );
@@ -2519,12 +2525,8 @@ function ProductSetupScreen({ s, tr }: Ctx) {
   const activeCategory = s.categories.find((c) => c.id === selectedCatId);
   const activeBrand = s.brands.find((b) => b.id === selectedBrandId);
 
-  const filteredCategories = s.categories.filter((c) =>
-    c.name.toLowerCase().includes(catSearch.toLowerCase().trim())
-  );
-  const filteredBrands = s.brands.filter((b) =>
-    b.name.toLowerCase().includes(brandSearch.toLowerCase().trim())
-  );
+  const filteredCategories = s.categories.filter((c) => c.name.toLowerCase().includes(catSearch.toLowerCase().trim()));
+  const filteredBrands = s.brands.filter((b) => b.name.toLowerCase().includes(brandSearch.toLowerCase().trim()));
 
   const handleAddCategory = (name: string) => {
     const trimmed = name.trim();
@@ -2593,7 +2595,7 @@ function ProductSetupScreen({ s, tr }: Ctx) {
                           type="button"
                           className={cn(
                             "w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-muted transition-colors",
-                            selectedCatId === c.id && "bg-muted font-bold text-primary"
+                            selectedCatId === c.id && "bg-muted font-bold text-primary",
                           )}
                           onClick={() => {
                             setSelectedCatId(c.id);
@@ -2602,26 +2604,31 @@ function ProductSetupScreen({ s, tr }: Ctx) {
                           }}
                         >
                           <span>{c.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{count} {tr("items")}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {count} {tr("items")}
+                          </span>
                         </button>
                       );
                     })
                   ) : (
-                    <div className="p-2 text-center text-muted-foreground">
-                      {tr("No matching category")}
-                    </div>
+                    <div className="p-2 text-center text-muted-foreground">{tr("No matching category")}</div>
                   )}
 
-                  {catSearch.trim() && !s.categories.some((c) => c.name.toLowerCase() === catSearch.trim().toLowerCase()) && (
-                    <button
-                      type="button"
-                      onClick={() => handleAddCategory(catSearch)}
-                      className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
-                    >
-                      <span>+ {tr("Add")} "{catSearch.trim()}"</span>
-                      <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">{tr("Save")}</span>
-                    </button>
-                  )}
+                  {catSearch.trim() &&
+                    !s.categories.some((c) => c.name.toLowerCase() === catSearch.trim().toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddCategory(catSearch)}
+                        className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
+                      >
+                        <span>
+                          + {tr("Add")} "{catSearch.trim()}"
+                        </span>
+                        <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">
+                          {tr("Save")}
+                        </span>
+                      </button>
+                    )}
                 </div>
               </>
             )}
@@ -2665,7 +2672,7 @@ function ProductSetupScreen({ s, tr }: Ctx) {
                           type="button"
                           className={cn(
                             "w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-muted transition-colors",
-                            selectedBrandId === b.id && "bg-muted font-bold text-primary"
+                            selectedBrandId === b.id && "bg-muted font-bold text-primary",
                           )}
                           onClick={() => {
                             setSelectedBrandId(b.id);
@@ -2674,26 +2681,31 @@ function ProductSetupScreen({ s, tr }: Ctx) {
                           }}
                         >
                           <span>{b.name}</span>
-                          <span className="text-[10px] text-muted-foreground">{count} {tr("items")}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {count} {tr("items")}
+                          </span>
                         </button>
                       );
                     })
                   ) : (
-                    <div className="p-2 text-center text-muted-foreground">
-                      {tr("No matching brand")}
-                    </div>
+                    <div className="p-2 text-center text-muted-foreground">{tr("No matching brand")}</div>
                   )}
 
-                  {brandSearch.trim() && !s.brands.some((b) => b.name.toLowerCase() === brandSearch.trim().toLowerCase()) && (
-                    <button
-                      type="button"
-                      onClick={() => handleAddBrand(brandSearch)}
-                      className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
-                    >
-                      <span>+ {tr("Add")} "{brandSearch.trim()}"</span>
-                      <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">{tr("Save")}</span>
-                    </button>
-                  )}
+                  {brandSearch.trim() &&
+                    !s.brands.some((b) => b.name.toLowerCase() === brandSearch.trim().toLowerCase()) && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddBrand(brandSearch)}
+                        className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
+                      >
+                        <span>
+                          + {tr("Add")} "{brandSearch.trim()}"
+                        </span>
+                        <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">
+                          {tr("Save")}
+                        </span>
+                      </button>
+                    )}
                 </div>
               </>
             )}
