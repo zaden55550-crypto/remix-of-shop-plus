@@ -2154,7 +2154,7 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-          <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         {/* Row 1: Receipt Ref + Product Returned in 1 row across all screens */}
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Original Sale / Receipt Ref (Optional)")}>
@@ -2220,6 +2220,7 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
           </InventoryField>
         </div>
       </div>
+    </div>
   );
 }
 
@@ -2280,7 +2281,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-          <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         {/* Row 1: Purchase Order Ref + Supplier + Product to Return in 1 row across all screens */}
         <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Purchase Order Ref")}>
@@ -2335,6 +2336,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
           </InventoryField>
         </div>
       </div>
+    </div>
   );
 }
 
@@ -2391,7 +2393,7 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
         </div>
       </div>
 
-           <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         {/* Row 1: From Location + To Location in 1 row across all screens */}
         <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("From Location")}>
@@ -2434,7 +2436,7 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
           />
         </InventoryField>
       </div>
-
+    </div>
   );
 }
 
