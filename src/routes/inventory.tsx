@@ -615,16 +615,16 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
           {recentIn.length ? (
             <div className="divide-y divide-border/30">
               {recentIn.map((m) => (
-                <div key={m.id} className="py-2 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-medium text-foreground">
+                <div key={m.id} className="py-1.5 flex items-center justify-between text-xs gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="font-medium text-foreground truncate">
                       {s.products.find((p) => p.id === m.productId)?.name || "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    </span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
                       {dt(m.at)} · {m.source}
-                    </p>
+                    </span>
                   </div>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">+{m.qty}</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">+{m.qty}</span>
                 </div>
               ))}
             </div>
@@ -637,16 +637,16 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
           {recentOut.length ? (
             <div className="divide-y divide-border/30">
               {recentOut.map((m) => (
-                <div key={m.id} className="py-2 flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-medium text-foreground">
+                <div key={m.id} className="py-1.5 flex items-center justify-between text-xs gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 truncate">
+                    <span className="font-medium text-foreground truncate">
                       {s.products.find((p) => p.id === m.productId)?.name || "—"}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
+                    </span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
                       {dt(m.at)} · {m.reason || m.type}
-                    </p>
+                    </span>
                   </div>
-                  <span className="font-bold text-rose-600 dark:text-rose-400">{m.qty}</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400 shrink-0">-{m.qty}</span>
                 </div>
               ))}
             </div>
