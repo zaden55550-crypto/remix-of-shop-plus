@@ -2254,7 +2254,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-3">
+    <div className="w-full space-y-3">
       {/* Header with right-aligned Cancel & Save buttons */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
@@ -2366,7 +2366,7 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-3">
+    <div className="w-full space-y-3">
       {/* Header with right-aligned Cancel & Save buttons */}
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
