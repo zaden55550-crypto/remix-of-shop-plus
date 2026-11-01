@@ -2167,7 +2167,7 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
       <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         {/* Row 1: Receipt Ref + Product Returned in 1 row across all screens */}
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Original Sale / Receipt Ref (Optional)")}>
+          <InventoryField label={tr("Receipt Ref No")}>
             <input
               className={inventoryInput}
               value={saleRef}
@@ -2313,7 +2313,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
 
         {/* Row 2: Quantity + Reason + Supplier Resolution in 1 row across all screens */}
         <div className="grid grid-cols-3 gap-2">
-          <InventoryField label={tr("Quantity Being Returned")} required>
+          <InventoryField label={tr("Quantity Returned")} required>
             <input
               type="number"
               step="any"
