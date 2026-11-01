@@ -1912,45 +1912,47 @@ function StockHistoryScreen({ s, tr }: Ctx) {
         </div>
 
         {moves.length ? (
-          <div className="p-2.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[640px] overflow-y-auto">
+          <div className="divide-y divide-border/30 max-h-[640px] overflow-y-auto">
             {moves.map((m) => {
               const p = s.products.find((prod) => prod.id === m.productId);
+              const isPositive = m.qty > 0;
               return (
                 <div
                   key={m.id}
-                  className="p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/30 transition-colors flex flex-col justify-between gap-2"
+                  className="px-3 py-2 flex items-center justify-between gap-2 text-xs hover:bg-muted/40 transition-colors min-h-[36px]"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <span
-                        className={cn("px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase", typeColor(m.type))}
-                      >
-                        {m.type}
-                      </span>
-                      <h4 className="font-bold text-foreground text-sm truncate mt-1">
-                        {p?.name || tr("Unknown Item")}
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">{m.source}</p>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <p
-                        className={cn(
-                          "font-extrabold text-sm tabular-nums",
-                          m.qty > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
-                        )}
-                      >
-                        {m.qty > 0 ? `+${m.qty}` : m.qty}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground tabular-nums">
-                        {tr("Bal")}: {m.next} {p?.unit || "pcs"}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "px-1.5 py-0.5 rounded text-[9.5px] font-extrabold uppercase shrink-0",
+                        typeColor(m.type),
+                      )}
+                    >
+                      {m.type}
+                    </span>
+                    <span className="font-bold text-foreground text-xs truncate max-w-[160px] sm:max-w-xs">
+                      {p?.name || tr("Unknown Item")}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">{m.source}</span>
                   </div>
 
-                  <div className="text-[10px] text-muted-foreground/80 pt-1 border-t border-border/20 flex justify-between">
-                    <span>{dt(m.at)}</span>
-                    <span className="font-medium text-foreground/70">{tr("General")}</span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span
+                      className={cn(
+                        "font-extrabold text-xs tabular-nums text-right min-w-[45px]",
+                        isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                      )}
+                    >
+                      {isPositive ? `+${m.qty}` : m.qty}
+                    </span>
+
+                    <span className="text-[10px] text-muted-foreground tabular-nums min-w-[65px] text-right hidden sm:inline">
+                      {tr("Bal")}: {m.next} {p?.unit || "pcs"}
+                    </span>
+
+                    <span className="text-[10px] text-muted-foreground tabular-nums min-w-[80px] text-right">
+                      {dt(m.at)}
+                    </span>
                   </div>
                 </div>
               );
