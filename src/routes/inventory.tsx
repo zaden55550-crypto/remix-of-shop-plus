@@ -2169,9 +2169,8 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               placeholder="REC-00123"
             />
           </InventoryField>
-          <InventoryField label={tr("Product Returned")} required>
-            <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-          </InventoryField>
+                   <InlineProductPicker label={tr("Product Returned")} s={s} value={pid} onChange={setPid} tr={tr} />
+
         </div>
 
         {/* Row 2: Quantity Returned + Reason + Inspection Condition in 1 row across all screens */}
@@ -2304,10 +2303,8 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               placeholder="Supplier name"
             />
           </InventoryField>
-          <InventoryField label={tr("Product to Return")} required>
-            <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-          </InventoryField>
-        </div>
+                   <InlineProductPicker label={tr("Product to Return")} s={s} value={pid} onChange={setPid} tr={tr} />
+
 
         {/* Row 2: Quantity + Reason + Supplier Resolution in 1 row across all screens */}
         <div className="grid grid-cols-3 gap-2">
@@ -2415,9 +2412,8 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
 
         {/* Row 2: Product + Quantity in 1 row across all screens */}
         <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Product")} required>
-            <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-          </InventoryField>
+                    <InlineProductPicker label={tr("Product")} s={s} value={pid} onChange={setPid} tr={tr} />
+
           <InventoryField label={tr("Quantity")} required>
             <input
               type="number"
