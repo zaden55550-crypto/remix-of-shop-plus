@@ -2460,33 +2460,33 @@ function TransferHistoryScreen({ s, tr }: Ctx) {
               return (
                 <div
                   key={t.id}
-                  className="p-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors"
+                  className="px-3 py-2 flex items-center justify-between gap-2 text-xs hover:bg-muted/40 transition-colors min-h-[36px]"
                 >
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-foreground text-sm tracking-tight">
-                        {p?.name || tr("Product")}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider",
-                          t.status === "RECEIVED" && "bg-emerald-500/15 text-emerald-600",
-                          t.status === "SENT" && "bg-amber-500/15 text-amber-600",
-                          t.status === "PENDING" && "bg-blue-500/15 text-blue-600",
-                          t.status === "CANCELLED" && "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {t.status}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {t.ref} · {t.from} → {t.to} · {dt(t.at)}
-                    </p>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span
+                      className={cn(
+                        "text-[9.5px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0",
+                        t.status === "RECEIVED" && "bg-emerald-500/15 text-emerald-600",
+                        t.status === "SENT" && "bg-amber-500/15 text-amber-600",
+                        t.status === "PENDING" && "bg-blue-500/15 text-blue-600",
+                        t.status === "CANCELLED" && "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {t.status}
+                    </span>
+                    <span className="font-bold text-foreground text-xs truncate max-w-[160px] sm:max-w-xs">
+                      {p?.name || tr("Product")}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
+                      {t.ref} · {t.from} → {t.to}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-foreground tabular-nums">
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="font-extrabold text-xs text-foreground tabular-nums">
                       {t.qty} {p?.unit || "pcs"}
                     </span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums hidden sm:inline">{dt(t.at)}</span>
                     {t.status === "SENT" && (
                       <ShopButton
                         variant="outline"
