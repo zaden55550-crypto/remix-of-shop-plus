@@ -2510,130 +2510,232 @@ function TransferHistoryScreen({ s, tr }: Ctx) {
 function ProductSetupScreen({ s, tr }: Ctx) {
   const [selectedCatId, setSelectedCatId] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState("");
-  const [newCat, setNewCat] = useState("");
-  const [newBrand, setNewBrand] = useState("");
+  const [catSearch, setCatSearch] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
+  const [catOpen, setCatOpen] = useState(false);
+  const [brandOpen, setBrandOpen] = useState(false);
   const [variantsEnabled, setVariantsEnabled] = useState(true);
-
-  const addCategory = () => {
-    if (!newCat.trim()) return;
-    if (run(() => erp.addNamed("categories", newCat.trim()), tr("Category added"))) {
-      setNewCat("");
-    }
-  };
-
-  const addBrand = () => {
-    if (!newBrand.trim()) return;
-    if (run(() => erp.addNamed("brands", newBrand.trim()), tr("Brand added"))) {
-      setNewBrand("");
-    }
-  };
 
   const activeCategory = s.categories.find((c) => c.id === selectedCatId);
   const activeBrand = s.brands.find((b) => b.id === selectedBrandId);
 
+  const filteredCategories = s.categories.filter((c) =>
+    c.name.toLowerCase().includes(catSearch.toLowerCase().trim())
+  );
+  const filteredBrands = s.brands.filter((b) =>
+    b.name.toLowerCase().includes(brandSearch.toLowerCase().trim())
+  );
+
+  const handleAddCategory = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const res = run(() => erp.addNamed("categories", trimmed), tr("Category added"));
+    if (res) {
+      setCatSearch("");
+      setCatOpen(false);
+      const created = s.categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
+      if (created) setSelectedCatId(created.id);
+    }
+  };
+
+  const handleAddBrand = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const res = run(() => erp.addNamed("brands", trimmed), tr("Brand added"));
+    if (res) {
+      setBrandSearch("");
+      setBrandOpen(false);
+      const created = s.brands.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
+      if (created) setSelectedBrandId(created.id);
+    }
+  };
+
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-3">
       <h2 className="text-base font-bold text-foreground">{tr("Product Setup & Master Catalog Configuration")}</h2>
 
-      {/* Categories Dropdown & Quick Add */}
-      <Box title={tr("Categories")} sub={tr("Select and manage registered product categories")}>
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <select
-              className={cn(inventoryInput, "text-xs flex-1")}
-              value={selectedCatId}
-              onChange={(e) => setSelectedCatId(e.target.value)}
-            >
-              <option value="">
-                {tr("Choose a Category...")} ({s.categories.length})
-              </option>
-              {s.categories.map((c) => {
-                const count = s.products.filter((p) => p.categoryId === c.id).length;
-                return (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({count} {tr("products")})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+      {/* Row 1: Categories & Brands side-by-side in searchable comboboxes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Categories Searchable Dropdown */}
+        <Box title={tr("Categories")} sub={tr("Search or add category")}>
+          <div className="relative">
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                className={cn(inventoryInput, "pr-8 text-xs")}
+                placeholder={activeCategory ? activeCategory.name : tr("Search or choose a category...")}
+                value={catSearch}
+                onChange={(e) => {
+                  setCatSearch(e.target.value);
+                  setCatOpen(true);
+                }}
+                onFocus={() => setCatOpen(true)}
+              />
+              <button
+                type="button"
+                onClick={() => setCatOpen((v) => !v)}
+                className="absolute right-2 text-muted-foreground hover:text-foreground text-xs"
+              >
+                ▼
+              </button>
+            </div>
 
-          <div className="flex gap-2 pt-1 border-t border-border/30">
+            {catOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
+                <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover shadow-xl z-20 p-1 text-xs space-y-0.5">
+                  {filteredCategories.length > 0 ? (
+                    filteredCategories.map((c) => {
+                      const count = s.products.filter((p) => p.categoryId === c.id).length;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={cn(
+                            "w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-muted transition-colors",
+                            selectedCatId === c.id && "bg-muted font-bold text-primary"
+                          )}
+                          onClick={() => {
+                            setSelectedCatId(c.id);
+                            setCatSearch("");
+                            setCatOpen(false);
+                          }}
+                        >
+                          <span>{c.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{count} {tr("items")}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="p-2 text-center text-muted-foreground">
+                      {tr("No matching category")}
+                    </div>
+                  )}
+
+                  {catSearch.trim() && !s.categories.some((c) => c.name.toLowerCase() === catSearch.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddCategory(catSearch)}
+                      className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
+                    >
+                      <span>+ {tr("Add")} "{catSearch.trim()}"</span>
+                      <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">{tr("Save")}</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </Box>
+
+        {/* Brands Searchable Dropdown */}
+        <Box title={tr("Brands")} sub={tr("Search or add brand")}>
+          <div className="relative">
+            <div className="relative flex items-center">
+              <input
+                type="text"
+                className={cn(inventoryInput, "pr-8 text-xs")}
+                placeholder={activeBrand ? activeBrand.name : tr("Search or choose a brand...")}
+                value={brandSearch}
+                onChange={(e) => {
+                  setBrandSearch(e.target.value);
+                  setBrandOpen(true);
+                }}
+                onFocus={() => setBrandOpen(true)}
+              />
+              <button
+                type="button"
+                onClick={() => setBrandOpen((v) => !v)}
+                className="absolute right-2 text-muted-foreground hover:text-foreground text-xs"
+              >
+                ▼
+              </button>
+            </div>
+
+            {brandOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setBrandOpen(false)} />
+                <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover shadow-xl z-20 p-1 text-xs space-y-0.5">
+                  {filteredBrands.length > 0 ? (
+                    filteredBrands.map((b) => {
+                      const count = s.products.filter((p) => p.brandId === b.id).length;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          className={cn(
+                            "w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-muted transition-colors",
+                            selectedBrandId === b.id && "bg-muted font-bold text-primary"
+                          )}
+                          onClick={() => {
+                            setSelectedBrandId(b.id);
+                            setBrandSearch("");
+                            setBrandOpen(false);
+                          }}
+                        >
+                          <span>{b.name}</span>
+                          <span className="text-[10px] text-muted-foreground">{count} {tr("items")}</span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="p-2 text-center text-muted-foreground">
+                      {tr("No matching brand")}
+                    </div>
+                  )}
+
+                  {brandSearch.trim() && !s.brands.some((b) => b.name.toLowerCase() === brandSearch.trim().toLowerCase()) && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddBrand(brandSearch)}
+                      className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
+                    >
+                      <span>+ {tr("Add")} "{brandSearch.trim()}"</span>
+                      <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">{tr("Save")}</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </Box>
+      </div>
+
+      {/* Row 2: Units of Measurement & Variants side-by-side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <Box title={tr("Units of Measurement")} sub={tr("Standard units for buying & selling")}>
+          <div className="flex flex-wrap gap-1">
+            {["Piece", "Kg", "Gram", "Litre", "Millilitre", "Box", "Carton", "Packet", "Metre"].map((u) => (
+              <span
+                key={u}
+                className="text-[11px] px-2 py-0.5 rounded-md bg-muted/60 border border-border/40 text-foreground font-medium"
+              >
+                {tr(u)}
+              </span>
+            ))}
+          </div>
+        </Box>
+
+        <Box title={tr("Product Variants & Attributes")} sub={tr("Enable or disable variant matrix")}>
+          <label className="flex items-center justify-between py-1 cursor-pointer">
+            <div>
+              <p className="text-xs font-semibold text-foreground">{tr("Enable Size & Color Variants")}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {tr("Allows Add Product to generate multi-size matrices")}
+              </p>
+            </div>
             <input
-              className={cn(inventoryInput, "text-xs flex-1")}
-              placeholder={tr("Add new category name...")}
-              value={newCat}
-              onChange={(e) => setNewCat(e.target.value)}
+              type="checkbox"
+              checked={variantsEnabled}
+              onChange={(e) => setVariantsEnabled(e.target.checked)}
+              className="rounded"
             />
-            <ShopButton size="sm" onClick={addCategory}>
-              {tr("Add Category")}
-            </ShopButton>
-          </div>
-
-          {activeCategory && (
-            <p className="text-[11px] text-muted-foreground pt-1">
-              {tr("Selected")}: <span className="font-semibold text-foreground">{activeCategory.name}</span>
-            </p>
-          )}
-        </div>
-      </Box>
-
-      {/* Brands Dropdown & Quick Add */}
-      <Box title={tr("Brands")} sub={tr("Select and manage registered manufacturers and labels")}>
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <select
-              className={cn(inventoryInput, "text-xs flex-1")}
-              value={selectedBrandId}
-              onChange={(e) => setSelectedBrandId(e.target.value)}
-            >
-              <option value="">
-                {tr("Choose a Brand...")} ({s.brands.length})
-              </option>
-              {s.brands.map((b) => {
-                const count = s.products.filter((p) => p.brandId === b.id).length;
-                return (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({count} {tr("products")})
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-
-          <div className="flex gap-2 pt-1 border-t border-border/30">
-            <input
-              className={cn(inventoryInput, "text-xs flex-1")}
-              placeholder={tr("Add new brand name...")}
-              value={newBrand}
-              onChange={(e) => setNewBrand(e.target.value)}
-            />
-            <ShopButton size="sm" onClick={addBrand}>
-              {tr("Add Brand")}
-            </ShopButton>
-          </div>
-
-          {activeBrand && (
-            <p className="text-[11px] text-muted-foreground pt-1">
-              {tr("Selected")}: <span className="font-semibold text-foreground">{activeBrand.name}</span>
-            </p>
-          )}
-        </div>
-      </Box>
-
-      {/* Units of Measurement */}
-      <Box title={tr("Units of Measurement")} sub={tr("Standard units for buying and selling")}>
-        <div className="flex flex-wrap gap-1.5">
-          {["Piece", "Kg", "Gram", "Litre", "Millilitre", "Box", "Carton", "Packet", "Metre"].map((u) => (
-            <span
-              key={u}
-              className="text-xs px-2.5 py-1 rounded-lg bg-muted/60 border border-border/40 text-foreground font-medium"
-            >
-              {tr(u)}
-            </span>
-          ))}
-        </div>
-      </Box>
+          </label>
+        </Box>
+      </div>
+    </div>
+  );
+}
 
       {/* Product Variants & Attributes Toggle */}
       <Box title={tr("Product Variants & Attributes")} sub={tr("Enable or disable variant matrix on registration")}>
