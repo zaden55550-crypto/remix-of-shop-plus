@@ -1359,7 +1359,7 @@ function InlineProductPicker({
 
   return (
     <div className="relative w-full">
-      <InventoryField label={tr("Select Product")} required>
+      <InventoryField label={label ?? tr("Select Product")} required={required}>
         <div className="relative flex items-center">
           {selectedProduct ? (
             <div
