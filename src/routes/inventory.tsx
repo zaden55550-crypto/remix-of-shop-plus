@@ -709,7 +709,7 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
    ========================================================================= */
 
 /** 2.1 All Products */
-function ProductList({ s, money, tr, shop, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
+function ProductList({ s, money, tr, shop, acct, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [status, setStatus] = useState("all");
