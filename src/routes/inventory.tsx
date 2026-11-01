@@ -2845,49 +2845,110 @@ function ProductDetailSheet({
   s,
   money,
   tr,
+  isOwner = true,
   onClose,
 }: {
   p: erp.Product;
   s: erp.ErpState;
   money: (n: number) => string;
   tr: (t: string) => string;
+  isOwner?: boolean;
   onClose: () => void;
 }) {
   const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
   const brand = s.brands.find((b) => b.id === p.brandId)?.name;
-  const rows: [string, string][] = [
-    [tr("Quantity"), `${p.qty} ${p.unit ?? ""}`.trim()],
-    [tr("Buying price"), money(p.buy)],
-    [tr("Selling price"), money(p.sell)],
-    [tr("Stock value"), money(p.qty * p.buy)],
-    [tr("Category"), cat ?? "—"],
-    [tr("Brand"), brand ?? "—"],
-    [tr("Barcode"), p.barcode || "—"],
-    [tr("SKU"), p.sku || "—"],
-  ];
+
+  const cards: { label: string; value: string }[] = [];
+
+  // 1. Quantity always shown
+  cards.push({ label: tr("Quantity"), value: `${p.qty} ${p.unit ?? "pcs"}`.trim() });
+
+  // 2. Buying price & Stock value hidden if not owner
+  if (isOwner) {
+    if (p.buy !== undefined && p.buy !== null) {
+      cards.push({ label: tr("Buying price"), value: money(p.buy) });
+    }
+    cards.push({ label: tr("Stock value"), value: money(p.qty * (p.buy || 0)) });
+  }
+
+  // 3. Selling price (if set)
+  if (p.sell !== undefined && p.sell !== null && p.sell > 0) {
+    cards.push({ label: tr("Selling price"), value: money(p.sell) });
+  }
+
+  // 4. Category (only if exists)
+  if (cat && cat.trim() && cat !== "—") {
+    cards.push({ label: tr("Category"), value: cat });
+  }
+
+  // 5. Brand (only if exists)
+  if (brand && brand.trim() && brand !== "—") {
+    cards.push({ label: tr("Brand"), value: brand });
+  }
+
+  // 6. Barcode (only if exists)
+  if (p.barcode && p.barcode.trim()) {
+    cards.push({ label: tr("Barcode"), value: p.barcode });
+  }
+
+  // 7. SKU (only if exists)
+  if (p.sku && p.sku.trim()) {
+    cards.push({ label: tr("SKU"), value: p.sku });
+  }
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm p-3"
       onClick={onClose}
     >
       <div
-        className="inventory-box w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl p-4 space-y-3"
+        className="inventory-box w-full sm:max-w-md rounded-2xl p-4 space-y-3.5 bg-card/95 border border-border shadow-xl backdrop-blur-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="font-bold truncate">{p.name}</h3>
-          <ShopButton variant="outline" onClick={onClose}>
-            {tr("Close")}
-          </ShopButton>
+        {/* Header: Product name on the top left, 'X' icon on the top right */}
+        <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-2.5">
+          <h3 className="font-bold text-foreground text-sm sm:text-base truncate">{p.name}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+            aria-label={tr("Close")}
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {rows.map(([k, v]) => (
-            <div key={k} className="rounded-lg border border-border p-2">
-              <p className="text-[10px] text-muted-foreground">{k}</p>
-              <p className="font-semibold truncate">{v}</p>
+
+        {/* Dynamic Detail Cards - only items that actually exist */}
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {cards.map((c) => (
+            <div key={c.label} className="rounded-xl border border-border/50 bg-background/50 p-2.5 space-y-0.5">
+              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">{c.label}</p>
+              <p className="font-semibold text-foreground truncate">{c.value}</p>
             </div>
           ))}
         </div>
+
+        {/* Variants list if product has variants */}
+        {p.variants && p.variants.length > 0 && (
+          <div className="space-y-1.5 pt-1 border-t border-border/30">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">
+              {tr("Variants / Sizes")} ({p.variants.length})
+            </p>
+            <div className="max-h-36 overflow-y-auto space-y-1 pr-1 divide-y divide-border/20">
+              {p.variants.map((v) => (
+                <div key={v.id} className="flex items-center justify-between py-1 text-xs">
+                  <span className="font-medium text-foreground">{v.name}</span>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>
+                      {v.qty} {p.unit || "pcs"}
+                    </span>
+                    {v.sell ? <span className="font-semibold text-foreground">{money(v.sell)}</span> : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
