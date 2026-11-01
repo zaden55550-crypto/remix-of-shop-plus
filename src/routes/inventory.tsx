@@ -1300,11 +1300,15 @@ function InlineProductPicker({
   value,
   onChange,
   tr,
+  label,
+  required = true,
 }: {
   s: erp.ErpState;
   value: string;
   onChange: (id: string) => void;
   tr: (t: string) => string;
+  label?: string;
+  required?: boolean;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
