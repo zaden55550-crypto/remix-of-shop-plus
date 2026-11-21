@@ -23767,3 +23767,76 @@ p.verify-small { text-decoration: none; }
   :root:root:root:root:root:root:root:root:root:root:root:root:root main.signup-page.auth-split-page > .login-benefits-footer.auth-benefits { margin-bottom: 12px !important; }
 }
 /* ===== END AUTH PAGES SCROLL ===== */
+
+/* ===== LIGHT MODE: CONNECTION PILL & TICK BOX (2026-11-22) =====
+   The pill's white text and the tick box's white ring were made for the dark card; on the white card they vanished. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .conn-pill { color: #0f172a; }
+:root:not(.dark) .conn-pill.is-online { --pill-dot: #15803d; --pill-bg: #dcfce7; --pill-line: #4ade80; }
+:root:not(.dark) .conn-pill.is-connecting { --pill-dot: #475569; --pill-bg: #f1f5f9; --pill-line: #94a3b8; }
+:root:not(.dark) .conn-pill.is-offline { --pill-dot: #b91c1c; --pill-bg: #fee2e2; --pill-line: #f87171; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .signup-agreement-label input[type="checkbox"]:not(:checked) {
+  outline-color: #334155 !important;
+}
+/* ===== END LIGHT MODE: CONNECTION PILL & TICK BOX ===== */
+
+/* ===== LOG IN & CREATE ACCOUNT POLISH (2026-11-22, owner's request) =====
+   A · Light mode: white boxes to type in (thin grey border, dark text), like most business systems; dark mode is unchanged.
+   B · One brand colour for the main actions in both modes: the dark-mode blue (Log In / Create Account, tick boxes, Forgot link).
+   C · Light mode: Google and Passkey get a visible grey edge on the white card (Apple stays black).
+   D · The logo: "ZAKRIO" under the Z shows only when the middle circle has room; on small windows just the Z (it ran under the icons).
+   E · "New staff?" and "Need help?" a little larger on laptops. */
+/* A: light mode now uses white boxes (owner's choice, 2026-11-22, replacing AUTH ENTRY CONTRAST's navy boxes in light mode). The
+   fields read these shared colours (text, fill, hint, edge), so changing them keeps every box, picker and Upload Logo in step. */
+:root:root:not(.dark) .signup-page {
+  --auth-field-bg: #ffffff;
+  --auth-field-border: #cbd5e1;
+  --auth-field-text: #0f172a;
+  --auth-field-placeholder: #64748b; /* 4.8:1 on white */
+  --auth-field-focus: #2563eb;
+  --auth-field-hover: #f8fafc;
+  --auth-field-glass: linear-gradient(180deg, #ffffff, #f8fafc);
+  --auth-field-glass-hover: linear-gradient(180deg, #ffffff, #f1f5f9);
+  --auth-field-rim: #cbd5e1;
+  --auth-field-sheen: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page :is(.signup-field-input, .signup-col-picker-btn, .signup-col-picker > button, .signup-upload-btn) {
+  border: 1.5px solid #cbd5e1 !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page :is(.signup-field-input, .signup-col-picker-btn, .signup-col-picker > button, .signup-upload-btn):focus-visible,
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .signup-field-input:focus {
+  border-color: #2563eb !important;
+  outline: 3px solid rgb(37 99 235 / 0.25) !important;
+  outline-offset: 0 !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .signup-phone-divider { background: #cbd5e1 !important; }
+
+/* B: the dark-mode blue, everywhere. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .auth-btn-primary {
+  background-color: oklch(0.58 0.22 262) !important;
+  color: #ffffff !important;
+  border-color: rgb(96 165 250 / 0.7) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 6px 18px rgb(37 99 235 / 0.3) !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .auth-btn-primary:hover { filter: brightness(1.06); }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page input[type="checkbox"] { accent-color: oklch(0.58 0.22 262) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .login-forgot { color: #1d4ed8 !important; }
+
+/* C */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .auth-social-row :is(.auth-btn-google, .auth-btn-passkey) {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06) !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .signup-page .auth-social-row :is(.auth-btn-google, .auth-btn-passkey):hover { border-color: #94a3b8 !important; }
+
+/* D: the middle circle measures itself; the name shows only from 100px across. */
+.auth-brand-emblem-core { container-type: inline-size; }
+@container (max-width: 99.98px) { .zakrio-mark-name { display: none !important; } }
+
+/* E */
+@media (min-width: 768px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page :is(.login-staff-note, .login-help-note) { font-size: 15px !important; }
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .login-help-note a { font-size: inherit !important; }
+/* ===== END LOG IN & CREATE ACCOUNT POLISH ===== */
