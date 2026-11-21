@@ -23753,3 +23753,17 @@ p.verify-small { text-decoration: none; }
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-btn-passkey .auth-social-label { font-size: clamp(12px, 3.5vw, 15px) !important; }
 }
 /* ===== END PHONE: GOOGLE · APPLE · PASSKEY ===== */
+
+/* ===== AUTH PAGES SCROLL WHEN THEY DON'T FIT (2026-11-22, owner's request) =====
+   Log In and Create Account are centred top to bottom. On a short or zoomed-in window (e.g. 150% browser zoom) the content is taller
+   than the screen, and plain centring pushed part of it above the top, where it could never be scrolled to, so the benefit cards
+   under the card were cut off. "safe" centring keeps it centred when it fits and lets it run downward, scrollable, when it doesn't. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root main.signup-page.auth-split-page {
+  justify-content: safe center !important;
+  overflow-y: auto !important;
+}
+/* Keep a little room under the card and under the cards when the page scrolls. */
+@media (min-width: 768px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root main.signup-page.auth-split-page > .login-benefits-footer.auth-benefits { margin-bottom: 12px !important; }
+}
+/* ===== END AUTH PAGES SCROLL ===== */
