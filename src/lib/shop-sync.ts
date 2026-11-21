@@ -4,11 +4,14 @@ import { empty, load, type ErpState } from "@/lib/erp";
 import { applyOperation } from "@/lib/sync.functions";
 import { businessId, createOperation, getOutbox, pendingOperations, persistErp, retryDelay, updateOperation } from "@/lib/outbox";
 import { getConnectivity, ACTIVE_CHECK_MS } from "@/lib/connectivity";
+import { canRecord, store } from "@/lib/shopbook";
 
 /** Live multi-phone sync of the whole ERP for one signed-in owner.
  * Records carry ids, so phones merge by id (union); for the same id the side doing the merge keeps its own copy. */
 export type SyncState = { phase: "local" | "offline" | "syncing" | "live" | "failed"; at: number; pending?: number; error?: string | undefined };
 let state: SyncState = { phase: "local", at: 0 };
+/** Shown while changes made before the trial ended are waiting for a plan. */
+export const HELD = "Your free trial has ended. Changes saved on this device before it ended are kept here and will be sent after you subscribe.";
 const EVT = "shopbook-sync-status";
 const publish = (s: SyncState) => { state = s; window.dispatchEvent(new Event(EVT)); };
 export function useSyncStatus() { const [s, set] = useState(state); useEffect(() => { const f = () => set(state); f(); window.addEventListener(EVT, f); return () => window.removeEventListener(EVT, f); }, []); return s; }
@@ -36,6 +39,7 @@ export function startShopSync() {
   let stopped = false, busy = false;
   const work = async () => {
     if (stopped || busy || document.visibilityState !== "visible") return;
+    if (store.get()?.staff) { publish({ phase: "local", at: 0, pending: 0 }); return; }
     const pending = pendingOperations().length;
     if (!navigator.onLine || getConnectivity().backend !== "up") { publish({ phase: "offline", at: state.at, pending }); return; }
     if (localStorage.getItem("shopbook.session") !== "1") { publish({ phase: "local", at: 0, pending }); return; }
@@ -56,6 +60,12 @@ export function startShopSync() {
         const bootstrap = createOperation(empty(), load(), true);
         if (bootstrap) { bootstrap.owner = owner; persistErp(load(), [bootstrap]); }
         localStorage.setItem("shopbook.syncInitialized", "1");
+      }
+      // After the trial, changes saved on this device before it ended wait here, untouched: they are neither sent nor deleted until a plan is
+      // paid for (the server would refuse them anyway). Whether such records should be accepted afterwards is the owner's decision to make.
+      if (!canRecord(store.get()) && pendingOperations(owner).length) {
+        publish({ phase: "failed", at: state.at, pending: pendingOperations(owner).length, error: HELD });
+        return;
       }
       for (const op of pendingOperations(owner)) {
         if (!validIdentity()) return;

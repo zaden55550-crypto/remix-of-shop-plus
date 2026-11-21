@@ -54,7 +54,7 @@ export const planSheets = (sheets: Sheet[]): Plan[] => sheets.map((sheet) => { c
 
 const KEYS = ["shopbook.importBatches", "shopbook.importHistory"];
 const snapshot = () => KEYS.map((key) => [key, localStorage.getItem(key)] as const);
-const restore = (snap: ReturnType<typeof snapshot>) => { for (const [key, v] of snap) v === null ? localStorage.removeItem(key) : localStorage.setItem(key, v); window.dispatchEvent(new Event("shopbook-erp")); window.dispatchEvent(new Event("shopbook-prefs")); };
+const restore = (snap: ReturnType<typeof snapshot>) => { for (const [key, v] of snap) { if (v === null) localStorage.removeItem(key); else localStorage.setItem(key, v); } window.dispatchEvent(new Event("shopbook-erp")); window.dispatchEvent(new Event("shopbook-prefs")); };
 
 function runStage(cat: Exclude<FullCat, "Skip">, plans: Plan[], o: FullOptions): StageResult {
   const sheets = plans.map((p) => `${p.sheet.file} • ${p.sheet.sheet}`), base: StageResult = { cat, sheets, total: 0, created: 0, updated: 0, skipped: 0, rejected: 0, issues: [] };
@@ -115,7 +115,7 @@ export function importFull(plans: Plan[], o: FullOptions): { results: StageResul
   try { results = runErpTransaction(() => runAll(go, o, true)); }
   catch (e) { restore(snap); throw e; }
   // Replace the per-stage history entries with one combined Full Business Import entry.
-  for (const [key, v] of snap) if (key !== "shopbook.erp") v === null ? localStorage.removeItem(key) : localStorage.setItem(key, v);
+  for (const [key, v] of snap) if (key !== "shopbook.erp") { if (v === null) localStorage.removeItem(key); else localStorage.setItem(key, v); }
   const sum = (f: "created" | "updated" | "skipped" | "rejected") => results.reduce((a, r) => a + r[f], 0);
   const batch: ImportBatch = { id: `IMP-${Date.now().toString().slice(-6)}`, at: Date.now(), user: "Admin", files: [...new Set(go.map((p) => p.sheet.file))], categories: ["Full Business Import", ...results.map((r) => r.cat)], status: sum("rejected") ? "Completed with Errors" : "Completed", created: sum("created"), updated: sum("updated"), skipped: sum("skipped"), rejected: sum("rejected"), reconciliation: results.map((r) => `${r.cat}: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped, ${r.rejected} rejected`), errors: results.flatMap((r) => r.issues) } as ImportBatch;
   saveBatch(batch);
@@ -128,7 +128,7 @@ export async function fullTemplateBytes(only?: Exclude<FullCat, "Skip">): Promis
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new(), cats = only ? [only] : FULL_ORDER;
   const head = (f: Field) => { const a = (f as Field & { aliases?: string[] }).aliases?.find((x) => x.includes(" ")); return a ? a.replace(/\b\w/g, (m) => m.toUpperCase()) : f.label; };
-  const help: (string | number)[][] = [["SHOPBOOK " + (only ?? "Full Business") + " Import template"], ["Fill one row per record. One field per column. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Payment method: Cash, M-Pesa or Bank. Sales/Purchases/Returns: one item per row; rows sharing a receipt number become one transaction."], ["Rows on this Instructions sheet are examples and are never imported."], only ? [] : ["Import order is automatic: " + FULL_ORDER.join(" → ")], []];
+  const help: (string | number)[][] = [["Zakrio Systems " + (only ?? "Full Business") + " Import template"], ["Fill one row per record. One field per column. Leave sheets you don't need empty — they are skipped."], ["Dates: YYYY-MM-DD. Amounts: numbers only. Payment method: Cash, M-Pesa or Bank. Sales/Purchases/Returns: one item per row; rows sharing a receipt number become one transaction."], ["Rows on this Instructions sheet are examples and are never imported."], only ? [] : ["Import order is automatic: " + FULL_ORDER.join(" → ")], []];
   for (const c of cats) { const fs = fieldsFor(c); help.push([c, "Required: " + fs.filter((f) => f.required).map(head).join(", "), "Optional: " + fs.filter((f) => !f.required).map(head).join(", ")]); }
   if (cats.includes("Products")) help.push([], ["Products example"], ["Product Name", "Buying Price", "Selling Price", "Quantity", "Minimum Stock", "Category", "Brand", "Unit"], ["Example Product A", 100, 150, 20, 5, "Beverages", "Example Brand", "Piece"]);
   const ins = XLSX.utils.aoa_to_sheet(help); ins["!cols"] = [{ wch: 22 }, { wch: 60 }, { wch: 60 }];
@@ -166,7 +166,7 @@ async function polishTemplate(buf: ArrayBuffer, heads: string[][]): Promise<Arra
   return z.generateAsync({ type: "arraybuffer" });
 }
 export const fullTemplate = async (only?: Exclude<FullCat, "Skip">) => new Blob([await fullTemplateBytes(only)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-export const templateName = (only?: string) => `SHOPBOOK_${(only ?? "Complete Business").replace(/[^A-Za-z0-9]+/g, "_")}_Import_Template.xlsx`;
+export const templateName = (only?: string) => `Shop_Plus_${(only ?? "Complete Business").replace(/[^A-Za-z0-9]+/g, "_")}_Import_Template.xlsx`;
 
 /** Turns cells copied from Excel/Google Sheets (tab separated) into a sheet; first non-empty row is the header. */
 export function pastedSheet(text: string): Sheet {

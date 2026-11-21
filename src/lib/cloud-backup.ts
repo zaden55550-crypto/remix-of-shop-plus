@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { saveCloudBackup } from "@/lib/backup.functions";
 import { snapshot, BACKUP_KEYS } from "@/lib/backup";
+import { randomUUID } from "@/lib/id";
+import { PLAN_CHANGED_EVENT } from "@/lib/plan-change";
 export type BackupState = { phase: "local" | "offline" | "syncing" | "backed" | "failed" | "account"; at: number; error?: string };
 let state: BackupState = { phase: "local", at: 0 };
 const EVENT = "shopbook-backup-status";
@@ -10,11 +12,11 @@ export function useBackupStatus() { const [s, set] = useState(state); useEffect(
 /** Mount once globally: captures all ERP actions, preferences, reports and drafts. No auto-restore or merges. */
 export function startCloudBackup() {
   let stopped = false, busy = false, timer: ReturnType<typeof setTimeout> | undefined, retry = 2000, signature = "", boundUser = "";
-  const device = localStorage.getItem("shopbook.deviceId") || crypto.randomUUID(); localStorage.setItem("shopbook.deviceId", device);
+  const device = localStorage.getItem("shopbook.deviceId") || randomUUID(); localStorage.setItem("shopbook.deviceId", device);
   const schedule = (ms = 1200) => { if (timer) clearTimeout(timer); timer = setTimeout(sync, ms); };
   const sync = async () => {
     if (stopped || document.visibilityState !== "visible") return;
-    if (localStorage.getItem("shopbook.session") !== "1") { publish({ phase: "local", at: 0 }); return; }
+    if (localStorage.getItem("shopbook.session") !== "1" || JSON.parse(localStorage.getItem("shopbook.account") || "null")?.staff) { publish({ phase: "local", at: 0 }); return; }
     if (!navigator.onLine) { publish({ phase: "offline", at: state.at }); return; }
     if (busy) { schedule(); return; }
     busy = true;
@@ -44,7 +46,7 @@ export function startCloudBackup() {
     finally { busy = false; }
   };
   const changed = () => { publish({ phase: navigator.onLine ? "syncing" : "offline", at: state.at }); schedule(); };
-  const events = ["shopbook-erp", "shopbook-prefs", "shopbook-language", "storage", "online", "offline", "shopbook-session"];
+  const events = ["shopbook-erp", "shopbook-prefs", "shopbook-language", "storage", "online", "offline", "shopbook-session", PLAN_CHANGED_EVENT];
   events.forEach((e) => window.addEventListener(e, changed));
   const auth = supabase.auth.onAuthStateChange(() => { signature = ""; schedule(50); });
   // Also captures older screens whose preference/draft setters do not dispatch events.

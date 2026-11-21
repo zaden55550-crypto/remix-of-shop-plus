@@ -8,6 +8,7 @@ import * as erp from "@/lib/erp";
 import { APPS } from "@/lib/shopbook";
 import { useSettings } from "@/lib/settings-config";
 import { downloadBlob } from "@/lib/download";
+import { SHEETS, iso } from "@/lib/records-export";
 import { translateCurrent } from "@/lib/interface-translations";
 
 type Tr = (x: string) => string;
@@ -41,26 +42,13 @@ export function NamedManager({ kind, tr }: { kind: "categories" | "brands"; tr: 
     {list.map((c) => { const n = s.products.filter((p) => p[key] === c.id).length; return <div key={c.id} className="flex items-center gap-2 border-b border-border py-1.5">
       {edit?.id === c.id
         ? <form className="flex flex-1 gap-2" onSubmit={(e) => { e.preventDefault(); if (run(() => erp.renameNamed(kind, c.id, edit.name), "Saved")) setEdit(null); }}><input autoFocus className="inventory-input" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} /><ShopButton type="submit" className="inventory-add-named">{tr("Save")}</ShopButton></form>
-        : <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name}</p><p className="text-[10px] text-muted-foreground">{n} {tr("products")}</p></div>}
+        : <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{c.name}</p><p className="text-[11px] text-muted-foreground">{n} {tr("products")}</p></div>}
       <ShopButton variant="bare" className="inventory-icon-button" aria-label={`${tr("Rename")} ${c.name}`} onClick={() => setEdit(edit?.id === c.id ? null : { id: c.id, name: c.name })}><Pencil className="h-3.5 w-3.5" /></ShopButton>
-      <ShopButton variant="bare" className="inventory-icon-button text-destructive" aria-label={`${tr("Delete")} ${c.name}`} onClick={() => { if (confirm(`${tr("Delete")} ${c.name}?${n ? ` ${n} ${tr("products will keep their records but lose this label.")}` : ""}`)) run(() => erp.removeNamed(kind, c.id), "Deleted"); }}><Trash2 className="h-3.5 w-3.5" /></ShopButton>
+      <ShopButton variant="bare" className="inventory-icon-button text-destructive" aria-label={`${tr("Delete")} ${c.name}`} onClick={() => { if (confirm(`${tr("Delete")} ${c.name}?`)) run(() => erp.removeNamed(kind, c.id), "Deleted"); }}><Trash2 className="h-3.5 w-3.5" /></ShopButton>
     </div>; })}
   </div>;
 }
 
-type Sheet = { name: string; dated: boolean; rows: (s: erp.ErpState) => { at?: number; row: Record<string, unknown> }[] };
-const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
-const SHEETS: Sheet[] = [
-  { name: "Products", dated: false, rows: (s) => s.products.map((p) => ({ row: { ID: p.id, Name: p.name, SKU: p.sku ?? "", Barcode: p.barcode ?? "", Category: s.categories.find((c) => c.id === p.categoryId)?.name ?? "", Brand: s.brands.find((b) => b.id === p.brandId)?.name ?? "", Qty: p.qty, "Buying price": p.buy, "Selling price": p.sell } })) },
-  { name: "Categories", dated: false, rows: (s) => s.categories.map((c) => ({ row: { ID: c.id, Name: c.name } })) },
-  { name: "Brands", dated: false, rows: (s) => s.brands.map((c) => ({ row: { ID: c.id, Name: c.name } })) },
-  { name: "Customers", dated: false, rows: (s) => s.customers.map((c) => ({ row: { ID: c.id, Name: c.name, Phone: c.phone ?? "", Balance: c.balance } })) },
-  { name: "Suppliers", dated: false, rows: (s) => s.suppliers.map((c) => ({ row: { ID: c.id, Name: c.name, Phone: c.phone ?? "", Balance: c.balance } })) },
-  { name: "Sales", dated: true, rows: (s) => s.sales.map((x) => ({ at: x.at, row: { Ref: x.ref, Date: iso(x.at), "Customer ID": x.customerId ?? "", Customer: s.customers.find((c) => c.id === x.customerId)?.name ?? "", Total: x.total, Cash: x.pay.cash, "M-Pesa": x.pay.mpesa, Bank: x.pay.bank, Credit: x.pay.credit, Settled: x.settled ?? 0 } })) },
-  { name: "Purchases", dated: true, rows: (s) => s.purchases.map((x) => ({ at: x.at, row: { Ref: x.ref, Date: iso(x.at), "Supplier ID": x.supplierId ?? "", Supplier: s.suppliers.find((c) => c.id === x.supplierId)?.name ?? "", Total: x.total, Cash: x.pay.cash, "M-Pesa": x.pay.mpesa, Bank: x.pay.bank, Credit: x.pay.credit, Settled: x.settled ?? 0 } })) },
-  { name: "Expenses", dated: true, rows: (s) => s.expenses.map((x) => ({ at: x.at, row: { Ref: x.ref, Date: iso(x.at), Category: x.category, Note: x.description ?? x.note ?? "", Amount: x.amount, Method: x.method } })) },
-  { name: "Stock movements", dated: true, rows: (s) => s.movements.map((m) => ({ at: m.at, row: { ...m, at: undefined, Date: iso(m.at) } })) },
-];
 
 /** Full or selected workbook export, optionally filtered by date. Read-only. */
 export function ExportData({ tr, shopName }: { tr: Tr; shopName: string }) {
@@ -94,7 +82,7 @@ export function ExportData({ tr, shopName }: { tr: Tr; shopName: string }) {
     <p className="money-heading">{tr("Export selected data")}</p>
     <div className="grid grid-cols-2 gap-1">{SHEETS.map((x) => <label key={x.name} className="settings-toggle"><span>{tr(x.name)}</span><input type="checkbox" checked={picked.includes(x.name)} onChange={(e) => setPicked((p) => e.target.checked ? [...p, x.name] : p.filter((n) => n !== x.name))} /></label>)}</div>
     <div className="grid grid-cols-2 gap-2"><label className="text-xs">{tr("From")}<input type="date" className="inventory-input" value={from} onChange={(e) => setFrom(e.target.value)} /></label><label className="text-xs">{tr("To")}<input type="date" className="inventory-input" value={to} onChange={(e) => setTo(e.target.value)} /></label></div>
-    <p className="settings-note">{tr("Dates filter sales, purchases, expenses and stock movements.")}</p>
+    <p className="settings-note">{tr("Dates filter the records that have a date.")}</p>
     {filtered && <p className="settings-note text-destructive">{tr("A filtered export cannot be used to restore your shop. Use Whole-shop backup for that.")}</p>}
     <div className="grid grid-cols-2 gap-2">
       <ShopButton variant="outline" className="inventory-save" disabled={!picked.length} onClick={() => run(picked)}><Download className="h-4 w-4" />Excel</ShopButton>

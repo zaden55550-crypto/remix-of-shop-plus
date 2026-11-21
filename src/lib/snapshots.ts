@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { backupJson } from "@/lib/backup";
 import { createSnapshot } from "@/lib/snapshot.functions";
+import { randomUUID } from "@/lib/id";
 
 export type SnapshotPrefs = { auto: boolean; hours: number; keep: number };
 const PREFS = "shopbook.snapshotPrefs", LAST = "shopbook.lastVerifiedBackup", FAIL = "shopbook.lastBackupFailure";
@@ -10,7 +11,7 @@ export const setPrefs = (p: SnapshotPrefs) => { localStorage.setItem(PREFS, JSON
 export const lastVerified = () => Number(localStorage.getItem(LAST) || 0);
 export const lastFailure = () => localStorage.getItem(FAIL) || "";
 export const nextDue = () => { const p = getPrefs(); return p.auto ? Math.max(Date.now(), lastVerified() + p.hours * 3600000) : 0; };
-const device = () => { const d = localStorage.getItem("shopbook.deviceId") || crypto.randomUUID(); localStorage.setItem("shopbook.deviceId", d); return d; };
+const device = () => { const d = localStorage.getItem("shopbook.deviceId") || randomUUID(); localStorage.setItem("shopbook.deviceId", d); return d; };
 
 let running = false;
 export async function backUpNow(kind: "manual" | "automatic" | "pre-restore") {
@@ -39,7 +40,7 @@ export async function backUpNow(kind: "manual" | "automatic" | "pre-restore") {
 export function startAutoSnapshots() {
   const tick = async () => {
     const p = getPrefs();
-    if (!p.auto || !navigator.onLine || document.visibilityState !== "visible" || localStorage.getItem("shopbook.session") !== "1" || Date.now() < lastVerified() + p.hours * 3600000) return;
+    if (!p.auto || !navigator.onLine || document.visibilityState !== "visible" || localStorage.getItem("shopbook.session") !== "1" || JSON.parse(localStorage.getItem("shopbook.account") || "null")?.staff || Date.now() < lastVerified() + p.hours * 3600000) return;
     const { data } = await supabase.auth.getSession(); if (!data.session || !localStorage.getItem("shopbook.account")) return;
     const owner = localStorage.getItem("shopbook.backupOwner"); if (owner && owner !== data.session.user.id) return;
     try { await backUpNow("automatic"); } catch { /* failure recorded for the status line */ }

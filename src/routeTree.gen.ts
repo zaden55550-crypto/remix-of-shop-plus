@@ -12,25 +12,33 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountingRouteImport } from './routes/accounting'
 import { Route as AppsRouteImport } from './routes/apps'
+import { Route as BusinessesRouteImport } from './routes/businesses'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExpensesRouteImport } from './routes/expenses'
 import { Route as FloatRouteImport } from './routes/float'
 import { Route as InventoryRouteImport } from './routes/inventory'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as PayrollRouteImport } from './routes/payroll'
 import { Route as PlansRouteImport } from './routes/plans'
 import { Route as PosRouteImport } from './routes/pos'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PurchasesRouteImport } from './routes/purchases'
 import { Route as ReconciliationRouteImport } from './routes/reconciliation'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as SupportInboxRouteImport } from './routes/support-inbox'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiBusinessAssistantRouteImport } from './routes/api/business-assistant'
 import { Route as ApiHelpChatRouteImport } from './routes/api/help-chat'
 import { Route as ApiReorderRouteImport } from './routes/api/reorder'
+import { Route as AuthRecoveryRouteImport } from './routes/auth.recovery'
+import { Route as AuthReturnRouteImport } from './routes/auth.return'
+import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,6 +53,11 @@ const AccountingRoute = AccountingRouteImport.update({
 const AppsRoute = AppsRouteImport.update({
   id: '/apps',
   path: '/apps',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessesRoute = BusinessesRouteImport.update({
+  id: '/businesses',
+  path: '/businesses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsRoute = ContactsRouteImport.update({
@@ -72,6 +85,11 @@ const InventoryRoute = InventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PayrollRoute = PayrollRouteImport.update({
   id: '/payroll',
   path: '/payroll',
@@ -85,6 +103,11 @@ const PlansRoute = PlansRouteImport.update({
 const PosRoute = PosRouteImport.update({
   id: '/pos',
   path: '/pos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PurchasesRoute = PurchasesRouteImport.update({
@@ -112,6 +135,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -125,6 +153,11 @@ const SummaryRoute = SummaryRouteImport.update({
 const SupportInboxRoute = SupportInboxRouteImport.update({
   id: '/support-inbox',
   path: '/support-inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBusinessAssistantRoute = ApiBusinessAssistantRouteImport.update({
@@ -142,79 +175,118 @@ const ApiReorderRoute = ApiReorderRouteImport.update({
   path: '/api/reorder',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRecoveryRoute = AuthRecoveryRouteImport.update({
+  id: '/auth/recovery',
+  path: '/auth/recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthReturnRoute = AuthReturnRouteImport.update({
+  id: '/auth/return',
+  path: '/auth/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthVerifyRoute = AuthVerifyRouteImport.update({
+  id: '/auth/verify',
+  path: '/auth/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/apps': typeof AppsRoute
+  '/businesses': typeof BusinessesRoute
   '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
   '/float': typeof FloatRoute
   '/inventory': typeof InventoryRoute
+  '/invite': typeof InviteRoute
   '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/privacy': typeof PrivacyRoute
   '/purchases': typeof PurchasesRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/support-inbox': typeof SupportInboxRoute
+  '/terms': typeof TermsRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/reorder': typeof ApiReorderRoute
+  '/auth/recovery': typeof AuthRecoveryRoute
+  '/auth/return': typeof AuthReturnRoute
+  '/auth/verify': typeof AuthVerifyRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/apps': typeof AppsRoute
+  '/businesses': typeof BusinessesRoute
   '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
   '/float': typeof FloatRoute
   '/inventory': typeof InventoryRoute
+  '/invite': typeof InviteRoute
   '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/privacy': typeof PrivacyRoute
   '/purchases': typeof PurchasesRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/support-inbox': typeof SupportInboxRoute
+  '/terms': typeof TermsRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/reorder': typeof ApiReorderRoute
+  '/auth/recovery': typeof AuthRecoveryRoute
+  '/auth/return': typeof AuthReturnRoute
+  '/auth/verify': typeof AuthVerifyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounting': typeof AccountingRoute
   '/apps': typeof AppsRoute
+  '/businesses': typeof BusinessesRoute
   '/contacts': typeof ContactsRoute
   '/dashboard': typeof DashboardRoute
   '/expenses': typeof ExpensesRoute
   '/float': typeof FloatRoute
   '/inventory': typeof InventoryRoute
+  '/invite': typeof InviteRoute
   '/payroll': typeof PayrollRoute
   '/plans': typeof PlansRoute
   '/pos': typeof PosRoute
+  '/privacy': typeof PrivacyRoute
   '/purchases': typeof PurchasesRoute
   '/reconciliation': typeof ReconciliationRoute
   '/reports': typeof ReportsRoute
   '/sales': typeof SalesRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/signup': typeof SignupRoute
   '/summary': typeof SummaryRoute
   '/support-inbox': typeof SupportInboxRoute
+  '/terms': typeof TermsRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/reorder': typeof ApiReorderRoute
+  '/auth/recovery': typeof AuthRecoveryRoute
+  '/auth/return': typeof AuthReturnRoute
+  '/auth/verify': typeof AuthVerifyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -222,98 +294,130 @@ export interface FileRouteTypes {
     | '/'
     | '/accounting'
     | '/apps'
+    | '/businesses'
     | '/contacts'
     | '/dashboard'
     | '/expenses'
     | '/float'
     | '/inventory'
+    | '/invite'
     | '/payroll'
     | '/plans'
     | '/pos'
+    | '/privacy'
     | '/purchases'
     | '/reconciliation'
     | '/reports'
     | '/sales'
     | '/settings'
+    | '/setup'
     | '/signup'
     | '/summary'
     | '/support-inbox'
+    | '/terms'
     | '/api/business-assistant'
     | '/api/help-chat'
     | '/api/reorder'
+    | '/auth/recovery'
+    | '/auth/return'
+    | '/auth/verify'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/accounting'
     | '/apps'
+    | '/businesses'
     | '/contacts'
     | '/dashboard'
     | '/expenses'
     | '/float'
     | '/inventory'
+    | '/invite'
     | '/payroll'
     | '/plans'
     | '/pos'
+    | '/privacy'
     | '/purchases'
     | '/reconciliation'
     | '/reports'
     | '/sales'
     | '/settings'
+    | '/setup'
     | '/signup'
     | '/summary'
     | '/support-inbox'
+    | '/terms'
     | '/api/business-assistant'
     | '/api/help-chat'
     | '/api/reorder'
+    | '/auth/recovery'
+    | '/auth/return'
+    | '/auth/verify'
   id:
     | '__root__'
     | '/'
     | '/accounting'
     | '/apps'
+    | '/businesses'
     | '/contacts'
     | '/dashboard'
     | '/expenses'
     | '/float'
     | '/inventory'
+    | '/invite'
     | '/payroll'
     | '/plans'
     | '/pos'
+    | '/privacy'
     | '/purchases'
     | '/reconciliation'
     | '/reports'
     | '/sales'
     | '/settings'
+    | '/setup'
     | '/signup'
     | '/summary'
     | '/support-inbox'
+    | '/terms'
     | '/api/business-assistant'
     | '/api/help-chat'
     | '/api/reorder'
+    | '/auth/recovery'
+    | '/auth/return'
+    | '/auth/verify'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountingRoute: typeof AccountingRoute
   AppsRoute: typeof AppsRoute
+  BusinessesRoute: typeof BusinessesRoute
   ContactsRoute: typeof ContactsRoute
   DashboardRoute: typeof DashboardRoute
   ExpensesRoute: typeof ExpensesRoute
   FloatRoute: typeof FloatRoute
   InventoryRoute: typeof InventoryRoute
+  InviteRoute: typeof InviteRoute
   PayrollRoute: typeof PayrollRoute
   PlansRoute: typeof PlansRoute
   PosRoute: typeof PosRoute
+  PrivacyRoute: typeof PrivacyRoute
   PurchasesRoute: typeof PurchasesRoute
   ReconciliationRoute: typeof ReconciliationRoute
   ReportsRoute: typeof ReportsRoute
   SalesRoute: typeof SalesRoute
   SettingsRoute: typeof SettingsRoute
+  SetupRoute: typeof SetupRoute
   SignupRoute: typeof SignupRoute
   SummaryRoute: typeof SummaryRoute
   SupportInboxRoute: typeof SupportInboxRoute
+  TermsRoute: typeof TermsRoute
   ApiBusinessAssistantRoute: typeof ApiBusinessAssistantRoute
   ApiHelpChatRoute: typeof ApiHelpChatRoute
   ApiReorderRoute: typeof ApiReorderRoute
+  AuthRecoveryRoute: typeof AuthRecoveryRoute
+  AuthReturnRoute: typeof AuthReturnRoute
+  AuthVerifyRoute: typeof AuthVerifyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -337,6 +441,13 @@ declare module '@tanstack/react-router' {
       path: '/apps'
       fullPath: '/apps'
       preLoaderRoute: typeof AppsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/businesses': {
+      id: '/businesses'
+      path: '/businesses'
+      fullPath: '/businesses'
+      preLoaderRoute: typeof BusinessesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacts': {
@@ -374,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InventoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/payroll': {
       id: '/payroll'
       path: '/payroll'
@@ -393,6 +511,13 @@ declare module '@tanstack/react-router' {
       path: '/pos'
       fullPath: '/pos'
       preLoaderRoute: typeof PosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/purchases': {
@@ -430,6 +555,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/signup': {
       id: '/signup'
       path: '/signup'
@@ -449,6 +581,13 @@ declare module '@tanstack/react-router' {
       path: '/support-inbox'
       fullPath: '/support-inbox'
       preLoaderRoute: typeof SupportInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/business-assistant': {
@@ -472,6 +611,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiReorderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/recovery': {
+      id: '/auth/recovery'
+      path: '/auth/recovery'
+      fullPath: '/auth/recovery'
+      preLoaderRoute: typeof AuthRecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/return': {
+      id: '/auth/return'
+      path: '/auth/return'
+      fullPath: '/auth/return'
+      preLoaderRoute: typeof AuthReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/verify': {
+      id: '/auth/verify'
+      path: '/auth/verify'
+      fullPath: '/auth/verify'
+      preLoaderRoute: typeof AuthVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -479,25 +639,33 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountingRoute: AccountingRoute,
   AppsRoute: AppsRoute,
+  BusinessesRoute: BusinessesRoute,
   ContactsRoute: ContactsRoute,
   DashboardRoute: DashboardRoute,
   ExpensesRoute: ExpensesRoute,
   FloatRoute: FloatRoute,
   InventoryRoute: InventoryRoute,
+  InviteRoute: InviteRoute,
   PayrollRoute: PayrollRoute,
   PlansRoute: PlansRoute,
   PosRoute: PosRoute,
+  PrivacyRoute: PrivacyRoute,
   PurchasesRoute: PurchasesRoute,
   ReconciliationRoute: ReconciliationRoute,
   ReportsRoute: ReportsRoute,
   SalesRoute: SalesRoute,
   SettingsRoute: SettingsRoute,
+  SetupRoute: SetupRoute,
   SignupRoute: SignupRoute,
   SummaryRoute: SummaryRoute,
   SupportInboxRoute: SupportInboxRoute,
+  TermsRoute: TermsRoute,
   ApiBusinessAssistantRoute: ApiBusinessAssistantRoute,
   ApiHelpChatRoute: ApiHelpChatRoute,
   ApiReorderRoute: ApiReorderRoute,
+  AuthRecoveryRoute: AuthRecoveryRoute,
+  AuthReturnRoute: AuthReturnRoute,
+  AuthVerifyRoute: AuthVerifyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

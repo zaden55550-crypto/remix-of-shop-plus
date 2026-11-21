@@ -1,4 +1,5 @@
 import { clean } from "@/lib/format";
+import { GlassPage } from "@/components/shopbook/glass-page";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
@@ -7,20 +8,23 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { inputCls } from "@/components/shopbook/product-search";
 import { store, canOpen, type Account, type Tier } from "@/lib/shopbook";
+import type { HeaderPeriod } from "@/lib/period";
 import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/components/shopbook/pay-picker";
 import { vatRate } from "@/lib/prefs";
-import { PrintPreview, whatsapp } from "@/components/shopbook/print";
+import { PrintPreview, sharePdfText } from "@/components/shopbook/print";
 import { useLanguage } from "@/hooks/use-language";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
-import { Tabs } from "@/components/shopbook/erp-shell";
+import { Empty, Tabs } from "@/components/shopbook/erp-shell";
+import { GlobalApplicationHeader } from "@/components/shopbook/global-application-header";
 import { SearchPicker } from "@/components/shopbook/search-picker";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import { readSettings } from "@/lib/settings-config";
 import * as erp from "@/lib/erp";
+import { forOpenBusiness } from "@/lib/businesses";
 
 export type Tr = (t: string) => string;
 export type SCtx = { s: erp.ErpState; money: (n: number) => string; tr: Tr; shop: string; channel: "POS" | "Sales" };
@@ -32,32 +36,38 @@ export const run = <T,>(fn: () => T, ok?: string): T | undefined => {
 };
 const sameDay = (a: number, b = Date.now()) => new Date(a).toDateString() === new Date(b).toDateString();
 
-/** Guards the route, returns the signed-in account or null while redirecting. */
+export { forOpenBusiness } from "@/lib/businesses";
+
+/** Guards the route, returns the signed-in account (as the open business shows it) or null while redirecting. */
 export function useAccount(tier: Tier) {
   const nav = useNavigate();
   const [acct, setAcct] = useState<Account | null>(null);
   useEffect(() => {
-    const a = store.get();
-    if (!a || !store.signedIn()) { nav({ to: "/", replace: true }); return; }
-    if (!canOpen(a, tier)) { nav({ to: "/apps", replace: true }); return; }
-    setAcct(a);
+    const read = () => {
+      const a = store.get();
+      if (!a || !store.signedIn()) { nav({ to: "/", replace: true }); return; }
+      if (!canOpen(a, tier)) { nav({ to: "/apps", replace: true }); return; }
+      const next = forOpenBusiness(a);
+      // Every save notifies; keep the same object unless something shown changed, so effects that depend on the account don't re-run.
+      setAcct((prev) => (prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    };
+    read();
+    // Opening another business changes the name, currency and industry every screen shows.
+    return erp.subscribe(read);
   }, [nav, tier]);
   return acct;
 }
 export const moneyFor = (cur: string) => (n: number) => `${cur} ${clean(Math.round(clean(n) * 100) / 100).toLocaleString("en-KE")}`;
 
 export function AppShell({ title, tabs, tab, setTab, children }: { title: string; tabs: string[]; tab: string; setTab: (t: string) => void; children: ReactNode }) {
-  const nav = useNavigate();
   const { tr, dir } = useLanguage();
+  const shop = store.get()?.shopName ?? "";
   return (
-    <main dir={dir} className="app-screen mx-auto flex min-h-screen w-full max-w-md md:max-w-none flex-col bg-background pb-24 text-foreground">
+    <main dir={dir} className="shop-app app-screen mx-auto flex min-h-screen w-full max-w-md md:max-w-none flex-col bg-background pb-24 text-foreground">
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
-        <div className="flex items-center gap-2 px-4 py-3">
-          <ShopButton variant="bare" className="h-auto w-auto p-1" aria-label={tr("Back")} onClick={() => nav({ to: "/apps" })}><ChevronLeft className="h-5 w-5 rtl:rotate-180" /></ShopButton>
-          <h1 className="text-lg font-bold tracking-wide">{tr(title).toUpperCase()}</h1>
-        </div>
+        <GlobalApplicationHeader title={title} shop={shop} moduleFirst menus={tabs} menu={tab} onMenu={setTab} />
         <BackupStatus />
-        <Tabs items={tabs} value={tab} onChange={setTab} tr={tr} />
+        {tabs.length > 0 && <Tabs items={tabs} value={tab} onChange={setTab} tr={tr} />}
       </header>
       <section className="flex-1 px-4 pt-4">{children}</section>
     </main>
@@ -65,17 +75,15 @@ export function AppShell({ title, tabs, tab, setTab, children }: { title: string
 }
 
 export const Title = ({ children }: { children: ReactNode }) => <h2 className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground first:mt-0">{children}</h2>;
-export const Empty = ({ children }: { children: ReactNode }) => <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
+export { Empty };
 const Label = ({ t, children }: { t: string; children: ReactNode }) => <div role="group" aria-label={t} className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{t}<div className="mt-1">{children}</div></div>;
 
 function Sheet({ onClose, children, title }: { onClose: () => void; children: ReactNode; title: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-background/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="mx-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-card p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between"><p className="text-lg font-bold">{title}</p><button onClick={onClose} aria-label={translateCurrent("Close")}><X className="h-5 w-5" /></button></div>
-        {children}
-      </div>
-    </div>
+    <GlassPage narrow label={title} onClose={onClose}>
+      <div className="mb-3 flex items-center justify-between"><p className="text-lg font-bold">{title}</p><button onClick={onClose} aria-label={translateCurrent("Close")}><X className="h-5 w-5" /></button></div>
+      {children}
+    </GlassPage>
   );
 }
 
@@ -93,10 +101,12 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
     let blocked = false;
     setCart((c) => {
       const inCart = c.find((l) => l.productId === id)?.qty ?? 0;
-      if (inCart + 1 > p.qty + 1e-9) { blocked = true; return c; }
-      return c.some((l) => l.productId === id) ? c.map((l) => (l.productId === id ? { ...l, qty: l.qty + 1 } : l)) : [...c, { productId: id, qty: 1 }];
+      // The last part of a kilo or a yard can still be added: only what is left, not a full one.
+      const room = erp.roundQty(p.qty - inCart), step = room > 0 && room < 1 && !erp.isWholeUnit(p.unit, s.units) ? room : 1;
+      if (inCart + step > p.qty + 1e-9) { blocked = true; return c; }
+      return c.some((l) => l.productId === id) ? c.map((l) => (l.productId === id ? { ...l, qty: erp.roundQty(l.qty + step) } : l)) : [...c, { productId: id, qty: step }];
     });
-    if (blocked || (cart.find((l) => l.productId === id)?.qty ?? 0) + 1 > p.qty + 1e-9) toast.error(`${tr("Insufficient stock")}: ${p.name} (${tr("Available")} ${p.qty})`, { id: `stock-${id}` });
+    if (blocked || (cart.find((l) => l.productId === id)?.qty ?? 0) >= p.qty) toast.error(`${tr("Insufficient stock")}: ${p.name} (${tr("Available")} ${p.qty})`, { id: `stock-${id}` });
   };
   const setQty = (id: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.productId !== id) : c.map((l) => (l.productId === id ? { ...l, qty } : l))));
   const onScan = (code: string) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); };
@@ -122,12 +132,17 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
 export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string }) {
   const cust = sale.customerId ? s.customers.find((c) => c.id === sale.customerId) : undefined;
   const rets = s.returns.filter((r) => r.saleId === sale.id);
+  // The business's own receipt details (Settings › Receipts and Business Profile); blank ones are left out.
+  const cfg = readSettings(), phone = cfg.phone || store.get()?.phone || "";
   return (
     <div className="print-area receipt-paper mx-auto w-full max-w-xs rounded-xl p-4 font-mono text-[12px] leading-5">
-      <p className="text-center text-sm font-bold">SHOPBOOK</p>
+      <p className="text-center text-sm font-bold">Zakrio Systems</p>
       <p className="text-center font-bold uppercase">{shop}</p>
+      {phone && <p className="text-center">{tr("Tel")}: {phone}</p>}
+      {cfg.taxPin && <p className="text-center">{tr("PIN")}: {cfg.taxPin}</p>}
+      {cfg.hours && <p className="text-center">{cfg.hours}</p>}
       <div className="mt-2 border-t border-dashed border-current pt-2">
-        <p>{sale.ref} • {tr("Till")}: {sale.channel === "POS" ? "01" : "—"}</p>
+        <p>{sale.ref} • {tr("Till")}: {sale.channel === "POS" ? String(sale.counter ?? 1).padStart(2, "0") : "—"}</p>
         <p>{tr("Cashier")}: {sale.cashier}</p>
         <p>{tr("Seller")}: {s.employees.find((e) => e.id === sale.sellerId)?.name ?? tr("Admin")}</p>
         <p>{dt(sale.at)}</p>
@@ -143,23 +158,22 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
         {sale.discount > 0 && <div className="flex justify-between"><span>{tr("Discount")}</span><span>− {money(sale.discount)}</span></div>}
         {!!sale.vat && <div className="flex justify-between"><span>{tr("VAT")}</span><span>{money(sale.vat)}</span></div>}
         <div className="flex justify-between font-bold"><span>{tr("TOTAL")}</span><span>{money(sale.total)}</span></div>
-        {erp.METHODS.filter((m) => sale.pay[m] > 0).map((m) => <div key={m} className="flex justify-between"><span>{tr(erp.METHOD_LABEL[m])}</span><span>{money(sale.pay[m])}</span></div>)}
-        {erp.saleBalance(s, sale) > 0.001 && <div className="flex justify-between font-bold"><span>{tr("Balance")} (P.PAY)</span><span>{money(erp.saleBalance(s, sale))}</span></div>}
+        {erp.payLines(s, sale.pay).map(([m, v]) => <div key={m} className="flex justify-between"><span>{m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)}</span><span>{money(v)}</span></div>)}
+        {erp.saleBalance(s, sale) > 0.001 && <div className="flex justify-between font-bold"><span>{tr("Balance due")}</span><span>{money(erp.saleBalance(s, sale))}</span></div>}
         {rets.map((r) => <div key={r.id} className="flex justify-between"><span>{tr("Returned")} {r.ref}</span><span>− {money(r.amount)}</span></div>)}
       </div>
       <p className="mt-3 text-center">{tr("Thank you!")}</p>
+      {cfg.receiptFooter.trim() && <p className="mt-1 whitespace-pre-line text-center">{cfg.receiptFooter.trim()}</p>}
     </div>
   );
 }
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
-  const text = () => [`SHOPBOOK — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.METHODS.filter((m) => sale.pay[m] > 0).map((m) => `${tr(erp.METHOD_LABEL[m])} ${money(sale.pay[m])}`)].join("\n");
-  const share = async () => {
-    try { if (navigator.share) await navigator.share({ title: sale.ref, text: text() }); else { await navigator.clipboard.writeText(text()); toast.success(tr("Receipt copied")); } } catch { /* cancelled */ }
-  };
+  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
+  const share = () => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); };
   const [print, setPrint] = useState<null | "print" | "pdf">(null);
   const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));
-  const A = ({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) => <ShopButton variant="outline" className="h-10 flex-col gap-0.5 px-1 text-[10px]" onClick={onClick}>{icon}{label}</ShopButton>;
+  const A = ({ label, icon, onClick }: { label: string; icon: ReactNode; onClick: () => void }) => <ShopButton variant="outline" className="h-10 flex-col gap-0.5 px-1 text-[11px]" onClick={onClick}>{icon}{label}</ShopButton>;
   return (
     <>
     {print && <PrintPreview title={print === "pdf" ? "Save as PDF" : "Receipt"} onClose={() => setPrint(null)} actions={print === "pdf" ? <p className="text-center text-[11px] text-muted-foreground">{tr("Tap Print, then choose “Save as PDF” as the printer.")}</p> : undefined}><Receipt sale={sale} s={s} money={money} tr={tr} shop={shop} /></PrintPreview>}
@@ -171,8 +185,8 @@ export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live
       <div className="mt-3 grid grid-cols-5 gap-1.5">
         <A label={tr("Print")} icon={<Printer className="h-4 w-4" />} onClick={() => setPrint("print")} />
         <A label="PDF" icon={<FileText className="h-4 w-4" />} onClick={() => setPrint("pdf")} />
-        <A label="WhatsApp" icon={<MessageCircle className="h-4 w-4" />} onClick={() => whatsapp(text())} />
-        <A label={tr("Email")} icon={<Mail className="h-4 w-4" />} onClick={() => window.open(`mailto:?subject=${encodeURIComponent(`${tr("Receipt")} ${sale.ref}`)}&body=${encodeURIComponent(text())}`, "_self")} />
+        <A label="WhatsApp" icon={<MessageCircle className="h-4 w-4" />} onClick={() => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); }} />
+        <A label={tr("Email")} icon={<Mail className="h-4 w-4" />} onClick={() => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); }} />
         <A label={tr("Share")} icon={<Share2 className="h-4 w-4" />} onClick={share} />
       </div>
       {children}
@@ -210,7 +224,7 @@ export function SalesList({ s, money, tr, shop, onlyChannel }: SCtx & { onlyChan
 export function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; onDone: () => void }) {
   const [q, setQ] = useState<Record<string, string>>({});
   const hasCust = !!sale.customerId && s.customers.some((c) => c.id === sale.customerId);
-  const [refund, setRefund] = useState<erp.Method>("cash");
+  const [refund, setRefund] = useState<erp.Method>(() => erp.defaultMethod(erp.load()));
   const ratio = sale.subtotal ? sale.total / sale.subtotal : 1;
   const amount = sale.items.reduce((a, i) => a + (+(q[i.productId] ?? 0) || 0) * i.price * ratio, 0);
   return (
@@ -224,11 +238,11 @@ export function ReturnForm({ sale, s, money, tr, onDone }: { sale: erp.Sale; s: 
       ))}
       <Label t={tr("Refund as")}>
         <select value={refund} onChange={(e) => setRefund(e.target.value as erp.Method)} className={inputCls}>
-          {erp.METHODS.filter((m) => m !== "credit" || hasCust).map((m) => <option key={m} value={m}>{m === "credit" ? tr("Customer credit") : tr(erp.METHOD_LABEL[m])}</option>)}
+          {erp.moneyMethods(s).map((m) => <option key={m} value={m}>{erp.methodLabel(m, s, tr)}</option>)}{hasCust && <option value="credit">{tr("Customer credit")}</option>}
         </select>
       </Label>
       <div className="flex justify-between text-sm font-bold"><span>{tr("Refund")}</span><span>{money(amount)}</span></div>
-      <ShopButton className="h-10 text-sm" onClick={() => { if (run(() => erp.returnSale(sale.id, sale.items.map((i) => ({ productId: i.productId, qty: Math.floor(+(q[i.productId] ?? 0) || 0) })), refund), tr("Return recorded")) !== undefined) onDone(); }}>{tr("Confirm Return")}</ShopButton>
+      <ShopButton className="h-10 text-sm" onClick={() => { if (run(() => erp.returnSale(sale.id, sale.items.map((i) => ({ productId: i.productId, qty: erp.roundQty(+(q[i.productId] ?? 0) || 0) })), refund), tr("Return recorded")) !== undefined) onDone(); }}>{tr("Confirm Return")}</ShopButton>
     </div>
   );
 }
@@ -240,10 +254,10 @@ export function ReturnsList({ s, money, tr }: SCtx) {
   return (
     <div>
       <KpiRow className="mb-3">
-        <Kpi label={tr("Sales returns")} value={s.returns.length} />
-        <Kpi label={tr("Purchase returns")} value={<span title={tr("Not available yet")}>—</span>} />
-        <Kpi label={tr("Refunded")} value={money(refunded)} />
-        <Kpi label={tr("Credit")} value={money(credit)} />
+        <Kpi tone="info" label={tr("Sales returns")} value={s.returns.length} />
+        <Kpi tone="info" label={tr("Purchase returns")} value={<span title={tr("Not available yet")}>—</span>} />
+        <Kpi tone="bad" label={tr("Refunded")} value={money(refunded)} />
+        <Kpi tone="warn" label={tr("Credit")} value={money(credit)} />
       </KpiRow>
       {touched.length > 0 && <p className="mb-2 text-[11px] text-muted-foreground">{touched.map((x) => `${x.ref} • ${tr(erp.returnStatus(x))}`).join("  |  ")}</p>}
       <p className="mb-2 text-xs text-muted-foreground">{tr("To return items, open the original sale in Sales and tap Return items.")}</p>
@@ -251,7 +265,7 @@ export function ReturnsList({ s, money, tr }: SCtx) {
       {s.returns.map((r) => (
         <div key={r.id} className="border-b border-border py-2.5 text-sm">
           <div className="flex justify-between"><b>{r.ref}</b><span>{money(r.amount)}</span></div>
-          <p className="text-[11px] text-muted-foreground">{tr("Original")}: {r.saleRef} • {r.items.map((i) => `${i.name} × ${i.qty}`).join(", ")} • {r.refund === "credit" ? tr("Customer credit") : tr(erp.METHOD_LABEL[r.refund])} • {dt(r.at)}</p>
+          <p className="text-[11px] text-muted-foreground">{tr("Original")}: {r.saleRef} • {r.items.map((i) => `${i.name} × ${i.qty}`).join(", ")} • {r.refund === "credit" ? tr("Customer credit") : tr(erp.methodName(r.refund))} • {dt(r.at)}</p>
         </div>
       ))}
     </div>
@@ -262,7 +276,7 @@ export function ReturnsList({ s, money, tr }: SCtx) {
 export function Customers({ s, money, tr }: SCtx) {
   const [name, setName] = useState(""); const [phone, setPhone] = useState("");
   const [open, setOpen] = useState<string | null>(null);
-  const [amt, setAmt] = useState(""); const [method, setMethod] = useState<erp.Method>("cash");
+  const [amt, setAmt] = useState(""); const [method, setMethod] = useState<erp.Method>(() => erp.defaultMethod(erp.load()));
   const c = s.customers.find((x) => x.id === open);
   return (
     <div>
@@ -284,11 +298,11 @@ export function Customers({ s, money, tr }: SCtx) {
       </div>
       {c && (
         <Sheet title={c.name} onClose={() => setOpen(null)}>
-          <Kpi label={tr(c.balance >= 0 ? "Outstanding balance" : "Credit in favour")} value={money(Math.abs(c.balance))} />
+          <Kpi tone={c.balance >= 0 ? "warn" : "good"} label={tr(c.balance >= 0 ? "Outstanding balance" : "Credit in favour")} value={money(Math.abs(c.balance))} />
           {c.balance > 0 && (
             <div className="mt-3 flex gap-2">
               <input type="number" min="0" value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={tr("Amount")} className={inputCls} />
-              <select value={method} onChange={(e) => setMethod(e.target.value as erp.Method)} className={cn(inputCls, "w-28")}>{(["cash", "mpesa", "bank"] as erp.Method[]).map((m) => <option key={m} value={m}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
+              <select value={method} onChange={(e) => setMethod(e.target.value as erp.Method)} className={cn(inputCls, "w-28")}>{erp.moneyMethods(s).map((m) => <option key={m} value={m}>{tr(erp.methodName(m, s))}</option>)}</select>
               <ShopButton className="h-11 w-24 text-sm" onClick={() => { if (run(() => erp.receiveDebt(c.id, +amt, method), tr("Payment received")) !== undefined) setAmt(""); }}>{tr("Receive")}</ShopButton>
             </div>
           )}
@@ -309,7 +323,7 @@ export function PaymentsList({ s, money, tr }: SCtx) {
       {s.payments.length === 0 && <Empty>{tr("No payments yet")}</Empty>}
       {s.payments.map((p) => (
         <div key={p.id} className="flex justify-between border-b border-border py-2.5 text-sm">
-          <span>{p.ref} • {tr(erp.METHOD_LABEL[p.method])} • {tr(p.kind === "SALE" ? "Sale" : p.kind === "DEBT" ? "Debt payment" : "Refund")}<span className="block text-[11px] text-muted-foreground">{p.source} • {dt(p.at)}</span></span>
+          <span>{p.ref} • {tr(erp.methodName(p.method))} • {tr(p.kind === "SALE" ? "Sale" : p.kind === "DEBT" ? "Debt payment" : "Refund")}<span className="block text-[11px] text-muted-foreground">{p.source} • {dt(p.at)}</span></span>
           <span className={cn("font-semibold", p.amount < 0 && "text-destructive")}>{money(p.amount)}</span>
         </div>
       ))}
@@ -325,27 +339,31 @@ export function salesStats(s: erp.ErpState, filter: (x: erp.Sale) => boolean = (
   const gross = sales.reduce((a, x) => a + x.total, 0);
   const returned = rets.reduce((a, r) => a + r.amount, 0);
   const cost = sales.reduce((a, x) => a + x.items.reduce((b, i) => b + (i.qty - i.returned) * i.cost, 0), 0);
-  const byMethod = Object.fromEntries(erp.METHODS.map((m) => [m, sales.reduce((a, x) => a + x.pay[m], 0)])) as Record<erp.Method, number>;
+  // Money received by each of the business's methods, in its order; what is still owed is reported apart (`onCredit`), never as a method.
+  const byMethod: Record<string, number> = Object.fromEntries(erp.moneyMethods(s).map((m) => [m, 0]));
+  let onCredit = 0;
+  sales.forEach((x) => erp.payParts(x.pay).forEach(([m, v]) => { if (m === "credit") onCredit += v; else byMethod[m] = (byMethod[m] ?? 0) + v; }));
   const top = new Map<string, number>();
   sales.forEach((x) => x.items.forEach((i) => top.set(i.name, (top.get(i.name) ?? 0) + i.qty - i.returned)));
-  return { count: sales.length, gross, returned, net: gross - returned, profit: gross - returned - cost, byMethod, top: [...top].sort((a, b) => b[1] - a[1]).slice(0, 5) };
+  return { count: sales.length, gross, returned, net: gross - returned, profit: gross - returned - cost, byMethod, onCredit, top: [...top].sort((a, b) => b[1] - a[1]).slice(0, 5) };
 }
 
-export function SalesReport({ s, money, tr, onlyChannel }: SCtx & { onlyChannel?: "POS" }) {
+export function SalesReport({ s, money, tr, onlyChannel, period }: SCtx & { onlyChannel?: "POS"; period?: HeaderPeriod }) {
   const [range, setRange] = useState<"today" | "7d" | "all">("today");
-  const since = range === "today" ? new Date(new Date().toDateString()).getTime() : range === "7d" ? Date.now() - 7 * 864e5 : 0;
-  const st = salesStats(s, (x) => x.at >= since && (!onlyChannel || x.channel === onlyChannel));
+  const since = period ? period.range.from : range === "today" ? new Date(new Date().toDateString()).getTime() : range === "7d" ? Date.now() - 7 * 864e5 : 0;
+  const until = period ? period.range.to : Infinity;
+  const st = salesStats(s, (x) => x.at >= since && x.at <= until && (!onlyChannel || x.channel === onlyChannel));
   return (
     <div>
-      <Tabs small items={["today", "7d", "all"]} value={range} onChange={(v) => { if (v === "today" || v === "7d" || v === "all") setRange(v); }} tr={(r) => tr(r === "today" ? "Today" : r === "7d" ? "Last 7 days" : "All time")} />
+      {!period && <Tabs small items={["today", "7d", "all"]} value={range} onChange={(v) => { if (v === "today" || v === "7d" || v === "all") setRange(v); }} tr={(r) => tr(r === "today" ? "Today" : r === "7d" ? "Last 7 days" : "All time")} />}
       <KpiRow>
-        <Kpi label={tr("Sales")} value={st.count} />
-        <Kpi label={tr("Net sales")} value={money(st.net)} />
-        <Kpi label={tr("Returns")} value={money(st.returned)} />
-        <Kpi label={tr("Gross profit")} value={money(st.profit)} />
+        <Kpi tone="good" label={tr("Sales")} value={st.count} />
+        <Kpi tone="good" label={tr("Net sales")} value={money(st.net)} />
+        <Kpi tone="bad" label={tr("Returns")} value={money(st.returned)} />
+        <Kpi tone="profit" label={tr("Gross profit")} value={money(st.profit)} />
       </KpiRow>
       <Title>{tr("By payment")}</Title>
-      <KpiRow>{erp.METHODS.map((m) => <Kpi key={m} label={tr(erp.METHOD_LABEL[m])} value={money(st.byMethod[m])} />)}</KpiRow>
+      <KpiRow>{Object.entries(st.byMethod).map(([m, v]) => <Kpi key={m} label={erp.methodLabel(m, s, tr)} value={money(v)} />)}<Kpi tone="warn" label={tr("On credit (unpaid)")} value={money(st.onCredit)} /></KpiRow>
       <Title>{tr("Top products")}</Title>
       {st.top.length ? st.top.map(([n, q]) => <div key={n} className="flex justify-between border-b border-border py-2 text-sm"><span>{n}</span><span>{q}</span></div>) : <Empty>{tr("No sales yet")}</Empty>}
     </div>
@@ -359,10 +377,10 @@ export function SalesOverview(ctx: SCtx) {
   return (
     <div>
       <KpiRow>
-        <Kpi label={tr("Today's sales")} value={money(st.net)} />
-        <Kpi label={tr("Transactions")} value={st.count} />
-        <Kpi label={tr("Customer debt")} value={money(owed)} />
-        <Kpi label={tr("Returns today")} value={money(st.returned)} />
+        <Kpi tone="good" label={tr("Today's sales")} value={money(st.net)} />
+        <Kpi tone="info" label={tr("Transactions")} value={st.count} />
+        <Kpi tone="warn" label={tr("Customer debt")} value={money(owed)} />
+        <Kpi tone="bad" label={tr("Returns today")} value={money(st.returned)} />
       </KpiRow>
       <Title>{tr("Recent sales")}</Title>
       <SalesList {...ctx} s={{ ...s, sales: s.sales.slice(0, 5) }} />
@@ -384,12 +402,12 @@ export function Cash({ s, money, tr }: SCtx) {
     <div>
       <Tabs small items={["OPENING CASH", "CASH IN", "CASH OUT", "CASH UP", "CASH HISTORY"]} value={view} onChange={(v) => { if (v === "OPENING CASH" || v === "CASH IN" || v === "CASH OUT" || v === "CASH UP" || v === "CASH HISTORY") setView(v); }} tr={tr} />
       <KpiRow>
-        <Kpi label={tr("Opening Cash")} value={money(cs.opening)} />
-        <Kpi label={tr("Cash Sales")} value={money(cs.sales)} />
-        <Kpi label={tr("Cash Refunds")} value={money(cs.refunds)} />
-        <Kpi label={tr("Cash In")} value={money(cs.cin)} />
-        <Kpi label={tr("Cash Out")} value={money(cs.cout)} />
-        <Kpi label={tr("Expected Cash")} value={money(cs.expected)} />
+        <Kpi tone="info" label={tr("Opening Cash")} value={money(cs.opening)} />
+        <Kpi tone="good" label={tr("Cash Sales")} value={money(cs.sales)} />
+        <Kpi tone="bad" label={tr("Cash Refunds")} value={money(cs.refunds)} />
+        <Kpi tone="good" label={tr("Cash In")} value={money(cs.cin)} />
+        <Kpi tone="bad" label={tr("Cash Out")} value={money(cs.cout)} />
+        <Kpi tone="info" label={tr("Expected Cash")} value={money(cs.expected)} />
       </KpiRow>
       {view !== "CASH HISTORY" ? (
         <form className="mt-3 space-y-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>

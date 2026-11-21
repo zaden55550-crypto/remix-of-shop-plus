@@ -1,7 +1,7 @@
 // Universal Import Center — historical Sales & Purchases (phase 2).
 // One row per line item; rows sharing a type + receipt/invoice number form ONE transaction.
 // Groups post atomically with their original dates, payments and credit; importKey blocks re-import.
-import { commit, ErpError, uid, type ErpState, type Method, type Product } from "@/lib/erp";
+import { commit, ErpError, uid, type ErpState, type BaseMethod, type Method, type Product } from "@/lib/erp";
 import type { Sheet } from "@/lib/opening-import";
 
 export const TX_FIELDS = [
@@ -55,13 +55,13 @@ function kindOf(x: string, sheet: string): "SALE" | "PURCHASE" | undefined {
   if (/sale|pos|receipt|invoice|sell|customer/.test(v)) return "SALE";
   return undefined;
 }
-function methodOf(x: unknown): Method | undefined { const v = k(x); if (!v) return undefined; if (/mpesa|mobile/.test(v)) return "mpesa"; if (/bank|card|cheque|transfer/.test(v)) return "bank"; if (/cash/.test(v)) return "cash"; if (/credit|debt|unpaid/.test(v)) return "credit"; return undefined; }
+function methodOf(x: unknown): BaseMethod | undefined { const v = k(x); if (!v) return undefined; if (/mpesa|mobile/.test(v)) return "mpesa"; if (/bank|card|cheque|transfer/.test(v)) return "bank"; if (/cash/.test(v)) return "cash"; if (/credit|debt|unpaid/.test(v)) return "credit"; return undefined; }
 function dateOf(x: unknown, fmt: TXOptions["dateFmt"]): number | null {
   if (x instanceof Date) return x.getTime();
-  const v = n(x); if (!v) return null; const p = v.split(/[\/\-. T:]/).map(Number);
+  const v = n(x); if (!v) return null; const p = v.split(/[/\-. T:]/).map(Number);
   if (p.length >= 3 && p.slice(0, 3).every(Number.isFinite)) {
     const [a, b, c] = p as [number, number, number]; const f = a > 31 ? "YMD" : fmt === "auto" ? (b > 12 ? "MDY" : "DMY") : fmt;
-    let [d, m, y] = f === "YMD" ? [c, b, a] : f === "MDY" ? [b, a, c] : [a, b, c]; if (y < 100) y += 2000;
+    const [d, m, yy] = f === "YMD" ? [c, b, a] : f === "MDY" ? [b, a, c] : [a, b, c]; const y = yy < 100 ? yy + 2000 : yy;
     return m >= 1 && m <= 12 && d >= 1 && d <= 31 ? new Date(y, m - 1, d, 12).getTime() : null;
   }
   const t = Date.parse(v); return Number.isFinite(t) ? t : null;
@@ -166,7 +166,7 @@ export function applyTX(groups: TXGroup[], o: TXOptions) {
       if (g.pay.credit > 0 && !party) throw new ErpError(`${g.ref}: credit needs a ${g.kind === "SALE" ? "customer" : "supplier"}`);
       if (o.stock === "update") items.forEach(({ p, l }) => { c.move(p.id, g.kind, g.kind === "SALE" ? -l.qty : l.qty, "Imported history", g.ref); s.movements[0]!.at = g.at; });
       const pay = { ...g.pay };
-      (["cash", "mpesa", "bank"] as Method[]).forEach((m) => { if (pay[m] > 0) s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: g.at, method: m, amount: g.kind === "SALE" ? pay[m] : -pay[m], kind: g.kind, source: g.ref, ...(g.kind === "SALE" && party ? { customerId: party.id } : {}), user: c.user }); });
+      (["cash", "mpesa", "bank"] as const).forEach((m) => { if (pay[m] > 0) s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: g.at, method: m, amount: g.kind === "SALE" ? pay[m] : -pay[m], kind: g.kind, source: g.ref, ...(g.kind === "SALE" && party ? { customerId: party.id } : {}), user: c.user }); });
       if (party && pay.credit > 0) party.balance = r2(party.balance + pay.credit);
       if (g.kind === "SALE") {
         s.sales.unshift({ id: uid(), ref: g.ref, at: g.at, items: items.map(({ p, l }) => ({ productId: p.id, name: p.name, qty: l.qty, price: l.price, cost: p.buy, returned: 0 })), subtotal: g.subtotal, discount: g.discount, total: g.total, pay, customerId: party?.id, cashier: c.user, channel: "Sales", importKey: g.key });
@@ -185,12 +185,14 @@ export function applyTX(groups: TXGroup[], o: TXOptions) {
 
 export const TX_TEMPLATE = "Type,Receipt No,Date,Customer/Supplier,Phone,Product,Qty,Unit Price,Discount,Total,Cash,M-Pesa,Bank\nSale,R-1001,05/01/2026,,,Sugar 1kg,2,150,0,300,300,,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Rice 2kg,1,320,20,500,,200,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Sugar 1kg,1,200,20,500,,200,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Sugar 1kg,20,110,0,3450,1000,,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Rice 2kg,5,250,0,3450,1000,,\n";
 
+export const TX_PURCHASE_TEMPLATE = "Type,Invoice No,Date,Supplier,Phone,Product,Qty,Unit Cost,Discount,Total,Cash,M-Pesa,Bank\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Sugar 1kg,20,110,0,3450,1000,,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Rice 2kg,5,250,0,3450,1000,,\n";
+
 /** Export sales & purchases in the import format (one row per line item) so they can be re-imported. */
-export function exportTX(s: ErpState) {
+export function exportTX(s: ErpState, only?: "SALE" | "PURCHASE") {
   const c = (x: unknown) => `"${String(x ?? "").replaceAll('"', '""')}"`, d = (t: number) => new Date(t).toLocaleDateString("en-GB");
   const sku = (id: string) => { const p = s.products.find((x) => x.id === id); return p?.sku || p?.name || id; };
   const rows: unknown[][] = [];
-  s.sales.forEach((x) => { const cu = s.customers.find((y) => y.id === x.customerId); x.items.forEach((i) => rows.push(["Sale", x.ref, d(x.at), cu?.name ?? "", cu?.phone ?? "", sku(i.productId), i.qty, i.price, x.discount, x.total, x.pay.cash, x.pay.mpesa, x.pay.bank])); });
-  s.purchases.forEach((x) => { const su = s.suppliers.find((y) => y.id === x.supplierId); x.items.forEach((i) => rows.push(["Purchase", x.ref, d(x.at), su?.name ?? "", su?.phone ?? "", sku(i.productId), i.qty, i.cost, 0, x.total, x.pay.cash, x.pay.mpesa, x.pay.bank])); });
+  if (!only || only === "SALE") s.sales.forEach((x) => { const cu = s.customers.find((y) => y.id === x.customerId); x.items.forEach((i) => rows.push(["Sale", x.ref, d(x.at), cu?.name ?? "", cu?.phone ?? "", sku(i.productId), i.qty, i.price, x.discount, x.total, x.pay.cash, x.pay.mpesa, x.pay.bank])); });
+  if (!only || only === "PURCHASE") s.purchases.forEach((x) => { const su = s.suppliers.find((y) => y.id === x.supplierId); x.items.forEach((i) => rows.push(["Purchase", x.ref, d(x.at), su?.name ?? "", su?.phone ?? "", sku(i.productId), i.qty, i.cost, 0, x.total, x.pay.cash, x.pay.mpesa, x.pay.bank])); });
   return [["Type", "Receipt No", "Date", "Customer/Supplier", "Phone", "Product", "Qty", "Unit Price", "Discount", "Total", "Cash", "M-Pesa", "Bank"], ...rows].map((r) => r.map(c).join(",")).join("\n");
 }

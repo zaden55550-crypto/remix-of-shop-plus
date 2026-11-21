@@ -30,3 +30,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local-only (kept on this PC, never pushed)
+.rollback/
+restore-points/
+*.before-*
+.claude/settings.local.json
+# Lovable installs with bun.lock; these lock files are for local npm/pnpm only
+package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml

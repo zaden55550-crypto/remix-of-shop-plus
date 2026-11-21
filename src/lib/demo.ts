@@ -54,6 +54,8 @@ const PRODUCTS: [string, string, string, string, number, number, number, number]
 const PREFIX = ["880609", "694181", "194253", "195949", "489518", "019749", "019680", "539718", "880609", "880608", "097855", "097855", "690123", "880609", "690123", "690123", "694090", "694090", "120013", "120013", "694090", "693536", "693536", "619659", "619659"];
 
 function seed() {
+  // The demo is one business (the first one). It gets the fixed id so older records need no conversion.
+  commit((s) => { if (!s.businesses.some((b) => b.id === "biz-main")) s.businesses.unshift({ id: "biz-main", name: "TechPoint Electronics", currency: "KES", businessType: "Electronics Shop", businessTypes: ["Electronics Shop"], industryFamilyId: "trade", createdAt: Date.now(), active: true }); });
   // Money accounts (opening balances)
   floatDeposit("cash", 80000, "DEPOSIT", "Opening balance");
   floatDeposit("mpesa", 120000, "DEPOSIT", "Opening balance");
@@ -163,9 +165,7 @@ export function resetDemoData(shop: string) {
   if (!isDemo()) throw new Error("Reset is only available for demo data");
   const previous = localStorage.getItem(KEY);
   localStorage.setItem(BACKUP, backupJson(shop));
-  try {
-    runErpTransaction(() => { wipe(); seed(); commit((_s, c) => c.audit("DEMO DATA RESET", "Sample dataset recreated")); });
-  } catch (e) { throw e; }
+  runErpTransaction(() => { wipe(); seed(); commit((_s, c) => c.audit("DEMO DATA RESET", "Sample dataset recreated")); });
 }
 
 /** Removes demo records so the shop can start for real. */

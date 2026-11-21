@@ -9,6 +9,17 @@ export function downloadBlob(blob: Blob, filename: string) {
 }
 export const download = (name: string, text: string, type = "text/csv") => downloadBlob(new Blob(["\ufeff" + text], { type: `${type};charset=utf-8` }), name);
 
+/** Shares an actual file through the device's system share sheet; unsupported browsers save it instead. */
+export async function shareBlob(blob: Blob, filename: string, title = filename): Promise<"shared" | "downloaded" | "cancelled"> {
+  const file = new File([blob], filename, { type: blob.type });
+  if (typeof navigator !== "undefined" && navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+    try { await navigator.share({ files: [file], title }); return "shared"; }
+    catch (e) { if ((e as Error).name === "AbortError") return "cancelled"; }
+  }
+  downloadBlob(blob, filename);
+  return "downloaded";
+}
+
 /** Opens a file straight away: phones/tablets get the system sheet (Open in Excel/Numbers/Sheets), computers save and open it. */
 export async function openFile(blob: Blob, filename: string): Promise<"shared" | "saved"> {
   const file = new File([blob], filename, { type: blob.type });

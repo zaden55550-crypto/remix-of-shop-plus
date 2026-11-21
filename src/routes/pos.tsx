@@ -1,34 +1,38 @@
 import { clean } from "@/lib/format";
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
+import { usePeriod, type DateRange } from "@/lib/period";
 import { createFileRoute } from "@tanstack/react-router";
+import { startView, viewSearch } from "@/lib/deep-link";
 import { useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, ChevronRight, FileText, MessageCircle, Minus, MinusCircle, Plus, Printer, ShoppingCart, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { useErp } from "@/components/shopbook/product-search";
+import { useShopErp } from "@/components/shopbook/product-search";
 import { Receipt, ReceiptSheet, ReturnForm, moneyFor, run, useAccount } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, Row, Tabs, toneOf, type Tr } from "@/components/shopbook/erp-shell";
-import { DocHead, DocLine, DocRule, PrintPreview, whatsapp } from "@/components/shopbook/print";
+import { DocHead, DocLine, DocRule, PrintPreview } from "@/components/shopbook/print";
 import { PayPicker, emptyPay, payInvalid, payRecord, type PayState } from "@/components/shopbook/pay-picker";
 import { vatRate } from "@/lib/prefs";
 import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { CounterPicker, counterName } from "@/components/shopbook/counter-picker";
 import * as erp from "@/lib/erp";
 
 export const Route = createFileRoute("/pos")({
   head: () => ({
     meta: [
-      { title: "POS — SHOPBOOK ERP" },
+      { title: "POS — Zakrio Systems" },
       { name: "description", content: "Fast till: scan, floating cart, part payments, receipts and cash-up." },
-      { property: "og:title", content: "POS — SHOPBOOK ERP" },
+      { property: "og:title", content: "POS — Zakrio Systems" },
       { property: "og:description", content: "Sell fast with search, scan, split and part payments, and receipts." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: viewSearch,
   component: Pos,
 });
 
@@ -36,11 +40,10 @@ const MENUS = {
   Sell: [],
   Transactions: ["Today's Sales", "Completed", "Cancelled", "Returns", "Transaction Details"],
   Cash: ["Opening Cash", "Cash In", "Cash Out", "Cash Up", "Cash History"],
-  Reports: ["Daily Sales", "Sales by Product", "Payment Methods", "Cash Summary", "Cashier Performance", "Best Selling Products"],
+  Reports: ["Daily Sales", "Sales by Product", "Payment Methods", "Cash Summary", "Cashier Performance", "Sales by Counter", "Best Selling Products"],
 } as const;
 type Menu = keyof typeof MENUS;
 type Ctx = { s: erp.ErpState; money: (n: number) => string; tr: Tr; shop: string };
-const ACC: erp.Method[] = ["cash", "mpesa", "bank"];
 const tm = (n: number) => new Date(n).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 const today0 = () => new Date(new Date().toDateString()).getTime();
 const posSales = (s: erp.ErpState) => s.sales.filter((x) => x.channel === "POS");
@@ -49,20 +52,25 @@ const n = (v: number) => clean(Math.round(clean(v) * 100) / 100).toLocaleString(
 function Pos() {
   const acct = useAccount("basic");
   const { tr } = useLanguage();
-  const s = useErp();
-  const [menu, setMenu] = useState<Menu>("Sell");
-  const [sub, setSub] = useState("");
+  const s = useShopErp(true);
+  const per = usePeriod("Today", true);
+  // A Dashboard link may name the starting tab (?menu=…&sub=…).
+  const search = Route.useSearch();
+  const [start] = useState(() => startView(MENUS, search, "Sell"));
+  const [menu, setMenu] = useState<Menu>(start[0] as Menu);
+  const [sub, setSub] = useState(start[1]);
   const [detail, setDetail] = useState<string | null>(null);
   if (!acct) return <main className="app-screen" />;
   const ctx: Ctx = { s, money: moneyFor(acct.currency || "KSh"), tr, shop: acct.shopName };
   const go = (m: Menu, sm?: string) => { setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); };
-  const openSale = (id: string) => { setDetail(id); go("Transactions", "Transaction Details"); };
+  const openSale = (id: string) => setDetail(id);
   return (
-    <ErpShell title="POS" shop={acct.shopName} menus={MENUS} menu={menu} sub={sub} deps={s} onMenu={(m) => go(m as Menu)} onSub={setSub}>
+    <ErpShell period={menu === "Reports" ? per : undefined} title="POS" shop={acct.shopName} menus={MENUS} menu={menu} sub={sub} deps={s} onMenu={(m) => go(m as Menu)} onSub={setSub}>
       {menu === "Sell" && <Sell {...ctx} openSale={openSale} />}
-      {menu === "Transactions" && (sub === "Transaction Details" ? <Details {...ctx} id={detail} back={() => go("Transactions")} /> : <Transactions {...ctx} view={sub} openSale={openSale} />)}
+      {menu === "Transactions" && (sub === "Transaction Details" ? <Details {...ctx} id={null} back={() => go("Transactions")} /> : <Transactions {...ctx} view={sub} openSale={openSale} />)}
       {menu === "Cash" && <Cash {...ctx} view={sub} />}
-      {menu === "Reports" && <Reports {...ctx} view={sub} />}
+      {menu === "Reports" && <Reports {...ctx} view={sub} range={per.range} />}
+      {detail && <Details {...ctx} id={detail} back={() => setDetail(null)} />}
     </ErpShell>
   );
 }
@@ -86,6 +94,7 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const setQty = (id: string, raw: number) => { const qty = erp.roundQty(raw); setCart((x) => (qty <= 0 ? x.filter((l) => l.productId !== id) : x.map((l) => (l.productId === id ? { ...l, qty } : l)))); };
 
   return <>
+    <CounterPicker s={s} />
     <ProductCatalog s={s} cart={cart} tr={tr} add={add} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
     <ShopButton variant="bare" ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</ShopButton>
     {step === "cart" && <CartCheckout s={s} money={money} tr={tr} cart={cart} channel="POS"
@@ -146,12 +155,14 @@ function Cash({ s, money, tr, shop, view }: Ctx & { view: string }) {
     if (run(() => erp.cashEvent(type, +amt, note), tr("Recorded")) !== undefined) { setAmt(""); setNote(""); }
   };
   const variance = amt === "" ? null : +amt - cs.expected;
+  const counters = erp.shopCounters(s, erp.activeShop(s)) > 1, here = erp.activeCounter(s);
   return <>
+    <CounterPicker s={s} />
     <KpiRow>
-      <Kpi label={tr("Opening Cash")} value={money(cs.opening)} />
-      <Kpi label={tr("Cash In")} value={money(cs.cin + cs.sales)} />
-      <Kpi label={tr("Cash Out")} value={money(cs.cout + cs.refunds)} />
-      <Kpi label={tr("Current Cash")} value={money(cs.expected)} />
+      <Kpi tone="info" label={tr("Opening Cash")} value={money(cs.opening)} />
+      <Kpi tone="good" label={tr("Cash In")} value={money(cs.cin + cs.sales)} />
+      <Kpi tone="bad" label={tr("Cash Out")} value={money(cs.cout + cs.refunds)} />
+      <Kpi tone="info" label={tr("Current Cash")} value={money(cs.expected)} />
     </KpiRow>
     {view !== "Cash History" ? <div className="inventory-form mt-2">
       {view === "Cash Up" && <div className="inventory-box mt-0 pur-totals">
@@ -166,11 +177,13 @@ function Cash({ s, money, tr, shop, view }: Ctx & { view: string }) {
       {view !== "Opening Cash" && <label className="inventory-field"><span>{tr(view === "Cash Up" ? "Notes (Optional)" : "Reason")}</span><input className="inventory-input" maxLength={120} value={note} onChange={(e) => setNote(e.target.value)} /></label>}
       <ShopButton className="inventory-save" onClick={submit}>{tr(view === "Cash Up" ? "Confirm Cash-up" : "Save")}</ShopButton>
     </div> : <div className="inventory-box">
-      {s.cash.length ? s.cash.map((e) => <Row key={e.id} onClick={e.type === "CASH UP" ? () => setPrint(e) : undefined}><Dot tone={e.type === "CASH OUT" ? "bad" : e.type === "CASH UP" ? "info" : "ok"} /><span className="pur-muted">{new Date(e.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span><span className="pur-name">{tr(e.type)}{e.note ? ` • ${e.note}` : ""}</span><span className="pur-amt">{money(e.type === "CASH UP" ? e.counted ?? e.amount : e.amount)}</span>{e.type === "CASH UP" && e.expected !== undefined && <span className={cn("pur-muted", (e.counted ?? 0) - e.expected < 0 && "text-destructive")}>{money((e.counted ?? 0) - e.expected)}</span>}</Row>) : <Empty>{tr("No cash records yet")}</Empty>}
+      {s.cash.length ? s.cash.map((e) => <Row key={e.id} onClick={e.type === "CASH UP" ? () => setPrint(e) : undefined}><Dot tone={e.type === "CASH OUT" ? "bad" : e.type === "CASH UP" ? "info" : "ok"} /><span className="pur-muted">{new Date(e.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span><span className="pur-name">{tr(e.type)}{counters ? ` • ${counterName(erp.counterOf(e), tr)}` : ""}{e.note ? ` • ${e.note}` : ""}</span><span className="pur-amt">{money(e.type === "CASH UP" ? e.counted ?? e.amount : e.amount)}</span>{e.type === "CASH UP" && e.expected !== undefined && <span className={cn("pur-muted", (e.counted ?? 0) - e.expected < 0 && "text-destructive")}>{money((e.counted ?? 0) - e.expected)}</span>}</Row>) : <Empty>{tr("No cash records yet")}</Empty>}
     </div>}
     {print && <PrintPreview title="Cash-up" onClose={() => setPrint(null)}>
       <DocHead shop={shop} title={tr("Cash-up")} />
       <DocLine k={tr("Date")} v={new Date(print.at).toLocaleString("en-GB")} />
+      {counters && <DocLine k={tr("Counter")} v={String(print.id === "x" ? here : erp.counterOf(print))} />}
+      {print.user && <DocLine k={tr("Cashier")} v={print.user} />}
       <DocRule />
       <DocLine k={tr("Expected Cash")} v={money(print.expected ?? 0)} />
       <DocLine k={tr("Actual Cash")} v={money(print.counted ?? 0)} bold />
@@ -181,10 +194,9 @@ function Cash({ s, money, tr, shop, view }: Ctx & { view: string }) {
 }
 
 // ---------------- REPORTS ----------------
-function Reports({ s, money, tr, view }: Ctx & { view: string }) {
-  const [range, setRange] = useState<"Today" | "7 days" | "All">("Today");
-  const since = range === "Today" ? today0() : range === "7 days" ? Date.now() - 7 * 864e5 : 0;
-  const sales = posSales(s).filter((x) => x.at >= since);
+function Reports({ s, money, tr, view, range }: Ctx & { view: string; range: DateRange }) {
+  const since = range.from;
+  const sales = posSales(s).filter((x) => x.at >= since && x.at <= range.to);
   const ids = new Set(sales.map((x) => x.id));
   const returned = s.returns.filter((r) => ids.has(r.saleId)).reduce((a, r) => a + r.amount, 0);
   const gross = sales.reduce((a, x) => a + x.total, 0);
@@ -192,16 +204,22 @@ function Reports({ s, money, tr, view }: Ctx & { view: string }) {
   sales.forEach((x) => x.items.forEach((i) => { const o = byProd.get(i.name) ?? { q: 0, v: 0 }; o.q += i.qty - i.returned; o.v += (i.qty - i.returned) * i.price; byProd.set(i.name, o); }));
   const byCashier = new Map<string, { c: number; v: number }>();
   sales.forEach((x) => { const o = byCashier.get(x.cashier) ?? { c: 0, v: 0 }; o.c++; o.v += x.total; byCashier.set(x.cashier, o); });
+  const byCounter = new Map<number, { c: number; v: number; cashiers: Set<string> }>();
+  sales.forEach((x) => { const k = erp.counterOf(x), o = byCounter.get(k) ?? { c: 0, v: 0, cashiers: new Set<string>() }; o.c++; o.v += x.total; o.cashiers.add(x.cashier); byCounter.set(k, o); });
+  const ups = s.cash.filter((e) => e.type === "CASH UP" && e.at >= since && e.at <= range.to);
   const byDay = new Map<string, number>(); sales.forEach((x) => { const k = new Date(x.at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }); byDay.set(k, (byDay.get(k) ?? 0) + x.total); });
   const cs = erp.cashSession(s);
   return <>
-    <div className="mb-1.5"><Tabs small items={["Today", "7 days", "All"]} value={range} onChange={(v) => setRange(v as typeof range)} tr={tr} /></div>
-    <KpiRow><Kpi label={tr("Sales")} value={money(gross - returned)} /><Kpi label={tr("Transactions")} value={sales.length} /><Kpi label={tr("Returns")} value={money(returned)} /><Kpi label="P.PAY" value={sales.filter((x) => erp.saleStatus(s, x) === "P.PAY").length} /></KpiRow>
-    <ModuleCharts s={{ ...s, sales: posSales(s), returns: s.returns.filter((r) => posSales(s).some((x) => x.id === r.saleId)) }} module="sales" from={since} money={money} tr={tr} single={view !== "Payment Methods"} />
+    <KpiRow><Kpi tone="good" label={tr("Sales")} value={money(gross - returned)} /><Kpi tone="info" label={tr("Transactions")} value={sales.length} /><Kpi tone="bad" label={tr("Returns")} value={money(returned)} /><Kpi tone="warn" label="P.PAY" value={sales.filter((x) => erp.saleStatus(s, x) === "P.PAY").length} /></KpiRow>
+    <ModuleCharts s={{ ...s, sales: posSales(s), returns: s.returns.filter((r) => posSales(s).some((x) => x.id === r.saleId)) }} module="sales" from={since} to={range.to} money={money} tr={tr} single={view !== "Payment Methods"} />
     {view === "Daily Sales" && <Box title={tr("Daily Sales")}>{byDay.size ? [...byDay].map(([k, v]) => <Row key={k}><span className="pur-name">{k}</span><span className="pur-amt">{money(v)}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>}
     {(view === "Sales by Product" || view === "Best Selling Products") && <Box title={tr(view)}>{byProd.size ? [...byProd].sort((a, b) => (view === "Best Selling Products" ? b[1].q - a[1].q : b[1].v - a[1].v)).slice(0, view === "Best Selling Products" ? 10 : 99).map(([k, o]) => <Row key={k}><span className="pur-name">{k}</span><span className="pur-muted">× {o.q}</span><span className="pur-amt">{money(o.v)}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>}
-    {view === "Payment Methods" && <Box title={tr("Payment Methods")}>{erp.METHODS.map((m) => <Row key={m}><span className="pur-name">{tr(erp.METHOD_LABEL[m])}</span><span className="pur-amt">{money(sales.reduce((a, x) => a + x.pay[m], 0))}</span></Row>)}</Box>}
+    {view === "Payment Methods" && <Box title={tr("Payment Methods")}>{erp.moneyMethods(s, true).filter((m) => erp.moneyMethods(s).includes(m) || sales.some((x) => erp.payAmount(x.pay, m) > 0)).map((m) => <Row key={m}><span className="pur-name">{erp.methodLabel(m, s, tr)}</span><span className="pur-amt">{money(sales.reduce((a, x) => a + erp.payAmount(x.pay, m), 0))}</span></Row>)}<Row key="credit"><span className="pur-name"><i>{tr("Unpaid (credit)")}</i></span><span className="pur-amt">{money(sales.reduce((a, x) => a + x.pay.credit, 0))}</span></Row></Box>}
     {view === "Cash Summary" && <Box title={tr("Cash Summary")}><div className="pur-totals"><span>{tr("Opening Cash")}</span><b>{money(cs.opening)}</b><span>{tr("Cash Sales")}</span><b>{money(cs.sales)}</b><span>{tr("Cash In")}</span><b>{money(cs.cin)}</b><span>{tr("Cash Out")}</span><b>{money(cs.cout + cs.refunds)}</b><span>{tr("Expected Cash")}</span><b className="text-primary">{money(cs.expected)}</b></div></Box>}
+    {view === "Sales by Counter" && <Box title={tr("Sales by Counter")}>{byCounter.size ? [...byCounter].sort((a, b) => a[0] - b[0]).map(([k, o]) => {
+      const short = ups.filter((e) => erp.counterOf(e) === k).reduce((a, e) => a + ((e.counted ?? 0) - (e.expected ?? 0)), 0);
+      return <Row key={k}><span className="pur-name">{counterName(k, tr)}</span><span className="pur-muted">{o.c} {tr("sales")} • {[...o.cashiers].join(", ")}</span>{short !== 0 && <span className={cn("pur-muted", short < 0 ? "text-destructive" : "text-warning")}>{tr(short < 0 ? "Short" : "Over")} {money(Math.abs(short))}</span>}<span className="pur-amt">{money(o.v)}</span></Row>;
+    }) : <Empty>{tr("No sales yet")}</Empty>}</Box>}
     {view === "Cashier Performance" && <Box title={tr("Cashier Performance")}>{byCashier.size ? [...byCashier].map(([k, o]) => <Row key={k}><span className="pur-name">{k}</span><span className="pur-muted">{o.c} {tr("sales")}</span><span className="pur-amt">{money(o.v)}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>}
   </>;
 }

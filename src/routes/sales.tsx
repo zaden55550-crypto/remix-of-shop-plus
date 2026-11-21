@@ -1,10 +1,13 @@
 import { ModuleCharts } from "@/components/shopbook/analytics-charts";
+import { GlassPage } from "@/components/shopbook/glass-page";
 import { createFileRoute } from "@tanstack/react-router";
+import { startView, viewSearch } from "@/lib/deep-link";
 import { useState } from "react";
 import { Banknote, CircleDollarSign, CreditCard, MinusCircle, Plus, Receipt, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
-import { useErp } from "@/components/shopbook/product-search";
+import { useShopErp } from "@/components/shopbook/product-search";
+import { scopeToPeriod, usePeriod, type DateRange } from "@/lib/period";
 import { Customers, ReceiptSheet, ReturnForm, ReturnsList, SalesReport, Sell, moneyFor, run, salesStats, useAccount, type SCtx } from "@/components/shopbook/selling";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, Tabs, toneOf } from "@/components/shopbook/erp-shell";
@@ -14,14 +17,15 @@ import * as erp from "@/lib/erp";
 export const Route = createFileRoute("/sales")({
   head: () => ({
     meta: [
-      { title: "Sales — SHOPBOOK ERP" },
+      { title: "Sales — Zakrio Systems" },
       { name: "description", content: "New sales, sales history, customers, part payments, returns and sales reports." },
-      { property: "og:title", content: "Sales — SHOPBOOK ERP" },
+      { property: "og:title", content: "Sales — Zakrio Systems" },
       { property: "og:description", content: "Every sale, customer balance, payment and return in one place." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: viewSearch,
   component: Sales,
 });
 
@@ -36,31 +40,35 @@ const MENUS = {
 type Menu = keyof typeof MENUS;
 type View = null | { k: "new" } | { k: "detail"; id: string };
 type Ctx = SCtx & { go: (m: Menu, sub?: string) => void; open: (v: View) => void };
-const ACC: erp.Method[] = ["cash", "mpesa", "bank"];
 const custName = (s: erp.ErpState, id?: string) => s.customers.find((c) => c.id === id)?.name;
 
 function Sales() {
   const acct = useAccount("basic");
   const { tr } = useLanguage();
-  const s = useErp();
-  const [menu, setMenu] = useState<Menu>("Overview");
-  const [sub, setSub] = useState("");
+  const s = useShopErp();
+  const per = usePeriod(null);
+  // A Dashboard link may name the starting tab (?menu=…&sub=…).
+  const search = Route.useSearch();
+  const [start] = useState(() => startView(MENUS, search, "Overview"));
+  const [menu, setMenu] = useState<Menu>(start[0] as Menu);
+  const [sub, setSub] = useState(start[1]);
   const [view, setView] = useState<View>(null);
   if (!acct) return <main className="app-screen" />;
   const go = (m: Menu, sm?: string) => { setView(null); setMenu(m); setSub(sm ?? MENUS[m][0] ?? ""); };
   const ctx: Ctx = { s, money: moneyFor(acct.currency || "KSh"), tr, shop: acct.shopName, channel: "Sales", go, open: setView };
+  const dated = view?.k !== "new" && (menu === "Overview" || menu === "Reports");
   return (
-    <ErpShell title="Sales" shop={acct.shopName} menus={MENUS} menu={menu} sub={view?.k === "new" ? "" : sub} hideSub={view?.k === "new"} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
+    <ErpShell period={dated ? per : undefined} title="Sales" shop={acct.shopName} menus={MENUS} menu={menu} sub={view?.k === "new" ? "" : sub} hideSub={view?.k === "new"} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
       {view?.k === "new" ? <><p className="inventory-form-title">{tr("New Sale")}</p><Sell {...ctx} /></>
-        : view?.k === "detail" ? <SaleDetail {...ctx} id={view.id} />
         : <>
-          {menu === "Overview" && <Overview {...ctx} />}
+          {menu === "Overview" && <Overview {...ctx} s={scopeToPeriod(s, per)} range={per.range} />}
           {menu === "Sales" && <SaleList {...ctx} filter={sub} />}
           {menu === "Customers" && <Customers {...ctx} />}
           {menu === "Payments" && (sub === "Add Payment" ? <AddPayment {...ctx} /> : sub === "P.PAY" ? <OpenSales {...ctx} /> : <PaymentList {...ctx} />)}
           {menu === "Returns" && (sub === "New Return" ? <NewReturn {...ctx} /> : <ReturnsList {...ctx} />)}
-          {menu === "Reports" && <SalesReport {...ctx} />}
+          {menu === "Reports" && <SalesReport {...ctx} period={per} />}
         </>}
+      {view?.k === "detail" && <GlassPage label={tr("Sale details")} onClose={() => setView(null)}><SaleDetail {...ctx} id={view.id} /></GlassPage>}
     </ErpShell>
   );
 }
@@ -68,10 +76,10 @@ function Sales() {
 function Kpis({ s, money, tr }: Ctx) {
   const by = (st: erp.PayStatus) => s.sales.filter((x) => erp.saleStatus(s, x) === st).reduce((a, x) => a + x.total, 0);
   return <KpiRow>
-    <Kpi icon={<ShoppingCart className="text-primary" />} label={tr("Sales")} value={money(s.sales.reduce((a, x) => a + x.total, 0))} />
-    <Kpi icon={<Banknote className="text-warning" />} label={tr("Paid")} value={money(by("Paid"))} />
-    <Kpi icon={<CircleDollarSign className="text-warning" />} label="P.PAY" value={money(by("P.PAY"))} />
-    <Kpi icon={<CreditCard className="text-destructive" />} label={tr("Credit")} value={money(by("Credit"))} />
+    <Kpi tone="good" icon={<ShoppingCart />} label={tr("Sales")} value={money(s.sales.reduce((a, x) => a + x.total, 0))} />
+    <Kpi tone="good" icon={<Banknote />} label={tr("Paid")} value={money(by("Paid"))} />
+    <Kpi tone="warn" icon={<CircleDollarSign />} label="P.PAY" value={money(by("P.PAY"))} />
+    <Kpi tone="warn" icon={<CreditCard />} label={tr("Credit")} value={money(by("Credit"))} />
   </KpiRow>;
 }
 
@@ -82,18 +90,20 @@ function SaleRow({ x, c, balance }: { x: erp.Sale; c: Ctx; balance?: boolean }) 
   return <Row onClick={() => c.open({ k: "detail", id: x.id })}><Dot tone={toneOf(st)} /><b>{x.ref}</b><span className="pur-name">{name ?? ""}</span><span className="pur-amt">{c.money(x.total)}</span>{balance && <span className="pur-muted">{c.tr("Balance")}: {c.money(erp.saleBalance(c.s, x))}</span>}<Badge s={st} /></Row>;
 }
 
-function Overview(c: Ctx) {
+function Overview(c: Ctx & { range: DateRange }) {
   const { s, money, tr, go } = c;
   const st = salesStats(s);
   const owed = s.customers.filter((x) => x.balance > 0.001);
-  return <>
-    <Kpis {...c} />
-    <ModuleCharts s={s} module="sales" money={money} tr={tr} />
-    <Box title={tr("Recent Sales")} action={() => go("Sales")}>{s.sales.length ? s.sales.slice(0, 5).map((x) => <SaleRow key={x.id} x={x} c={c} />) : <Empty>{tr("No sales yet")}</Empty>}</Box>
-    <Box title={tr("Top Products")} action={() => go("Reports")}>{st.top.length ? st.top.map(([n, q]) => <Row key={n}><Dot tone="ok" /><span className="pur-name">{n}</span><span className="pur-amt">{q}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>
-    <Box title={tr("Outstanding Balances")} action={() => go("Payments", "P.PAY")}>{owed.length ? owed.slice(0, 5).map((x) => <Row key={x.id}><Dot tone="warn" /><span className="pur-name">{x.name}</span><span className="pur-amt">{money(x.balance)}</span><Badge s="Due" /></Row>) : <Empty>{tr("No customer balances")}</Empty>}</Box>
-    <Box title={tr("Recent Returns")} action={() => go("Returns")}>{s.returns.length ? s.returns.slice(0, 5).map((r) => <Row key={r.id}><Dot tone="ok" /><b>{r.ref}</b><span className="pur-name">{r.saleRef}</span><span className="pur-amt">{money(r.amount)}</span><Badge s="Completed" /></Row>) : <Empty>{tr("No returns yet")}</Empty>}</Box>
-  </>;
+  return <div className="app-overview sales-overview">
+    <div className="app-overview-metrics"><Kpis {...c} /></div>
+    <div className="app-overview-charts"><ModuleCharts s={s} module="sales" money={money} tr={tr} from={c.range.from} to={c.range.to} /></div>
+    <div className="app-overview-panels">
+      <Box title={tr("Recent Sales")} action={() => go("Sales")}>{s.sales.length ? s.sales.slice(0, 5).map((x) => <SaleRow key={x.id} x={x} c={c} />) : <Empty>{tr("No sales yet")}</Empty>}</Box>
+      <Box title={tr("Top Products")} action={() => go("Reports")}>{st.top.length ? st.top.map(([n, q]) => <Row key={n}><Dot tone="ok" /><span className="pur-name">{n}</span><span className="pur-amt">{q}</span></Row>) : <Empty>{tr("No sales yet")}</Empty>}</Box>
+      <Box title={tr("Outstanding Balances")} action={() => go("Payments", "P.PAY")}>{owed.length ? owed.slice(0, 5).map((x) => <Row key={x.id}><Dot tone="warn" /><span className="pur-name">{x.name}</span><span className="pur-amt">{money(x.balance)}</span><Badge s="Due" /></Row>) : <Empty>{tr("No customer balances")}</Empty>}</Box>
+      <Box title={tr("Recent Returns")} action={() => go("Returns")}>{s.returns.length ? s.returns.slice(0, 5).map((r) => <Row key={r.id}><Dot tone="ok" /><b>{r.ref}</b><span className="pur-name">{r.saleRef}</span><span className="pur-amt">{money(r.amount)}</span><Badge s="Completed" /></Row>) : <Empty>{tr("No returns yet")}</Empty>}</Box>
+    </div>
+  </div>;
 }
 
 function SaleList(c: Ctx & { filter: string }) {
@@ -110,7 +120,7 @@ function SaleList(c: Ctx & { filter: string }) {
 /** Payment rows for paying off a P.PAY / Credit sale; each row is recorded against that sale. */
 function PayForm({ c, sale, done }: { c: Ctx; sale: erp.Sale; done?: () => void }) {
   const { s, money, tr } = c;
-  const [rows, setRows] = useState<{ m: erp.Method; a: string }[]>([{ m: "cash", a: "" }]);
+  const [rows, setRows] = useState<{ m: erp.Method; a: string }[]>(() => [{ m: erp.defaultMethod(erp.load()), a: "" }]);
   const bal = erp.saleBalance(s, sale);
   const total = rows.reduce((a, r) => a + (+r.a || 0), 0);
   const save = () => {
@@ -118,15 +128,15 @@ function PayForm({ c, sale, done }: { c: Ctx; sale: erp.Sale; done?: () => void 
     if (!picked.length) { toast.error(tr("Enter an amount")); return; }
     if (total > bal + 0.001) { toast.error(tr("Amount is more than the outstanding balance")); return; }
     for (const r of picked) if (run(() => erp.paySale(sale.id, +r.a, r.m)) === undefined) return;
-    toast.success(tr("Payment recorded")); setRows([{ m: "cash", a: "" }]); done?.();
+    toast.success(tr("Payment recorded")); setRows([{ m: erp.defaultMethod(s), a: "" }]); done?.();
   };
   return <div className="inventory-box grid gap-1.5">
     <div className="pur-totals"><span>{tr("Outstanding Balance")}</span><b>{money(bal)}</b></div>
     {rows.map((r, i) => <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-1.5">
-      <select className="inventory-input" value={r.m} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, m: e.target.value as erp.Method } : x)))}>{ACC.map((m) => <option key={m} value={m} disabled={m !== r.m && rows.some((x) => x.m === m)}>{tr(erp.METHOD_LABEL[m])}</option>)}</select>
+      <select className="inventory-input" value={r.m} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, m: e.target.value as erp.Method } : x)))}>{erp.moneyMethods(s).map((m) => <option key={m} value={m} disabled={m !== r.m && rows.some((x) => x.m === m)}>{tr(erp.methodName(m))}</option>)}</select>
       <input className="inventory-input" inputMode="decimal" placeholder="0" value={r.a} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))} />
       <button aria-label={tr("Remove")} disabled={rows.length === 1} onClick={() => setRows(rows.filter((_, j) => j !== i))}><MinusCircle className="h-4 w-4 text-destructive" /></button></div>)}
-    {rows.length < ACC.length && <ShopButton className="inventory-save w-fit px-3" onClick={() => setRows([...rows, { m: ACC.find((m) => !rows.some((r) => r.m === m)) ?? "cash", a: "" }])}><Plus className="h-3.5 w-3.5" />{tr("Add Payment Method")}</ShopButton>}
+    {rows.length < erp.moneyMethods(s).length && <ShopButton className="inventory-save w-fit px-3" onClick={() => setRows([...rows, { m: erp.moneyMethods(s).find((m) => !rows.some((r) => r.m === m)) ?? "cash", a: "" }])}><Plus className="h-3.5 w-3.5" />{tr("Add Payment Method")}</ShopButton>}
     <div className="pur-totals"><span>{tr("Total Payment")}</span><b>{money(total)}</b><span>{tr("Remaining Balance")}</span><b>{money(Math.max(0, bal - total))}</b></div>
     <ShopButton className="inventory-save" onClick={save}>{tr("Save Payment")}</ShopButton>
   </div>;
@@ -154,7 +164,7 @@ function SaleDetail(c: Ctx & { id: string }) {
     <Tabs small items={["Items", "Payments", "Returns", "History"]} value={tab} onChange={setTab} tr={tr} />
     <div className="inventory-box mt-0">
       {tab === "Items" && x.items.map((i) => <Row key={i.productId}><span className="pur-name">{i.name}</span><span className="pur-muted">× {i.qty}</span><span className="pur-muted">{i.price.toLocaleString("en-KE")}</span><span className="pur-amt">{money(i.qty * i.price)}</span></Row>)}
-      {tab === "Payments" && (pays.length ? pays.map((p) => <Row key={p.id}><Dot tone="ok" /><span className="pur-name">{tr(erp.METHOD_LABEL[p.method])}</span><span className="pur-amt">{money(Math.abs(p.amount))}</span><span className="pur-muted">{new Date(p.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span></Row>) : <Empty>{tr("No payments yet")}</Empty>)}
+      {tab === "Payments" && (pays.length ? pays.map((p) => <Row key={p.id}><Dot tone="ok" /><span className="pur-name">{tr(erp.methodName(p.method))}</span><span className="pur-amt">{money(Math.abs(p.amount))}</span><span className="pur-muted">{new Date(p.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span></Row>) : <Empty>{tr("No payments yet")}</Empty>)}
       {tab === "Returns" && (rets.length ? rets.map((r) => <Row key={r.id}><b>{r.ref}</b><span className="pur-name">{r.items.map((i) => `${i.name} × ${i.qty}`).join(", ")}</span><span className="pur-amt">{money(r.amount)}</span></Row>) : <Empty>{tr("No returns yet")}</Empty>)}
       {tab === "History" && s.audit.filter((a) => a.detail.includes(x.ref)).map((a) => <Row key={a.id}><span className="pur-muted">{new Date(a.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span><span className="pur-name">{tr(a.action)}</span></Row>)}
     </div>
@@ -170,7 +180,7 @@ function SaleDetail(c: Ctx & { id: string }) {
 function PaymentList({ s, money, tr }: Ctx) {
   const [q, setQ] = useState("");
   const list = s.payments.filter((p) => (p.kind === "SALE" || p.kind === "DEBT" || p.kind === "REFUND") && `${p.ref} ${p.source}`.toLowerCase().includes(q.toLowerCase()));
-  return <><Search q={q} setQ={setQ} tr={tr} ph="Search payments..." /><div className="inventory-box">{list.length ? list.map((p) => <Row key={p.id}><Dot tone={p.amount < 0 ? "bad" : "ok"} /><b>{p.ref}</b><span className="pur-name">{p.source}</span><span className="pur-amt">{money(p.amount)}</span><span className="pur-muted">{tr(erp.METHOD_LABEL[p.method])}</span><Badge s={p.kind === "REFUND" ? "Refund" : "Paid"} /></Row>) : <Empty>{tr("No payments yet")}</Empty>}</div></>;
+  return <><Search q={q} setQ={setQ} tr={tr} ph="Search payments..." /><div className="inventory-box">{list.length ? list.map((p) => <Row key={p.id}><Dot tone={p.amount < 0 ? "bad" : "ok"} /><b>{p.ref}</b><span className="pur-name">{p.source}</span><span className="pur-amt">{money(p.amount)}</span><span className="pur-muted">{tr(erp.methodName(p.method))}</span><Badge s={p.kind === "REFUND" ? "Refund" : "Paid"} /></Row>) : <Empty>{tr("No payments yet")}</Empty>}</div></>;
 }
 
 function OpenSales(c: Ctx) {

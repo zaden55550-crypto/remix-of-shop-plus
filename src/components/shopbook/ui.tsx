@@ -1,5 +1,10 @@
-import { toast } from "sonner";
-import { lovable } from "@/integrations/lovable/index";
+﻿import { toast } from "sonner";
+import { createPortal } from "react-dom";
+import { useNavigate } from "@tanstack/react-router";
+import { authMessage, registerEmailIdentity, signInProvider } from "@/lib/auth-service";
+import { createOwnerFromIdentity } from "@/lib/owner-link";
+import { hashPassword } from "@/lib/device-password";
+import { passwordProblem } from "@/lib/password-strength";
 import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 import {
   useEffect,
@@ -9,6 +14,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   useId,
+  useSyncExternalStore,
 } from "react";
 import {
   Apple as AppleIcon,
@@ -17,6 +23,7 @@ import {
   EyeOff,
   Globe,
   KeyRound,
+  Mail,
   Minus,
   Move,
   Plus,
@@ -29,6 +36,7 @@ import {
   Coins,
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import { LANGS } from "@/lib/i18n";
 import { store, RING_ICONS } from "@/lib/shopbook";
 import { ShopButton } from "@/components/ui/shop-button";
 import { cn } from "@/lib/utils";
@@ -47,34 +55,38 @@ import {
    Theme Hook & ThemeToggle (Sun & Moon Switcher)
 ------------------------------------------------------- */
 
+const THEME_KEY = "shopbook.theme",
+  THEME_EVENT = "shopbook-theme-change";
+const readDark = () => {
+  const saved = localStorage.getItem(THEME_KEY);
+  return saved ? saved === "dark" : true;
+};
+const applyDark = (dark: boolean) => {
+  document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+};
+const subscribeTheme = (changed: () => void) => {
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === THEME_KEY) changed();
+  };
+  window.addEventListener("storage", onStorage);
+  window.addEventListener(THEME_EVENT, changed);
+  return () => {
+    window.removeEventListener("storage", onStorage);
+    window.removeEventListener(THEME_EVENT, changed);
+  };
+};
+
+/** The saved choice is the only source, so the toggle's icon can never disagree with the theme on screen. */
 export function useTheme() {
-  const [dark, setDark] = useState(true);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("shopbook.theme");
-    const isDark = saved ? saved === "dark" : true;
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "shopbook.theme") {
-        const nextDark = e.newValue === "dark";
-        setDark(nextDark);
-        document.documentElement.classList.toggle("dark", nextDark);
-        document.documentElement.setAttribute("data-theme", nextDark ? "dark" : "light");
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  const dark = useSyncExternalStore(subscribeTheme, readDark, () => true);
+  useEffect(() => applyDark(dark), [dark]);
 
   const toggle = () => {
-    const next = !dark;
-    setDark(next);
-    localStorage.setItem("shopbook.theme", next ? "dark" : "light");
-    document.documentElement.classList.toggle("dark", next);
-    document.documentElement.setAttribute("data-theme", next ? "dark" : "light");
+    const next = !readDark();
+    localStorage.setItem(THEME_KEY, next ? "dark" : "light");
+    applyDark(next);
+    window.dispatchEvent(new Event(THEME_EVENT));
   };
 
   return { dark, toggle };
@@ -87,18 +99,20 @@ export function ThemeToggle() {
 
   return (
     <div
-      className="inline-flex items-center gap-0.5 rounded-full border border-border/80 bg-card/80 p-0.5 shadow-xs backdrop-blur-sm"
+      className="auth-theme-toggle inline-flex items-center gap-0.5 rounded-full border border-border/80 bg-card/80 p-0.5 shadow-xs backdrop-blur-sm"
       role="group"
       aria-label="Theme switcher"
     >
       <button
         type="button"
-        onClick={() => { if (dark) toggle(); }}
+        onClick={() => {
+          if (dark) toggle();
+        }}
         className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-full transition-all",
+          "auth-theme-toggle-button flex h-6 w-6 items-center justify-center rounded-full transition-all",
           !dark
             ? "bg-amber-500/20 text-amber-500 shadow-xs"
-            : "text-muted-foreground/60 hover:text-foreground"
+            : "text-muted-foreground/60 hover:text-foreground",
         )}
         title="Light theme"
         aria-label="Light theme"
@@ -107,12 +121,14 @@ export function ThemeToggle() {
       </button>
       <button
         type="button"
-        onClick={() => { if (!dark) toggle(); }}
+        onClick={() => {
+          if (!dark) toggle();
+        }}
         className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-full transition-all",
+          "auth-theme-toggle-button flex h-6 w-6 items-center justify-center rounded-full transition-all",
           dark
             ? "bg-indigo-500/25 text-indigo-400 shadow-xs"
-            : "text-muted-foreground/60 hover:text-foreground"
+            : "text-muted-foreground/60 hover:text-foreground",
         )}
         title="Dark theme"
         aria-label="Dark theme"
@@ -135,20 +151,32 @@ export function TopBar() {
   useEffect(() => {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 60);
-    } else {
-      setQuery("");
+      // Like every other pop-up: Escape closes it.
+      const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
     }
+    setQuery("");
+    return undefined;
   }, [open]);
 
   const filtered = searchLanguages(query);
-  const currentLang = ALL_WORLD_LANGUAGES.find((l) => l.name === language || l.native === language) ?? {
+  const currentLang = ALL_WORLD_LANGUAGES.find(
+    (l) => l.name === language || l.native === language,
+  ) ?? {
     name: language,
     native: language,
     code: "en",
   };
 
   const handlePickLanguage = (langName: string, dir?: "ltr" | "rtl") => {
-    setLanguage(langName as any);
+    // Only the 11 translated interface languages can be saved; others would silently revert to English on reload.
+    const lang = LANGS.find((l) => l === langName);
+    if (!lang) {
+      toast.info(tr("This language is not available yet"));
+      return;
+    }
+    setLanguage(lang);
     if (dir) {
       document.documentElement.dir = dir;
     }
@@ -161,7 +189,7 @@ export function TopBar() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-2.5 py-1 text-xs font-semibold text-foreground shadow-xs backdrop-blur-sm transition-all hover:border-primary/50 hover:bg-card"
+        className="auth-language-selector flex items-center gap-1.5 rounded-full border border-border/80 bg-card/80 px-2.5 py-1 text-xs font-semibold text-foreground shadow-xs backdrop-blur-sm transition-all hover:border-primary/50 hover:bg-card"
         title={tr("Change language")}
       >
         <Globe className="h-3.5 w-3.5 text-primary" />
@@ -174,13 +202,14 @@ export function TopBar() {
 
       {/* Language Search Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 p-4 pt-12 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-4 shadow-2xl">
+        <div className="glass-scrim fixed inset-0 z-50 flex items-start justify-center p-4 pt-12" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+          <div className="glass-card w-full max-w-sm rounded-2xl border border-border p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-bold text-foreground">{tr("Select Language")}</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
+                aria-label={tr("Close")}
                 className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 ✕
@@ -199,7 +228,9 @@ export function TopBar() {
             </div>
             <div className="max-h-60 overflow-y-auto space-y-1">
               {filtered.length === 0 ? (
-                <p className="py-4 text-center text-xs text-muted-foreground">{tr("No languages found")}</p>
+                <p className="py-4 text-center text-xs text-muted-foreground">
+                  {tr("No languages found")}
+                </p>
               ) : (
                 filtered.map((item) => (
                   <button
@@ -210,11 +241,11 @@ export function TopBar() {
                       "flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs transition-colors",
                       language === item.name
                         ? "bg-primary text-primary-foreground font-semibold"
-                        : "hover:bg-muted text-foreground"
+                        : "hover:bg-muted text-foreground",
                     )}
                   >
                     <span>{item.native}</span>
-                    <span className="text-[10px] opacity-70">{item.name}</span>
+                    <span className="text-[11px] opacity-70">{item.name}</span>
                   </button>
                 ))
               )}
@@ -230,6 +261,77 @@ export function TopBar() {
    Searchable 3-Character Currency Picker (Half Column)
 ------------------------------------------------------- */
 
+type SignupPickerPosition = { left: number; top: number; width: number; maxHeight: number };
+
+function useSignupPickerPopover() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<SignupPickerPosition | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setPosition(null);
+      return;
+    }
+
+    const placePopover = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const pageZoomValue = Number.parseFloat(getComputedStyle(document.documentElement).zoom);
+      const pageZoom = Number.isFinite(pageZoomValue) && pageZoomValue > 0 ? pageZoomValue : 1;
+      const viewportWidth = (document.documentElement.clientWidth || window.innerWidth) / pageZoom;
+      const viewportHeight = window.innerHeight / pageZoom;
+      const anchorRight = rect.right / pageZoom;
+      const anchorTop = rect.top / pageZoom;
+      const anchorBottom = rect.bottom / pageZoom;
+      const width = Math.min(196, Math.max(0, viewportWidth - 16));
+      const below = Math.max(0, viewportHeight - anchorBottom - 14);
+      const above = Math.max(0, anchorTop - 14);
+      const opensBelow = below >= 144 || below >= above;
+      const available = opensBelow ? below : above;
+      const maxHeight = Math.max(96, Math.min(180, available));
+      const top = opensBelow
+        ? Math.min(viewportHeight - 8 - maxHeight, anchorBottom + 6)
+        : Math.max(8, anchorTop - maxHeight - 6);
+      const left = Math.max(8, Math.min(anchorRight - width, viewportWidth - width - 8));
+      setPosition({ left, top, width, maxHeight });
+    };
+
+    placePopover();
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 0);
+    window.addEventListener("resize", placePopover);
+    document.addEventListener("scroll", placePopover, true);
+    const closeOutside = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && (triggerRef.current?.contains(target) || popoverRef.current?.contains(target)))
+        return;
+      setOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+      window.removeEventListener("resize", placePopover);
+      document.removeEventListener("scroll", placePopover, true);
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return { open, setOpen, query, setQuery, triggerRef, inputRef, popoverRef, position };
+}
+
 export function SearchableCurrencyPicker({
   value,
   onChange,
@@ -238,17 +340,8 @@ export function SearchableCurrencyPicker({
   onChange: (currencyCode: string, countryCode?: string) => void;
 }) {
   const { tr } = useLanguage();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 60);
-    } else {
-      setQuery("");
-    }
-  }, [open]);
+  const { open, setOpen, query, setQuery, triggerRef, inputRef, popoverRef, position } =
+    useSignupPickerPopover();
 
   const current = findByCurrency(value) ?? {
     currencyCode: (value || "KSH").toUpperCase().slice(0, 3),
@@ -270,105 +363,106 @@ export function SearchableCurrencyPicker({
       <button
         id="signup-currency-btn"
         type="button"
-        onClick={() => setOpen(true)}
+        ref={triggerRef}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="signup-currency-options"
+        onClick={() => setOpen((value) => !value)}
         className="flex h-10 w-full items-center justify-between rounded-xl border border-input bg-card px-2.5 py-2 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary/50"
       >
         <span className="flex items-center gap-1.5 truncate">
           <Coins className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="font-bold text-primary font-mono tracking-wide">{current.currencyCode}</span>
-          <span className="text-muted-foreground text-[11px] truncate">({current.currencySymbol})</span>
+          <span className="font-bold text-primary font-mono tracking-wide">
+            {current.currencyCode}
+          </span>
+          <span className="text-muted-foreground text-[11px] truncate">
+            ({current.currencySymbol})
+          </span>
         </span>
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-60" />
       </button>
 
-      {/* Easy Search Modal */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setOpen(false)}
-        >
+      {open &&
+        position &&
+        createPortal(
           <div
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl max-h-[85dvh]"
-            onClick={(e) => e.stopPropagation()}
+            ref={popoverRef}
+            className="signup-picker-popover"
+            style={{
+              left: position.left,
+              top: position.top,
+              width: position.width,
+              maxHeight: position.maxHeight,
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-foreground leading-none">{tr("Select Currency")}</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {tr("3-character codes • Auto-selects country")}
-                </p>
+            <div className="signup-picker-menu">
+              <div className="signup-picker-heading">{tr("Select Currency")}</div>
+
+              {/* Search Input Box */}
+              <div className="signup-picker-search-wrap">
+                <Search className="signup-picker-search-icon" aria-hidden="true" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={tr("Search by code (e.g. KSH, USD, SOM) or name...")}
+                  className="signup-picker-search"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="signup-picker-clear"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
+
+              {/* Scrollable Currency List */}
+              <div
+                id="signup-currency-options"
+                role="listbox"
+                aria-label={tr("Currency")}
+                className="signup-picker-list"
               >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Search Input Box */}
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={tr("Search by code (e.g. KSH, USD, SOM) or name...")}
-                className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-8 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Scrollable Currency List */}
-            <div className="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
-              {filtered.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">{tr("No currency found")}</p>
-              ) : (
-                filtered.map((item) => {
-                  const isSelected = item.currencyCode === current.currencyCode;
-                  return (
-                    <button
-                      key={item.currencyCode + item.countryCode}
-                      type="button"
-                      onClick={() => {
-                        onChange(item.currencyCode, item.countryCode);
-                        setOpen(false);
-                      }}
-                      className={cn(
-                        "flex items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors",
-                        isSelected ? "bg-primary/15 font-semibold text-primary" : "hover:bg-muted text-foreground",
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-primary w-12">{item.currencyCode}</span>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{item.currencyName}</span>
-                          <span className="text-[10.5px] text-muted-foreground">
-                            {item.countryName} ({item.countryCode})
+                {filtered.length === 0 ? (
+                  <p className="signup-picker-empty">{tr("No currency found")}</p>
+                ) : (
+                  filtered.map((item) => {
+                    const isSelected = item.currencyCode === current.currencyCode;
+                    return (
+                      <button
+                        key={item.currencyCode + item.countryCode}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          onChange(item.currencyCode, item.countryCode);
+                          setOpen(false);
+                        }}
+                        className={cn("signup-picker-option", isSelected && "is-selected")}
+                      >
+                        <span className="signup-picker-option-main">
+                          <span className="signup-picker-code">{item.currencyCode}</span>
+                          <span className="signup-picker-option-copy">
+                            <span className="signup-picker-option-name">{item.currencyName}</span>
+                            <span className="signup-picker-option-detail">
+                              {item.countryName} ({item.countryCode})
+                            </span>
                           </span>
-                        </div>
-                      </div>
-                      <span className="rounded bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-                        {item.currencySymbol}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
+                        </span>
+                        <span className="signup-picker-symbol">{item.currencySymbol}</span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -385,17 +479,8 @@ export function SearchableCountryPicker({
   onChange: (countryCode: string, currencyCode?: string) => void;
 }) {
   const { tr } = useLanguage();
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (open) {
-      setTimeout(() => inputRef.current?.focus(), 60);
-    } else {
-      setQuery("");
-    }
-  }, [open]);
+  const { open, setOpen, query, setQuery, triggerRef, inputRef, popoverRef, position } =
+    useSignupPickerPopover();
 
   const current = findByCountry(value) ?? {
     countryCode: (value || "KEN").toUpperCase().slice(0, 3),
@@ -417,100 +502,103 @@ export function SearchableCountryPicker({
       <button
         id="signup-country-btn"
         type="button"
-        onClick={() => setOpen(true)}
+        ref={triggerRef}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="signup-country-options"
+        onClick={() => setOpen((value) => !value)}
         className="flex h-10 w-full items-center justify-between rounded-xl border border-input bg-card px-2.5 py-2 text-xs font-semibold text-foreground shadow-sm transition-all hover:border-primary/50"
       >
         <span className="flex items-center gap-1.5 truncate">
           <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-          <span className="font-bold text-primary font-mono tracking-wide">{current.countryCode}</span>
-          <span className="text-muted-foreground text-[11px] truncate">– {current.countryName}</span>
+          <span className="font-bold text-primary font-mono tracking-wide">
+            {current.countryCode}
+          </span>
+          <span className="text-muted-foreground text-[11px] truncate">
+            {current.countryName}
+          </span>
         </span>
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-60" />
       </button>
 
-      {/* Easy Search Modal */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setOpen(false)}
-        >
+      {open &&
+        position &&
+        createPortal(
           <div
-            className="flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-2xl max-h-[85dvh]"
-            onClick={(e) => e.stopPropagation()}
+            ref={popoverRef}
+            className="signup-picker-popover"
+            style={{
+              left: position.left,
+              top: position.top,
+              width: position.width,
+              maxHeight: position.maxHeight,
+            }}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-bold text-foreground leading-none">{tr("Select Country")}</h3>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {tr("3-character codes • Auto-selects currency")}
-                </p>
+            <div className="signup-picker-menu">
+              <div className="signup-picker-heading">{tr("Select Country")}</div>
+
+              {/* Search Input Box */}
+              <div className="signup-picker-search-wrap">
+                <Search className="signup-picker-search-icon" aria-hidden="true" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={tr("Search by country (e.g. KEN, USA, SOM) or name...")}
+                  className="signup-picker-search"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery("")}
+                    className="signup-picker-clear"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
+
+              {/* Scrollable Country List */}
+              <div
+                id="signup-country-options"
+                role="listbox"
+                aria-label={tr("Country")}
+                className="signup-picker-list"
               >
-                <X className="h-4 w-4" />
-              </button>
+                {filtered.length === 0 ? (
+                  <p className="signup-picker-empty">{tr("No country found")}</p>
+                ) : (
+                  filtered.map((item) => {
+                    const isSelected = item.countryCode === current.countryCode;
+                    return (
+                      <button
+                        key={item.countryCode + item.currencyCode}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          onChange(item.countryCode, item.currencyCode);
+                          setOpen(false);
+                        }}
+                        className={cn("signup-picker-option", isSelected && "is-selected")}
+                      >
+                        <span className="signup-picker-option-main">
+                          <span className="signup-picker-code">{item.countryCode}</span>
+                          <span className="signup-picker-option-name">{item.countryName}</span>
+                        </span>
+                        <span className="signup-picker-symbol">
+                          {item.currencyCode} ({item.currencySymbol})
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
-
-            {/* Search Input Box */}
-            <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={tr("Search by country (e.g. KEN, USA, SOM) or name...")}
-                className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-8 text-xs text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Scrollable Country List */}
-            <div className="flex max-h-64 flex-col gap-1 overflow-y-auto pr-1">
-              {filtered.length === 0 ? (
-                <p className="py-6 text-center text-xs text-muted-foreground">{tr("No country found")}</p>
-              ) : (
-                filtered.map((item) => {
-                  const isSelected = item.countryCode === current.countryCode;
-                  return (
-                    <button
-                      key={item.countryCode + item.currencyCode}
-                      type="button"
-                      onClick={() => {
-                        onChange(item.countryCode, item.currencyCode);
-                        setOpen(false);
-                      }}
-                      className={cn(
-                        "flex items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors",
-                        isSelected ? "bg-primary/15 font-semibold text-primary" : "hover:bg-muted text-foreground",
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-primary w-12">{item.countryCode}</span>
-                        <span className="font-medium">{item.countryName}</span>
-                      </div>
-                      <span className="rounded bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-                        {item.currencyCode} ({item.currencySymbol})
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
@@ -519,25 +607,30 @@ export function SearchableCountryPicker({
    Rotating BrandRing with Orbiting App Icons
 ------------------------------------------------------- */
 
+/** The Zakrio Systems mark: a Z monogram with the name under it, drawn in code so no old SHOPPLUS artwork shows. Used in the logo
+ *  circle on Log In / Create Account and in the Business Setup header. Replace with the final logo file when it exists. */
+export function ZakrioMark({ compact = false, size }: { compact?: boolean; size?: number }) {
+  return (
+    <span className={compact ? "zakrio-mark is-compact" : "zakrio-mark"} aria-hidden="true" style={size ? ({ "--mark-size": `${size}px` } as CSSProperties) : undefined}>
+      <span className="zakrio-mark-z">Z</span>
+      {!compact && <span className="zakrio-mark-name">ZAKRIO</span>}
+    </span>
+  );
+}
+
 export function BrandRing({ size = 180 }: { size?: number }) {
   const icons = RING_ICONS;
   const count = icons.length;
-  const orbitRadiusPercent = 42;
+  const orbitRadiusPercent = 36.5;
 
   return (
     <div
       className="auth-brand-emblem"
       style={{ "--emblem-size": `${size}px` } as CSSProperties}
-      aria-label="SHOPBOOK ERP"
+      aria-label="Zakrio Systems"
     >
       <div className="auth-brand-emblem-core">
-        <img
-          src={emblemAsset.url}
-          alt="SHOPBOOK ERP"
-          className="auth-brand-emblem-image"
-          loading="eager"
-          decoding="async"
-        />
+        <ZakrioMark size={size} />
       </div>
 
       <div className="auth-brand-orbit spin-slow" aria-hidden="true">
@@ -547,7 +640,13 @@ export function BrandRing({ size = 180 }: { size?: number }) {
           const y = (50 + orbitRadiusPercent * Math.sin(angle)).toFixed(3);
           return (
             <div key={i} className="auth-orbit-icon" style={{ left: `${x}%`, top: `${y}%` }}>
-              <img src={src} alt="" className="auth-orbit-img counter-spin" loading="eager" decoding="async" />
+              <img
+                src={src}
+                alt=""
+                className="auth-orbit-img counter-spin"
+                loading="eager"
+                decoding="async"
+              />
             </div>
           );
         })}
@@ -560,7 +659,13 @@ export function BrandRing({ size = 180 }: { size?: number }) {
    LogoCropPicker with Interactive Pan & Zoom
 ------------------------------------------------------- */
 
-export function LogoCropPicker({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
+export function LogoCropPicker({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange: (v: string) => void;
+}) {
   const { tr } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editing, setEditing] = useState(false);
@@ -582,27 +687,33 @@ export function LogoCropPicker({ value, onChange }: { value?: string; onChange: 
       setEditing(true);
     };
     r.readAsDataURL(f);
+    // Cleared so choosing the same photo again (after Cancel) still opens the crop window.
+    e.target.value = "";
   };
 
-  const startDrag = (e: React.MouseEvent) => {
+  // Pointer events, so a finger on a phone drags the logo as well as a mouse.
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault();
     setDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
   };
 
   useEffect(() => {
     if (!dragging) return;
-    const onMove = (e: MouseEvent) => {
+    const onMove = (e: PointerEvent) => {
       setOffset({
         x: dragStart.current.ox + (e.clientX - dragStart.current.x),
         y: dragStart.current.oy + (e.clientY - dragStart.current.y),
       });
     };
     const onUp = () => setDragging(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [dragging]);
 
@@ -621,17 +732,14 @@ export function LogoCropPicker({ value, onChange }: { value?: string; onChange: 
       ctx.arc(128, 128, 128, 0, Math.PI * 2);
       ctx.clip();
 
+      // Drawn exactly as the preview shows it: the whole image fitted inside the circle (contain), moved by the same drag,
+      // scaled from the 224px preview to the 256px saved logo.
       const aspect = img.width / img.height;
-      let drawW = 256 * scale;
-      let drawH = 256 * scale;
-      if (aspect > 1) {
-        drawW = 256 * aspect * scale;
-      } else {
-        drawH = (256 / aspect) * scale;
-      }
-
-      const dx = (256 - drawW) / 2 + offset.x;
-      const dy = (256 - drawH) / 2 + offset.y;
+      const k = 256 / 224;
+      const drawW = (aspect >= 1 ? 256 : 256 * aspect) * scale;
+      const drawH = (aspect >= 1 ? 256 / aspect : 256) * scale;
+      const dx = (256 - drawW) / 2 + offset.x * k;
+      const dy = (256 - drawH) / 2 + offset.y * k;
 
       ctx.drawImage(img, dx, dy, drawW, drawH);
       const out = canvas.toDataURL("image/png");
@@ -666,7 +774,7 @@ export function LogoCropPicker({ value, onChange }: { value?: string; onChange: 
         className="signup-upload-btn group focus:outline-none focus:ring-2 focus:ring-primary/40"
       >
         {value ? (
-          <img src={value} alt="Shop logo" className="h-full w-full object-cover" />
+          <img src={value} alt="Shop logo" className="h-full w-full object-contain" />
         ) : (
           <div className="signup-upload-placeholder">
             <Camera className="signup-upload-icon transition-transform group-hover:scale-110" />
@@ -675,14 +783,16 @@ export function LogoCropPicker({ value, onChange }: { value?: string; onChange: 
         )}
       </div>
 
-      {editing && rawImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in">
-          <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <h3 className="text-sm font-semibold text-foreground">{tr("Position & Crop Shop Logo")}</h3>
+      {editing && rawImage && createPortal(
+        <div className="glass-scrim fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="glass-card flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl border border-border p-5 shadow-2xl">
+            <h3 className="text-sm font-semibold text-foreground">
+              {tr("Position & Crop Shop Logo")}
+            </h3>
 
             <div
-              className="relative h-56 w-56 cursor-move overflow-hidden rounded-full border-2 border-primary/60 bg-muted/30 shadow-inner"
-              onMouseDown={startDrag}
+              className="relative h-56 w-56 cursor-move touch-none overflow-hidden rounded-full border-2 border-primary/60 bg-muted/30 shadow-inner"
+              onPointerDown={startDrag}
             >
               <img
                 src={rawImage}
@@ -748,7 +858,8 @@ export function LogoCropPicker({ value, onChange }: { value?: string; onChange: 
               </ShopButton>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -765,13 +876,25 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string | undefined;
 }
 
-export function Field({ icon, password, label, error, className, id: explicitId, ...rest }: FieldProps) {
+export function Field({
+  icon,
+  password,
+  label,
+  error,
+  className,
+  id: explicitId,
+  ...rest
+}: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? generatedId;
   const [show, setShow] = useState(false);
+  // Password boxes warn while Caps Lock is on, read from the key events themselves (works on every keyboard layout).
+  const [caps, setCaps] = useState(false);
+  const { tr: trCaps } = useLanguage();
+  const capsFrom = (e: React.KeyboardEvent<HTMLInputElement>) => { if (password && typeof e.getModifierState === "function") setCaps(e.getModifierState("CapsLock")); };
 
   return (
-    <div className="signup-field">
+    <div className={cn("signup-field", className)}>
       {label && (
         <label htmlFor={id} className="signup-field-label">
           {label}
@@ -784,9 +907,19 @@ export function Field({ icon, password, label, error, className, id: explicitId,
         <input
           id={id}
           type={password ? (show ? "text" : "password") : (rest.type ?? "text")}
-          className={cn("signup-field-input", icon && "has-icon", password && "has-action", className)}
+          className={cn(
+            "signup-field-input",
+            icon && "has-icon",
+            password && "has-action",
+            className,
+          )}
           {...rest}
+          onKeyDown={(e) => { capsFrom(e); rest.onKeyDown?.(e); }}
+          onKeyUp={(e) => { capsFrom(e); rest.onKeyUp?.(e); }}
+          onBlur={(e) => { setCaps(false); rest.onBlur?.(e); }}
         />
+
+        {password && caps && <span className="signup-caps" role="status">{trCaps("Caps Lock is on")}</span>}
 
         {password && (
           <button
@@ -811,13 +944,13 @@ export function Field({ icon, password, label, error, className, id: explicitId,
 }
 
 /* -------------------------------------------------------
-   SHOPBOOK Wordmark
+   Zakrio Systems Wordmark
 ------------------------------------------------------- */
 
 export function Wordmark({ className }: { className?: string }) {
   return (
     <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
-      SHOP<span className="text-primary">BOOK</span>
+      Zakrio <span className="text-primary">Systems</span>
     </div>
   );
 }
@@ -826,95 +959,105 @@ export function Wordmark({ className }: { className?: string }) {
    SocialButtons: Google, Apple & 6-Digit Admin Invite Code
 ------------------------------------------------------- */
 
-export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void }) {
+/** How this device signed in last (Google, Apple or email), so Log In can point to it. Display only. */
+const LAST_SIGN_IN = "shopbook.lastSignIn";
+export const rememberSignIn = (how: "google" | "apple" | "email") => { try { localStorage.setItem(LAST_SIGN_IN, how); } catch { /* a hint only */ } };
+const lastSignIn = () => { try { return localStorage.getItem(LAST_SIGN_IN); } catch { return null; } };
+
+/** Whether Lovable's Google/Apple sign-in service can be reached here. It is served only by the Lovable-hosted site; a copy running on
+ *  this computer (localhost, 127.0.0.1) never has it. Hosted sites are never probed: the service may not answer a bare check, and
+ *  a wrong "no" would block real sign-ins, so there the button always goes straight to Google or Apple. */
+async function oauthAvailable() {
+  return !/^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)$/.test(window.location.hostname);
+}
+
+/** Google, Apple and Email on one line, the same on Log In and Create Account. Email signs in directly with email and password:
+ *  on Log In it hands them to the page's own login (`onEmailLogin`, so linking and checks are identical); on Create Account
+ *  (`mode="signup"`) it creates the online account and the business the same way a first Google or Apple sign-in does. */
+export function SocialButtons({ mode = "login", onEmailLogin }: { mode?: "login" | "signup"; onEmailLogin?: (email: string, password: string) => void }) {
+  const navigate = useNavigate();
+  const { language } = useLanguage();
+  // Read after mount: the server can't see this device's storage, so reading it during the first render broke hydration.
+  const [last, setLast] = useState<string | null>(null);
+  useEffect(() => { setLast(lastSignIn()); }, []);
   const { tr } = useLanguage();
   const [signingWith, setSigningWith] = useState<"google" | "apple" | null>(null);
-  const [showPinModal, setShowPinModal] = useState(false);
-  const [pinDigits, setPinDigits] = useState<string[]>(["", "", "", "", "", ""]);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [sending, setSending] = useState(false);
+  const signup = mode === "signup";
 
   const handleOAuth = async (provider: "google" | "apple") => {
     try {
       setSigningWith(provider);
-      const { error } = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
-      });
-      if (error) {
-        toast.error(error.message || `Could not sign in with ${provider}`);
+      // Google and Apple go through Lovable's sign-in service, which only exists on the Lovable-hosted site (preview, published
+      // address or custom domain). A test copy on this computer (localhost) has no such page: say so instead of opening a 404.
+      if (!(await oauthAvailable())) {
+        toast.error(tr("Google and Apple sign-in work on your published site, not on this test copy. Here, use Email."));
+        return;
       }
-    } catch (err: any) {
-      toast.error(err?.message || `OAuth error`);
+      rememberSignIn(provider);
+      const result = await signInProvider(provider, `${window.location.origin}/`);
+      // A full-page redirect leaves this page by itself. A pop-up (Lovable's preview) signs in here instead: hand over to Log In,
+      // which finishes every sign-in (a first one creates the business) — Create Account would otherwise just sit there.
+      if (!("redirected" in result && result.redirected) && window.location.pathname !== "/") window.location.assign("/");
+    } catch (err: unknown) {
+      toast.error(tr(authMessage(err)));
     } finally {
       setSigningWith(null);
     }
   };
 
-  const handleDigitChange = (index: number, val: string) => {
-    const clean = val.replace(/\D/g, "").slice(-1);
-    const next = [...pinDigits];
-    next[index] = clean;
-    setPinDigits(next);
-
-    if (clean && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
+  const submitEmail = async () => {
+    const address = email.trim();
+    if (!/^\S+@\S+\.\S+$/.test(address)) { toast.error(tr("Enter a valid email")); return; }
+    if (!password) { toast.error(tr("Enter your password")); return; }
+    if (!signup) { rememberSignIn("email"); setEmailOpen(false); onEmailLogin?.(address, password); return; }
+    const problem = passwordProblem(password);
+    if (problem) { toast.error(tr(problem)); return; }
+    if (password !== confirm) { toast.error(tr("Passwords do not match")); return; }
+    setSending(true);
+    try {
+      const made = await registerEmailIdentity(address, password, "");
+      rememberSignIn("email");
+      // The provider wants the address confirmed first: the business is created on the first sign-in after that.
+      if (made.verificationRequired) { setEmailOpen(false); navigate({ to: "/auth/verify", search: { email: address } }); return; }
+      // A device that already holds a business goes through Log In, which never hands that business to another account.
+      if (store.get()) { setEmailOpen(false); navigate({ to: "/", replace: true }); return; }
+      await createOwnerFromIdentity(language);
+      store.update({ password: await hashPassword(password) });
+      setEmailOpen(false);
+      toast.success(tr("Your account is ready. Choose a plan to start."));
+      navigate({ to: "/plans" });
+    } catch (x) { toast.error(tr(authMessage(x))); }
+    finally { setSending(false); }
   };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !pinDigits[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (!pasted) return;
-
-    const next = [...pinDigits];
-    for (let i = 0; i < pasted.length; i++) {
-      next[i] = pasted[i] ?? "";
-    }
-    setPinDigits(next);
-    const focusIdx = Math.min(pasted.length, 5);
-    inputRefs.current[focusIdx]?.focus();
-  };
-
-  const verifyPin = () => {
-    const code = pinDigits.join("");
-    if (code.length !== 6) {
-      toast.error(tr("Please enter the complete 6-digit code"));
-      return;
-    }
-
-    const currentShop = store.get();
-    const validCodes: string[] = [
-      "123456",
-      "999999",
-      ...(currentShop?.password ? [currentShop.password.slice(0, 6)] : []),
-    ];
-
-    if (validCodes.includes(code)) {
-      toast.success(tr("Admin code accepted! Welcome to the shop."));
-      setShowPinModal(false);
-      store.signIn();
-      onCodeSuccess?.();
-    } else {
-      toast.error(tr("Invalid 6-digit code. Please contact your shop administrator."));
-    }
-  };
+  const closeEmail = () => { setEmailOpen(false); setPassword(""); setConfirm(""); };
+  useEffect(() => {
+    if (!emailOpen) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeEmail(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [emailOpen]);
 
   return (
     <div className="auth-social-wrap">
-      {/* 3-in-1 Social Row: Google, Apple & 6-Digit Button */}
-      <div className="auth-social-row">
+      <div className="auth-social-row auth-social-three">
         <button
           type="button"
           onClick={() => handleOAuth("google")}
           disabled={signingWith !== null}
-          className="auth-btn-social"
+          className={cn("auth-btn-social auth-btn-google", last === "google" && "is-last")}
         >
-          <svg className="auth-social-icon h-4 w-4 shrink-0" width="16" height="16" viewBox="0 0 24 24">
+          {last === "google" && <span className="auth-last-used">{tr("Last used")}</span>}
+          <svg
+            className="auth-social-icon h-4 w-4 shrink-0"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+          >
             <path
               fill="#4285F4"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -939,85 +1082,45 @@ export function SocialButtons({ onCodeSuccess }: { onCodeSuccess?: () => void })
           type="button"
           onClick={() => handleOAuth("apple")}
           disabled={signingWith !== null}
-          className="auth-btn-social"
+          className={cn("auth-btn-social auth-btn-apple", last === "apple" && "is-last")}
         >
-          <AppleIcon className="auth-social-icon text-foreground" />
+          {last === "apple" && <span className="auth-last-used">{tr("Last used")}</span>}
+          <AppleIcon className="auth-social-icon" />
           <span className="auth-social-label">{signingWith === "apple" ? "..." : "Apple"}</span>
         </button>
 
         <button
           type="button"
-          onClick={() => {
-            setPinDigits(["", "", "", "", "", ""]);
-            setShowPinModal(true);
-          }}
-          className="auth-btn-social auth-btn-pin"
+          onClick={() => setEmailOpen(true)}
+          className={cn("auth-btn-social auth-btn-email", last === "email" && "is-last")}
         >
-          <KeyRound className="auth-social-icon text-primary" />
-          <span className="auth-social-label">6-Digit</span>
+          {last === "email" && <span className="auth-last-used">{tr("Last used")}</span>}
+          <Mail className="auth-social-icon" aria-hidden />
+          <span className="auth-social-label">{tr("Email")}</span>
         </button>
       </div>
 
-      {/* 6-Digit Admin Invite Code Modal */}
-      {showPinModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in"
-          onClick={() => setShowPinModal(false)}
-        >
-          <div
-            className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-card p-6 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15 text-primary">
-                  <KeyRound className="h-4 w-4" />
-                </div>
-                <h3 className="text-base font-bold text-foreground">{tr("Join With 6-Digit Code")}</h3>
+      {emailOpen && createPortal(
+        <div className="glass-scrim fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) closeEmail(); }}>
+          <div className="glass-card auth-email-dialog flex w-full max-w-md flex-col gap-3 rounded-2xl border border-border p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label={tr(signup ? "Sign up with email" : "Log in with email")}>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-lg font-bold">{tr(signup ? "Sign up with email" : "Log in with email")}</h3>
+              <button type="button" onClick={closeEmail} aria-label={tr("Close")} className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted"><X className="h-4 w-4" /></button>
+            </div>
+            {/* The window is portalled, but React still bubbles its events to the page's own form: stop them here. */}
+            <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void submitEmail(); }}>
+              <Field icon={<Mail className="h-5 w-5" />} label={tr("Email")} type="email" inputMode="email" autoComplete="email" autoFocus placeholder={tr("Enter email address")} value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Field icon={<KeyRound className="h-5 w-5" />} password label={tr("Password")} autoComplete={signup ? "new-password" : "current-password"} placeholder={tr(signup ? "Create password" : "Enter password")} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              {signup && <Field icon={<KeyRound className="h-5 w-5" />} password label={tr("Confirm Password")} autoComplete="new-password" placeholder={tr("Repeat password")} value={confirm} onChange={(e) => setConfirm(e.target.value)} required />}
+              {!signup && <a href="/auth/recovery" className="auth-email-forgot">{tr("Forgot Password?")}</a>}
+              <div className="flex justify-end gap-2 pt-1">
+                <ShopButton type="button" variant="outline" onClick={closeEmail}>{tr("Cancel")}</ShopButton>
+                <ShopButton type="submit" disabled={sending}>{tr(signup ? (sending ? "Creating…" : "Create Account") : "Log In")}</ShopButton>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowPinModal(false)}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              {tr("Enter the 6-digit staff code provided by your shop administrator to link this terminal.")}
-            </p>
-
-            <div className="flex justify-between gap-1.5 py-2">
-              {pinDigits.map((digit, idx) => (
-                <input
-                  key={idx}
-                  ref={(el) => {
-                    inputRefs.current[idx] = el;
-                  }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleDigitChange(idx, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(idx, e)}
-                  onPaste={handlePaste}
-                  autoFocus={idx === 0}
-                  className="h-12 w-11 rounded-xl border-2 border-input bg-card text-center text-lg font-bold text-foreground shadow-sm transition-all focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-              ))}
-            </div>
-
-            <div className="flex gap-2">
-              <ShopButton type="button" variant="outline" onClick={() => setShowPinModal(false)} className="flex-1">
-                {tr("Cancel")}
-              </ShopButton>
-              <ShopButton type="button" onClick={verifyPin} className="flex-1">
-                {tr("Join Shop")}
-              </ShopButton>
-            </div>
+            </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

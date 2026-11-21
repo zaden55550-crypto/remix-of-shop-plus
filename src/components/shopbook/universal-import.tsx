@@ -44,7 +44,7 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
   const live = rows.filter((r) => r.status === "VALID" && !r.excluded), conflicts = live.filter((r) => r.conflict);
   const run = () => {
     if (busy) return; setBusy(true);
-    try { const b = applyOB(rows, [...new Set(chosen.map((x) => x.file))]); setResult(b); setStage("done"); b.created ? toast.success(`${b.created} ${tr("opening balances saved")}`) : toast.warning(tr("Nothing new was saved")); }
+    try { const b = applyOB(rows, [...new Set(chosen.map((x) => x.file))]); setResult(b); setStage("done"); if (b.created) toast.success(`${b.created} ${tr("opening balances saved")}`); else toast.warning(tr("Nothing new was saved")); }
     catch (e) { toast.error(e instanceof Error ? e.message : "Import failed; nothing was saved"); }
     finally { setBusy(false); }
   };
@@ -59,13 +59,13 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
         <p className="import-note">{tr("Cash, M-Pesa, Bank, customer receivables and supplier payables. Opening balances are kept separate from sales, purchases and expenses.")}</p>
         <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
         <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose files (CSV or XLSX)")}</ShopButton>
-        <ShopButton variant="outline" className="inventory-save" onClick={() => download("shopbook-opening-balances-template.csv", OB_TEMPLATE)}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
-        <ShopButton variant="outline" className="inventory-save" onClick={() => download("shopbook-opening-balances.csv", exportOB(s))}><Download className="h-4 w-4" />{tr("Export current opening balances")}</ShopButton>
+        <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-opening-balances-template.csv", OB_TEMPLATE)}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
+        <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-opening-balances.csv", exportOB(s))}><Download className="h-4 w-4" />{tr("Export current opening balances")}</ShopButton>
         <History tr={tr} />
       </>}
       {stage === "map" && <>
         {sheets.map((x) => { const m = maps[id(x)] ?? {}; return <div key={id(x)} className="import-history" style={{ padding: 8 }}>
-          <label className="flex items-center gap-1 text-[10px] font-semibold"><input type="checkbox" checked={!!use[id(x)]} onChange={(e) => setUse({ ...use, [id(x)]: e.target.checked })} />{x.file} • {x.sheet} • {x.rows.length} {tr("rows")}</label>
+          <label className="flex items-center gap-1 text-[11px] font-semibold"><input type="checkbox" checked={!!use[id(x)]} onChange={(e) => setUse({ ...use, [id(x)]: e.target.checked })} />{x.file} • {x.sheet} • {x.rows.length} {tr("rows")}</label>
           {use[id(x)] && <div className="import-map">{OB_FIELDS.map((f) => <div className="contents" key={f.key}><span>{tr(f.label)}{f.required ? " *" : ""}</span><select className="inventory-input" value={m[f.key] ?? ""} onChange={(e) => setMaps({ ...maps, [id(x)]: { ...m, [f.key]: e.target.value || undefined } })}><option value="">{tr("Not in file")}</option>{x.columns.map((c) => <option key={c} value={c}>{c} {x.rows[0]?.[c] !== undefined && String(x.rows[0][c]) ? `(e.g. ${String(x.rows[0][c]).slice(0, 18)})` : ""}</option>)}</select></div>)}</div>}
         </div>; })}
         <label className="inventory-field"><span>{tr("Date format in file")}</span><select className="inventory-input" value={fmt} onChange={(e) => setFmt(e.target.value as DateFmt)}><option value="auto">{tr("Detect automatically")}</option><option value="DMY">DD/MM/YYYY</option><option value="MDY">MM/DD/YYYY</option><option value="YMD">YYYY-MM-DD</option></select></label>
@@ -82,12 +82,12 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
           {r.conflict && <small>⚠ {r.conflict}</small>}
           {r.issues[0] && <small>{r.issues[0].field}: {r.issues[0].problem} → {r.issues[0].suggestion}</small>}
         </div>)}</div>
-        {conflicts.length > 0 && <label className="flex items-start gap-1 text-[10px]"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />{tr("I understand")} {conflicts.length} {tr("rows overlap existing records and could double-count. Untick those rows above if their history is already recorded.")}</label>}
-        {rows.some((r) => r.issues.length) && <ShopButton variant="outline" className="inventory-save" onClick={() => download("shopbook-import-errors.csv", issuesCsv(rows.flatMap((r) => r.issues)))}>{tr("Download error report")}</ShopButton>}
+        {conflicts.length > 0 && <label className="flex items-start gap-1 text-[11px]"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />{tr("I understand")} {conflicts.length} {tr("rows overlap existing records and could double-count. Untick those rows above if their history is already recorded.")}</label>}
+        {rows.some((r) => r.issues.length) && <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-import-errors.csv", issuesCsv(rows.flatMap((r) => r.issues)))}>{tr("Download error report")}</ShopButton>}
         <ShopButton variant="outline" className="inventory-save" onClick={() => setStage("map")}>{tr("Back to mapping")}</ShopButton>
         <ShopButton className="inventory-save" disabled={!live.length || busy || (conflicts.length > 0 && !ack)} onClick={run}>{busy ? tr("Processing…") : `${tr("Import")} ${live.length} ${tr("opening balances")}`}</ShopButton>
       </>}
-      {stage === "done" && result && <div className="import-done"><FileSpreadsheet className="h-8 w-8 text-primary" /><b>{tr(result.status)}</b><span>✓ {tr("Created")}: {result.created}</span><span>⚠ {tr("Skipped")}: {result.skipped}</span><span>✕ {tr("Rejected")}: {result.rejected}</span>{result.reconciliation.map((x) => <span key={x}>{x}</span>)}{result.errors.length > 0 && <ShopButton variant="outline" className="inventory-save" onClick={() => download("shopbook-import-errors.csv", issuesCsv(result.errors))}>{tr("Download error report")}</ShopButton>}<ShopButton className="inventory-save" onClick={reset}>{tr("New import")}</ShopButton></div>}
+      {stage === "done" && result && <div className="import-done"><FileSpreadsheet className="h-8 w-8 text-primary" /><b>{tr(result.status)}</b><span>✓ {tr("Created")}: {result.created}</span><span>⚠ {tr("Skipped")}: {result.skipped}</span><span>✕ {tr("Rejected")}: {result.rejected}</span>{result.reconciliation.map((x) => <span key={x}>{x}</span>)}{result.errors.length > 0 && <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-import-errors.csv", issuesCsv(result.errors))}>{tr("Download error report")}</ShopButton>}<ShopButton className="inventory-save" onClick={reset}>{tr("New import")}</ShopButton></div>}
     </>}
     </>}
   </div>;
@@ -95,5 +95,5 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
 
 function History({ tr }: { tr: (x: string) => string }) {
   const list = batches();
-  return <div className="mt-3"><p className="money-heading">{tr("Import History")}</p>{list.length ? list.map((b) => <details className="import-history" key={b.id}><summary>{b.id} — {b.categories.join(", ")} — {tr(b.status)}</summary><p>{new Date(b.at).toLocaleString()} • {b.user} • {b.files.join(", ")}</p><p>✓ {b.created} • ⚠ {b.skipped} • ✕ {b.rejected}</p>{b.reconciliation.map((x) => <p key={x}>{x}</p>)}{b.errors.length > 0 && <ShopButton variant="outline" className="h-6 px-2 text-[9px]" onClick={() => download(`${b.id}-errors.csv`, issuesCsv(b.errors))}>{tr("Download error report")}</ShopButton>}</details>) : <p className="import-note">{tr("No imports yet")}</p>}</div>;
+  return <div className="mt-3"><p className="money-heading">{tr("Import History")}</p>{list.length ? list.map((b) => <details className="import-history" key={b.id}><summary>{b.id} — {b.categories.join(", ")} — {tr(b.status)}</summary><p>{new Date(b.at).toLocaleString()} • {b.user} • {b.files.join(", ")}</p><p>✓ {b.created} • ⚠ {b.skipped} • ✕ {b.rejected}</p>{b.reconciliation.map((x) => <p key={x}>{x}</p>)}{b.errors.length > 0 && <ShopButton variant="outline" className="h-6 px-2 text-[10px]" onClick={() => download(`${b.id}-errors.csv`, issuesCsv(b.errors))}>{tr("Download error report")}</ShopButton>}</details>) : <p className="import-note">{tr("No imports yet")}</p>}</div>;
 }

@@ -1,6 +1,6 @@
 // Read-only business performance over a period, computed from the shared ERP snapshot.
 import { purchaseTotals } from "@/lib/finance";
-import { METHODS, type ErpState, type Method } from "@/lib/erp";
+import { moneyMethods, payParts, stockStatus, type ErpState, type Method, type PayRecord } from "@/lib/erp";
 
 export type Period = "Today" | "Week" | "Month" | "Year" | "All time";
 export const PERIODS: Period[] = ["Today", "Week", "Month", "Year", "All time"];
@@ -22,7 +22,10 @@ export function performance(s: ErpState, from: number, to = Date.now()) {
   const total = sales.reduce((a, x) => a + x.total, 0);
   const credit = sales.reduce((a, x) => a + x.pay.credit, 0);
   const returned = rets.reduce((a, x) => a + x.amount, 0);
-  const byMethod = Object.fromEntries(METHODS.map((m) => [m, r2(sales.reduce((a, x) => a + x.pay[m], 0))])) as Record<Method, number>;
+  // Every payment method in use (the business's order) and Credit always; a disabled method once a sale has used it.
+  const methodTotals: Record<string, number> = Object.fromEntries([...moneyMethods(s), "credit"].map((m) => [m, 0]));
+  sales.forEach((x) => payParts(x.pay).forEach(([m, v]) => { methodTotals[m] = (methodTotals[m] ?? 0) + v; }));
+  const byMethod = Object.fromEntries(Object.entries(methodTotals).map(([m, v]) => [m, r2(v)])) as PayRecord;
   const cogs = sales.reduce((a, x) => a + x.items.reduce((b, i) => b + (i.qty - i.returned) * i.cost, 0), 0);
   const kept = sales.reduce((a, x) => a + x.items.reduce((b, i) => b + (i.qty - i.returned) * i.price * (x.subtotal ? x.total / x.subtotal : 1), 0), 0);
   const products = new Map<string, { qty: number; value: number }>();
@@ -43,8 +46,8 @@ export function position(s: ErpState) {
   const receivables = s.customers.reduce((a, c) => a + Math.max(0, c.balance), 0);
   const customerCredit = s.customers.reduce((a, c) => a + Math.max(0, -c.balance), 0);
   const payroll = s.payrolls.reduce((a, p) => a + p.net - p.paid, 0);
-  const low = s.products.filter((p) => p.qty > 0 && p.qty <= (p.minStock ?? 0)).length;
-  const out = s.products.filter((p) => p.qty <= 0).length;
+  const low = s.products.filter((p) => stockStatus(p) === "LOW").length;
+  const out = s.products.filter((p) => stockStatus(p) === "OUT").length;
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const lastUp = s.cash.find((e) => e.type === "CASH UP")?.at ?? 0;
   const cashUpPending = s.payments.some((p) => p.method === "cash" && p.at > lastUp && p.at < today.getTime());

@@ -32,7 +32,7 @@ describe("durable atomic ERP outbox", () => {
   it("quota failure leaves both projection and queue unchanged", () => {
     addProduct({ name: "Tea", buy: 1, sell: 2, qty: 2 }); const before = localStorage.getItem("shopbook.erp");
     const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Quota exceeded"); });
-    expect(() => commit((s) => { s.products[0] && (s.products[0].sell = 50); })).toThrow("Quota exceeded"); spy.mockRestore(); expect(localStorage.getItem("shopbook.erp")).toBe(before);
+    expect(() => commit((s) => { if (s.products[0]) s.products[0].sell = 50; })).toThrow("Quota exceeded"); spy.mockRestore(); expect(localStorage.getItem("shopbook.erp")).toBe(before);
   });
   it("bounds per-operation retry backoff at 60 seconds", () => { expect(retryDelay(1)).toBe(2000); expect(retryDelay(20)).toBe(60000); });
   it("never persists preview records or preview operations", () => {

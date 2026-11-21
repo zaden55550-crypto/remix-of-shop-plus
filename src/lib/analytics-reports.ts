@@ -1,6 +1,6 @@
-import { balances, journal, profitAndLoss, ACCOUNT_INFO, type AccountId } from "@/lib/accounting";
+import { accountIds, accountInfo, balanceFor, balances, journal, profitAndLoss } from "@/lib/accounting";
 import { chartBreakdown, rank, type ChartModule, type ChartRange } from "@/lib/chart-data";
-import { METHODS, METHOD_LABEL, type ErpState } from "@/lib/erp";
+import { METHODS, METHOD_LABEL, methodName, moneyMethods, paidAmount, type ErpState } from "@/lib/erp";
 import { expenseBalance, purchaseBalance } from "@/lib/finance";
 import { moneyActivity } from "@/lib/money-activity";
 import { buildReport, type Report } from "@/lib/reports";
@@ -32,7 +32,7 @@ export function detailedReport(s: ErpState, menu: string, sub: string, range: Ch
   }
   if (menu === "Purchases") {
     const p = s.purchases.filter((x) => inR(x.at)), returns = s.purchaseReturns.filter((x) => inR(x.at));
-    const total = p.reduce((a, x) => a + x.total, 0), paid = p.reduce((a, x) => a + x.pay.cash + x.pay.mpesa + x.pay.bank + (x.settled ?? 0), 0);
+    const total = p.reduce((a, x) => a + x.total, 0), paid = p.reduce((a, x) => a + paidAmount(x.pay) + (x.settled ?? 0), 0);
     return { title: sub, money: true, kpis: [kpi("Purchases", total), kpi("Paid", paid), kpi("Credit", p.reduce((a, x) => a + purchaseBalance(s, x), 0)), kpi("Returns", sum(returns))], rows: sub === "Supplier Report" ? rows(p.map((x) => ({ label: s.suppliers.find((c) => c.id === x.supplierId)?.name ?? "—", value: x.total }))) : sub === "Payment Report" ? chartBreakdown(s, "purchases", range).points : sub === "Return Report" ? returns.map((x) => ({ label: x.ref, value: x.amount, note: x.purchaseRef })) : p.map((x) => ({ label: x.ref, value: x.total, note: s.suppliers.find((c) => c.id === x.supplierId)?.name })) };
   }
   if (menu === "Inventory") {
@@ -44,12 +44,12 @@ export function detailedReport(s: ErpState, menu: string, sub: string, range: Ch
   if (menu === "Expenses") {
     const e = s.expenses.filter((x) => inR(x.at)), total = sum(e), unpaid = e.reduce((a, x) => a + expenseBalance(s, x), 0);
     const kpis = [kpi("Expenses", total), kpi("Transactions", e.length, false), kpi("Average expense", e.length ? total / e.length : 0), kpi("Outstanding", unpaid)];
-    return { title: sub, money: true, kpis, rows: sub === "By Category" ? rows(e.map((x) => ({ label: x.category, value: x.amount }))) : sub === "Payment Methods" ? METHODS.map((m) => ({ label: METHOD_LABEL[m], value: -sum(s.payments.filter((p) => p.kind === "EXPENSE" && p.method === m && inR(p.at))) })) : sub === "Monthly" ? rows(e.map((x) => ({ label: new Date(x.at).toLocaleDateString("en-GB", { month: "short", year: "numeric" }), value: x.amount }))) : (sub === "Outstanding" ? e.filter((x) => expenseBalance(s, x) > 0) : sub === "Top Expenses" ? [...e].sort((a, b) => b.amount - a.amount).slice(0, 10) : e).map((x) => ({ label: x.ref, value: sub === "Outstanding" ? expenseBalance(s, x) : x.amount, note: x.category })) };
+    return { title: sub, money: true, kpis, rows: sub === "By Category" ? rows(e.map((x) => ({ label: x.category, value: x.amount }))) : sub === "Payment Methods" ? moneyMethods(s, true).map((m) => ({ m, label: methodName(m, s), value: -sum(s.payments.filter((p) => p.kind === "EXPENSE" && p.method === m && inR(p.at))) })).filter((r) => r.value || moneyMethods(s).includes(r.m)).map(({ label, value }) => ({ label, value })) : sub === "Monthly" ? rows(e.map((x) => ({ label: new Date(x.at).toLocaleDateString("en-GB", { month: "short", year: "numeric" }), value: x.amount }))) : (sub === "Outstanding" ? e.filter((x) => expenseBalance(s, x) > 0) : sub === "Top Expenses" ? [...e].sort((a, b) => b.amount - a.amount).slice(0, 10) : e).map((x) => ({ label: x.ref, value: sub === "Outstanding" ? expenseBalance(s, x) : x.amount, note: x.category })) };
   }
   if (menu === "Financial") {
     const p = profitAndLoss(s, range.from, range.to), b = balances(journal(s), 0, range.to);
     const report: Report = { title: sub, money: true, kpis: [kpi("Revenue", p.sales - p.returns), kpi("Expenses", p.expenses + p.salaries + p.stockAdj), kpi("Profit", p.net)], rows: [["Sales", p.sales], ["Returns", p.returns], ["Cost of goods sold", p.cogs], ["Gross profit", p.gross], ["Expenses", p.expenses], ["Payroll", p.salaries], ["Stock adjustments", p.stockAdj], ["Net profit", p.net]].map(([label, value]) => ({ label: String(label), value: Number(value) })) };
-    if (sub === "Balance Summary") report.rows = (Object.keys(ACCOUNT_INFO) as AccountId[]).filter((k) => ["Asset", "Liability", "Equity"].includes(ACCOUNT_INFO[k].type)).map((k) => ({ label: ACCOUNT_INFO[k].name, value: ACCOUNT_INFO[k].type === "Asset" ? b[k].net : -b[k].net }));
+    if (sub === "Balance Summary") report.rows = accountIds(s).filter((k) => ["Asset", "Liability", "Equity"].includes(accountInfo(k).type)).map((k) => ({ label: accountInfo(k).name, value: accountInfo(k).type === "Asset" ? balanceFor(b, k).net : -balanceFor(b, k).net }));
     if (sub === "Cash Flow") { const activity = moneyActivity(s).filter((x) => inR(x.at)); report.rows = [{ label: "Money in", value: sum(activity.filter((x) => x.amount > 0)) }, { label: "Money out", value: -sum(activity.filter((x) => x.amount < 0)) }, { label: "Net movement", value: sum(activity) }]; }
     if (sub === "Receivables" || sub === "Payables") report.rows = (sub === "Receivables" ? s.customers : s.suppliers).filter((x) => x.balance > 0).map((x) => ({ label: x.name, value: x.balance }));
     if (sub === "VAT") report.rows = [{ label: "VAT payable", value: -b.vatPayable.net }];
@@ -60,7 +60,7 @@ export function detailedReport(s: ErpState, menu: string, sub: string, range: Ch
   }
   if (menu === "Returns") {
     const base = buildReport(s, "Returns", range);
-    return { ...base, title: sub, rows: [...(sub !== "Purchase Returns" ? s.returns.filter((x) => inR(x.at)).map((x) => ({ label: x.ref, value: x.amount, note: `${x.saleRef} · ${METHOD_LABEL[x.refund]}` })) : []), ...(sub !== "Sales Returns" ? s.purchaseReturns.filter((x) => inR(x.at)).map((x) => ({ label: x.ref, value: x.amount, note: `${x.purchaseRef} · ${METHOD_LABEL[x.refund]}` })) : [])] };
+    return { ...base, title: sub, rows: [...(sub !== "Purchase Returns" ? s.returns.filter((x) => inR(x.at)).map((x) => ({ label: x.ref, value: x.amount, note: `${x.saleRef} · ${methodName(x.refund)}` })) : []), ...(sub !== "Sales Returns" ? s.purchaseReturns.filter((x) => inR(x.at)).map((x) => ({ label: x.ref, value: x.amount, note: `${x.purchaseRef} · ${methodName(x.refund)}` })) : [])] };
   }
   const eligible = s.commissions.filter((x) => inR(x.at) && !x.pending), base = buildReport({ ...s, commissions: eligible }, "Commission", range);
   if (sub === "By Sale") return { ...base, title: sub, rows: rows(eligible.map((x) => ({ label: x.source, value: x.amount }))) };

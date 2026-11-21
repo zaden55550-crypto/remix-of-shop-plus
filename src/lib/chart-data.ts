@@ -1,6 +1,6 @@
 // Read-only chart datasets over the shared ERP snapshot; financial series use Accounting's journal.
-import { journal, balances, profitAndLoss } from "@/lib/accounting";
-import { METHODS, METHOD_LABEL, type ErpState } from "@/lib/erp";
+import { accountIds, accountInfo, balanceFor, journal, balances, profitAndLoss } from "@/lib/accounting";
+import { METHOD_LABEL, methodName, moneyMethods, payAmount, type ErpState } from "@/lib/erp";
 import { moneyActivity } from "@/lib/money-activity";
 
 export type ChartPoint = { label: string; value: number; secondary?: number; third?: number };
@@ -43,11 +43,19 @@ export function chartSeries(s: ErpState, module: ChartModule, range: ChartRange,
     return { label: b.label, value: selected.filter((x) => inR(x.at)).length };
   });
 }
+/** One point per payment method of the business (its order; a disabled one only if it was used), then what is still owed as
+ *  "Unpaid (credit)" — a payment state, never a method. Together they add up to the documents' total. */
+function payMethodPoints(s: ErpState, pays: Record<string, number | undefined>[]): ChartPoint[] {
+  const live = moneyMethods(s), sum = (m: string) => pays.reduce((a, p) => a + payAmount(p, m), 0);
+  const points = moneyMethods(s, true).filter((m) => live.includes(m) || sum(m) > 0).map((m) => ({ label: methodName(m, s), value: sum(m) }));
+  const owed = sum("credit");
+  return owed > 0 ? [...points, { label: "Unpaid (credit)", value: owed }] : points;
+}
 export function chartBreakdown(s: ErpState, module: ChartModule, range: ChartRange): { title: string; points: ChartPoint[]; count?: boolean } {
   const inR = (at: number) => at >= range.from && at <= range.to;
   if (module === "sales" || module === "purchases") {
     const rows = (module === "sales" ? s.sales : s.purchases).filter((x) => inR(x.at));
-    return { title: module === "sales" ? "Sales by payment method" : "Purchases by payment method", points: METHODS.map((m) => ({ label: METHOD_LABEL[m], value: rows.reduce((a, x) => a + x.pay[m], 0) })) };
+    return { title: module === "sales" ? "Sales by payment method" : "Purchases by payment method", points: payMethodPoints(s, rows.map((x) => x.pay)) };
   }
   if (module === "expenses") return { title: "Expenses by category", points: rank(s.expenses.filter((x) => inR(x.at)).map((x) => ({ label: x.category, value: x.amount }))) };
   if (module === "inventory") return { title: "Current stock valuation", points: rank(s.products.map((p) => ({ label: s.categories.find((c) => c.id === p.categoryId)?.name ?? "Uncategorized", value: p.qty * p.buy }))) };
@@ -55,7 +63,7 @@ export function chartBreakdown(s: ErpState, module: ChartModule, range: ChartRan
   if (module === "returns") return { title: "Return value", points: [{ label: "Sales returns", value: s.returns.filter((x) => inR(x.at)).reduce((a, x) => a + x.amount, 0) }, { label: "Purchase returns", value: s.purchaseReturns.filter((x) => inR(x.at)).reduce((a, x) => a + x.amount, 0) }] };
   if (module === "commission" || module === "payroll") return { title: module === "commission" ? "Commission by employee" : "Payroll by employee", points: rank((module === "commission" ? s.commissions.filter((x) => !x.pending) : s.payrolls).filter((x) => inR(x.at)).map((x) => ({ label: s.employees.find((e) => e.id === x.employeeId)?.name ?? "—", value: "net" in x ? x.net : x.amount }))) };
   const b = balances(journal(s));
-  return { title: "Account balances", points: ["cash", "mpesa", "bank"].map((m) => ({ label: METHOD_LABEL[m as "cash" | "mpesa" | "bank"], value: b[m as "cash" | "mpesa" | "bank"].net })) };
+  return { title: "Account balances", points: accountIds(s).filter((k) => accountInfo(k).type === "Asset" && k !== "receivables" && k !== "inventory").map((k) => ({ label: methodName(k, s), value: balanceFor(b, k).net })) };
 }
 
 /** Historical book balances from recorded accounting entries, not invented stock-price history. */
@@ -66,6 +74,6 @@ export function balanceTrend(s: ErpState, metric: "Inventory" | "Cash", range: C
   const span = range.to - start, count = Math.min(24, Math.max(1, Math.ceil(span / 864e5)));
   return Array.from({ length: count }, (_, i) => {
     const end = start + (span * (i + 1) / count), b = balances(entries, 0, end);
-    return { label: new Date(end).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }), value: metric === "Inventory" ? b.inventory.net : b.cash.net + b.mpesa.net + b.bank.net };
+    return { label: new Date(end).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }), value: metric === "Inventory" ? b.inventory.net : accountIds(s).filter((k) => k === "cash" || k === "mpesa" || k === "bank" || k.startsWith("acct-")).reduce((t, k) => t + balanceFor(b, k).net, 0) };
   });
 }

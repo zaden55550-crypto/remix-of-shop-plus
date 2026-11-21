@@ -1,7 +1,7 @@
 import { performance, position, periodStart, type Period } from "@/lib/summary";
 import { floatBalances, purchaseTotals, purchaseBalance } from "@/lib/finance";
 import { profitAndLoss } from "@/lib/accounting";
-import { stockStatus, type ErpState } from "@/lib/erp";
+import { methodName, stockStatus, type ErpState } from "@/lib/erp";
 
 export type BotAnswer = { text: string; path?: string; topic?: string; data?: boolean };
 type Topic = { id: string; words: string[]; path: string; steps: string };
@@ -10,7 +10,7 @@ export const BOT_TOPICS: Topic[] = [
   { id: "brands", words: ["brand", "category", "categories"], path: "/settings", steps: "Open Settings → General → Categories and Brands. Add or rename the entry. Assign it when editing a product in Inventory." },
   { id: "purchases", words: ["purchase", "supplier", "buy", "bill"], path: "/purchases", steps: "Open Purchases and start a purchase. Choose products, quantities, costs and supplier. Allocate payment; unpaid amounts use Credit and require a supplier. Review and confirm. Supplier returns are recorded against the original purchase." },
   { id: "sales", words: ["sale", "sales", "pos", "sell", "checkout", "discount", "receipt"], path: "/pos", steps: "Open POS or Sales. Tap a product to add it. Use +/− for quantity or tap the quantity for the keypad; edit Amt/Price for a one-sale override. Open Checkout, allocate payment and confirm. Cash tender above the total produces change; credit requires a named customer." },
-  { id: "payment", words: ["partial", "mixed", "split", "mpesa", "m pesa", "p pay", "payment"], path: "/sales", steps: "At Checkout use the shared payment picker for Cash, M-Pesa, Bank or Credit. Split the total between methods; the unpaid remainder goes to Credit. Choose a customer when any credit remains. Use P.PAY on the saved sale to settle later. M-Pesa and bank entries are manual records, not external payment confirmations." },
+  { id: "payment", words: ["partial", "mixed", "split", "mpesa", "m pesa", "p pay", "payment"], path: "/sales", steps: "At Checkout the shared payment picker shows your business's payment methods (set them in Settings › Finance › Payment Methods), then Credit and Partial Payment. Credit leaves the whole bill owed; Partial Payment records what was paid by each method and the rest goes to credit. Choose a customer when any credit remains. Use P.PAY on the saved sale to settle later. Mobile money and bank entries are manual records, not external payment confirmations." },
   { id: "returns", words: ["return", "refund"], path: "/sales", steps: "Open the original sale in Sales and record a return with quantities and refund method. For supplier returns use the original purchase in Purchases. Confirming records stock and refund movements together; earned commission history is preserved with reversal entries." },
   { id: "expenses", words: ["expense", "spend", "spent", "cost"], path: "/expenses", steps: "Open Expenses, add an expense, select its category, amount and payment method, then save. Expense paid and balance figures come from recorded payments." },
   { id: "contacts", words: ["customer", "contact", "debt", "owe", "credit"], path: "/contacts", steps: "Open Contacts → Customers or Suppliers. Open the person to see balances and statements. Customer debt repayments are recorded against open sales, oldest first; the original sale payment split stays unchanged." },
@@ -46,7 +46,7 @@ export function answerShopbot(question: string, context: BotContext, previous?: 
   if (dataQuestion) {
     if (/another (shop|business|user)|other (shop|business|user)/.test(q)) return { text: "I can only answer from this shop's authorized records." };
     if (/live|externally confirmed|provider confirmed/.test(q)) return { text: "I cannot verify external provider payment confirmations. Recorded entries are not proof of M-Pesa or bank settlement." };
-    if (!context.allowed || !context.state) return { text: "Sign in to this shop to view its records. I can still help with SHOPBOOK instructions." };
+    if (!context.allowed || !context.state) return { text: "Sign in to this shop to view its records. I can still help with Zakrio Systems instructions." };
     const s = context.state, currency = context.currency;
     if (/last month|last week|last year|\d{4}|\bbetween\b/.test(q)) return { text: "For that date range, open Reports and choose the exact dates. I currently answer Today, Yesterday, This week and This month.", path: "/reports" };
     const money = (n: number) => `${currency} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -58,7 +58,7 @@ export function answerShopbot(question: string, context: BotContext, previous?: 
     else if (/stock.*(value|worth)|inventory.*value/.test(q)) text = `Stock value at buying cost: ${money(position(s).stock)}.`;
     else if (/customer.*(owe|outstanding|credit)|who.*owe|receivable/.test(q)) { text = s.customers.filter((c) => c.balance > 0).map((c) => `${c.name}: ${money(c.balance)}`).join("\n") || "No outstanding customer balances in these records."; path = "/contacts"; }
     else if (/supplier.*balance|purchase.*(balance|outstanding)|payable/.test(q)) { text = s.purchases.filter((p) => purchaseBalance(s, p) > 0.001).map((p) => `${p.ref}: ${money(purchaseBalance(s, p))}`).join("\n") || "No outstanding purchase balances in these records."; path = "/purchases"; }
-    else if (/balance/.test(q)) { const accounts = floatBalances(s), method = q.includes("mpesa") || q.includes("m pesa") ? "mpesa" : q.includes("bank") ? "bank" : "cash"; text = `Recorded ${method === "mpesa" ? "M-Pesa" : method} balance: ${money(accounts[method])}.`; path = "/float"; }
+    else if (/balance/.test(q)) { const accounts = floatBalances(s), method = q.includes("mpesa") || q.includes("m pesa") ? "mpesa" : q.includes("bank") ? "bank" : "cash"; text = `Recorded ${methodName(method, s)} balance: ${money(accounts[method])}.`; path = "/float"; }
     else if (/top|best sell/.test(q)) { text = performance(s, from, to).top.map((p) => `${p.name}: ${p.qty} sold, ${money(p.value)}`).join("\n") || "No sales in this period."; path = "/reports"; }
     else if (/mpesa|m pesa/.test(q)) { const total = s.payments.filter((p) => p.method === "mpesa" && p.amount > 0 && p.at >= from && p.at <= to).reduce((a, p) => a + p.amount, 0); text = `${period} recorded M-Pesa inflows: ${money(total)}. These entries are not externally verified.`; path = "/float"; }
     else if (/expense|spen[dt]/.test(q)) text = `${period} expenses: ${money(purchaseTotals(s, from, to).expenses)}.`;

@@ -1,5 +1,6 @@
 import type { ErpState } from "@/lib/erp";
 import { financialActivity, type MoneyActivity } from "@/lib/money-activity";
+import { randomUUID } from "@/lib/id";
 
 /** Device-local staging area for historical financial imports. Never writes ERP records,
  * so matching an imported row to a real shop record can never double-count stock or money. */
@@ -26,7 +27,7 @@ export function stageRows(raw: Record<string, unknown>[], file: string, fallback
   raw.forEach((r, i) => { const amount = num(col.amount ? r[col.amount] : undefined), at = dateOf(col.at ? r[col.at] : undefined);
     if (!Number.isFinite(amount) || amount === 0) return void errors.push(`Row ${i + 2}: amount missing`);
     if (!Number.isFinite(at)) return void errors.push(`Row ${i + 2}: date missing`);
-    rows.push({ id: crypto.randomUUID(), file, row: i + 2, kind: kindOf(col.kind ? r[col.kind] : undefined, fallback), at, ref: String((col.ref && r[col.ref]) ?? "").trim(), party: String((col.party && r[col.party]) ?? "").trim(), amount: Math.abs(amount), method: String((col.method && r[col.method]) ?? "").trim(), status: "unmatched" }); });
+    rows.push({ id: randomUUID(), file, row: i + 2, kind: kindOf(col.kind ? r[col.kind] : undefined, fallback), at, ref: String((col.ref && r[col.ref]) ?? "").trim(), party: String((col.party && r[col.party]) ?? "").trim(), amount: Math.abs(amount), method: String((col.method && r[col.method]) ?? "").trim(), status: "unmatched" }); });
   return { rows, errors };
 }
 

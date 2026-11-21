@@ -1,27 +1,33 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Bell, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, UserRound, X } from "lucide-react";
+﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Bell, Building2, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
-import { APPS, canOpen, chatIcons, store, trialDaysLeft, type Account } from "@/lib/shopbook";
+import { APPS, PLANS, businessTypesOf, canOpen, chatIcons, store, trialDaysLeft, type Account } from "@/lib/shopbook";
+import { allowedApps } from "@/lib/staff-access";
+import { INDUSTRY_TILE_TONE } from "@/lib/industry-config";
+import { launcherFor } from "@/lib/app-registry";
 import { cn } from "@/lib/utils";
 import { useSettings } from "@/lib/settings-config";
 import { HelpChat } from "@/components/shopbook/help-chat";
-import { BusinessAssistant } from "@/components/shopbook/business-assistant";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { AnnouncementBanner } from "@/components/shopbook/announcement-banner";
+import { DownloadRecords } from "@/components/shopbook/plan-loss";
+import { TrialBanner } from "@/components/shopbook/trial-banner";
 import { useLanguage } from "@/hooks/use-language";
 import { type TKey } from "@/lib/i18n";
-import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
+import { signOutUnified } from "@/lib/auth-service";
+import { forOpenBusiness } from "@/components/shopbook/selling";
+import { subscribe } from "@/lib/erp";
 
 export const Route = createFileRoute("/apps")({
   head: () => ({
     meta: [
-      { title: "Apps — SHOPBOOK ERP" },
+      { title: "Apps — Zakrio Systems" },
       { name: "description", content: "Access your business apps: POS, Inventory, Sales, Accounting, and more." },
-      { property: "og:title", content: "Apps — SHOPBOOK ERP" },
-      { property: "og:description", content: "Access your business apps on SHOPBOOK ERP." },
+      { property: "og:title", content: "Apps — Zakrio Systems" },
+      { property: "og:description", content: "Access your business apps on Zakrio Systems." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -60,6 +66,11 @@ const ROUTES: Record<
   settings: "/settings",
 };
 const SETTINGS_APP = APPS.find((a) => a.id === "settings");
+/** Glass tint per app tile, taken from each icon's own colour (Liquid Glass launcher). */
+const TILE_TONE: Record<string, string> = {
+  dashboard: "#3b82f6", inventory: "#22c55e", purchases: "#a855f7", sales: "#ec4899", pos: "#3b82f6", expenses: "#d946ef",
+  contacts: "#06b6d4", float: "#3b82f6", accounting: "#3b82f6", payroll: "#8b5cf6", reports: "#22c55e", summary: "#06b6d4", settings: "#64748b",
+};
 
 function Apps() {
   const nav = useNavigate();
@@ -69,12 +80,14 @@ function Apps() {
   const [cfg, setCfg] = useSettings();
 
   // Launcher apps: exclude settings and apps marked as hidden
-  const shown = APPS.filter((a) => a.id !== "settings" && !cfg.hiddenApps.includes(a.id));
+  // The open business's apps, from its industry and business type (app-registry.ts): Trade keeps all 13, another industry gets its
+  // shared apps and its own planned modules, never the Trade apps as if they were its environment.
+  const launcher = acct ? launcherFor({ industryFamilyId: acct.industryFamilyId, businessType: businessTypesOf(acct)[0], account: acct, hiddenApps: cfg.hiddenApps }) : undefined;
+  const shown = launcher?.apps ?? [];
   const [locked, setLocked] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [panel, setPanel] = useState<null | "profile" | "manageApps">(null);
   const [chat, setChat] = useState(false);
-  const [businessAi, setBusinessAi] = useState(false);
 
   useEffect(() => {
     const a = store.get();
@@ -86,7 +99,9 @@ function Apps() {
       nav({ to: "/plans", replace: true });
       return;
     }
-    setAcct(a);
+    // The open business's name, currency and industry (its own apps and modules); the first business is the account itself.
+    const show = () => { const now = store.get(); if (now) setAcct((prev) => { const next = forOpenBusiness(now); return prev && JSON.stringify(prev) === JSON.stringify(next) ? prev : next; }); };
+    show();
     const onSession = () => {
       if (!store.signedIn()) {
         setAcct(null);
@@ -94,12 +109,34 @@ function Apps() {
       }
     };
     window.addEventListener("shopbook-session", onSession);
-    return () => window.removeEventListener("shopbook-session", onSession);
+    const stop = subscribe(show);
+    return () => { window.removeEventListener("shopbook-session", onSession); stop(); };
   }, [nav]);
+
+  // One screen: html and .app-screen zooms both scale viewport units, so measure the real zoom
+  // (drawn size / CSS size) and give the page exactly the visible height below its top.
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!acct) return;
+    const zoomOf = (el: Element) => el.getBoundingClientRect().width / parseFloat(getComputedStyle(el).width) || 1;
+    const fit = () => {
+      const m = mainRef.current;
+      if (!m) return;
+      const top = m.getBoundingClientRect().top + window.scrollY;
+      const bottomPad = parseFloat(getComputedStyle(document.body).paddingBottom) * zoomOf(document.body);
+      m.style.height = `${(window.innerHeight - top - bottomPad) / zoomOf(m)}px`;
+    };
+    const frame = () => requestAnimationFrame(fit);
+    frame();
+    window.addEventListener("resize", frame);
+    return () => window.removeEventListener("resize", frame);
+  }, [acct]);
 
   if (!acct) return <main className="app-screen" />;
 
   const days = trialDaysLeft(acct);
+  // The subscription is the owner's; an employee sees Settings only if it was granted.
+  const settingsTile = !acct.staff || allowedApps(acct.staff.permissions).some((id) => id === "settings") ? SETTINGS_APP : undefined;
   const planLabel =
     acct.plan === "trial"
       ? t("fullTrial")
@@ -130,9 +167,10 @@ function Apps() {
         variant="bare"
         key={app.id}
         onClick={() => (ok && ROUTES[app.id] ? nav({ to: ROUTES[app.id]! }) : openApp(ok, appName(app.id)))}
-        className="h-auto w-full min-w-0 flex-col items-center justify-start gap-1 rounded-none p-0 cursor-pointer"
+        className="apps-tile min-w-0 flex-col items-center cursor-pointer"
+        style={{ "--tone": TILE_TONE[app.id] ?? "#3b82f6" } as React.CSSProperties}
       >
-        <span className="relative flex aspect-square w-full max-w-[min(16vw,9.5dvh,96px)] items-center justify-center">
+        <span className="apps-icon relative flex aspect-square items-center justify-center">
           <span className="block h-full w-full">
             <img
               src={dark ? app.iconDark : app.icon}
@@ -146,47 +184,72 @@ function Apps() {
             </span>
           )}
         </span>
-        <span className="w-full truncate text-center text-[clamp(9px,min(2.6vw,1.9dvh),13px)] font-semibold leading-tight text-foreground">
+        <span className="apps-label w-full text-center font-black leading-tight tracking-wide text-foreground">
           {appName(app.id)}
         </span>
       </ShopButton>
     );
   };
 
+  const renderPlanned = (tile: { id: string; name: string }) => (
+    <ShopButton
+      variant="bare"
+      key={tile.id}
+      onClick={() => openApp(false, tile.name)}
+      className="apps-tile apps-tile-planned min-w-0 flex-col items-center cursor-pointer opacity-80"
+      style={{ "--tone": INDUSTRY_TILE_TONE[tile.id] ?? "#64748b" } as React.CSSProperties}
+    >
+      <span className="apps-icon relative flex aspect-square items-center justify-center">
+        <span className="grid h-full w-full place-items-center rounded-full bg-card/60 border border-dashed border-border/80">
+          <LayoutGrid className="h-6 w-6 text-muted-foreground" />
+        </span>
+        <span className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-amber-500/90 text-white text-[10px] font-black">
+          !
+        </span>
+      </span>
+      <span className="apps-label w-full text-center font-black leading-tight tracking-wide text-foreground">
+        {tile.name}
+      </span>
+    </ShopButton>
+  );
+
+  // Planned industry modules are catalogued but their operational ERP is not implemented yet. Show them as
+  // ghost tiles so a business sees what is coming for its industry; they never open.
+  const plannedTiles = launcher?.planned ?? [];
+
   return (
     <main
+      ref={mainRef}
       dir={dir}
-      className="app-screen relative flex flex-col px-3 pb-[clamp(3rem,11dvh,5.5rem)] pt-[clamp(0.5rem,2dvh,1rem)] sm:px-6 md:px-10"
-      style={{ minHeight: "calc(100dvh / var(--fluid-scale, 1))" }}
+      className="app-screen apps-home apps-glass relative flex flex-col overflow-hidden px-3 pb-2 pt-[clamp(0.5rem,2dvh,1rem)] sm:px-6 md:px-10"
     >
       {/* =========================================================================
           HEADER: APP LOGO (LEFT) | CAPITAL SHOP NAME (CENTER) | AVATAR (RIGHT)
          ========================================================================= */}
-      <header className="flex items-center justify-between gap-2 shrink-0">
+      <header className="apps-header flex items-center justify-between shrink-0">
         {/* TOP LEFT: APP LOGO + APP NAME + ONLINE/OFFLINE INDICATOR */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-primary/40 bg-card/70 shadow-sm shrink-0 grid place-items-center p-0.5">
-            <img src={emblemAsset.url} alt="SHOPBOOK ERP" className="h-full w-full object-cover rounded-full" />
+        <div className="apps-header-side flex items-center shrink-0">
+          <div className="apps-glass-logo shrink-0 grid place-items-center">
+            <img src={"/SHOP_PLUS_3D_Transparent_Icons/shopplus-logo-512.png"} alt="Zakrio Systems" className="h-full w-full object-contain rounded-full" />
           </div>
-          <span className="hidden min-[480px]:inline font-black text-xs sm:text-sm tracking-tight text-foreground whitespace-nowrap">
-            SHOP<span className="text-primary">BOOK</span>{" "}
-            <span className="text-[9.5px] sm:text-[10px] text-muted-foreground font-semibold">ERP</span>
+          <span className="apps-brand font-black tracking-tight text-foreground whitespace-nowrap">
+            Zakrio <span className="text-primary">Systems</span>
           </span>
           <ConnectionStatus />
         </div>
 
         {/* CENTER: SHOP NAME IN CAPITAL LETTERS ALWAYS + SMALL PLAN BADGE */}
-        <div className="flex-1 min-w-0 flex flex-col items-center justify-center px-1 text-center">
-          <h1 className="truncate text-center text-xs sm:text-sm md:text-base font-black tracking-wider text-foreground uppercase max-w-[170px] sm:max-w-xs md:max-w-md">
+        <div className="apps-shop flex-1 min-w-0 flex items-center justify-center text-center">
+          <h1 className="apps-shop-name truncate font-black tracking-wider text-foreground uppercase">
             {(acct.shopName || "").toUpperCase()}
           </h1>
-          <div className="flex items-center gap-1 mt-0.5">
+          {!acct.staff && <div className="flex items-center shrink-0">
             <span
               className={cn(
-                "px-1.5 py-0.2 rounded text-[8px] sm:text-[9.5px] font-black uppercase tracking-wider shrink-0",
+                "apps-plan rounded font-black uppercase tracking-wider shrink-0",
                 acct.plan === "business"
                   ? "bg-amber-500/20 text-amber-500 border border-amber-500/40"
-                  : acct.plan === "plus"
+                  : acct.plan === "growth"
                     ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
                     : acct.plan === "trial"
                       ? "bg-purple-500/20 text-purple-400 border border-purple-500/40"
@@ -195,17 +258,27 @@ function Apps() {
             >
               {acct.plan === "trial" ? tr("TRIAL") : acct.plan ? acct.plan.toUpperCase() : tr("BASIC")}
             </span>
-          </div>
+            {/* The owner's businesses: open another one or create one. Separate from the apps, so the launcher grid is unchanged. */}
+            <button
+              type="button"
+              onClick={() => nav({ to: "/businesses" })}
+              aria-label={tr("Switch business")}
+              title={`${tr("Switch business")}${acct.businessType ? ` · ${tr(acct.businessType)}` : ""}`}
+              className="apps-switch-business ms-1.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border border-emerald-500/50 bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500/25"
+            >
+              <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </div>}
         </div>
 
         {/* TOP RIGHT: NOTIFICATION BELL | SUN/MOON THEME | SHOP LOGO / DEFAULT AVATAR PROFILE */}
-        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <div className="apps-header-side flex items-center shrink-0">
           {/* Notification Button */}
           <ShopButton
             variant="ghost"
             size="icon"
             aria-label="Notifications"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer relative"
+            className="apps-gbtn apps-bell cursor-pointer relative"
             onClick={() => toast.info(tr("No new unread system notifications."))}
           >
             <Bell className="h-4 w-4" />
@@ -222,7 +295,7 @@ function Apps() {
               setProfileOpen(true);
               setPanel(null);
             }}
-            className="grid h-8 w-8 sm:h-9 sm:w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-primary/50 bg-card hover:ring-2 hover:ring-primary/40 transition-all cursor-pointer shadow-sm"
+            className="apps-gbtn apps-gbtn-profile grid shrink-0 place-items-center overflow-hidden cursor-pointer"
           >
             {acct.logo ? (
               <img src={acct.logo} alt={acct.shopName} className="h-full w-full object-cover" />
@@ -237,52 +310,35 @@ function Apps() {
         <AnnouncementBanner />
       </div>
 
-      {acct.plan === "trial" && (
-        <div className="mt-2 flex items-center justify-between rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs">
-          <span>
-            {days} {tr("days left in free trial")}
-          </span>
-          <ShopButton size="sm" onClick={() => nav({ to: "/plans" })}>
-            {tr("Choose plan")}
-          </ShopButton>
-        </div>
+      {acct.plan === "trial" && !acct.staff && (
+        <TrialBanner days={days} className="apps-glass-banner mt-2" />
       )}
 
-      {/* Launcher rows spread evenly over the remaining height */}
-      <div className="flex min-h-0 flex-1 flex-col justify-evenly py-[clamp(0.25rem,1.5dvh,1rem)]">
-        <div
-          className="grid grid-cols-4 content-evenly gap-x-[clamp(0.4rem,2vw,1.25rem)] gap-y-[clamp(0.3rem,1.6dvh,1.25rem)]"
-          style={{ flex: "1 1 auto" }}
-        >
+      {/* Launcher fills the remaining height; icons size from it so every app fits on one screen */}
+      <div
+        className="apps-launcher"
+        style={{ "--app-rows": Math.ceil((shown.length + plannedTiles.length) / 4) + (settingsTile ? 1 : 0) } as React.CSSProperties}
+      >
+        <div className="apps-grid">
           {shown.map(renderApp)}
+          {plannedTiles.map(renderPlanned)}
+          {settingsTile && <div className="apps-grid-settings">{renderApp(settingsTile)}</div>}
         </div>
-        {SETTINGS_APP && (
-          <div className="flex justify-center pt-[clamp(0.3rem,1.6dvh,1.25rem)]">
-            <div className="w-1/4 px-[clamp(0.2rem,1vw,0.6rem)]">{renderApp(SETTINGS_APP)}</div>
-          </div>
+        {plannedTiles.length > 0 && (
+          <p className="apps-planned-note text-center text-xs text-muted-foreground mt-2">
+            {tr("Industry modules coming soon:")} {plannedTiles.map((t) => t.name).join(" · ")}
+          </p>
         )}
       </div>
 
-      {/* FLOATING SHOPBOT BUTTON (ENLARGED & ELEVATED) */}
-      <ShopButton
-        variant="bare"
-        aria-label="ShopBot"
-        onClick={() => setBusinessAi(true)}
-        className="h-auto w-auto fixed bottom-[clamp(2.5rem,9dvh,5rem)] right-4 md:right-10 flex flex-col items-center cursor-pointer z-30 group"
-      >
-        <img
-          src={dark ? chatIcons.dark : chatIcons.light}
-          alt=""
-          className="h-[min(14vw,8.5dvh,76px)] w-[min(14vw,8.5dvh,76px)] rounded-full shadow-2xl transition-transform duration-200 group-hover:scale-105"
-        />
-      </ShopButton>
+      {/* ShopBot: the global assistant (GlobalShopBot in __root) shows its labelled button here. */}
 
       {/* =========================================================================
           PROFILE & MANAGEMENT DRAWER (OPENED VIA TOP-RIGHT AVATAR ICON)
          ========================================================================= */}
       {profileOpen && (
         <div
-          className="fixed inset-0 z-50 flex justify-end bg-background/60 backdrop-blur-sm"
+          className="glass-scrim fixed inset-0 z-50 flex justify-end"
           onClick={() => {
             setProfileOpen(false);
             setPanel(null);
@@ -324,12 +380,12 @@ function Apps() {
             {/* 1. SUBSCRIPTION PLAN CARD - ONE SINGLE ROW */}
             <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-muted/60 border border-border/80 px-3 py-2.5 text-xs">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] sm:text-xs text-muted-foreground uppercase font-bold tracking-wider shrink-0">
+                <span className="text-[11px] sm:text-xs text-muted-foreground uppercase font-bold tracking-wider shrink-0">
                   {t("plan")}
                 </span>
                 <strong className="text-primary font-black text-xs sm:text-sm uppercase truncate">{planLabel}</strong>
               </div>
-              <ShopButton
+              {!acct.staff && <ShopButton
                 size="sm"
                 variant="outline"
                 className="font-bold text-xs shrink-0"
@@ -339,7 +395,7 @@ function Apps() {
                 }}
               >
                 {tr("Change plan")}
-              </ShopButton>
+              </ShopButton>}
             </div>
 
             {/* MENU ITEMS */}
@@ -358,29 +414,29 @@ function Apps() {
               {panel === "profile" && (
                 <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs space-y-2">
                   <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">{t("shopName")}</span>
+                    <span className="text-muted-foreground block text-[11px] uppercase font-bold">{t("shopName")}</span>
                     <span className="font-bold uppercase text-foreground">{acct.shopName}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground block text-[10px] uppercase font-bold">{t("email")}</span>
+                    <span className="text-muted-foreground block text-[11px] uppercase font-bold">{t("email")}</span>
                     <span className="font-medium text-foreground">{acct.email}</span>
                   </div>
                   {acct.phone && (
                     <div>
-                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">{tr("Phone")}</span>
+                      <span className="text-muted-foreground block text-[11px] uppercase font-bold">{tr("Phone")}</span>
                       <span className="font-medium text-foreground">{acct.phone}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <div>
-                      <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                      <span className="text-muted-foreground block text-[11px] uppercase font-bold">
                         {t("currency")}
                       </span>
                       <span className="font-bold text-foreground">{acct.currency}</span>
                     </div>
                     {acct.country && (
                       <div>
-                        <span className="text-muted-foreground block text-[10px] uppercase font-bold">
+                        <span className="text-muted-foreground block text-[11px] uppercase font-bold">
                           {tr("Country")}
                         </span>
                         <span className="font-bold text-foreground">{acct.country}</span>
@@ -403,7 +459,7 @@ function Apps() {
               </ShopButton>
               {panel === "manageApps" && (
                 <div className="rounded-xl border border-border bg-muted/40 p-2 text-xs space-y-1.5 max-h-60 overflow-y-auto">
-                  <p className="text-[10px] text-muted-foreground px-1 pb-1">
+                  <p className="text-[11px] text-muted-foreground px-1 pb-1">
                     {tr("Toggle modules on or off to customize your business launcher:")}
                   </p>
                   {APPS.filter((a) => a.id !== "settings").map((app) => {
@@ -465,7 +521,7 @@ function Apps() {
                 variant="ghost"
                 className="justify-start gap-2 text-xs text-destructive hover:text-destructive mt-3"
                 onClick={() => {
-                  store.signOut();
+                  void signOutUnified().catch(() => store.signOut());
                   setProfileOpen(false);
                   nav({ to: "/", replace: true });
                 }}
@@ -485,22 +541,15 @@ function Apps() {
         email={acct.email}
         icon={dark ? chatIcons.dark : chatIcons.light}
       />
-      <BusinessAssistant
-        open={businessAi}
-        onClose={() => setBusinessAi(false)}
-        shop={acct.shopName}
-        currency={acct.currency}
-        icon={dark ? chatIcons.dark : chatIcons.light}
-      />
 
       {/* UPGRADE REQUIRED MODAL WITH TOP-RIGHT ✕ EXIT BUTTON */}
       {locked && (
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-background/70 px-6 backdrop-blur-sm"
+          className="glass-scrim fixed inset-0 z-50 grid place-items-center px-6"
           onClick={() => setLocked(null)}
         >
           <div
-            className="relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-center shadow-2xl"
+            className="glass-card relative w-full max-w-sm rounded-2xl border border-border bg-card p-5 text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -513,7 +562,12 @@ function Apps() {
             </button>
             <Lock className="mx-auto h-8 w-8 text-primary" />
             <h2 className="mt-2 text-lg font-bold">{t("upgradeRequired")}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{t("notIncluded", locked)}</p>
+            {/* Only a plan that leaves an app out locks it. The trial, ended or not, opens every app; an ended trial is read-only. */}
+            <p className="mt-1 text-sm text-muted-foreground">
+              {tr("{x} is not included in {plan}.", locked).replace("{plan}", PLANS.find((p) => p.id === acct.plan)?.name ?? "")}
+            </p>
+            <p className="mt-1 text-sm font-bold">{tr("Your records are safe. Upgrade to open them.")}</p>
+            {!acct.staff && <div className="mt-3"><DownloadRecords /></div>}
             <ShopButton className="mt-4" onClick={() => nav({ to: "/plans" })}>
               {t("upgradePlan")}
             </ShopButton>
@@ -523,3 +577,9 @@ function Apps() {
     </main>
   );
 }
+
+
+
+
+
+

@@ -4,21 +4,33 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { applyFluidScale, applyUiSize } from "@/lib/prefs";
+import { applyUiSize } from "@/lib/prefs";
 import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
 import { startAutoSnapshots } from "@/lib/snapshots";
+import { startAutoLocalBackups } from "@/lib/local-backups";
 import { startShopSync } from "@/lib/shop-sync";
+import { StaffGate } from "@/components/shopbook/staff-gate";
+import { AppAccessGate } from "@/components/shopbook/app-access-gate";
 import { startConnectivity } from "@/lib/connectivity";
+import { startFitText } from "@/lib/fit-text";
+import { startExactAmounts } from "@/lib/exact-amount";
+import { startDomTranslate } from "@/lib/dom-translate";
+import { GlobalShopBot } from "@/components/shopbook/business-assistant";
+import { AuthShell } from "@/components/shopbook/auth-shell";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { store } from "@/lib/shopbook";
+import { expireMigratedOwnerSession } from "@/lib/auth-service";
 
 function NotFoundComponent() {
   return (
@@ -85,9 +97,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "SHOPBOOK ERP" },
-      { name: "description", content: "SHOPBOOK — the all-in-one ERP for small shops and businesses." },
-      { property: "og:title", content: "SHOPBOOK ERP" },
+      { title: "Zakrio Systems" },
+      // iPhone home-screen app: full screen, glass runs behind a translucent status bar.
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Zakrio Systems" },
+      { name: "theme-color", content: "oklch(0.14 0.04 265)", media: "(prefers-color-scheme: dark)" },
+      { name: "theme-color", content: "#fff5e8", media: "(prefers-color-scheme: light)" },
+      { name: "description", content: "Zakrio Systems — the all-in-one ERP for small shops and businesses." },
+      { property: "og:title", content: "Zakrio Systems" },
       { property: "og:description", content: "The all-in-one ERP for small shops and businesses." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -95,12 +114,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=optional" },
       {
         rel: "stylesheet",
         href: appCss,
       },
       { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -125,16 +145,44 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useEffect(() => { applyUiSize(); applySettings(); window.addEventListener("resize", applyFluidScale); return () => window.removeEventListener("resize", applyFluidScale); }, []);
+  const router = useRouter();
+  useEffect(() => { applyUiSize(); applySettings(); window.addEventListener("resize", applyUiSize); return () => window.removeEventListener("resize", applyUiSize); }, []);
+  // The account pages have a size floor (prefs.ts), so the zoom is worked out again whenever the page changes.
+  const pathname = useRouterState({ select: (st) => st.location.pathname });
+  useEffect(() => { applyUiSize(); }, [pathname]);
   useEffect(() => startCloudBackup(), []);
   useEffect(() => startConnectivity(), []);
   useEffect(() => startAutoSnapshots(), []);
+  useEffect(() => startAutoLocalBackups(), []);
   useEffect(() => startShopSync(), []);
+  useEffect(() => startFitText(), []);
+  useEffect(() => startExactAmounts(), []);
+  // Translates any known phrase a screen printed without tr(), on every page (src/lib/dom-translate.ts).
+  useEffect(() => startDomTranslate(), []);
+  const isAuthRoute = pathname === "/" || pathname === "/signup";
+  useEffect(() => {
+    const auth = supabase.auth.onAuthStateChange((event, session) => {
+      const account = store.get();
+      if (account?.staff) return; // StaffGate/session monitor performs server access checks and queue-safe cleanup.
+      const expired = event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session);
+      if (!expired || account?.authMigration?.status !== "complete" || !store.signedIn()) return;
+      expireMigratedOwnerSession();
+      if (!["/", "/signup", "/auth/recovery", "/auth/verify", "/auth/return", "/terms", "/privacy"].includes(pathname)) void router.navigate({ to: "/", replace: true });
+    });
+    return () => auth.data.subscription.unsubscribe();
+  }, [pathname, router]);
 
   return (
     <QueryClientProvider client={queryClient}>
+      <StaffGate />
+      <AppAccessGate />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* ERP workspace: plain pass-through until ShopBot docks on the right, then it holds the remaining width. */}
+      <div className="shopbot-workspace"><div className="shopbot-workspace-scroll">
+        {isAuthRoute ? <AuthShell><Outlet /></AuthShell> : <Outlet />}
+      </div></div>
+      {/* One ShopBot for every signed-in page; it floats above the page and never changes its layout. */}
+      <GlobalShopBot />
       <Toaster position="top-center" />
     </QueryClientProvider>
   );

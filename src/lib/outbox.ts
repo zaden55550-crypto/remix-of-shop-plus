@@ -1,7 +1,10 @@
-import type { ErpState } from "@/lib/erp";
+import type { ErpState, StaffIntent } from "@/lib/erp";
+import { randomUUID } from "@/lib/id";
 
 export type Change = { collection: string; id: string; before: unknown; after: unknown };
-export type Operation = { id: string; business: string; owner: string | null; device: string; kind: string; createdAt: number; changes: Change[]; seq: Record<string, number>; phase: "pending" | "failed" | "conflict" | "synced"; attempts: number; nextRetry: number; error?: string | undefined; acknowledgedAt?: number; revision?: number; history: { at: number; event: string }[] };
+export type Operation = { id: string; business: string; owner: string | null; device: string; kind: string; createdAt: number; changes: Change[]; seq: Record<string, number>; phase: "pending" | "failed" | "conflict" | "synced"; attempts: number; nextRetry: number; error?: string | undefined; acknowledgedAt?: number; revision?: number; history: { at: number; event: string }[];
+  /** An employee's device sends what happened, and the server records it against the real records. */
+  intent?: StaffIntent | undefined };
 export const ERP_KEY = "shopbook.erp";
 export function businessId(): string {
   const account = JSON.parse(localStorage.getItem("shopbook.account") || "null");
@@ -28,8 +31,8 @@ export function createOperation(before: ErpState, after: ErpState, bootstrap = f
   const changes = diffRecords(before, after);
   if (!changes.length && JSON.stringify(before.seq) === JSON.stringify(after.seq)) return null;
   let device = localStorage.getItem("shopbook.deviceId");
-  if (!device) { device = crypto.randomUUID(); localStorage.setItem("shopbook.deviceId", device); }
-  return { id: crypto.randomUUID(), business: businessId(), owner: localStorage.getItem("shopbook.syncOwner"), device, kind: bootstrap ? "EXISTING RECORDS" : after.audit.find((r) => !before.audit.some((old) => old.id === r.id))?.action ?? "ERP CHANGE", createdAt: Date.now(), changes, seq: after.seq, phase: "pending", attempts: 0, nextRetry: 0, history: [{ at: Date.now(), event: "Saved locally" }] };
+  if (!device) { device = randomUUID(); localStorage.setItem("shopbook.deviceId", device); }
+  return { id: randomUUID(), business: businessId(), owner: localStorage.getItem("shopbook.syncOwner"), device, kind: bootstrap ? "EXISTING RECORDS" : after.audit.find((r) => !before.audit.some((old) => old.id === r.id))?.action ?? "ERP CHANGE", createdAt: Date.now(), changes, seq: after.seq, phase: "pending", attempts: 0, nextRetry: 0, history: [{ at: Date.now(), event: "Saved locally" }] };
 }
 /** ERP projection and pending operations share ONE atomic storage write. */
 export function persistErp(snapshot: ErpState, outbox = getOutbox()) {

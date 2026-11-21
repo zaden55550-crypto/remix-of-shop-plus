@@ -33,7 +33,7 @@ export function suggestRT(cols: string[]): RTMapping {
 }
 export const rtMappingProblems = (m: RTMapping) => RT_FIELDS.filter((f) => f.required && !m[f.key]).map((f) => `${f.label} is not mapped`);
 const methodOf = (x: unknown): Method | undefined => { const v = k(x); if (!v) return "cash"; if (/mpesa|mobile/.test(v)) return "mpesa"; if (/bank|card/.test(v)) return "bank"; if (/cash/.test(v)) return "cash"; if (/credit|account|balance/.test(v)) return "credit"; return undefined; };
-const dateOf = (x: unknown) => { if (x instanceof Date) return x.getTime(); const p = n(x).split(/[\/\-. ]/).map(Number); if (p.length >= 3 && p.slice(0, 3).every(Number.isFinite)) { let [d, m, y] = p[0]! > 31 ? [p[2]!, p[1]!, p[0]!] : [p[0]!, p[1]!, p[2]!]; if (y < 100) y += 2000; if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return new Date(y, m - 1, d, 12).getTime(); } const t = Date.parse(n(x)); return Number.isFinite(t) ? t : null; };
+const dateOf = (x: unknown) => { if (x instanceof Date) return x.getTime(); const p = n(x).split(/[/\-. ]/).map(Number); if (p.length >= 3 && p.slice(0, 3).every(Number.isFinite)) { const [d, m, yy] = p[0]! > 31 ? [p[2]!, p[1]!, p[0]!] : [p[0]!, p[1]!, p[2]!]; const y = yy < 100 ? yy + 2000 : yy; if (m >= 1 && m <= 12 && d >= 1 && d <= 31) return new Date(y, m - 1, d, 12).getTime(); } const t = Date.parse(n(x)); return Number.isFinite(t) ? t : null; };
 
 export function previewRT(s: ErpState, sheets: { sheet: Sheet; mapping: RTMapping }[]): RTGroup[] {
   const groups = new Map<string, RTGroup>();

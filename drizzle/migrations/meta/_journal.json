@@ -36,6 +36,48 @@
       "when": 1792776675811,
       "tag": "0004_correct_correlated_stock_validation",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792776735811,
+      "tag": "0005_sync_product_setup_records",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792776795811,
+      "tag": "0006_sync_purchase_orders_invoices",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792776855811,
+      "tag": "0007_sync_locations",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792776915811,
+      "tag": "0008_owner_accounts_entitlements_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792776975811,
+      "tag": "0009_people_and_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792777035811,
+      "tag": "0010_fix_sync_payment_check",
+      "breakpoints": true
     }
   ]
 }

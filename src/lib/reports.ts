@@ -1,6 +1,6 @@
 // Reports read the shared ERP snapshot only — they never mutate business data.
 import type { ErpState } from "@/lib/erp";
-import { returnStatus } from "@/lib/erp";
+import { returnStatus, stockStatus } from "@/lib/erp";
 
 export const REPORT_TYPES = ["Sales", "Inventory", "Returns", "Commission"] as const;
 export type ReportType = (typeof REPORT_TYPES)[number];
@@ -29,7 +29,7 @@ export function buildReport(s: ErpState, type: ReportType | "Overview", { from, 
       rows: [...byP].sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value: r2(value) })) };
   }
   if (type === "Inventory") return { title: "Stock valuation", money: true,
-    kpis: [{ label: "Products", value: s.products.length, money: false }, { label: "Stock value", value: r2(stock), money: true }, { label: "Low stock", value: s.products.filter((p) => p.qty > 0 && p.qty <= (p.minStock ?? 0)).length, money: false }, { label: "Out of stock", value: s.products.filter((p) => p.qty <= 0).length, money: false }],
+    kpis: [{ label: "Products", value: s.products.length, money: false }, { label: "Stock value", value: r2(stock), money: true }, { label: "Low stock", value: s.products.filter((p) => stockStatus(p) === "LOW").length, money: false }, { label: "Out of stock", value: s.products.filter((p) => stockStatus(p) === "OUT").length, money: false }],
     rows: s.products.map((p) => ({ label: `${p.name} × ${p.qty}`, value: r2(p.qty * p.buy) })) };
   if (type === "Returns") return { title: "Returns history", money: true,
     kpis: [{ label: "Sales returns", value: rets.length, money: false }, { label: "Purchase returns", value: s.purchaseReturns.filter((x) => inR(x.at)).length, money: false }, { label: "Refunded", value: r2(rets.filter((x) => x.refund !== "credit").reduce((a, x) => a + x.amount, 0)), money: true }, { label: "Credit", value: r2(rets.filter((x) => x.refund === "credit").reduce((a, x) => a + x.amount, 0)), money: true }],

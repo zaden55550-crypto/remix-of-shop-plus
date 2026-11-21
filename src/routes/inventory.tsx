@@ -1,6 +1,10 @@
 import { clean } from "@/lib/format";
+import { useFeature } from "@/lib/use-features";
+import { ExpiryList } from "@/components/shopbook/expiry-list";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useScreenFit } from "@/lib/fill-screen";
+import { wholeFigures } from "@/lib/exact-amount";
 import {
   ChevronDown,
   ChevronLeft,
@@ -33,21 +37,39 @@ import {
   AlertTriangle,
   Building2,
   ShieldAlert,
+  Database,
+  Ban,
+  Upload,
+  Boxes,
 } from "lucide-react";
 import { findByCurrency } from "@/lib/world-data";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { store, canOpen, APPS, type Account } from "@/lib/shopbook";
 import { useLanguage } from "@/hooks/use-language";
-import { useTheme } from "@/components/shopbook/ui";
+import { GlobalApplicationHeader } from "@/components/shopbook/global-application-header";
+import { GlassPage } from "@/components/shopbook/glass-page";
+import { KPI_COLOR } from "@/components/shopbook/kpi";
+import { usePeriod } from "@/lib/period";
 import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { translateCurrent } from "@/lib/interface-translations";
 import { cn } from "@/lib/utils";
+import { revealTab } from "@/lib/fit-text";
 import * as erp from "@/lib/erp";
 import { lastBackup } from "@/lib/backup";
+import { startView, viewSearch } from "@/lib/deep-link";
+import { download } from "@/lib/download";
+import * as fin from "@/lib/finance";
 import { BackupStatus } from "@/components/shopbook/backup-status";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
-import { useErp } from "@/components/shopbook/product-search";
+import { useShopErp } from "@/components/shopbook/product-search";
+import { ProductListHead, ProductRow } from "@/components/shopbook/product-catalog";
+import { AttributePicker, BarcodeInput, ImageChooser, NamedSearch, ProductWorkspace, PwField } from "@/components/shopbook/product-workspace";
+import { ProductSetup } from "@/components/shopbook/product-setup";
+import { activeAttributes, countLabel, unitNames } from "@/lib/catalog";
+import { useSettings } from "@/lib/settings-config";
+import { connectedShops, isActiveLocation, listLocations, storageStock, type StorageStock } from "@/lib/locations";
+import { ListScreen, type Col } from "@/components/shopbook/purchase-ui";
 import {
   InventorySearch,
   InventoryField,
@@ -60,25 +82,26 @@ import {
 export const Route = createFileRoute("/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — SHOPBOOK ERP" },
+      { title: "Inventory — Zakrio Systems" },
       {
         name: "description",
         content: "Products, stock levels, stock in/out, customer and supplier returns, transfers and configuration.",
       },
-      { property: "og:title", content: "Inventory — SHOPBOOK ERP" },
-      { property: "og:description", content: "The single source of truth for products and stock in SHOPBOOK." },
+      { property: "og:title", content: "Inventory — Zakrio Systems" },
+      { property: "og:description", content: "The single source of truth for products and stock in Zakrio Systems." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
   }),
+  validateSearch: viewSearch,
   component: Inventory,
 });
 
 /** 4-Menu Architecture matching specification */
 const MENUS = {
   overview: [],
-  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments"],
-  "returns & transfers": ["Customer Returns", "Supplier Returns", "New Transfer", "Transfer History"],
+  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry"],
+  "returns & transfers": ["Customer Returns", "Supplier Returns", "New Transfer", "Transfer History", "Warehouse Stock"],
   configuration: ["Product Setup", "Stock Setup"],
 } as const;
 
@@ -95,6 +118,8 @@ const run = (fn: () => unknown, ok: string) => {
   }
 };
 
+const activeStorage = (s: erp.ErpState) => s.locations.filter((l) => erp.isStorageLocation(l) && isActiveLocation(l));
+
 const dt = (n: number) =>
   new Date(n).toLocaleString("en-GB", {
     day: "2-digit",
@@ -103,12 +128,25 @@ const dt = (n: number) =>
     minute: "2-digit",
   });
 
-/** Compact number formatter: full numbers below 1M with commas, M for >=1M, B for >=1B */
+const OTHER_LOCATION = "__other_location__";
+function inventoryLocations(s: erp.ErpState, shop: string, branches: { name: string }[]) {
+  const seen = new Set<string>();
+  return [shop, ...listLocations(s).filter(isActiveLocation).map((l) => l.name), ...branches.map((branch) => branch.name)]
+    .map((name) => name.trim())
+    .filter((name) => {
+      const key = name.toLocaleLowerCase();
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+/** Compact number formatter: full numbers with commas on big screens; elsewhere M for >=1M, B for >=1B */
 function compactFmt(n: number): string {
   if (typeof n !== "number" || isNaN(n) || Object.is(n, -0) || Math.abs(n) < 0.0001) return "0";
   const abs = Math.abs(n);
-  if (abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
-  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (!wholeFigures() && abs >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace(/\.0$/, "") + "B";
+  if (!wholeFigures() && abs >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   const [intPart, decPart] = n.toFixed(2).split(".");
   const formattedInt = Number(intPart).toLocaleString("en-US");
   return decPart && decPart !== "00" ? `${formattedInt}.${decPart}` : formattedInt;
@@ -179,13 +217,16 @@ function Amt({
   return (
     <div className="flex items-start gap-0.5 leading-none min-w-0 max-w-full">
       <span
+        data-fit-text
         className={cn(
           "font-extrabold tracking-tight tabular-nums truncate",
           toneClass,
           size === "xs" && "text-xs",
           size === "sm" && "text-sm",
           size === "md" && (isHuge ? "text-sm" : isLarge ? "text-base" : "text-lg"),
-          size === "lg" && (isHuge ? "text-base" : isLarge ? "text-lg" : "text-xl"),
+          // Fluid on phones: a fixed 20px hid digits ("56....") in four narrow cards at 320px.
+          size === "lg" &&
+            (isHuge ? "text-[clamp(12px,3.2vw,16px)]" : isLarge ? "text-[clamp(13px,3.6vw,18px)]" : "text-[clamp(14px,4vw,20px)]"),
         )}
       >
         {formatted}
@@ -195,10 +236,10 @@ function Amt({
           className={cn(
             "font-semibold shrink-0 select-none ml-0.5 relative top-0 leading-tight",
             toneClass,
-            size === "xs" && "text-[7px]",
-            size === "sm" && "text-[8px]",
-            size === "md" && "text-[9px]",
-            size === "lg" && "text-[10px]",
+            size === "xs" && "text-[10px]",
+            size === "sm" && "text-[10px]",
+            size === "md" && "text-[10px]",
+            size === "lg" && "text-[11px]",
           )}
         >
           {symbol}
@@ -211,15 +252,20 @@ function Amt({
 function Inventory() {
   const nav = useNavigate();
   const { tr } = useLanguage();
-  const { dark, toggle: toggleTheme } = useTheme();
-  const theme = dark ? "dark" : "light";
   const [acct, setAcct] = useState<Account | null>(null);
-  const [menu, setMenu] = useState<Menu>("overview");
-  const [sub, setSub] = useState<string>("");
+  // Tablets, laptops and desktops: the whole Inventory screen on one full screen (src/lib/fill-screen.ts).
+  const screenRef = useRef<HTMLElement>(null);
+  useScreenFit(screenRef, { min: 1, scroller: ".inventory-content" }); // min 1: text keeps its size, long content scrolls inside
+  // A Dashboard link may name the starting tab and a product filter (?menu=…&sub=…&filter=LOW).
+  const search = Route.useSearch();
+  const [start] = useState(() => startView(MENUS, search, "overview"));
+  const [menu, setMenu] = useState<Menu>(start[0] as Menu);
+  const [sub, setSub] = useState<string>(start[1]);
+  const [linkFilter, setLinkFilter] = useState(search.filter ?? "all");
   const [prefillBarcode, setPrefill] = useState("");
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarRange, setCalendarRange] = useState<"today" | "week" | "month" | "all">("today");
-  const [showShopMenu, setShowShopMenu] = useState(false);
+  const [addDraft, setAddDraft] = useState<AddDraft | null>(null);
+  const [registering, setRegistering] = useState<{ kind: "categories" | "brands"; name: string } | null>(null);
+  const per = usePeriod(null);
 
   useEffect(() => {
     const a = store.get();
@@ -235,12 +281,14 @@ function Inventory() {
     setAcct(a);
   }, [nav]);
 
-  const s = useErp();
+  const s = useShopErp();
   const cur = acct?.currency || "USD";
+  const currencyLabel = /^[A-Za-z]{3,5}$/.test(cur) ? cur.toLocaleLowerCase() : cur;
   const money = (n: number) =>
-    `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    `${currencyLabel} ${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const go = (m: Menu, sm?: string) => {
+    setLinkFilter("all");
     setMenu(m);
     setSub(sm ?? MENUS[m][0] ?? "");
   };
@@ -251,137 +299,35 @@ function Inventory() {
     tr,
     go,
     cur,
+    acct,
+    since: per.range.from,
+    until: per.range.to,
     shop: acct?.shopName || "Main Shop",
     onUnknown: (code: string) => {
       setPrefill(code);
       go("products & stock", "Add Product");
     },
+    showProducts: (filter: string) => {
+      go("products & stock", "All Products");
+      setLinkFilter(filter);
+    },
   };
 
-  const shopInitials =
-    (acct?.shopName || "SB")
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase())
-      .join("") || "SB";
+
+  // Like the other apps: wait for the device account, so the server render (no device data) matches.
+  if (!acct) return <main className="shop-app inventory-app inventory-screen app-screen flex flex-col min-h-screen" />;
 
   return (
-    <main className="inventory-screen app-screen flex flex-col min-h-screen">
-      {/* 1. RESTORED PREVIOUS HEADER */}
-      <header className="inventory-header sticky top-0 z-30 flex items-center justify-between gap-1.5 px-3 py-2 border-b border-border/40 backdrop-blur-md bg-background/80">
-        <div className="flex items-center gap-1.5 shrink-0">
-          <ShopButton
-            variant="bare"
-            className="flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-md hover:bg-muted/60 transition-colors"
-            onClick={() => nav({ to: "/apps" })}
-            aria-label={tr("Back to Apps")}
-          >
-            <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
-            <span>{tr("Apps")}</span>
-          </ShopButton>
-          <ConnectionStatus />
-        </div>
-
-        {/* Center: Inventory title on top, Shop name below */}
-        <div className="flex flex-col items-center justify-center min-w-0 px-2 text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-foreground leading-tight truncate">
-            {tr("Inventory")}
-          </span>
-          <span className="text-[10px] text-muted-foreground truncate leading-tight">{acct?.shopName}</span>
-        </div>
-
-        {/* Right: Theme toggle, Calendar filter, Avatar */}
-        <div className="flex items-center gap-1 shrink-0 relative">
-          <ShopButton
-            variant="bare"
-            className="h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors text-foreground"
-            onClick={toggleTheme}
-            aria-label={tr("Toggle Theme")}
-            title={theme === "dark" ? tr("Switch to Light mode") : tr("Switch to Dark mode")}
-          >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4 text-amber-400" />
-            ) : (
-              <Moon className="h-4 w-4 text-slate-700" />
-            )}
-          </ShopButton>
-
-          <ShopButton
-            variant="bare"
-            className={cn(
-              "h-8 w-8 p-0 rounded-full flex items-center justify-center hover:bg-muted/60 transition-colors",
-              showCalendar && "bg-muted text-primary",
-            )}
-            onClick={() => {
-              setShowCalendar(!showCalendar);
-              setShowShopMenu(false);
-            }}
-            aria-label={tr("Filter by date")}
-            title={tr("Calendar filter")}
-          >
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          </ShopButton>
-
-          {showCalendar && (
-            <div className="absolute right-9 top-10 z-50 w-36 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
-              {(["today", "week", "month", "all"] as const).map((r) => (
-                <button
-                  key={r}
-                  className={cn(
-                    "w-full text-start px-2 py-1 rounded capitalize font-medium transition-colors",
-                    calendarRange === r ? "bg-primary text-primary-foreground" : "hover:bg-muted text-foreground",
-                  )}
-                  onClick={() => {
-                    setCalendarRange(r);
-                    setShowCalendar(false);
-                    toast.success(`${tr("Date filter")}: ${tr(r)}`);
-                  }}
-                >
-                  {tr(r === "all" ? "All time" : r === "today" ? "Today" : r === "week" ? "This week" : "This month")}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <ShopButton
-            variant="bare"
-            className="h-7 w-7 rounded-full bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity"
-            onClick={() => {
-              setShowShopMenu(!showShopMenu);
-              setShowCalendar(false);
-            }}
-            aria-label={acct?.shopName}
-            title={acct?.shopName}
-          >
-            {shopInitials}
-          </ShopButton>
-
-          {showShopMenu && (
-            <div className="absolute right-0 top-10 z-50 w-44 rounded-lg border border-border bg-card/95 backdrop-blur-md p-1.5 shadow-lg text-xs space-y-1">
-              <div className="px-2 py-1 border-b border-border/50 font-bold truncate">{acct?.shopName}</div>
-              <button
-                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
-                onClick={() => {
-                  setShowShopMenu(false);
-                  nav({ to: "/settings" });
-                }}
-              >
-                {tr("Shop Settings")}
-              </button>
-              <button
-                className="w-full text-start px-2 py-1.5 rounded hover:bg-muted text-foreground"
-                onClick={() => {
-                  setShowShopMenu(false);
-                  nav({ to: "/apps" });
-                }}
-              >
-                {tr("All Apps")}
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+    <main ref={screenRef} className="shop-app inventory-app inventory-screen app-screen fit-screen flex flex-col min-h-screen">
+      {/* 1. The shared app header (the Dashboard's), with Inventory's working date filter */}
+      <header className="sticky top-0 z-30">
+        <GlobalApplicationHeader
+          title="Inventory"
+          shop={acct?.shopName || ""}
+          moduleFirst
+          period={menu === "overview" || sub === "Stock History" || sub === "Transfer History" ? per : undefined}
+        />
+</header>
 
       {/* 2. 4 MAIN NAVIGATION MENUS & SUBMENUS */}
       <nav aria-label={tr("Inventory navigation")} className="inventory-nav-wrap">
@@ -400,50 +346,126 @@ function Inventory() {
           }
         />
         {MENUS[menu].length > 0 && (
-          <Tabs small items={[...MENUS[menu]]} value={sub} onChange={setSub} label={(k) => tr(k)} />
+          // Add Product opens from the button on All Products, which stays the lit tab behind it.
+          <Tabs small items={[...MENUS[menu]].filter((k: string) => k !== "Add Product")} value={sub === "Add Product" ? "All Products" : sub} onChange={setSub} label={(k) => tr(k)} />
         )}
       </nav>
 
-      {/* 3. WORKING CONTENT CANVAS (All screens & workflows preserved) */}
+      {/* 3. The working canvas stays behind each workflow, just as it does in Purchases. */}
       <section className="inventory-content flex-1">
-        {/* Menu 1: Overview */}
-        {menu === "overview" && <Overview {...ctx} />}
-
-        {/* Menu 2: Products & Stock */}
-        {menu === "products & stock" && sub === "All Products" && (
-          <ProductList
-            {...ctx}
+        {menu === "overview" || menu === "returns & transfers" || menu === "configuration" ? (
+          <Overview {...ctx} />
+        ) : (
+          <ProductWorkspace
+            key={linkFilter}
+            s={s}
+            tr={tr}
+            money={ctx.money}
+            shop={ctx.shop}
+            initialStatus={linkFilter}
+            onAdd={() => setSub("Add Product")}
             onUnknown={(code) => {
               setPrefill(code);
               setSub("Add Product");
             }}
           />
         )}
-        {menu === "products & stock" && sub === "Add Product" && (
+      </section>
+
+      {/* Inventory forms and histories use the same translucent, blurred page as Add Purchase. */}
+      {menu === "products & stock" && sub === "Add Product" && (
+        <GlassPage label={tr("Register New Product")} onClose={() => go("products & stock", "All Products")}>
           <AddProduct
             {...ctx}
             barcode={prefillBarcode}
+            draft={addDraft}
+            onRegister={(kind, name, draft) => {
+              setAddDraft(draft);
+              setRegistering({ kind, name });
+              setMenu("configuration");
+              setSub("Product Setup");
+            }}
             done={() => {
+              setAddDraft(null);
               setPrefill("");
               setSub("All Products");
             }}
           />
-        )}
-        {menu === "products & stock" && sub === "Stock In" && <StockInScreen {...ctx} />}
-        {menu === "products & stock" && sub === "Stock Out" && <StockOutScreen {...ctx} />}
-        {menu === "products & stock" && sub === "Stock History" && <StockHistoryScreen {...ctx} />}
-        {menu === "products & stock" && sub === "Adjustments" && <AdjustmentsScreen {...ctx} />}
+        </GlassPage>
+      )}
+      {menu === "products & stock" && sub === "Stock In" && (
+        <GlassPage label={tr("Stock In — Record Received Goods")} onClose={() => go("products & stock", "All Products")}>
+          <StockInScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "products & stock" && sub === "Stock Out" && (
+        <GlassPage label={tr("Stock Out — Non-Sale Write-Off")} onClose={() => go("products & stock", "All Products")}>
+          <StockOutScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "products & stock" && sub === "Stock History" && (
+        <GlassPage label={tr("Stock Audit Trail")} onClose={() => go("products & stock", "All Products")}>
+          <StockHistoryScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "products & stock" && sub === "Adjustments" && (
+        <GlassPage label={tr("Stock Adjustment — Physical Count Correction")} onClose={() => go("products & stock", "All Products")}>
+          <AdjustmentsScreen {...ctx} />
+        </GlassPage>
+      )}
 
-        {/* Menu 3: Returns & Transfers */}
-        {menu === "returns & transfers" && sub === "Customer Returns" && <CustomerReturnsScreen {...ctx} />}
-        {menu === "returns & transfers" && sub === "Supplier Returns" && <SupplierReturnsScreen {...ctx} />}
-        {menu === "returns & transfers" && sub === "New Transfer" && <NewTransferScreen {...ctx} />}
-        {menu === "returns & transfers" && sub === "Transfer History" && <TransferHistoryScreen {...ctx} />}
+      {menu === "products & stock" && sub === "Expiry" && (
+        <GlassPage label={tr("Expiry — Batches Expired or Expiring Soon")} onClose={() => go("products & stock", "All Products")}>
+          <ExpiryList tr={tr} money={ctx.money} />
+        </GlassPage>
+      )}
 
-        {/* Menu 4: Configuration */}
-        {menu === "configuration" && sub === "Product Setup" && <ProductSetupScreen {...ctx} />}
-        {menu === "configuration" && sub === "Stock Setup" && <StockSetupScreen {...ctx} />}
-      </section>
+      {menu === "returns & transfers" && sub === "Customer Returns" && (
+        <GlassPage label={tr("Customer Returns — Receive Returned Goods")} onClose={() => go("overview")}>
+          <CustomerReturnsScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "returns & transfers" && sub === "Supplier Returns" && (
+        <GlassPage label={tr("Supplier Returns — Return Goods to Supplier")} onClose={() => go("overview")}>
+          <SupplierReturnsScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "returns & transfers" && sub === "New Transfer" && (
+        <GlassPage label={tr("New Transfer — Move Stock Between Locations")} onClose={() => go("overview")}>
+          <NewTransferScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "returns & transfers" && sub === "Transfer History" && (
+        <GlassPage label={tr("Transfer Audit Trail")} onClose={() => go("overview")}>
+          <TransferHistoryScreen {...ctx} />
+        </GlassPage>
+      )}
+      {menu === "returns & transfers" && sub === "Warehouse Stock" && (
+        <GlassPage label={tr("Warehouse Stock")} onClose={() => go("overview")}>
+          <WarehouseStockScreen {...ctx} />
+        </GlassPage>
+      )}
+
+      {menu === "configuration" && sub === "Product Setup" && (
+        <GlassPage label={tr("Product Setup")} onClose={() => go("products & stock", "All Products")}>
+          <ProductSetup
+            {...ctx}
+            registering={registering}
+            onRegistered={(id) => {
+              const kind = registering?.kind;
+              if (id && kind && addDraft) setAddDraft({ ...addDraft, f: { ...addDraft.f, [kind === "categories" ? "categoryId" : "brandId"]: id } });
+              setRegistering(null);
+              setMenu("products & stock");
+              setSub("Add Product");
+            }}
+          />
+        </GlassPage>
+      )}
+      {menu === "configuration" && sub === "Stock Setup" && (
+        <GlassPage label={tr("Stock Setup & Warehouse Rules")} onClose={() => go("products & stock", "All Products")}>
+          <StockSetupScreen {...ctx} />
+        </GlassPage>
+      )}
     </main>
   );
 }
@@ -455,8 +477,34 @@ type Ctx = {
   cur: string;
   shop: string;
   acct?: Account | null;
+  /** Start of the header date filter; history lists show records from here on. */
+  since: number;
+  until: number;
   onUnknown?: (code: string) => void;
+  /** Opens All Products with a status filter (all, LOW, OUT, ATTENTION). */
+  showProducts: (filter: string) => void;
 };
+type Range = "today" | "week" | "month" | "all";
+function rangeStart(r: Range) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  if (r === "today") return d.getTime();
+  if (r === "week") return d.getTime() - 6 * 864e5;
+  if (r === "month") return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  return 0;
+}
+/** Stock History filter groups → the movement types each one covers. */
+const MOVE_GROUPS: Record<string, erp.MoveType[]> = {
+  IN: ["OPENING", "PURCHASE", "STOCK IN", "RETURN"],
+  SALE: ["SALE"],
+  OUT: ["STOCK OUT"],
+  ADJUST: ["ADJUSTMENT"],
+  TRANSFER: ["TRANSFER OUT", "TRANSFER IN", "TRANSFER CANCEL"],
+};
+/** CSV text: quotes doubled and a leading =+-@ neutralised, so names can't break columns or run as spreadsheet formulas. */
+const csv = (rows: unknown[][]) =>
+  rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"`).join(",")).join("\n");
+const groupOf = (t: erp.MoveType) => Object.keys(MOVE_GROUPS).find((g) => MOVE_GROUPS[g]!.includes(t)) ?? "";
 function Tabs({
   items,
   value,
@@ -481,6 +529,7 @@ function Tabs({
           variant="bare"
           role="tab"
           aria-selected={value === k}
+          ref={value === k ? revealTab : null}
           key={k}
           onClick={() => onChange(k)}
           className="inventory-tab"
@@ -492,12 +541,14 @@ function Tabs({
   );
 }
 
-function Status({ p }: { p: erp.Product }) {
+function Status({ p, className }: { p: erp.Product; className?: string }) {
   const st = erp.stockStatus(p);
   return (
     <span
+      data-status={st}
       className={cn(
-        "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shrink-0",
+        "px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider shrink-0",
+        className,
         st === "OK" && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30",
         st === "LOW" && "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30",
         st === "OUT" && "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30",
@@ -543,163 +594,141 @@ function Empty({ children, compact }: { children: ReactNode; compact?: boolean }
    1. OVERVIEW
    ========================================================================= */
 
-function Overview({ s, money, tr, go, cur }: Ctx) {
-  const totalProducts = s.products.length;
+function Overview({ s, tr, go, cur, since, until, showProducts }: Ctx) {
   const totalStockVal = s.products.reduce((acc, p) => acc + (p.qty || 0) * (p.buy || 0), 0);
   const lowStock = s.products.filter((p) => erp.stockStatus(p) === "LOW");
-  const outOfStock = s.products.filter((p) => (p.qty || 0) <= 0);
+  const outOfStock = s.products.filter((p) => erp.stockStatus(p) === "OUT");
 
-  const recentIn = s.movements.filter((m) => m.qty > 0).slice(0, 5);
-  const recentOut = s.movements.filter((m) => m.qty < 0 && m.type !== "SALE").slice(0, 5);
+  // Panels hold up to 12 rows and scroll inside themselves, so the page layout never changes.
+  const recentIn = s.movements.filter((m) => m.at >= since && m.at <= until && m.qty > 0).slice(0, 12);
+  const recentOut = s.movements.filter((m) => m.at >= since && m.at <= until && m.qty < 0 && m.type !== "SALE").slice(0, 12);
+  const name = (id: string) => s.products.find((p) => p.id === id)?.name || tr("Deleted product");
+
+  // Same four cards in one row on every screen; each opens the product list behind its figure.
+  const kpis = [
+    { label: "Total Products", icon: Package, tone: KPI_COLOR.info, value: compactFmt(s.products.filter((p) => !p.archived).length), curr: "", open: () => showProducts("all") },
+    { label: "Stock Value", icon: Database, tone: KPI_COLOR.good, value: compactFmt(totalStockVal), curr: toCurrencySymbol(cur), open: () => showProducts("all") },
+    { label: "Low Stock", icon: TriangleAlert, tone: KPI_COLOR.warn, value: compactFmt(lowStock.length), curr: "", open: () => showProducts("LOW") },
+    { label: "Out of Stock", icon: Ban, tone: KPI_COLOR.bad, value: compactFmt(outOfStock.length), curr: "", open: () => showProducts("OUT") },
+  ];
+
+  const activity = (p: {
+    title: string;
+    sub: string;
+    icon: typeof Package;
+    tone: string;
+    rows: erp.Movement[];
+    meta: (m: erp.Movement) => string;
+    empty: string;
+  }) => (
+    <section className="inventory-box inv-panel" style={{ "--tone": p.tone } as CSSProperties}>
+      <div className="inv-panel-head">
+        <span className="inv-icon">
+          <p.icon />
+        </span>
+        <div className="inv-panel-title">
+          <h3>{tr(p.title)}</h3>
+          <p>{tr(p.sub)}</p>
+        </div>
+      </div>
+      {p.rows.length ? (
+        <ul className="inv-rows">
+          {p.rows.map((m) => (
+            <li key={m.id} className="inv-row">
+              <span className="inv-dot" />
+              <span className="inv-name" title={name(m.productId)}>
+                {name(m.productId)}
+              </span>
+              <span className="inv-meta" title={p.meta(m)}>
+                {p.meta(m)}
+              </span>
+              <span className="inv-qty">
+                <i className={m.qty > 0 ? "inv-sign is-in" : "inv-sign is-out"}>{m.qty > 0 ? "+" : "-"}</i>
+                {Math.abs(m.qty)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <Empty compact>{tr(p.empty)}</Empty>
+      )}
+    </section>
+  );
 
   return (
-    <div className="space-y-4">
-      {/* 4 Separate KPI Cards in 1 Row */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5">
-        {/* 1. Total Products (Sky Blue) */}
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
-        >
-          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
-            {tr("Total Products")}
-          </span>
-          <div className="mt-1">
-            <Amt value={totalProducts} tone="info" size="lg" />
-          </div>
-        </div>
-
-        {/* 2. Stock Value (Emerald Green + Superscript Currency) */}
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
-        >
-          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
-            {tr("Stock Value")}
-          </span>
-          <div className="mt-1">
-            <Amt value={totalStockVal} curr={cur} tone="good" size="lg" />
-          </div>
-        </div>
-
-        {/* 3. Low Stock (Amber Orange) */}
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
-        >
-          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
-            {tr("Low Stock")}
-          </span>
-          <div className="mt-1">
-            <Amt value={lowStock.length} tone="warn" size="lg" />
-          </div>
-        </div>
-
-        {/* 4. Out of Stock (Rose Red) */}
-        <div
-          onClick={() => go("products & stock", "All Products")}
-          className="cursor-pointer rounded-xl bg-card/75 backdrop-blur-xl border border-border/50 p-2 sm:p-3 hover:border-primary/40 transition-colors min-w-0"
-        >
-          <span className="text-[9.5px] sm:text-xs font-semibold text-muted-foreground truncate block">
-            {tr("Out of Stock")}
-          </span>
-          <div className="mt-1">
-            <Amt value={outOfStock.length} tone="bad" size="lg" />
-          </div>
-        </div>
+    <div className="inv-overview app-overview">
+      {/* 1. Four KPI cards in one row on every screen */}
+      <div className="inv-kpis app-overview-metrics">
+        {kpis.map((k) => (
+          <button key={k.label} type="button" className="dash-kpi" style={{ "--tone": k.tone } as CSSProperties} onClick={k.open}>
+            <span className="dash-kpi-icon">
+              <k.icon />
+            </span>
+            <span className="dash-kpi-body">
+              <span className="dash-kpi-label">{tr(k.label)}</span>
+              <span className="dash-money dash-kpi-value" data-fit-text="money">
+                {k.curr && <small>{k.curr}</small>}
+                {k.value}
+              </span>
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* Recent Activity Grid (2 Columns on Top) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Box title={tr("Recent Stock In")} sub={tr("Goods received into inventory")}>
-          {recentIn.length ? (
-            <div className="divide-y divide-border/30">
-              {recentIn.map((m) => (
-                <div key={m.id} className="py-1.5 flex items-center justify-between text-xs gap-2 min-w-0">
-                  <div className="flex items-center gap-2 min-w-0 truncate">
-                    <span className="font-medium text-foreground truncate">
-                      {s.products.find((p) => p.id === m.productId)?.name || "—"}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground shrink-0">
-                      {dt(m.at)} · {m.source}
-                    </span>
-                  </div>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">+{m.qty}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty compact>{tr("No recent receipts")}</Empty>
-          )}
-        </Box>
-
-        <Box title={tr("Recent Stock Out")} sub={tr("Non-sale inventory removals")}>
-          {recentOut.length ? (
-            <div className="divide-y divide-border/30">
-              {recentOut.map((m) => (
-                <div key={m.id} className="py-1.5 flex items-center justify-between text-xs gap-2 min-w-0">
-                  <div className="flex items-center gap-2 min-w-0 truncate">
-                    <span className="font-medium text-foreground truncate">
-                      {s.products.find((p) => p.id === m.productId)?.name || "—"}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground shrink-0">
-                      {dt(m.at)} · {m.reason || m.type}
-                    </span>
-                  </div>
-                  <span className="font-bold text-rose-600 dark:text-rose-400 shrink-0">-{m.qty}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty compact>{tr("No non-sale write-offs")}</Empty>
-          )}
-        </Box>
+      {/* 2. Recent Stock In | Recent Stock Out — two columns on every screen */}
+      <div className="inv-activity app-overview-panels">
+        {activity({
+          title: "Recent Stock In",
+          sub: "Goods received into inventory",
+          icon: Download,
+          tone: "#22c55e",
+          rows: recentIn,
+          meta: (m) => [dt(m.at), m.source].filter(Boolean).join(" · "),
+          empty: "No recent receipts",
+        })}
+        {activity({
+          title: "Recent Stock Out",
+          sub: "Non-sale inventory removals",
+          icon: Upload,
+          tone: "#f43f5e",
+          rows: recentOut,
+          meta: (m) => [dt(m.at), m.reason || m.type].filter(Boolean).join(" · "),
+          empty: "No non-sale write-offs",
+        })}
       </div>
 
-      {/* Low Stock Replenishment List (Below the 2 Columns) */}
-      <Box
-        title={tr("Low Stock Products")}
-        sub={tr("Products that require immediate replenishment")}
-        extra={
-          <ShopButton
-            variant="ghost"
-            size="sm"
-            onClick={() => go("products & stock", "Stock In")}
-            className="text-xs font-semibold h-7"
-          >
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            {tr("Stock In")}
-          </ShopButton>
-        }
-      >
+      {/* 3. Stock needs attention (low and out together) — full width below */}
+      <section className="inventory-box inv-panel app-overview-featured" style={{ "--tone": "#f59e0b" } as CSSProperties}>
+        <div className="inv-panel-head">
+          <span className="inv-icon">
+            <Boxes />
+          </span>
+          <div className="inv-panel-title">
+            <h3>{tr("Stock needs attention")}</h3>
+            <p>{tr("Low-stock and out-of-stock products requiring replenishment")}</p>
+          </div>
+        </div>
         {lowStock.length || outOfStock.length ? (
-          <div className="divide-y divide-border/30">
-            {[...outOfStock, ...lowStock].slice(0, 6).map((p) => (
-              <div key={p.id} className="py-2 flex items-center justify-between text-xs">
-                <div>
-                  <p className="font-semibold text-foreground">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {tr("Available")}: {p.qty} {p.unit || "pcs"} · {tr("Reorder level")}: {p.minStock ?? 5}
+          <ul className="inv-rows inv-low">
+            {[...outOfStock, ...lowStock].map((p) => (
+              <li key={p.id} className="inv-row">
+                <div className="inv-low-text">
+                  <p className="inv-name">{p.name}</p>
+                  <p className="inv-meta">
+                    {tr("Available")}: {countLabel(s, p.qty, p.unit)} · {tr("Reorder level")}: {p.minStock ?? erp.DEFAULT_MIN_STOCK}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Status p={p} />
-                  <ShopButton
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-[10px] px-2"
-                    onClick={() => go("products & stock", "Stock In")}
-                  >
-                    {tr("Restock")}
-                  </ShopButton>
-                </div>
-              </div>
+                <Status p={p} className="inv-status" />
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
-          <Empty compact>{tr("All products are well stocked")}</Empty>
+          <div className="inv-empty">
+            <CheckCircle2 />
+            <span>{tr("All products are well stocked")}</span>
+          </div>
         )}
-      </Box>
+      </section>
     </div>
   );
 }
@@ -708,144 +737,19 @@ function Overview({ s, money, tr, go, cur }: Ctx) {
    2. PRODUCTS & STOCK
    ========================================================================= */
 
-/** 2.1 All Products */
-function ProductList({ s, money, tr, shop, acct, onUnknown }: Ctx & { onUnknown: (code: string) => void }) {
-  const [q, setQ] = useState("");
-  const [cat, setCat] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [selectedProduct, setSelectedProduct] = useState<erp.Product | null>(null);
-
-  const filtered = useMemo(() => {
-    return s.products.filter((p) => {
-      const matchQ = !q.trim() || [p.name, p.sku, p.barcode].some((v) => v?.toLowerCase().includes(q.toLowerCase()));
-      const matchCat = cat === "all" || p.categoryId === cat;
-      const st = erp.stockStatus(p);
-      const matchStatus = status === "all" || st === status;
-      return matchQ && matchCat && matchStatus;
-    });
-  }, [s.products, q, cat, status]);
-
-  const exportCSV = () => {
-    const headers = ["Name,SKU,Barcode,Category,Stock,Buy Price,Sell Price,Status"];
-    const rows = filtered.map((p) => {
-      const c = s.categories.find((x) => x.id === p.categoryId)?.name || "";
-      return `"${p.name}","${p.sku || ""}","${p.barcode || ""}","${c}",${p.qty},${p.buy},${p.sell},"${erp.stockStatus(p)}"`;
-    });
-    const blob = new Blob([[headers, ...rows].join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `inventory-products-${Date.now()}.csv`;
-    link.click();
-    toast.success(tr("Exported CSV"));
-  };
-
-  return (
-    <div className="space-y-3">
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="flex-1">
-          <InventorySearch q={q} setQ={setQ} tr={tr} onScan={onUnknown} />
-        </div>
-        <div className="flex gap-2">
-          <select value={cat} onChange={(e) => setCat(e.target.value)} className="inventory-input text-xs w-32">
-            <option value="all">{tr("All Categories")}</option>
-            {s.categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)} className="inventory-input text-xs w-28">
-            <option value="all">{tr("All Status")}</option>
-            <option value="OK">{tr("In Stock")}</option>
-            <option value="LOW">{tr("Low Stock")}</option>
-            <option value="OUT">{tr("Out of Stock")}</option>
-          </select>
-          <ShopButton
-            variant="outline"
-            size="sm"
-            onClick={exportCSV}
-            className="h-9 px-2 text-xs"
-            title={tr("Export CSV")}
-          >
-            <Download className="w-4 h-4" />
-          </ShopButton>
-        </div>
-      </div>
-
-      {/* If unknown product typed */}
-      {q.trim() && filtered.length === 0 && (
-        <div className="p-3 rounded-xl bg-card/65 backdrop-blur-xl border border-dashed border-border flex items-center justify-between text-xs">
-          <span>
-            {tr("No product matches")} "<strong>{q}</strong>"
-          </span>
-          <ShopButton variant="primary" size="sm" onClick={() => onUnknown(q)} className="h-7 text-xs">
-            <Plus className="w-3.5 h-3.5 mr-1" />
-            {tr("Add New Product")}
-          </ShopButton>
-        </div>
-      )}
-
-      {/* Compact Product List: Name (Left), Selling Price (Center), Quantity (Right) */}
-      {filtered.length ? (
-        <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl divide-y divide-border/30 overflow-hidden shadow-sm">
-          {filtered.map((p) => {
-            const st = erp.stockStatus(p);
-            const dotTone = st === "OK" ? "bg-emerald-500" : st === "LOW" ? "bg-amber-500" : "bg-rose-500";
-            const sellPrice = p.sell > 0 ? money(p.sell) : "";
-
-            return (
-              <div
-                key={p.id}
-                onClick={() => setSelectedProduct(p)}
-                className="px-3 py-2 flex items-center justify-between gap-2 text-xs hover:bg-muted/40 transition-colors cursor-pointer min-h-[36px]"
-              >
-                {/* 1. Left: Status dot & Product name */}
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <span className={cn("w-2 h-2 rounded-full shrink-0", dotTone)} />
-                  <span className="font-bold text-foreground text-xs truncate max-w-[170px] sm:max-w-xs">{p.name}</span>
-                </div>
-
-                {/* 2. Center: Selling price if present, else blank */}
-                <div className="flex-1 text-center shrink-0">
-                  <span className="text-xs font-semibold text-foreground/90 tabular-nums">{sellPrice}</span>
-                </div>
-
-                {/* 3. Right: Quantity & unit (OK badge removed) */}
-                <div className="flex-1 flex justify-end shrink-0 text-right">
-                  <span className="font-extrabold text-xs text-foreground tabular-nums">
-                    {p.qty} <span className="text-[9.5px] font-normal text-muted-foreground">{p.unit || "pcs"}</span>
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm p-4">
-          <Empty>{tr("No products found")}</Empty>
-        </div>
-      )}
-
-      {/* Product Detail Sheet */}
-      {selectedProduct && (
-        <ProductDetailSheet
-          p={selectedProduct}
-          s={s}
-          money={money}
-          tr={tr}
-          isOwner={!!acct}
-          onClose={() => setSelectedProduct(null)}
-        />
-      )}
-    </div>
-  );
-}
-
 /** 2.2 Add Product */
-function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () => void }) {
-  const [f, setF] = useState({
+/** An unfinished Add Product form, kept while its category or brand is being registered. */
+type AddDraft = {
+  f: { name: string; buy: string; sell: string; qty: string; categoryId: string; brandId: string; sku: string; barcode: string; unit: string; pieces: string; description: string; image: string };
+  ticks: { category: boolean; brand: boolean; sku: boolean; barcode: boolean };
+  hasVariants: boolean;
+  variants: { id: string; name: string; qty: string; sell?: string }[];
+  attributes: Record<string, string[]>;
+  showAttributes: boolean;
+};
+
+function AddProduct({ s, tr, barcode, done, draft, onRegister }: Ctx & { barcode: string; done: () => void; draft: AddDraft | null; onRegister: (kind: "categories" | "brands", name: string, draft: AddDraft) => void }) {
+  const blank = {
     name: "",
     buy: "0",
     sell: "0",
@@ -855,17 +759,30 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     sku: "",
     barcode: barcode || "",
     unit: "Piece",
-    minStock: "5",
-  });
-
-  const [showCategory, setShowCategory] = useState(false);
-  const [showBrand, setShowBrand] = useState(false);
-  const [showBarcode, setShowBarcode] = useState(Boolean(barcode));
-  const [showSKU, setShowSKU] = useState(false);
+    pieces: "1",
+    description: "",
+    image: "",
+  };
+  const [f, setF] = useState(draft?.f ?? blank);
+  const noTicks = { category: false, brand: false, sku: false, barcode: Boolean(barcode) };
+  const [ticks, setTicks] = useState(draft?.ticks ?? noTicks);
+  /** Unticking clears that detail, so what isn't ticked is never saved. */
+  const tick = (k: keyof typeof ticks, on: boolean) => {
+    setTicks({ ...ticks, [k]: on });
+    if (!on) setF({ ...f, ...{ category: { categoryId: "" }, brand: { brandId: "" }, sku: { sku: "" }, barcode: { barcode: "" } }[k] });
+  };
+  const usedBy = (value: string, key: "sku" | "barcode") => {
+    const code = value.trim().toLowerCase();
+    return code ? s.products.find((p) => p[key]?.toLowerCase() === code) : undefined;
+  };
+  const set = (k: keyof typeof blank) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const saving = useRef(false);
+  const [attributes, setAttributes] = useState<Record<string, string[]>>(draft?.attributes ?? {});
+  const [showAttributes, setShowAttributes] = useState(draft?.showAttributes ?? false);
 
   // Variant generator state
-  const [hasVariants, setHasVariants] = useState(false);
-  const [variants, setVariants] = useState<{ id: string; name: string; qty: string; sell?: string }[]>([]);
+  const [hasVariants, setHasVariants] = useState(draft?.hasVariants ?? false);
+  const [variants, setVariants] = useState<{ id: string; name: string; qty: string; sell?: string }[]>(draft?.variants ?? []);
   const [fromSize, setFromSize] = useState("");
   const [toSize, setToSize] = useState("");
   const [stepSize, setStepSize] = useState("1");
@@ -875,7 +792,8 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     const from = parseInt(fromSize, 10);
     const to = parseInt(toSize, 10);
     const step = parseInt(stepSize, 10) || 1;
-    if (isNaN(from) || isNaN(to) || from > to) {
+    // A zero/negative step never reaches `to` and froze the page; a size range above 200 rows is a typo.
+    if (isNaN(from) || isNaN(to) || from > to || step <= 0 || (to - from) / step >= 200) {
       toast.error(tr("Enter valid from/to range"));
       return;
     }
@@ -883,7 +801,7 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
     for (let i = from; i <= to; i += step) {
       added.push({ id: String(i), name: `Size ${i}`, qty: "0" });
     }
-    setVariants((prev) => [...prev, ...added]);
+    addVariants(added);
     setFromSize("");
     setToSize("");
   };
@@ -894,287 +812,188 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
       .map((t) => t.trim())
       .filter(Boolean);
     if (!tokens.length) return;
-    setVariants((prev) => [...prev, ...tokens.map((t) => ({ id: t, name: `Size ${t}`, qty: "0" }))]);
+    addVariants(tokens.map((t) => ({ id: t, name: `Size ${t}`, qty: "0" })));
     setFreeform("");
   };
+
+  /** Sizes already listed are skipped so one size can't hold two separate stock rows. */
+  const addVariants = (rows: typeof variants) =>
+    setVariants((prev) => {
+      const seen = new Set(prev.map((v) => v.name.trim().toLowerCase()));
+      return [...prev, ...rows.filter((v) => !seen.has(v.name.toLowerCase()) && seen.add(v.name.toLowerCase()))];
+    });
 
   const totalVariantQty = useMemo(() => {
     return variants.reduce((sum, v) => sum + (Number(v.qty) || 0), 0);
   }, [variants]);
 
-  const save = () => {
+  const save = (another = false) => {
+    if (saving.current) return; // a second click while saving never creates a second product
     if (!f.name.trim()) {
       toast.error(tr("Enter a product name"));
       return;
     }
-    const finalQty = hasVariants && variants.length > 0 ? totalVariantQty : Number(f.qty);
-
-    if (
-      run(() => {
-        erp.commit((state, c) => {
-          const id = erp.uid();
-          const p: erp.Product = {
-            id,
-            name: f.name.trim(),
-            buy: Number(f.buy) || 0,
-            sell: Number(f.sell) || 0,
-            qty: 0,
-            createdAt: Date.now(),
-            categoryId: f.categoryId || undefined,
-            brandId: f.brandId || undefined,
-            sku: f.sku.trim() || undefined,
-            barcode: f.barcode.trim() || undefined,
-            unit: f.unit,
-            minStock: Number(f.minStock) || 5,
-            variants:
-              hasVariants && variants.length > 0
-                ? variants.map((v) => ({
-                    id: v.id,
-                    name: v.name,
-                    qty: Number(v.qty) || 0,
-                    sell: v.sell ? Number(v.sell) : undefined,
-                  }))
-                : undefined,
-          };
-          state.products.unshift(p);
-          if (finalQty > 0) {
-            c.move(id, "OPENING", finalQty, "Initial registration", c.nextRef("STK"));
-          }
-          c.audit("PRODUCT CREATED", p.name);
-        });
-      }, tr("Product registered successfully"))
-    ) {
-      done();
+    const pieces = Number(f.pieces);
+    if (!Number.isInteger(pieces) || pieces < 1) {
+      toast.error(tr("Pieces must be a whole number of 1 or more"));
+      return;
     }
+    const withVariants = hasVariants && variants.length > 0;
+    const finalQty = withVariants ? totalVariantQty : Number(f.qty);
+    if (Number(f.qty) < 0 || variants.some((v) => Number(v.qty) < 0)) {
+      toast.error(tr("Quantity can't be negative"));
+      return;
+    }
+    // addProduct checks any supplied identifiers and records opening stock as a movement.
+    saving.current = true;
+    const made = run(() =>
+      erp.addProduct({
+        name: f.name,
+        buy: Number(f.buy) || 0,
+        sell: Number(f.sell) || 0,
+        qty: finalQty || 0,
+        categoryId: f.categoryId || undefined,
+        brandId: f.brandId || undefined,
+        sku: f.sku,
+        barcode: f.barcode,
+        unit: f.unit,
+        pieces,
+        description: f.description.trim() || undefined,
+        image: f.image || undefined,
+        attributes: Object.keys(attributes).length ? attributes : undefined,
+        variants: withVariants
+          ? variants.map((v, i) => ({
+              id: `${i + 1}-${v.id}`,
+              name: v.name.trim(),
+              qty: Number(v.qty) || 0,
+              sell: v.sell ? Number(v.sell) : undefined,
+            }))
+          : undefined,
+      }),
+      tr("Product registered successfully"),
+    );
+    saving.current = false;
+    if (!made) return;
+    if (!another) {
+      done();
+      return;
+    }
+    setF({ ...blank, barcode: "" });
+    setTicks({ category: false, brand: false, sku: false, barcode: false });
+    setHasVariants(false);
+    setVariants([]);
+    setAttributes({});
+    setShowAttributes(false);
   };
 
   return (
-    <div className="w-full space-y-3 sm:space-y-3.5">
-      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
-      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
-        <h2 className="text-base font-bold text-foreground">{tr("Register New Product")}</h2>
-        <div className="flex items-center gap-2">
-          <ShopButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={done}
-            className="text-xs h-8 px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
-          >
-            {tr("Cancel")}
-          </ShopButton>
-          <ShopButton
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={save}
-            className="text-xs h-8 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-          >
-            {tr("Save Product")}
-          </ShopButton>
-        </div>
+    <div className="inventory-box dash-panel pw-page pw-form">
+      <div className="pw-page-head">
+        <span />
+        <h2>{tr("Register New Product")}</h2>
+        <span />
       </div>
-
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-4 shadow-sm">
-        {/* ROW 1: Product Name, Quantity, and Unit in the same line on all screens */}
-        <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
-          <div className="col-span-6">
-            <InventoryField label={tr("Product Name")} required>
-              <input
-                className={inventoryInput}
-                value={f.name}
-                onChange={(e) => setF({ ...f, name: e.target.value })}
-                placeholder={tr("e.g. Cotton T-Shirt, Milk 1L")}
-                required
-              />
-            </InventoryField>
-          </div>
-          <div className="col-span-3">
-            <InventoryField label={tr("Quantity")}>
-              <input
-                type="number"
-                step="any"
-                disabled={hasVariants}
-                className={cn(inventoryInput, hasVariants && "opacity-60 bg-muted")}
-                value={hasVariants ? totalVariantQty : f.qty}
-                onChange={(e) => setF({ ...f, qty: e.target.value })}
-              />
-            </InventoryField>
-          </div>
-          <div className="col-span-3">
-            <InventoryField label={tr("Unit")}>
-              <select className={inventoryInput} value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })}>
-                <option value="Piece">{tr("Piece")}</option>
-                <option value="Kg">{tr("Kg")}</option>
-                <option value="Gram">{tr("Gram")}</option>
-                <option value="Litre">{tr("Litre")}</option>
-                <option value="Box">{tr("Box")}</option>
-                <option value="Carton">{tr("Carton")}</option>
-                <option value="Packet">{tr("Packet")}</option>
-              </select>
-            </InventoryField>
-          </div>
-        </div>
-
-        {/* ROW 2: Buying Price & Selling Price below */}
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Buying Price")} required>
+      <div className="fluid-form space-y-2.5">
+        <div className="pw-row6a">
+          <PwField label={tr("Product Name")} required>
+            <input className={inventoryInput} value={f.name} onChange={set("name")} placeholder={tr("e.g. Cotton T-Shirt, Milk 1L")} required />
+          </PwField>
+          <PwField label={tr("Unit")}>
+            <select className={inventoryInput} value={f.unit} onChange={set("unit")}>
+              {unitNames(s, f.unit).map((u) => (
+                <option key={u} value={u}>
+                  {tr(u)}
+                </option>
+              ))}
+            </select>
+          </PwField>
+          <PwField label={tr("Pieces")}>
+            <input type="number" min="1" step="1" className={inventoryInput} value={f.pieces} onChange={set("pieces")} />
+          </PwField>
+          <PwField label={tr("Opening Stock")}>
             <input
               type="number"
+              min="0"
               step="any"
+              disabled={hasVariants}
               className={inventoryInput}
-              value={f.buy}
-              onChange={(e) => setF({ ...f, buy: e.target.value })}
+              value={hasVariants ? totalVariantQty : f.qty}
+              onChange={set("qty")}
             />
-          </InventoryField>
-          <InventoryField label={tr("Selling Price")} required>
-            <input
-              type="number"
-              step="any"
-              className={inventoryInput}
-              value={f.sell}
-              onChange={(e) => setF({ ...f, sell: e.target.value })}
-            />
-          </InventoryField>
+          </PwField>
+          <PwField label={tr("Buying Price")} required>
+            <input type="number" min="0" step="any" className={inventoryInput} value={f.buy} onChange={set("buy")} />
+          </PwField>
+          <PwField label={tr("Selling Price")} required>
+            <input type="number" min="0" step="any" className={inventoryInput} value={f.sell} onChange={set("sell")} />
+          </PwField>
         </div>
 
-        {/* ROW 3: Category, Brand, Barcode, SKU & Alert Level all in 1 row */}
-        <div className="grid grid-cols-4 gap-1 sm:gap-1.5 pt-1 border-t border-border/30">
-          <ShopButton
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
-              showCategory && "bg-muted font-bold",
-            )}
-            onClick={() => setShowCategory(!showCategory)}
-          >
-            + {tr("Category")}
-          </ShopButton>
-          <ShopButton
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
-              showBrand && "bg-muted font-bold",
-            )}
-            onClick={() => setShowBrand(!showBrand)}
-          >
-            + {tr("Brand")}
-          </ShopButton>
-          <ShopButton
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
-              showBarcode && "bg-muted font-bold",
-            )}
-            onClick={() => setShowBarcode(!showBarcode)}
-          >
-            + {tr("Barcode")}
-          </ShopButton>
-          <ShopButton
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn(
-              "text-[10px] sm:text-xs h-7.5 w-full px-0.5 sm:px-2 justify-center",
-              showSKU && "bg-muted font-bold",
-            )}
-            onClick={() => setShowSKU(!showSKU)}
-          >
-            + {tr("SKU & Alert")}
-          </ShopButton>
-        </div>
-
-        {/* Expandable Optional Fields */}
-        {showCategory && (
-          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
-            <InventoryField label={tr("Category")}>
-              <select
-                className={inventoryInput}
-                value={f.categoryId}
-                onChange={(e) => setF({ ...f, categoryId: e.target.value })}
-              >
-                <option value="">{tr("— No Category —")}</option>
-                {s.categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </InventoryField>
-          </div>
-        )}
-
-        {showBrand && (
-          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
-            <InventoryField label={tr("Brand")}>
-              <select
-                className={inventoryInput}
-                value={f.brandId}
-                onChange={(e) => setF({ ...f, brandId: e.target.value })}
-              >
-                <option value="">{tr("— No Brand —")}</option>
-                {s.brands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </InventoryField>
-          </div>
-        )}
-
-        {showBarcode && (
-          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 space-y-1">
-            <BarcodeField value={f.barcode} onChange={(barcode) => setF({ ...f, barcode })} tr={tr} />
-          </div>
-        )}
-
-        {showSKU && (
-          <div className="p-2.5 rounded-lg bg-muted/30 border border-border/40 grid grid-cols-2 gap-2">
-            <InventoryField label={tr("SKU / Item Code")}>
-              <input
-                className={inventoryInput}
-                value={f.sku}
-                onChange={(e) => setF({ ...f, sku: e.target.value })}
-                placeholder="SKU-1001"
-              />
-            </InventoryField>
-            <InventoryField label={tr("Min Stock Alert Level")}>
-              <input
-                type="number"
-                step="1"
-                className={inventoryInput}
-                value={f.minStock}
-                onChange={(e) => setF({ ...f, minStock: e.target.value })}
-              />
-            </InventoryField>
-          </div>
-        )}
-
-        {/* Variants / Sizes Section */}
-        <div className="pt-2 border-t border-border/30 space-y-3">
-          <label className="flex items-center gap-2 cursor-pointer select-none">
+        <div className="pw-ticks">
+          {(["category", "brand", "sku", "barcode"] as const).map((k) => (
+            <label key={k}>
+              <input type="checkbox" checked={ticks[k]} onChange={(e) => tick(k, e.target.checked)} />
+              <span>{tr({ category: "Category", brand: "Brand", sku: "SKU", barcode: "Barcode" }[k])}</span>
+            </label>
+          ))}
+          <label>
             <input
               type="checkbox"
-              className="rounded border-border text-primary focus:ring-primary w-4 h-4"
               checked={hasVariants}
               onChange={(e) => {
-                const next = e.target.checked;
-                setHasVariants(next);
-                if (!next) setVariants([]);
+                setHasVariants(e.target.checked);
+                if (!e.target.checked) setVariants([]);
               }}
             />
-            <span className="text-xs font-semibold text-foreground">
-              {tr("This product has sizes / variants (S, M, L, 44–60, etc.)")}
-            </span>
+            <span>{tr("Variant")}</span>
           </label>
+          {activeAttributes(s).length > 0 && (
+            <label>
+              <input type="checkbox" checked={showAttributes} onChange={(e) => { setShowAttributes(e.target.checked); if (!e.target.checked) setAttributes({}); }} />
+              <span>{tr("Attributes")}</span>
+            </label>
+          )}
+        </div>
+        {showAttributes && <AttributePicker s={s} value={attributes} onChange={setAttributes} tr={tr} />}
 
+        {(ticks.category || ticks.brand || ticks.sku || ticks.barcode) && (
+          <div className="pw-tick-details">
+            {ticks.category && (
+              <div className="pw-tick-detail" role="group" aria-label={tr("Category")}>
+                <span>{tr("Category")}</span>
+                <NamedSearch kind="categories" value={f.categoryId} onChange={(categoryId) => setF({ ...f, categoryId })} s={s} tr={tr} onRegister={(name) => onRegister("categories", name, { f, ticks, hasVariants, variants, attributes, showAttributes })} />
+              </div>
+            )}
+            {ticks.brand && (
+              <div className="pw-tick-detail" role="group" aria-label={tr("Brand")}>
+                <span>{tr("Brand")}</span>
+                <NamedSearch kind="brands" value={f.brandId} onChange={(brandId) => setF({ ...f, brandId })} s={s} tr={tr} onRegister={(name) => onRegister("brands", name, { f, ticks, hasVariants, variants, attributes, showAttributes })} />
+              </div>
+            )}
+            {ticks.sku && (
+              <label className="pw-tick-detail">
+                <span>{tr("SKU")}</span>
+                <input className={inventoryInput} aria-label={tr("SKU")} value={f.sku} onChange={set("sku")} />
+                {usedBy(f.sku, "sku") && <p className="pw-warn">{tr("Already used by")} {usedBy(f.sku, "sku")?.name}</p>}
+              </label>
+            )}
+            {ticks.barcode && (
+              <div className="pw-tick-detail" role="group" aria-label={tr("Barcode")}>
+                <span>{tr("Barcode")}</span>
+                <BarcodeInput value={f.barcode} onChange={(code) => setF({ ...f, barcode: code })} tr={tr} />
+                {usedBy(f.barcode, "barcode") && <p className="pw-warn">{tr("Already used by")} {usedBy(f.barcode, "barcode")?.name}</p>}
+              </div>
+            )}
+          </div>
+        )}
+
+        <PwField label={tr("Description (optional)")} wide>
+          <textarea className={inventoryInput} rows={2} value={f.description} onChange={set("description")} />
+        </PwField>
+        <ImageChooser value={f.image} onChange={(image) => setF({ ...f, image })} tr={tr} />
+
+        {/* Variants / Sizes */}
+        <div className="space-y-3">
           {hasVariants && (
             <div className="p-3 rounded-lg bg-muted/40 border border-border/40 space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
@@ -1296,6 +1115,20 @@ function AddProduct({ s, tr, barcode, done }: Ctx & { barcode: string; done: () 
           )}
         </div>
       </div>
+      <div className="pw-foot">
+        <span />
+        <span className="pw-foot-right">
+          <button type="button" className="pw-btn" onClick={done}>
+            {tr("Cancel")}
+          </button>
+          <button type="button" className="pw-btn" onClick={() => save(true)}>
+            {tr("Save & Add Another")}
+          </button>
+          <button type="button" className="pw-btn is-primary" onClick={() => save()}>
+            {tr("Save Product")}
+          </button>
+        </span>
+      </div>
     </div>
   );
 }
@@ -1331,30 +1164,21 @@ function InlineProductPicker({
       toast.error(tr("Product name is required"));
       return;
     }
-    const newId = erp.uid();
+    // addProduct rejects negative quantities/prices and records opening stock once, as a movement.
+    let createdId = "";
     const created = run(() => {
-      erp.commit((state, c) => {
-        const prod: erp.Product = {
-          id: newId,
-          name: newProdName.trim(),
-          buy: Number(newProdBuy) || 0,
-          sell: Number(newProdSell) || 0,
-          qty: 0,
-          createdAt: Date.now(),
-          unit: newProdUnit,
-          minStock: 5,
-        };
-        state.products.push(prod);
-        const initQty = Number(newProdQty) || 0;
-        if (initQty > 0) {
-          prod.qty = initQty;
-          c.move(newId, "OPENING", initQty, "Opening stock balance", c.nextRef("STK"));
-        }
-      });
+      createdId = erp.addProduct({
+        name: newProdName.trim(),
+        buy: Number(newProdBuy) || 0,
+        sell: Number(newProdSell) || 0,
+        qty: Number(newProdQty) || 0,
+        unit: newProdUnit,
+        minStock: 5,
+      }).id;
     }, tr("Product registered & selected"));
 
     if (created) {
-      onChange(newId);
+      onChange(createdId);
       setShowAddModal(false);
       setOpen(false);
       setQ("");
@@ -1371,7 +1195,7 @@ function InlineProductPicker({
               onClick={() => setOpen(true)}
             >
               <div className="flex items-center gap-2 truncate">
-                <span className="font-semibold text-foreground truncate">{selectedProduct.name}</span>
+                <span className="inv-product-name font-semibold text-foreground truncate">{selectedProduct.name}</span>
                 <span className="text-xs text-muted-foreground shrink-0 font-mono">
                   ({selectedProduct.qty} {selectedProduct.unit || "pcs"})
                 </span>
@@ -1417,29 +1241,26 @@ function InlineProductPicker({
         </div>
       </InventoryField>
 
-      {/* Dropdown list */}
+      {/* Dropdown list: the shared POS product rows; picking selects the product for this stock action */}
+      {open && <div className="fixed inset-0 z-40" aria-hidden="true" onClick={() => setOpen(false)} />}
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xl p-1.5 max-h-60 overflow-y-auto space-y-1">
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-border bg-card/95 backdrop-blur-md shadow-2xl p-1.5 max-h-60 overflow-y-auto">
+          {rows.length > 0 && <ProductListHead tr={tr} />}
           {rows.length > 0 ? (
             rows.map((p) => (
-              <button
+              <ProductRow
                 key={p.id}
-                type="button"
-                onClick={() => {
+                p={p}
+                tr={tr}
+                price={p.sell}
+                action="select"
+                selected={value === p.id}
+                onPick={() => {
                   onChange(p.id);
                   setOpen(false);
                   setQ("");
                 }}
-                className={cn(
-                  "w-full text-start px-2.5 py-1.5 rounded-lg flex items-center justify-between text-xs hover:bg-primary/10 transition-colors",
-                  value === p.id && "bg-primary/15 font-bold text-primary",
-                )}
-              >
-                <span className="truncate">{p.name}</span>
-                <span className="text-muted-foreground text-[11px] shrink-0 font-mono">
-                  {p.qty} {p.unit || "pcs"}
-                </span>
-              </button>
+              />
             ))
           ) : (
             <div className="p-2 text-center text-xs text-muted-foreground">{tr("No existing product found")}</div>
@@ -1469,8 +1290,8 @@ function InlineProductPicker({
 
       {/* Inline Quick Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xl space-y-4">
+        <div className="glass-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="glass-card w-full max-w-lg rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
               <span className="font-bold text-sm text-foreground">{tr("Quick Register Product")}</span>
               <button
@@ -1512,7 +1333,7 @@ function InlineProductPicker({
                     value={newProdUnit}
                     onChange={(e) => setNewProdUnit(e.target.value)}
                   >
-                    {["Piece", "kg", "g", "L", "ml", "box", "packet", "carton", "pair", "set"].map((u) => (
+                    {unitNames(s, newProdUnit).map((u) => (
                       <option key={u} value={u}>
                         {tr(u)}
                       </option>
@@ -1573,16 +1394,21 @@ function InlineProductPicker({
 }
 
 /** 2.3 Stock In Screen */
-function StockInScreen({ s, tr }: Ctx) {
+function StockInScreen({ s, tr, shop }: Ctx) {
+  const [settings] = useSettings();
+  const locations = inventoryLocations(s, shop, settings.branches);
+  const [into, setInto] = useState("");
+  const storage = activeStorage(s);
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
-  const [supplier, setSupplier] = useState("");
-  const [ref, setRef] = useState("");
-  const [location, setLocation] = useState("Main Warehouse");
+  const [origin, setOrigin] = useState("");
+  const [otherOrigin, setOtherOrigin] = useState("");
   const [batch, setBatch] = useState("");
   const [expiry, setExpiry] = useState("");
-  const [notes, setNotes] = useState("");
+  const expiryOn = useFeature("expiry");
+  const [lastRef, setLastRef] = useState("");
+  const selected = s.products.find((p) => p.id === pid);
 
   const submit = () => {
     if (!pid) {
@@ -1594,15 +1420,25 @@ function StockInScreen({ s, tr }: Ctx) {
       toast.error(tr("Enter a valid quantity"));
       return;
     }
-    const detail = [supplier, ref, location, batch ? `Batch: ${batch}` : "", expiry ? `Exp: ${expiry}` : "", notes]
+    const sourceLocation = origin === OTHER_LOCATION ? otherOrigin.trim() : origin.trim();
+    if (!sourceLocation) {
+      toast.error(tr("Select where the stock came from"));
+      return;
+    }
+    const unitCost = cost.trim() === "" ? undefined : Number(cost);
+    const detail = [`${tr("Moved from")}: ${sourceLocation}`, batch.trim() ? `${tr("Batch")}: ${batch.trim()}` : ""]
       .filter(Boolean)
-      .join(" • ");
+      .join(" • ") || tr("Stock Received");
+    let movementRef = "";
 
-    if (run(() => erp.stockIn(pid, qNum, detail || tr("Stock Received")), tr("Stock received successfully"))) {
+    // With an expiry date the batch is recorded on the movement itself, so the Expiry list can follow it.
+    const lot = expiry ? { batch: batch.trim() || undefined, expiry } : undefined;
+    if (run(() => { movementRef = erp.stockIn(pid, qNum, detail, unitCost, into || undefined, lot); }, tr("Stock received successfully"))) {
+      setLastRef(movementRef);
       setQty("");
       setCost("");
-      setRef("");
-      setNotes("");
+      setOrigin("");
+      setOtherOrigin("");
       setBatch("");
       setExpiry("");
     }
@@ -1612,118 +1448,74 @@ function StockInScreen({ s, tr }: Ctx) {
     setPid("");
     setQty("");
     setCost("");
-    setSupplier("");
-    setRef("");
-    setNotes("");
+    setOrigin("");
+    setOtherOrigin("");
+    setBatch("");
+    setLastRef("");
   };
 
   return (
     <div className="w-full space-y-4">
-      {/* Header with Title + Red Cancel & Green Save on the right in the same line */}
       <div className="flex items-center justify-between gap-2 pb-1">
         <h2 className="text-sm sm:text-base font-bold text-foreground truncate">
           {tr("Stock In — Record Received Goods")}
         </h2>
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <ShopButton
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={cancel}
-            className="text-xs h-8 px-2.5 sm:px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30"
-          >
+          <ShopButton type="button" variant="outline" size="sm" onClick={cancel} className="text-xs h-8 px-2.5 sm:px-3 text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 border-rose-500/30">
             {tr("Cancel")}
           </ShopButton>
-          <ShopButton
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={submit}
-            className="text-xs h-8 px-3 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
-          >
+          <ShopButton type="button" variant="primary" size="sm" onClick={submit} className="text-xs h-8 px-3 sm:px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
             {tr("Save Stock In")}
           </ShopButton>
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
-        {/* Row 1: Select Product + Search or Scan Product in 1 row */}
-        <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-
-        {/* Row 2: Supplier / Vendor + Quantity Received + Cost Price */}
-        <div className="grid grid-cols-3 gap-2">
-          <InventoryField label={tr("Supplier / Vendor")}>
-            <input
-              className={inventoryInput}
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-              placeholder={tr("Supplier...")}
-            />
-          </InventoryField>
+      <div className="fluid-form rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
+        <div className="stockin-row form-row3">
+          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
           <InventoryField label={tr("Quantity Received")} required>
-            <input
-              type="number"
-              step="any"
-              className={inventoryInput}
-              value={qty}
-              onChange={(e) => setQty(e.target.value)}
-              placeholder="0"
-            />
+            <input type="number" min="0" step="any" className={inventoryInput} value={qty} onChange={(e) => setQty(e.target.value)} placeholder="0" />
           </InventoryField>
           <InventoryField label={tr("Cost Price")}>
-            <input
-              type="number"
-              step="any"
-              className={inventoryInput}
-              value={cost}
-              onChange={(e) => setCost(e.target.value)}
-              placeholder="0"
-            />
+            <input type="number" min="0" step="any" className={inventoryInput} value={cost} onChange={(e) => setCost(e.target.value)} placeholder={selected ? String(selected.buy) : "0"} />
           </InventoryField>
         </div>
 
-        {/* Row 3: Location / Warehouse + Invoice Number + Batch / Lot Number */}
-        <div className="grid grid-cols-3 gap-2">
-          <InventoryField label={tr("Location / Warehouse")}>
-            <select className={inventoryInput} value={location} onChange={(e) => setLocation(e.target.value)}>
-              <option value="Main Warehouse">{tr("Main Warehouse")}</option>
-              <option value="Front Store">{tr("Front Store")}</option>
-              <option value="Backroom">{tr("Backroom")}</option>
-              <option value="Shelf A">{tr("Shelf A")}</option>
+        <div className="stockin-row form-row3">
+          <InventoryField label={tr("Moved From")} required>
+            <select className={inventoryInput} value={origin} onChange={(e) => setOrigin(e.target.value)}>
+              <option value="">{tr("Select shop or store")}</option>
+              {locations.map((location) => <option key={location} value={location}>{location}</option>)}
+              <option value={OTHER_LOCATION}>{tr("Other shop or location")}</option>
             </select>
           </InventoryField>
-          <InventoryField label={tr("Invoice Number")}>
-            <input
-              className={inventoryInput}
-              value={ref}
-              onChange={(e) => setRef(e.target.value)}
-              placeholder="INV-001"
-            />
+          {origin === OTHER_LOCATION && (
+            <InventoryField label={tr("Other location name")} required>
+              <input className={inventoryInput} value={otherOrigin} onChange={(e) => setOtherOrigin(e.target.value)} placeholder={tr("Enter shop or store name")} />
+            </InventoryField>
+          )}
+          {storage.length > 0 && (
+            <InventoryField label={tr("Receive Into")}>
+              <select className={inventoryInput} value={into} onChange={(e) => setInto(e.target.value)}>
+                <option value="">{tr("Shop stock")}</option>
+                {storage.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </InventoryField>
+          )}
+          <InventoryField label={tr("Stock In Reference")}>
+            <input className={inventoryInput} value={lastRef || tr("Assigned automatically on save")} readOnly aria-live="polite" />
           </InventoryField>
           <InventoryField label={tr("Batch / Lot Number")}>
-            <input
-              className={inventoryInput}
-              value={batch}
-              onChange={(e) => setBatch(e.target.value)}
-              placeholder="LOT-2026A"
-            />
+            <input className={inventoryInput} value={batch} onChange={(e) => setBatch(e.target.value)} placeholder={tr("Optional")} />
           </InventoryField>
+          {(expiryOn || expiry) && <InventoryField label={tr("Expiry date")}>
+            <input type="date" className={inventoryInput} value={expiry} onChange={(e) => setExpiry(e.target.value)} />
+          </InventoryField>}
         </div>
 
-        {/* Row 4: Expiry Date + Notes */}
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("Expiry Date (Optional)")}>
-            <input type="date" className={inventoryInput} value={expiry} onChange={(e) => setExpiry(e.target.value)} />
-          </InventoryField>
-          <InventoryField label={tr("Notes")}>
-            <input
-              className={inventoryInput}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={tr("Delivery notes, condition...")}
-            />
-          </InventoryField>
-        </div>
+        <p className="text-[11px] text-muted-foreground">
+          {tr("Add shops and stores in Business Profile → Branches. Cost price updates the product's buying price; the stock-in reference is generated automatically. Stock quantities are currently shared across locations.")}
+        </p>
       </div>
     </div>
   );
@@ -1731,6 +1523,8 @@ function StockInScreen({ s, tr }: Ctx) {
 
 /** 2.4 Stock Out Screen */
 function StockOutScreen({ s, tr }: Ctx) {
+  const [from, setFrom] = useState("");
+  const storage = activeStorage(s);
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
   const [reason, setReason] = useState("Damaged");
@@ -1757,7 +1551,7 @@ function StockOutScreen({ s, tr }: Ctx) {
       return;
     }
     const detail = `${reason}${notes ? ` • ${notes}` : ""}`;
-    if (run(() => erp.stockOut(pid, qNum, detail), tr("Stock out recorded successfully"))) {
+    if (run(() => erp.stockOut(pid, qNum, detail, from || undefined), tr("Stock out recorded successfully"))) {
       setQty("");
       setNotes("");
     }
@@ -1799,12 +1593,18 @@ function StockOutScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
-        {/* Row 1: Select Product + Search or Scan Product in 1 row */}
-        <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-
-        {/* Row 2: Quantity Written Off * + Reason Category * in 1 row */}
-        <div className="grid grid-cols-2 gap-2">
+      <div className="fluid-form rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
+        {/* Row 1: Product, Quantity, Reason */}
+        <div className="stockin-row form-row3">
+          {storage.length > 0 && (
+            <InventoryField label={tr("Taken From")}>
+              <select className={inventoryInput} value={from} onChange={(e) => setFrom(e.target.value)}>
+                <option value="">{tr("Shop stock")}</option>
+                {storage.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </InventoryField>
+          )}
+          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
           <InventoryField label={tr("Quantity Written Off")} required>
             <input
               type="number"
@@ -1826,7 +1626,7 @@ function StockOutScreen({ s, tr }: Ctx) {
           </InventoryField>
         </div>
 
-        {/* Row 3: Description / Notes */}
+        {/* Row 2: Description / Notes */}
         <InventoryField label={tr("Description / Notes")}>
           <input
             className={inventoryInput}
@@ -1840,29 +1640,29 @@ function StockOutScreen({ s, tr }: Ctx) {
   );
 }
 /** 2.5 Stock History */
-function StockHistoryScreen({ s, tr }: Ctx) {
+function StockHistoryScreen({ s, tr, since, until }: Ctx) {
   const [filterType, setFilterType] = useState("all");
   const [q, setQ] = useState("");
 
   const moves = useMemo(() => {
+    const term = q.trim().toLowerCase();
     return s.movements.filter((m) => {
-      const matchType = filterType === "all" || m.type === filterType;
+      if (m.at < since || m.at > until) return false;
+      if (filterType !== "all" && groupOf(m.type) !== filterType) return false;
+      if (!term) return true;
       const p = s.products.find((prod) => prod.id === m.productId);
-      const matchQ =
-        !q.trim() ||
-        (p?.name && p.name.toLowerCase().includes(q.toLowerCase())) ||
-        (m.source && m.source.toLowerCase().includes(q.toLowerCase()));
-      return matchType && matchQ;
+      return [p?.name, p?.sku, p?.barcode, m.source, m.reason].some((v) => v?.toLowerCase().includes(term));
     });
-  }, [s.movements, s.products, filterType, q]);
+  }, [s.movements, s.products, filterType, q, since, until]);
 
-  const typeColor = (t: string) => {
-    switch (t) {
+  const typeColor = (t: erp.MoveType) => {
+    switch (groupOf(t)) {
       case "SALE":
         return "bg-rose-500/10 text-rose-600 dark:text-rose-400";
       case "IN":
-      case "OPENING":
         return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
+      case "OUT":
+        return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
       case "ADJUST":
         return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
       case "TRANSFER":
@@ -1875,14 +1675,8 @@ function StockHistoryScreen({ s, tr }: Ctx) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center justify-between">
-        <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            className={cn(inventoryInput, "pl-8 text-xs")}
-            placeholder={tr("Search by product or reference...")}
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+        <div className="flex-1 min-w-0">
+          <InventorySearch q={q} setQ={setQ} tr={tr} placeholder="Search by product or reference..." />
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs shrink-0">
@@ -1901,11 +1695,29 @@ function StockHistoryScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
-        <div className="p-2.5 bg-muted/40 border-b border-border/40 text-[11px] font-bold text-muted-foreground flex justify-between">
+      <div className="inventory-glass-surface rounded-xl border border-border/40 bg-card/65 backdrop-blur-xl overflow-hidden shadow-sm">
+        <div className="p-2.5 bg-muted/40 border-b border-border/40 text-[11px] font-bold text-muted-foreground flex items-center justify-between gap-2">
           <span>{tr("Stock Audit Trail")}</span>
-          <span>
+          <span className="flex items-center gap-2">
             {moves.length} {tr("entries")}
+            <ShopButton
+              variant="outline"
+              size="sm"
+              className="h-6 px-1.5"
+              disabled={!moves.length}
+              title={tr("Export CSV")}
+              aria-label={tr("Export CSV")}
+              onClick={() => {
+                const rows = moves.map((m) => {
+                  const p = s.products.find((x) => x.id === m.productId);
+                  return [new Date(m.at).toISOString(), m.type, p?.name ?? "", p?.sku ?? "", m.qty, m.prev, m.next, m.source, m.reason, m.user];
+                });
+                download(`stock-history-${Date.now()}.csv`, csv([["Date", "Type", "Product", "SKU", "Qty", "Before", "After", "Reference", "Reason", "User"], ...rows]));
+                toast.success(tr("Exported CSV"));
+              }}
+            >
+              <Download className="w-3.5 h-3.5" />
+            </ShopButton>
           </span>
         </div>
 
@@ -1922,16 +1734,18 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span
                       className={cn(
-                        "px-1.5 py-0.5 rounded text-[9.5px] font-extrabold uppercase shrink-0",
+                        "px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0",
                         typeColor(m.type),
                       )}
                     >
                       {m.type}
                     </span>
                     <span className="font-bold text-foreground text-xs truncate max-w-[160px] sm:max-w-xs">
-                      {p?.name || tr("Unknown Item")}
+                      <span className="inv-product-name">{p?.name || tr("Deleted product")}</span>
                     </span>
-                    <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">{m.source}</span>
+                    <span className="text-[11px] text-muted-foreground truncate hidden sm:inline" title={m.reason}>
+                      {[m.source, m.reason].filter(Boolean).join(" · ")}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">
@@ -1944,11 +1758,11 @@ function StockHistoryScreen({ s, tr }: Ctx) {
                       {isPositive ? `+${m.qty}` : m.qty}
                     </span>
 
-                    <span className="text-[10px] text-muted-foreground tabular-nums min-w-[65px] text-right hidden sm:inline">
+                    <span className="text-[11px] text-muted-foreground tabular-nums min-w-[65px] text-right hidden sm:inline">
                       {tr("Bal")}: {m.next} {p?.unit || "pcs"}
                     </span>
 
-                    <span className="text-[10px] text-muted-foreground tabular-nums min-w-[80px] text-right">
+                    <span className="text-[11px] text-muted-foreground tabular-nums min-w-[80px] text-right">
                       {dt(m.at)}
                     </span>
                   </div>
@@ -2027,12 +1841,10 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
-        {/* Row 1: Select Product + Search or Scan Product in 1 row */}
-        <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
-
-        {/* Row 2: System Quantity + Physical Counted Quantity + Reason * in 1 row */}
-        <div className="grid grid-cols-3 gap-2">
+      <div className="fluid-form rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-3.5 sm:p-4 space-y-3 shadow-sm">
+        {/* Row 1: Product, System Quantity, Corrected Quantity, Reason */}
+        <div className="stockin-row">
+          <InlineProductPicker s={s} value={pid} onChange={setPid} tr={tr} />
           <InventoryField label={tr("System Quantity")}>
             <input className={cn(inventoryInput, "bg-muted font-bold")} readOnly value={p ? p.qty : "—"} />
           </InventoryField>
@@ -2076,7 +1888,7 @@ function AdjustmentsScreen({ s, tr }: Ctx) {
           </div>
         )}
 
-        {/* Row 3: Notes on its own */}
+        {/* Row 2: Notes on its own */}
         <InventoryField label={tr("Notes")}>
           <input
             className={inventoryInput}
@@ -2101,7 +1913,14 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
   const [reason, setReason] = useState("Faulty or not working");
   const [condition, setCondition] = useState("Good (Resalable)");
   const [resolution, setResolution] = useState("Refund");
+  const [refundMethod, setRefundMethod] = useState<erp.Method>(() => erp.defaultMethod(erp.load()));
   const [outcome, setOutcome] = useState("Return to available stock");
+
+  const ref = saleRef.trim().toLowerCase();
+  const sale = ref ? s.sales.find((x) => x.ref.toLowerCase() === ref) : undefined;
+  const line = sale?.items.find((i) => i.productId === pid);
+  const returnable = line ? erp.roundQty(line.qty - line.returned) : 0;
+  const product = s.products.find((p) => p.id === pid);
 
   const resetForm = () => {
     setQty("");
@@ -2120,17 +1939,44 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
       return;
     }
 
-    const detail = `Customer Return • ${saleRef || "Direct"} • ${reason} • ${condition} • ${resolution}`;
+    const detail = `Customer Return • ${sale?.ref || saleRef.trim() || "Direct"} • ${reason} • ${condition} • ${resolution}`;
+    const restock = outcome === "Return to available stock";
+
+    // A rejected return sends the goods back to the customer: nothing changes but the audit trail.
+    if (resolution === "Reject") {
+      if (run(() => erp.commit((_s, c) => c.audit("RETURN REJECTED", `${product?.name ?? pid} • ${qNum} • ${detail}`)), tr("Return rejected — stock unchanged"))) resetForm();
+      return;
+    }
+
+    if (sale) {
+      // Returns against a recorded sale go through the shared Sales return: stock, refund, the sale's returned
+      // counter and commission move together, so the same items can't be returned twice from Sales.
+      if (!line) {
+        toast.error(`${tr("This product is not on sale")} ${sale.ref}`);
+        return;
+      }
+      const method: erp.Method = resolution === "Store Credit" ? "credit" : refundMethod;
+      const done = run(
+        () =>
+          erp.runErpTransaction(() => {
+            erp.returnSale(sale.id, [{ productId: pid, qty: qNum }], method);
+            erp.commit((_s, c) => c.audit("RETURN DETAILS", detail));
+            if (!restock) erp.stockOut(pid, qNum, `Returned not resaleable • ${sale.ref} • ${condition}`);
+          }),
+        tr("Customer return processed"),
+      );
+      if (done) resetForm();
+      return;
+    }
 
     if (
       run(() => {
-        erp.commit((state, c) => {
-          if (outcome === "Return to available stock") {
-            const p = state.products.find((x) => x.id === pid);
-            if (p) p.qty += qNum;
+        erp.commit((_state, c) => {
+          if (restock) {
+            // The movement adds the stock; adding it here as well counted every return twice.
             c.move(pid, "RETURN", qNum, detail, c.nextRef("RET"));
           } else {
-            c.audit("RETURN QUARANTINED", `${pid} • ${qNum} • ${detail}`);
+            c.audit("RETURN QUARANTINED", `${product?.name ?? pid} • ${qNum} • ${detail}`);
           }
         });
       }, tr("Customer return processed"))
@@ -2164,9 +2010,9 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        {/* Row 1: Receipt Ref + Product Returned in 1 row across all screens */}
-        <div className="grid grid-cols-2 gap-2">
+      <div className="fluid-form rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+        {/* Row 1: Receipt, Product, Quantity, Reason */}
+        <div className="stockin-row">
           <InventoryField label={tr("Receipt Ref No")}>
             <input
               className={inventoryInput}
@@ -2176,10 +2022,6 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
             />
           </InventoryField>
           <InlineProductPicker label={tr("Product Returned")} s={s} value={pid} onChange={setPid} tr={tr} />
-        </div>
-
-        {/* Row 2: Quantity Returned + Reason + Inspection Condition in 1 row across all screens */}
-        <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Quantity Returned")} required>
             <input
               type="number"
@@ -2200,6 +2042,29 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Other">{tr("Other")}</option>
             </select>
           </InventoryField>
+        </div>
+
+        <p
+          className={cn(
+            "text-[11px] rounded-lg px-2 py-1.5 border",
+            sale && line && "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+            sale && !line && pid && "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+            !(sale && (line || pid)) && "border-border/40 bg-muted/30 text-muted-foreground",
+          )}
+        >
+          {sale
+            ? line
+              ? `${tr("Linked to sale")} ${sale.ref} · ${tr("can return")} ${returnable} ${product?.unit || "pcs"}`
+              : pid
+                ? `${tr("This product is not on sale")} ${sale.ref}`
+                : `${tr("Linked to sale")} ${sale.ref}`
+            : ref
+              ? tr("No recorded sale has this receipt. Stock only — no refund will be recorded.")
+              : tr("Enter the sale receipt (e.g. S-000012) to record the refund too. Without it, only stock changes.")}
+        </p>
+
+        {/* Row 2: Inspection, Resolution, (refund account), Inventory Outcome */}
+        <div className="stockin-row form-row-even">
           <InventoryField label={tr("Inspection Condition")}>
             <select className={inventoryInput} value={condition} onChange={(e) => setCondition(e.target.value)}>
               <option value="Good (Resalable)">{tr("Good (Resalable)")}</option>
@@ -2208,10 +2073,6 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Needs Inspection">{tr("Needs Further Inspection")}</option>
             </select>
           </InventoryField>
-        </div>
-
-        {/* Row 3: Resolution + Inventory Outcome in 1 row across all screens */}
-        <div className="grid grid-cols-2 gap-2">
           <InventoryField label={tr("Resolution")}>
             <select className={inventoryInput} value={resolution} onChange={(e) => setResolution(e.target.value)}>
               <option value="Refund">{tr("Refund Cash / M-Pesa")}</option>
@@ -2220,6 +2081,17 @@ function CustomerReturnsScreen({ s, tr }: Ctx) {
               <option value="Reject">{tr("Reject Return")}</option>
             </select>
           </InventoryField>
+          {sale && (resolution === "Refund" || resolution === "Exchange") && (
+            <InventoryField label={tr("Refund to")}>
+              <select className={inventoryInput} value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as erp.Method)}>
+                {fin.accounts(s).map((m) => (
+                  <option key={m} value={m}>
+                    {tr(erp.methodName(m))}
+                  </option>
+                ))}
+              </select>
+            </InventoryField>
+          )}
           <InventoryField label={tr("Inventory Outcome")}>
             <select className={inventoryInput} value={outcome} onChange={(e) => setOutcome(e.target.value)}>
               <option value="Return to available stock">{tr("Return to Available Stock (Restock)")}</option>
@@ -2240,6 +2112,12 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
   const [qty, setQty] = useState("");
   const [reason, setReason] = useState("Damaged on delivery");
   const [resolution, setResolution] = useState("Supplier Credit Note");
+  const [refundMethod, setRefundMethod] = useState<erp.Method>(() => erp.defaultMethod(erp.load()));
+
+  const ref = purchaseRef.trim().toLowerCase();
+  const purchase = ref ? s.purchases.find((x) => x.ref.toLowerCase() === ref) : undefined;
+  const line = purchase?.items.find((i) => i.productId === pid);
+  const purchaseSupplier = s.suppliers.find((x) => x.id === purchase?.supplierId);
 
   const resetForm = () => {
     setQty("");
@@ -2256,6 +2134,17 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
     const qNum = Number(qty);
     if (!qNum || qNum <= 0) {
       toast.error(tr("Enter valid quantity"));
+      return;
+    }
+    if (purchase) {
+      // Against a recorded purchase the shared purchase return moves stock and the money together: a refund
+      // into an account, or (credit note, replacement, awaiting) a reduction of what we owe the supplier.
+      if (!line) {
+        toast.error(`${tr("This product is not on purchase")} ${purchase.ref}`);
+        return;
+      }
+      const method: erp.Method = resolution === "Refund" ? refundMethod : "credit";
+      if (run(() => fin.returnPurchase(purchase.id, [{ productId: pid, qty: qNum }], method, `${reason} • ${resolution}`), tr("Supplier return dispatched"))) resetForm();
       return;
     }
     const detail = `Supplier Return • ${supplier || "Supplier"} • ${purchaseRef || "PO"} • ${reason} • ${resolution}`;
@@ -2289,7 +2178,7 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+      <div className="fluid-form rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
         {/* Row 1: Purchase Order Ref + Supplier + Product to Return in 1 row across all screens */}
         <div className="grid grid-cols-3 gap-2">
           <InventoryField label={tr("Purchase Order Ref")}>
@@ -2302,17 +2191,43 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
           </InventoryField>
           <InventoryField label={tr("Supplier")}>
             <input
-              className={inventoryInput}
-              value={supplier}
+              className={cn(inventoryInput, purchase && "bg-muted")}
+              value={purchase ? (purchaseSupplier?.name ?? tr("No supplier")) : supplier}
+              readOnly={!!purchase}
+              list="inventory-return-suppliers"
               onChange={(e) => setSupplier(e.target.value)}
-              placeholder="Supplier name"
+              placeholder={tr("Supplier name")}
             />
+            <datalist id="inventory-return-suppliers">
+              {s.suppliers.map((x) => (
+                <option key={x.id} value={x.name} />
+              ))}
+            </datalist>
           </InventoryField>
           <InlineProductPicker label={tr("Product to Return")} s={s} value={pid} onChange={setPid} tr={tr} />
         </div>
 
-        {/* Row 2: Quantity + Reason + Supplier Resolution in 1 row across all screens */}
-        <div className="grid grid-cols-3 gap-2">
+        <p
+          className={cn(
+            "text-[11px] rounded-lg px-2 py-1.5 border",
+            purchase && line && "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+            purchase && !line && pid && "border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400",
+            !(purchase && (line || pid)) && "border-border/40 bg-muted/30 text-muted-foreground",
+          )}
+        >
+          {purchase
+            ? line
+              ? `${tr("Linked to purchase")} ${purchase.ref} · ${tr("can return")} ${erp.roundQty(line.qty - line.returned)} · ${tr(resolution === "Refund" ? "refund is recorded in the chosen account" : "reduces what you owe the supplier")}`
+              : pid
+                ? `${tr("This product is not on purchase")} ${purchase.ref}`
+                : `${tr("Linked to purchase")} ${purchase.ref}`
+            : ref
+              ? tr("No recorded purchase has this reference. Stock only — the supplier balance won't change.")
+              : tr("Enter the purchase reference (e.g. PO-000004) to update the supplier balance too. Without it, only stock changes.")}
+        </p>
+
+        {/* Row 2: Quantity + Reason + Supplier Resolution (+ refund account) in 1 row across all screens */}
+        <div className={cn("grid gap-2", purchase && resolution === "Refund" ? "grid-cols-4" : "grid-cols-3")}>
           <InventoryField label={tr("Quantity Returned")} required>
             <input
               type="number"
@@ -2340,6 +2255,17 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
               <option value="Awaiting Response">{tr("Awaiting Supplier Response")}</option>
             </select>
           </InventoryField>
+          {purchase && resolution === "Refund" && (
+            <InventoryField label={tr("Refund to")}>
+              <select className={inventoryInput} value={refundMethod} onChange={(e) => setRefundMethod(e.target.value as erp.Method)}>
+                {fin.accounts(s).map((m) => (
+                  <option key={m} value={m}>
+                    {tr(erp.methodName(m))}
+                  </option>
+                ))}
+              </select>
+            </InventoryField>
+          )}
         </div>
       </div>
     </div>
@@ -2348,18 +2274,31 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
 
 /** 3.3 New Transfer */
 function NewTransferScreen({ s, tr, shop }: Ctx) {
+  const [settings] = useSettings();
+  const locations = inventoryLocations(s, shop, settings.branches);
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
-  const [to, setTo] = useState("Branch 1");
+  const [from, setFrom] = useState(shop);
+  const [to, setTo] = useState("");
   const [notes, setNotes] = useState("");
 
   const resetForm = () => {
     setQty("");
     setNotes("");
     setPid("");
+    setFrom(shop);
+    setTo("");
   };
 
   const submit = () => {
+    if (!from || !to) {
+      toast.error(tr("Choose both the source and destination locations"));
+      return;
+    }
+    if (from.toLocaleLowerCase() === to.toLocaleLowerCase()) {
+      toast.error(tr("Destination must be a different location"));
+      return;
+    }
     if (!pid) {
       toast.error(tr("Select product"));
       return;
@@ -2369,9 +2308,16 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
       toast.error(tr("Enter valid quantity"));
       return;
     }
-    if (run(() => erp.createTransfer(pid, qNum, to, shop), tr("Transfer created and dispatched"))) {
-      resetForm();
-    }
+    // Created and sent in one step, so the stock leaves now; Transfer History marks it received or cancels it.
+    const ok = run(
+      () =>
+        erp.runErpTransaction(() => {
+          const t = erp.createTransfer(pid, qNum, to, from, notes);
+          erp.sendTransfer(t.id);
+        }),
+      tr("Transfer created and dispatched"),
+    );
+    if (ok) resetForm();
   };
 
   return (
@@ -2399,26 +2345,21 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
         </div>
       </div>
 
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
-        {/* Row 1: From Location + To Location in 1 row across all screens */}
-        <div className="grid grid-cols-2 gap-2">
-          <InventoryField label={tr("From Location")}>
-            <input className={cn(inventoryInput, "bg-muted")} readOnly value={shop} />
+      <div className="fluid-form rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 p-4 space-y-3 shadow-sm">
+        {/* Row 1: From, To, Product, Quantity */}
+        <div className="stockin-row form-row-transfer">
+          <InventoryField label={tr("From Location")} required>
+            <select className={inventoryInput} value={from} onChange={(e) => { setFrom(e.target.value); if (e.target.value === to) setTo(""); }}>
+              {locations.map((location) => <option key={location} value={location}>{location}</option>)}
+            </select>
           </InventoryField>
           <InventoryField label={tr("To Location")} required>
-            <input
-              className={inventoryInput}
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              placeholder="Destination shop / warehouse"
-            />
+            <select className={inventoryInput} value={to} onChange={(e) => setTo(e.target.value)}>
+              <option value="">{tr(locations.length > 1 ? "Select destination" : "Add another shop in Business Profile")}</option>
+              {locations.filter((location) => location !== from).map((location) => <option key={location} value={location}>{location}</option>)}
+            </select>
           </InventoryField>
-        </div>
-
-        {/* Row 2: Product + Quantity in 1 row across all screens */}
-        <div className="grid grid-cols-2 gap-2">
           <InlineProductPicker label={tr("Product")} s={s} value={pid} onChange={setPid} tr={tr} />
-
           <InventoryField label={tr("Quantity")} required>
             <input
               type="number"
@@ -2431,7 +2372,7 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
           </InventoryField>
         </div>
 
-        {/* Row 3: Notes in last row across all screens */}
+        {/* Row 2: Notes */}
         <InventoryField label={tr("Notes")}>
           <input
             className={inventoryInput}
@@ -2440,20 +2381,39 @@ function NewTransferScreen({ s, tr, shop }: Ctx) {
             placeholder={tr("Vehicle, driver, transfer reason...")}
           />
         </InventoryField>
+        <p className="text-[11px] text-muted-foreground">
+          {tr(activeStorage(s).length ? "Stock held in a store or warehouse moves only when this transfer is dispatched and then received in Transfer History. Shops share one stock balance." : "Add every shop or store in Business Profile → Branches. Transfers record both locations; stock quantities are currently shared across locations.")}
+        </p>
       </div>
     </div>
   );
 }
 
+/** Read-only. Viewing moves nothing; a transfer is the only way this stock reaches a shop. */
+function WarehouseStockScreen({ s, tr, shop }: Ctx) {
+  const columns: Col<StorageStock>[] = [
+    { label: "Location", value: (r) => r.location.name }, { label: "Type", value: () => "Warehouse" }, { label: "Product", value: (r) => r.name },
+    { label: "Available", value: (r) => `${r.qty}${r.unit ? ` ${r.unit}` : ""}` }, { label: "Connected Shops", value: (r) => connectedShops(s, r.location.id).map((l) => l.name).join(", ") },
+  ];
+  return (
+    <div className="pm-form">
+      <p className="pw-note">{tr("You are only viewing this stock. To bring it to a shop, create a New Transfer, then confirm receipt in Transfer History.")}</p>
+      <ListScreen title="Warehouse Stock" shop={shop} items={storageStock(s)} columns={columns} idOf={(r) => r.key} money={String} tr={tr} empty="No stock recorded in a store or warehouse yet" ph="Search products..." text={(r) => `${r.name} ${r.location.name}`}
+        filters={[{ label: "Location", get: (r) => r.location.name }]} />
+    </div>
+  );
+}
+
 /** 3.4 Transfer History */
-function TransferHistoryScreen({ s, tr }: Ctx) {
+function TransferHistoryScreen({ s, tr, since, until }: Ctx) {
+  const transfers = s.transfers.filter((t) => t.at >= since && t.at <= until);
   return (
     <div className="space-y-3">
       <h2 className="text-base font-bold text-foreground">{tr("Transfer Audit Trail")}</h2>
-      <div className="rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm">
+      <div className="inventory-glass-surface rounded-xl bg-card/65 backdrop-blur-xl border border-border/40 overflow-hidden shadow-sm">
         <div className="divide-y divide-border/30">
-          {s.transfers.length ? (
-            s.transfers.map((t) => {
+          {transfers.length ? (
+            transfers.map((t) => {
               const p = s.products.find((prod) => prod.id === t.productId);
               return (
                 <div
@@ -2463,7 +2423,7 @@ function TransferHistoryScreen({ s, tr }: Ctx) {
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span
                       className={cn(
-                        "text-[9.5px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0",
+                        "text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0",
                         t.status === "RECEIVED" && "bg-emerald-500/15 text-emerald-600",
                         t.status === "SENT" && "bg-amber-500/15 text-amber-600",
                         t.status === "PENDING" && "bg-blue-500/15 text-blue-600",
@@ -2473,26 +2433,50 @@ function TransferHistoryScreen({ s, tr }: Ctx) {
                       {t.status}
                     </span>
                     <span className="font-bold text-foreground text-xs truncate max-w-[160px] sm:max-w-xs">
-                      {p?.name || tr("Product")}
+                      <span className="inv-product-name">{p?.name || tr("Product")}</span>
                     </span>
-                    <span className="text-[10px] text-muted-foreground truncate hidden sm:inline">
+                    <span className="text-[11px] text-muted-foreground truncate hidden sm:inline" title={t.note}>
                       {t.ref} · {t.from} → {t.to}
+                      {t.note ? ` · ${t.note}` : ""}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
                     <span className="font-extrabold text-xs text-foreground tabular-nums">
                       {t.qty} {p?.unit || "pcs"}
                     </span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums hidden sm:inline">{dt(t.at)}</span>
+                    <span className="text-[11px] text-muted-foreground tabular-nums hidden sm:inline">{dt(t.at)}</span>
+                    {t.status === "PENDING" && (
+                      <ShopButton
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[11px] px-2"
+                        onClick={() => run(() => erp.sendTransfer(t.id), tr("Transfer dispatched"))}
+                      >
+                        {tr("Send")}
+                      </ShopButton>
+                    )}
                     {t.status === "SENT" && (
                       <ShopButton
                         variant="outline"
                         size="sm"
-                        className="h-6 text-[10px] px-2"
+                        className="h-6 text-[11px] px-2"
                         onClick={() => run(() => erp.receiveTransfer(t.id), tr("Transfer marked as received"))}
                       >
                         {tr("Receive")}
+                      </ShopButton>
+                    )}
+                    {(t.status === "PENDING" || t.status === "SENT") && (
+                      <ShopButton
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[11px] px-2 text-rose-600 border-rose-500/30"
+                        onClick={() => {
+                          if (!window.confirm(tr(t.status === "SENT" ? "Cancel this transfer and return the stock?" : "Cancel this transfer?"))) return;
+                          run(() => erp.cancelTransfer(t.id), tr("Transfer cancelled"));
+                        }}
+                      >
+                        {tr("Cancel")}
                       </ShopButton>
                     )}
                   </div>
@@ -2512,444 +2496,50 @@ function TransferHistoryScreen({ s, tr }: Ctx) {
    4. CONFIGURATION
    ========================================================================= */
 
-/** 4.1 Product Setup */
-function ProductSetupScreen({ s, tr }: Ctx) {
-  const [selectedCatId, setSelectedCatId] = useState("");
-  const [selectedBrandId, setSelectedBrandId] = useState("");
-  const [catSearch, setCatSearch] = useState("");
-  const [brandSearch, setBrandSearch] = useState("");
-  const [catOpen, setCatOpen] = useState(false);
-  const [brandOpen, setBrandOpen] = useState(false);
-  const [variantsEnabled, setVariantsEnabled] = useState(true);
-
-  const activeCategory = s.categories.find((c) => c.id === selectedCatId);
-  const activeBrand = s.brands.find((b) => b.id === selectedBrandId);
-
-  const filteredCategories = s.categories.filter((c) => c.name.toLowerCase().includes(catSearch.toLowerCase().trim()));
-  const filteredBrands = s.brands.filter((b) => b.name.toLowerCase().includes(brandSearch.toLowerCase().trim()));
-
-  const handleAddCategory = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const res = run(() => erp.addNamed("categories", trimmed), tr("Category added"));
-    if (res) {
-      setCatSearch("");
-      setCatOpen(false);
-      const created = s.categories.find((c) => c.name.toLowerCase() === trimmed.toLowerCase());
-      if (created) setSelectedCatId(created.id);
-    }
-  };
-
-  const handleAddBrand = (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const res = run(() => erp.addNamed("brands", trimmed), tr("Brand added"));
-    if (res) {
-      setBrandSearch("");
-      setBrandOpen(false);
-      const created = s.brands.find((b) => b.name.toLowerCase() === trimmed.toLowerCase());
-      if (created) setSelectedBrandId(created.id);
-    }
-  };
-
-  return (
-    <div className="w-full space-y-3">
-      <h2 className="text-base font-bold text-foreground">{tr("Product Setup & Master Catalog Configuration")}</h2>
-
-      {/* Row 1: Categories & Brands side-by-side in searchable comboboxes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Categories Searchable Dropdown */}
-        <Box title={tr("Categories")} sub={tr("Search or add category")}>
-          <div className="relative">
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                className={cn(inventoryInput, "pr-8 text-xs")}
-                placeholder={activeCategory ? activeCategory.name : tr("Search or choose a category...")}
-                value={catSearch}
-                onChange={(e) => {
-                  setCatSearch(e.target.value);
-                  setCatOpen(true);
-                }}
-                onFocus={() => setCatOpen(true)}
-              />
-              <button
-                type="button"
-                onClick={() => setCatOpen((v) => !v)}
-                className="absolute right-2 text-muted-foreground hover:text-foreground text-xs"
-              >
-                ▼
-              </button>
-            </div>
-
-            {catOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setCatOpen(false)} />
-                <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover shadow-xl z-20 p-1 text-xs space-y-0.5">
-                  {filteredCategories.length > 0 ? (
-                    filteredCategories.map((c) => {
-                      const count = s.products.filter((p) => p.categoryId === c.id).length;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className={cn(
-                            "w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-muted transition-colors",
-                            selectedCatId === c.id && "bg-muted font-bold text-primary",
-                          )}
-                          onClick={() => {
-                            setSelectedCatId(c.id);
-                            setCatSearch("");
-                            setCatOpen(false);
-                          }}
-                        >
-                          <span>{c.name}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {count} {tr("items")}
-                          </span>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="p-2 text-center text-muted-foreground">{tr("No matching category")}</div>
-                  )}
-
-                  {catSearch.trim() &&
-                    !s.categories.some((c) => c.name.toLowerCase() === catSearch.trim().toLowerCase()) && (
-                      <button
-                        type="button"
-                        onClick={() => handleAddCategory(catSearch)}
-                        className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
-                      >
-                        <span>
-                          + {tr("Add")} "{catSearch.trim()}"
-                        </span>
-                        <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">
-                          {tr("Save")}
-                        </span>
-                      </button>
-                    )}
-                </div>
-              </>
-            )}
-          </div>
-        </Box>
-
-        {/* Brands Searchable Dropdown */}
-        <Box title={tr("Brands")} sub={tr("Search or add brand")}>
-          <div className="relative">
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                className={cn(inventoryInput, "pr-8 text-xs")}
-                placeholder={activeBrand ? activeBrand.name : tr("Search or choose a brand...")}
-                value={brandSearch}
-                onChange={(e) => {
-                  setBrandSearch(e.target.value);
-                  setBrandOpen(true);
-                }}
-                onFocus={() => setBrandOpen(true)}
-              />
-              <button
-                type="button"
-                onClick={() => setBrandOpen((v) => !v)}
-                className="absolute right-2 text-muted-foreground hover:text-foreground text-xs"
-              >
-                ▼
-              </button>
-            </div>
-
-            {brandOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setBrandOpen(false)} />
-                <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto rounded-lg border border-border bg-popover shadow-xl z-20 p-1 text-xs space-y-0.5">
-                  {filteredBrands.length > 0 ? (
-                    filteredBrands.map((b) => {
-                      const count = s.products.filter((p) => p.brandId === b.id).length;
-                      return (
-                        <button
-                          key={b.id}
-                          type="button"
-                          className={cn(
-                            "w-full text-left px-2.5 py-1.5 rounded flex items-center justify-between hover:bg-muted transition-colors",
-                            selectedBrandId === b.id && "bg-muted font-bold text-primary",
-                          )}
-                          onClick={() => {
-                            setSelectedBrandId(b.id);
-                            setBrandSearch("");
-                            setBrandOpen(false);
-                          }}
-                        >
-                          <span>{b.name}</span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {count} {tr("items")}
-                          </span>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div className="p-2 text-center text-muted-foreground">{tr("No matching brand")}</div>
-                  )}
-
-                  {brandSearch.trim() &&
-                    !s.brands.some((b) => b.name.toLowerCase() === brandSearch.trim().toLowerCase()) && (
-                      <button
-                        type="button"
-                        onClick={() => handleAddBrand(brandSearch)}
-                        className="w-full text-left px-2.5 py-1.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 font-semibold border-t border-border/40 flex items-center justify-between"
-                      >
-                        <span>
-                          + {tr("Add")} "{brandSearch.trim()}"
-                        </span>
-                        <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">
-                          {tr("Save")}
-                        </span>
-                      </button>
-                    )}
-                </div>
-              </>
-            )}
-          </div>
-        </Box>
-      </div>
-
-      {/* Row 2: Units of Measurement & Variants side-by-side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <Box title={tr("Units of Measurement")} sub={tr("Standard units for buying & selling")}>
-          <div className="flex flex-wrap gap-1">
-            {["Piece", "Kg", "Gram", "Litre", "Millilitre", "Box", "Carton", "Packet", "Metre"].map((u) => (
-              <span
-                key={u}
-                className="text-[11px] px-2 py-0.5 rounded-md bg-muted/60 border border-border/40 text-foreground font-medium"
-              >
-                {tr(u)}
-              </span>
-            ))}
-          </div>
-        </Box>
-
-        <Box title={tr("Product Variants & Attributes")} sub={tr("Enable or disable variant matrix")}>
-          <label className="flex items-center justify-between py-1 cursor-pointer">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{tr("Enable Size & Color Variants")}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {tr("Allows Add Product to generate multi-size matrices")}
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={variantsEnabled}
-              onChange={(e) => setVariantsEnabled(e.target.checked)}
-              className="rounded"
-            />
-          </label>
-        </Box>
-      </div>
-    </div>
-  );
-}
-
 /** 4.2 Stock Setup */
 function StockSetupScreen({ tr }: Ctx) {
-  const [preventNegative, setPreventNegative] = useState(true);
-  const [requireReason, setRequireReason] = useState(true);
-  const [batchTracking, setBatchTracking] = useState(false);
-  const [minStockDefault, setMinStockDefault] = useState("5");
+  // These describe rules the stock engine (erp.ts) always applies; they were toggles that saved nothing.
+  const rules: [string, string][] = [
+    ["Negative stock is always prevented", "Sales, stock out, transfers and adjustments stop when stock would go below zero"],
+    ["Adjustments always need a reason", "Every correction records the previous, new and difference in the audit trail"],
+    ["Whole units stay whole", "Pieces, boxes, packets and similar units can't be received, removed or counted in fractions"],
+    ["Unique barcodes and SKUs", "A barcode or SKU can belong to one product only"],
+    ["Batch and expiry", "Batch/lot and expiry entered on Stock In are kept in the movement note; FEFO tracking is not available yet"],
+    [`Default reorder level: ${erp.DEFAULT_MIN_STOCK}`, "Used for low-stock alerts when a product has no level of its own"],
+  ];
 
   return (
     <div className="w-full space-y-4">
       <h2 className="text-base font-bold text-foreground">{tr("Stock Setup & Warehouse Rules")}</h2>
 
-      {/* Warehouses & Locations */}
-      <Box title={tr("Warehouses & Storage Locations")} sub={tr("Locations where physical inventory is stored")}>
+      {/* Locations: names only — stock is one balance per product */}
+      <Box title={tr("Warehouses & Storage Locations")} sub={tr("Recorded on the Stock In note")}>
         <div className="flex flex-wrap gap-1.5">
-          {["Main Warehouse", "Shop Floor", "Storage Room", "Shelf A1"].map((loc) => (
+          {["Main Warehouse", "Front Store", "Backroom", "Shelf A"].map((loc) => (
             <span key={loc} className="text-xs px-2.5 py-1 rounded-lg bg-muted text-foreground font-medium">
               {tr(loc)}
             </span>
           ))}
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {tr("Each product keeps one stock balance. Separate stock per location is not available yet.")}
+        </p>
       </Box>
 
-      {/* Stock Management Rules */}
-      <Box title={tr("Stock Management Safeguards")} sub={tr("Strict business rules for inventory movements")}>
-        <div className="space-y-3">
-          <label className="flex items-center justify-between cursor-pointer">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{tr("Prevent Negative Stock")}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {tr("Stops sales and non-sale stock reductions if stock reaches zero")}
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={preventNegative}
-              onChange={(e) => setPreventNegative(e.target.checked)}
-              className="rounded"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{tr("Require Reason for Stock Adjustments")}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {tr("Forces staff to document discrepancies during cycle counts")}
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={requireReason}
-              onChange={(e) => setRequireReason(e.target.checked)}
-              className="rounded"
-            />
-          </label>
-
-          <label className="flex items-center justify-between cursor-pointer">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{tr("Batch & Expiry Date Tracking")}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {tr("Enables FEFO and batch expiry tracking on Stock In")}
-              </p>
-            </div>
-            <input
-              type="checkbox"
-              checked={batchTracking}
-              onChange={(e) => setBatchTracking(e.target.checked)}
-              className="rounded"
-            />
-          </label>
-
-          <div className="flex items-center justify-between pt-2 border-t border-border/30">
-            <div>
-              <p className="text-xs font-semibold text-foreground">{tr("Default Reorder Level Alert")}</p>
-              <p className="text-[10px] text-muted-foreground">
-                {tr("Minimum threshold before triggering low-stock warning")}
-              </p>
-            </div>
-            <input
-              type="number"
-              className={cn(inventoryInput, "w-20 text-right")}
-              value={minStockDefault}
-              onChange={(e) => setMinStockDefault(e.target.value)}
-            />
-          </div>
-        </div>
-      </Box>
-    </div>
-  );
-}
-
-/** Read-only product details popup opened from All Products */
-function ProductDetailSheet({
-  p,
-  s,
-  money,
-  tr,
-  isOwner = true,
-  onClose,
-}: {
-  p: erp.Product;
-  s: erp.ErpState;
-  money: (n: number) => string;
-  tr: (t: string) => string;
-  isOwner?: boolean;
-  onClose: () => void;
-}) {
-  const cat = s.categories.find((c) => c.id === p.categoryId)?.name;
-  const brand = s.brands.find((b) => b.id === p.brandId)?.name;
-
-  const cards: { label: string; value: string }[] = [];
-
-  // 1. Quantity always shown
-  cards.push({ label: tr("Quantity"), value: `${p.qty} ${p.unit ?? "pcs"}`.trim() });
-
-  // 2. Buying price & Stock value hidden if not owner
-  if (isOwner) {
-    if (p.buy !== undefined && p.buy !== null) {
-      cards.push({ label: tr("Buying price"), value: money(p.buy) });
-    }
-    cards.push({ label: tr("Stock value"), value: money(p.qty * (p.buy || 0)) });
-  }
-
-  // 3. Selling price (if set)
-  if (p.sell !== undefined && p.sell !== null && p.sell > 0) {
-    cards.push({ label: tr("Selling price"), value: money(p.sell) });
-  }
-
-  // 4. Category (only if exists)
-  if (cat && cat.trim() && cat !== "—") {
-    cards.push({ label: tr("Category"), value: cat });
-  }
-
-  // 5. Brand (only if exists)
-  if (brand && brand.trim() && brand !== "—") {
-    cards.push({ label: tr("Brand"), value: brand });
-  }
-
-  // 6. Barcode (only if exists)
-  if (p.barcode && p.barcode.trim()) {
-    cards.push({ label: tr("Barcode"), value: p.barcode });
-  }
-
-  // 7. SKU (only if exists)
-  if (p.sku && p.sku.trim()) {
-    cards.push({ label: tr("SKU"), value: p.sku });
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70 backdrop-blur-sm p-3"
-      onClick={onClose}
-    >
-      <div
-        className="inventory-box w-full sm:max-w-md rounded-2xl p-4 space-y-3.5 bg-card/95 border border-border shadow-xl backdrop-blur-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header: Product name on the top left, 'X' icon on the top right */}
-        <div className="flex items-center justify-between gap-3 border-b border-border/40 pb-2.5">
-          <h3 className="font-bold text-foreground text-sm sm:text-base truncate">{p.name}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
-            aria-label={tr("Close")}
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Dynamic Detail Cards - only items that actually exist */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          {cards.map((c) => (
-            <div key={c.label} className="rounded-xl border border-border/50 bg-background/50 p-2.5 space-y-0.5">
-              <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">{c.label}</p>
-              <p className="font-semibold text-foreground truncate">{c.value}</p>
-            </div>
+      {/* Rules the stock engine always applies */}
+      <Box title={tr("Stock Management Safeguards")} sub={tr("Always on for every inventory movement")}>
+        <ul className="space-y-2.5">
+          {rules.map(([title, detail]) => (
+            <li key={title} className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-emerald-500" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground">{tr(title)}</p>
+                <p className="text-[11px] text-muted-foreground">{tr(detail)}</p>
+              </div>
+            </li>
           ))}
-        </div>
-
-        {/* Variants list if product has variants */}
-        {p.variants && p.variants.length > 0 && (
-          <div className="space-y-1.5 pt-1 border-t border-border/30">
-            <p className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground/80">
-              {tr("Variants / Sizes")} ({p.variants.length})
-            </p>
-            <div className="max-h-36 overflow-y-auto space-y-1 pr-1 divide-y divide-border/20">
-              {p.variants.map((v) => (
-                <div key={v.id} className="flex items-center justify-between py-1 text-xs">
-                  <span className="font-medium text-foreground">{v.name}</span>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span>
-                      {v.qty} {p.unit || "pcs"}
-                    </span>
-                    {v.sell ? <span className="font-semibold text-foreground">{money(v.sell)}</span> : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+        </ul>
+      </Box>
     </div>
   );
 }

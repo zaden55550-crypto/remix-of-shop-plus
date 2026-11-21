@@ -3,14 +3,14 @@ import { commit, empty, type ErpState } from "@/lib/erp";
 /** Groups of ERP collections the owner can wipe. Linked records are removed together so balances never point at missing documents. */
 export const RESET_GROUPS: Record<string, (keyof ErpState)[]> = {
   "Sales & returns": ["sales", "returns", "commissions"],
-  "Purchases & supplier returns": ["purchases", "purchaseReturns"],
+  "Purchases & supplier returns": ["purchases", "purchaseReturns", "purchaseOrders", "supplierInvoices"],
   Expenses: ["expenses", "expenseCategories"],
   "Payments, Float & cash-up": ["payments", "cash"],
-  "Products & stock": ["products", "categories", "brands", "movements", "transfers"],
+  "Products & stock": ["products", "categories", "brands", "units", "attributes", "locations", "movements", "transfers"],
   Contacts: ["customers", "suppliers", "otherContacts", "contactCategories"],
   Payroll: ["employees", "payrolls", "payrollPayments", "payrollDrafts"],
 };
-export const LOCAL_KEYS = ["shopbook.reconcile", "shopbook.importHistory", "shopbook.purchaseDrafts", "shopbook.savedReports"];
+export const LOCAL_KEYS = ["shopbook.reconcile", "shopbook.importHistory", "shopbook.purchaseDrafts", "shopbook.purchaseReturnDrafts", "shopbook.savedReports"];
 
 export function resetData(groups: string[], everything: boolean) {
   const keys = everything ? Object.values(RESET_GROUPS).flat() : groups.flatMap((g) => RESET_GROUPS[g] ?? []);

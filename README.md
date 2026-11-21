@@ -1,6 +1,6 @@
-# SHOPBOOK
+# Zakrio Systems
 
-Implement exactly the screenshot and nothing else
+Business management for shops, supermarkets, warehouses and other trade businesses: sales and POS, stock, purchases, money, accounting, payroll and reports, in one app that works offline.
 
 This project was built with [Lovable](https://lovable.dev).
 
