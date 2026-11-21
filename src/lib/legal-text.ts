@@ -1,7 +1,8 @@
 // The Terms & Conditions and Privacy Policy shown at /terms and /privacy (linked from Create Account).
 // DRAFT written 2026-11-20 from how the app actually works; it must be reviewed by a qualified lawyer in Kenya before customers
 // rely on it. Things only the owner can supply are marked in OWNER_DETAILS: fill them in rather than inventing them.
-// The text is English only for now; the page's headings and buttons are translated.
+// Translations of every sentence: legal-translations.ts (legal-i18n/*.json). After editing the English here, update en.json and each
+// language file; legal-translations.test.ts says which sentences changed. Untranslated sentences show in English.
 
 export type LegalSection = { heading: string; paragraphs: string[]; list?: string[] };
 export type LegalDoc = { title: string; updated: string; intro: string[]; sections: LegalSection[] };

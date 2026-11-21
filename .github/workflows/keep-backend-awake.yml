@@ -1,0 +1,35 @@
+# Keeps the Lovable Cloud backend from being paused as idle (2026-11-21, owner's request): once a day it calls the same two
+# health checks the app makes (sign-in service and database). A paused backend made the app show "offline" everywhere.
+# Uses only the public address and publishable key already in .env; no secrets. Run it by hand from the Actions tab any time.
+name: Keep backend awake
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # every day at 06:17 UTC (09:17 in Kenya)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .env
+          sparse-checkout-cone-mode: false
+      - name: Check in with the backend
+        run: |
+          read_env() { grep -E "^$1=" .env | head -1 | cut -d= -f2- | tr -d '"\r'; }
+          URL="$(read_env VITE_SUPABASE_URL)"
+          KEY="$(read_env VITE_SUPABASE_PUBLISHABLE_KEY)"
+          if [ -z "$URL" ] || [ -z "$KEY" ]; then echo "::error::VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY missing from .env"; exit 1; fi
+          auth=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -H "apikey: $KEY" "$URL/auth/v1/health")
+          db=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 -X POST -H "apikey: $KEY" -H "Content-Type: application/json" "$URL/rest/v1/rpc/shopbook_health")
+          echo "Sign-in service: $auth · Database: $db"
+          if [ "$auth" != "200" ] || [ "$db" != "200" ]; then
+            echo "::error::The backend did not answer (sign-in $auth, database $db). It may be paused: open the project in Lovable › Cloud and press Wake up."
+            exit 1
+          fi

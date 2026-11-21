@@ -1,16 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/hooks/use-language";
+import { SUPPORT } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { authMessage, finishOwnerRecovery, requestOwnerRecovery } from "@/lib/auth-service";
 import { ShopButton } from "@/components/ui/shop-button";
-import { ZakrioMark } from "@/components/shopbook/ui";
-import { KeyRound } from "lucide-react";
+import { ZakrioMark, useSavedTheme } from "@/components/shopbook/ui";
+import { ArrowLeft, KeyRound } from "lucide-react";
 
 export const Route = createFileRoute("/auth/recovery")({ component: OwnerRecovery });
 
 function OwnerRecovery() {
   const { tr } = useLanguage();
+  useSavedTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -39,7 +41,7 @@ function OwnerRecovery() {
     catch (x) { setError(authMessage(x)); }
     finally { setBusy(false); }
   };
-  return <main className="app-screen signup-page legal-page verify-page"><section className="auth-card verify-card">
+  return <main className="app-screen signup-page legal-page verify-page readable-page"><section className="auth-card verify-card readable-card">
     <div className="verify-icon"><KeyRound aria-hidden /></div>
     <h1>{tr(session ? "Choose a new password" : "Forgot your password?")}</h1>
     {session ? <form className="recovery-form" onSubmit={(e) => void update(e)}>
@@ -54,6 +56,8 @@ function OwnerRecovery() {
     </form>}
     {message && <p role="status" className="verify-ok">{message}</p>}{error && <p role="alert" className="verify-err">{tr(error)}</p>}
     <p className="verify-brand"><ZakrioMark compact /> <b>ZAKRIO SYSTEMS</b></p>
-    <Link to="/" className="verify-small">{tr("Back to login")}</Link>
+    {/* People locked out need help most: the same WhatsApp line as Log In. */}
+    <p className="verify-small readable-help">{tr("Need help?")} <a href={`https://wa.me/${SUPPORT.whatsapp}`} target="_blank" rel="noreferrer">{tr("WhatsApp support")}</a></p>
+    <Link to="/" className="verify-small readable-back"><ArrowLeft aria-hidden /> {tr("Back to login")}</Link>
   </section></main>;
 }

@@ -1,10 +1,6 @@
 ﻿import { toast } from "sonner";
 import { createPortal } from "react-dom";
-import { useNavigate } from "@tanstack/react-router";
-import { authMessage, registerEmailIdentity, signInProvider } from "@/lib/auth-service";
-import { createOwnerFromIdentity } from "@/lib/owner-link";
-import { hashPassword } from "@/lib/device-password";
-import { passwordProblem } from "@/lib/password-strength";
+import { authMessage, passkeyCancelled, passkeyMessage, passkeysEnabled, passkeysSupported, signInPasskey, signInProvider } from "@/lib/auth-service";
 import emblemAsset from "@/assets/auth-brand-emblem.jpg.asset.json";
 import {
   useEffect,
@@ -21,9 +17,8 @@ import {
   Camera,
   Eye,
   EyeOff,
+  Fingerprint,
   Globe,
-  KeyRound,
-  Mail,
   Minus,
   Move,
   Plus,
@@ -37,7 +32,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { LANGS } from "@/lib/i18n";
-import { store, RING_ICONS } from "@/lib/shopbook";
+import { RING_ICONS } from "@/lib/shopbook";
 import { ShopButton } from "@/components/ui/shop-button";
 import { cn } from "@/lib/utils";
 import {
@@ -65,6 +60,10 @@ const applyDark = (dark: boolean) => {
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
 };
+/** Pages without the theme switch (Terms, Privacy, Forgot Password, Verify email) still open in the person's saved light or dark. */
+export function useSavedTheme() {
+  useEffect(() => { try { applyDark(readDark()); } catch { /* storage blocked: keep the default */ } }, []);
+}
 const subscribeTheme = (changed: () => void) => {
   const onStorage = (e: StorageEvent) => {
     if (e.key === THEME_KEY) changed();
@@ -956,12 +955,12 @@ export function Wordmark({ className }: { className?: string }) {
 }
 
 /* -------------------------------------------------------
-   SocialButtons: Google, Apple & 6-Digit Admin Invite Code
+   SocialButtons: Google, Apple & Email
 ------------------------------------------------------- */
 
 /** How this device signed in last (Google, Apple or email), so Log In can point to it. Display only. */
 const LAST_SIGN_IN = "shopbook.lastSignIn";
-export const rememberSignIn = (how: "google" | "apple" | "email") => { try { localStorage.setItem(LAST_SIGN_IN, how); } catch { /* a hint only */ } };
+export const rememberSignIn = (how: "google" | "apple" | "email" | "passkey") => { try { localStorage.setItem(LAST_SIGN_IN, how); } catch { /* a hint only */ } };
 const lastSignIn = () => { try { return localStorage.getItem(LAST_SIGN_IN); } catch { return null; } };
 
 /** Whether Lovable's Google/Apple sign-in service can be reached here. It is served only by the Lovable-hosted site; a copy running on
@@ -971,23 +970,41 @@ async function oauthAvailable() {
   return !/^(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0)$/.test(window.location.hostname);
 }
 
-/** Google, Apple and Email on one line, the same on Log In and Create Account. Email signs in directly with email and password:
- *  on Log In it hands them to the page's own login (`onEmailLogin`, so linking and checks are identical); on Create Account
- *  (`mode="signup"`) it creates the online account and the business the same way a first Google or Apple sign-in does. */
-export function SocialButtons({ mode = "login", onEmailLogin }: { mode?: "login" | "signup"; onEmailLogin?: (email: string, password: string) => void }) {
-  const navigate = useNavigate();
-  const { language } = useLanguage();
+/** Google and Apple on one line, the same on Log In and Create Account. Email and password is the page's own form, so there is no
+ *  separate Email button. A first Google or Apple sign-in creates the business (Log In finishes every sign-in). Log In also shows
+ *  Passkey (fingerprint, face or screen lock) where the browser supports it; the sign-in it opens is finished by Log In too. */
+export function SocialButtons({ passkey = false }: { passkey?: boolean } = {}) {
   // Read after mount: the server can't see this device's storage, so reading it during the first render broke hydration.
   const [last, setLast] = useState<string | null>(null);
   useEffect(() => { setLast(lastSignIn()); }, []);
   const { tr } = useLanguage();
-  const [signingWith, setSigningWith] = useState<"google" | "apple" | null>(null);
-  const [emailOpen, setEmailOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [sending, setSending] = useState(false);
-  const signup = mode === "signup";
+  const [signingWith, setSigningWith] = useState<"google" | "apple" | "passkey" | null>(null);
+  // Passkey is always on Log In. Until the server has passkeys switched on (Lovable Cloud doesn't offer them yet), tapping it says
+  // "coming soon"; once switched on, the same button signs in. Asked after mount, so server rendering never differs.
+  const canPasskey = passkey;
+  const [passkeyOn, setPasskeyOn] = useState(false);
+  useEffect(() => {
+    let live = true;
+    if (passkey) void passkeysEnabled().then((on) => { if (live) setPasskeyOn(on); });
+    return () => { live = false; };
+  }, [passkey]);
+
+  const handlePasskey = async () => {
+    if (!passkeyOn) { toast(tr("Passkey sign-in is coming soon. For now, log in with your email, Google or Apple.")); return; }
+    if (!passkeysSupported()) { toast.error(tr("This browser doesn't support passkeys. Try an up-to-date Chrome, Safari or Edge.")); return; }
+    if (!navigator.onLine) { toast.error(tr("Passkeys need internet. Log in with your email and password.")); return; }
+    if (!(await oauthAvailable())) { toast.error(tr("Passkeys work on your published site, not on this test copy.")); return; }
+    setSigningWith("passkey");
+    try {
+      await signInPasskey();
+      rememberSignIn("passkey");
+      // Signed in online: Log In's own sign-in watcher opens the business (or the employee's shop) from here.
+    } catch (err: unknown) {
+      if (!passkeyCancelled(err)) toast.error(tr(passkeyMessage(err)));
+    } finally {
+      setSigningWith(null);
+    }
+  };
 
   const handleOAuth = async (provider: "google" | "apple") => {
     try {
@@ -995,7 +1012,7 @@ export function SocialButtons({ mode = "login", onEmailLogin }: { mode?: "login"
       // Google and Apple go through Lovable's sign-in service, which only exists on the Lovable-hosted site (preview, published
       // address or custom domain). A test copy on this computer (localhost) has no such page: say so instead of opening a 404.
       if (!(await oauthAvailable())) {
-        toast.error(tr("Google and Apple sign-in work on your published site, not on this test copy. Here, use Email."));
+        toast.error(tr("Google and Apple sign-in work on your published site, not on this test copy. Here, log in with your email and password."));
         return;
       }
       rememberSignIn(provider);
@@ -1010,41 +1027,9 @@ export function SocialButtons({ mode = "login", onEmailLogin }: { mode?: "login"
     }
   };
 
-  const submitEmail = async () => {
-    const address = email.trim();
-    if (!/^\S+@\S+\.\S+$/.test(address)) { toast.error(tr("Enter a valid email")); return; }
-    if (!password) { toast.error(tr("Enter your password")); return; }
-    if (!signup) { rememberSignIn("email"); setEmailOpen(false); onEmailLogin?.(address, password); return; }
-    const problem = passwordProblem(password);
-    if (problem) { toast.error(tr(problem)); return; }
-    if (password !== confirm) { toast.error(tr("Passwords do not match")); return; }
-    setSending(true);
-    try {
-      const made = await registerEmailIdentity(address, password, "");
-      rememberSignIn("email");
-      // The provider wants the address confirmed first: the business is created on the first sign-in after that.
-      if (made.verificationRequired) { setEmailOpen(false); navigate({ to: "/auth/verify", search: { email: address } }); return; }
-      // A device that already holds a business goes through Log In, which never hands that business to another account.
-      if (store.get()) { setEmailOpen(false); navigate({ to: "/", replace: true }); return; }
-      await createOwnerFromIdentity(language);
-      store.update({ password: await hashPassword(password) });
-      setEmailOpen(false);
-      toast.success(tr("Your account is ready. Choose a plan to start."));
-      navigate({ to: "/plans" });
-    } catch (x) { toast.error(tr(authMessage(x))); }
-    finally { setSending(false); }
-  };
-  const closeEmail = () => { setEmailOpen(false); setPassword(""); setConfirm(""); };
-  useEffect(() => {
-    if (!emailOpen) return undefined;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeEmail(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [emailOpen]);
-
   return (
     <div className="auth-social-wrap">
-      <div className="auth-social-row auth-social-three">
+      <div className={cn("auth-social-row auth-social-two", canPasskey && "auth-social-passkey")}>
         <button
           type="button"
           onClick={() => handleOAuth("google")}
@@ -1089,39 +1074,18 @@ export function SocialButtons({ mode = "login", onEmailLogin }: { mode?: "login"
           <span className="auth-social-label">{signingWith === "apple" ? "..." : "Apple"}</span>
         </button>
 
-        <button
+        {canPasskey && <button
           type="button"
-          onClick={() => setEmailOpen(true)}
-          className={cn("auth-btn-social auth-btn-email", last === "email" && "is-last")}
+          onClick={() => void handlePasskey()}
+          disabled={signingWith !== null}
+          title={tr("Log in with your fingerprint, face or screen lock")}
+          className={cn("auth-btn-social auth-btn-passkey", last === "passkey" && "is-last")}
         >
-          {last === "email" && <span className="auth-last-used">{tr("Last used")}</span>}
-          <Mail className="auth-social-icon" aria-hidden />
-          <span className="auth-social-label">{tr("Email")}</span>
-        </button>
+          {last === "passkey" && <span className="auth-last-used">{tr("Last used")}</span>}
+          <Fingerprint className="auth-social-icon" aria-hidden />
+          <span className="auth-social-label">{signingWith === "passkey" ? "..." : tr("Passkey")}</span>
+        </button>}
       </div>
-
-      {emailOpen && createPortal(
-        <div className="glass-scrim fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) closeEmail(); }}>
-          <div className="glass-card auth-email-dialog flex w-full max-w-md flex-col gap-3 rounded-2xl border border-border p-5 shadow-2xl" role="dialog" aria-modal="true" aria-label={tr(signup ? "Sign up with email" : "Log in with email")}>
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-lg font-bold">{tr(signup ? "Sign up with email" : "Log in with email")}</h3>
-              <button type="button" onClick={closeEmail} aria-label={tr("Close")} className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted"><X className="h-4 w-4" /></button>
-            </div>
-            {/* The window is portalled, but React still bubbles its events to the page's own form: stop them here. */}
-            <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void submitEmail(); }}>
-              <Field icon={<Mail className="h-5 w-5" />} label={tr("Email")} type="email" inputMode="email" autoComplete="email" autoFocus placeholder={tr("Enter email address")} value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Field icon={<KeyRound className="h-5 w-5" />} password label={tr("Password")} autoComplete={signup ? "new-password" : "current-password"} placeholder={tr(signup ? "Create password" : "Enter password")} value={password} onChange={(e) => setPassword(e.target.value)} required />
-              {signup && <Field icon={<KeyRound className="h-5 w-5" />} password label={tr("Confirm Password")} autoComplete="new-password" placeholder={tr("Repeat password")} value={confirm} onChange={(e) => setConfirm(e.target.value)} required />}
-              {!signup && <a href="/auth/recovery" className="auth-email-forgot">{tr("Forgot Password?")}</a>}
-              <div className="flex justify-end gap-2 pt-1">
-                <ShopButton type="button" variant="outline" onClick={closeEmail}>{tr("Cancel")}</ShopButton>
-                <ShopButton type="submit" disabled={sending}>{tr(signup ? (sending ? "Creating…" : "Create Account") : "Log In")}</ShopButton>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body,
-      )}
     </div>
   );
 }

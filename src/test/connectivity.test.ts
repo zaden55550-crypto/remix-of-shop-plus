@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ACTIVE_CHECK_MS, connectionLabel, getConnectivity, startConnectivity } from "../lib/connectivity";
+import { ACTIVE_CHECK_MS, connectionLabel, getConnectivity, offlineReason, startConnectivity } from "../lib/connectivity";
 describe("authoritative connectivity", () => {
   let stop: (() => void) | undefined;
   beforeEach(() => { vi.useFakeTimers(); Object.defineProperty(document, "visibilityState", { configurable: true, value: "visible" }); Object.defineProperty(navigator, "onLine", { configurable: true, value: true }); });
@@ -28,5 +28,16 @@ describe("authoritative connectivity", () => {
     expect(connectionLabel(up, false)).toBe("online"); expect(connectionLabel(up, true)).toBe("syncing");
     expect(connectionLabel({ ...up, backend: "unknown" }, false)).toBe("connecting");
     expect(connectionLabel({ ...up, backend: "down" }, true)).toBe("offline");
+  });
+  it("says offline only after two missed server checks, and tells no internet from no server", async () => {
+    const probe = vi.fn().mockResolvedValue(false); stop = startConnectivity(probe);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(getConnectivity().backend).toBe("down"); expect(connectionLabel(getConnectivity(), false)).toBe("connecting"); expect(offlineReason(getConnectivity())).toBeNull();
+    await vi.advanceTimersByTimeAsync(ACTIVE_CHECK_MS);
+    expect(connectionLabel(getConnectivity(), false)).toBe("offline"); expect(offlineReason(getConnectivity())).toBe("server");
+    probe.mockResolvedValue(true); await vi.advanceTimersByTimeAsync(ACTIVE_CHECK_MS);
+    expect(getConnectivity().failures).toBe(0); expect(offlineReason(getConnectivity())).toBeNull();
+    Object.defineProperty(navigator, "onLine", { configurable: true, value: false }); window.dispatchEvent(new Event("offline"));
+    expect(offlineReason(getConnectivity())).toBe("internet");
   });
 });

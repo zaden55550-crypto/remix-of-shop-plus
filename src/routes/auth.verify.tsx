@@ -3,11 +3,11 @@
 // on this device meanwhile (the business works on this device whether or not the email is verified yet).
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { MailCheck } from "lucide-react";
+import { ArrowLeft, MailCheck } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { authMessage, resendVerification } from "@/lib/auth-service";
 import { ShopButton } from "@/components/ui/shop-button";
-import { ZakrioMark } from "@/components/shopbook/ui";
+import { ZakrioMark, useSavedTheme } from "@/components/shopbook/ui";
 
 export const Route = createFileRoute("/auth/verify")({
   head: () => ({ meta: [{ title: "Verify your email — Zakrio Systems" }] }),
@@ -19,6 +19,7 @@ const WAIT = 60;
 
 function VerifyEmail() {
   const { tr } = useLanguage(), nav = useNavigate();
+  useSavedTheme();
   const { email } = Route.useSearch();
   const [left, setLeft] = useState(WAIT);
   const [busy, setBusy] = useState(false);
@@ -33,14 +34,14 @@ function VerifyEmail() {
     finally { setBusy(false); }
   };
 
-  return <main className="app-screen signup-page legal-page verify-page">
-    <section className="auth-card verify-card">
+  return <main className="app-screen signup-page legal-page verify-page readable-page">
+    <section className="auth-card verify-card readable-card">
       <div className="verify-icon"><MailCheck aria-hidden /></div>
       <h1>{tr("Verify your email")}</h1>
       <p>{tr("We sent a verification link to")}</p>
       <p className="verify-email">{email || "—"}</p>
       <p>{tr("Open the link in that email to finish your online account. After that you can sign in on any phone or computer, and reset your password if you forget it.")}</p>
-      <p className="verify-note">{tr("You can keep setting up on this device now: your business is saved here either way.")}</p>
+      <p className="verify-note">{tr("You can keep setting up now. Confirm your email later to log in from other phones or computers.")}</p>
       <div className="verify-actions">
         <ShopButton className="verify-go" onClick={() => nav({ to: "/plans" })}>{tr("Continue to plans")}</ShopButton>
         <ShopButton variant="outline" disabled={busy || left > 0 || !email} onClick={() => void resend()}>{left > 0 ? `${tr("Resend email")} (${left}s)` : tr("Resend email")}</ShopButton>
@@ -49,7 +50,7 @@ function VerifyEmail() {
       {error && <p role="alert" className="verify-err">{tr(error)}</p>}
       <p className="verify-small">{tr("Wrong email address? Contact Support from inside the app after you continue.")}</p>
       <p className="verify-brand"><ZakrioMark compact /> <b>ZAKRIO SYSTEMS</b></p>
-      <Link to="/" className="verify-small">{tr("Back to login")}</Link>
+      <Link to="/" className="verify-small readable-back"><ArrowLeft aria-hidden /> {tr("Back to login")}</Link>
     </section>
   </main>;
 }

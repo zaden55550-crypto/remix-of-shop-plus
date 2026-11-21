@@ -124,7 +124,7 @@ export const acceptInvitation = createServerFn({ method: "POST" })
   });
 
 // ---------- Employee sign-in: the same auth system as the owner's, with history and a limit on guessing ----------
-const WRONG = "Shop name, email or password is incorrect";
+const WRONG = "Business name, email or password is incorrect";
 export const employeeSignIn = createServerFn({ method: "POST" })
   .inputValidator((v) => z.object({ identifier: z.string().min(3).max(200), password: z.string().min(1).max(200) }).parse(v))
   .handler(async ({ data }) => {

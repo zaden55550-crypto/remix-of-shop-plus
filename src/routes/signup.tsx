@@ -11,6 +11,7 @@ import {
   TopBar,
 } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
+import { ConnectionPill, useConnection } from "@/components/shopbook/connection-status";
 import { useLanguage } from "@/hooks/use-language";
 import { hashPassword } from "@/lib/device-password";
 import { passwordProblem, passwordStrength } from "@/lib/password-strength";
@@ -77,6 +78,7 @@ function agreementText(sentence: string, links: [string, string][]) {
 
 function Signup() {
   const nav = useNavigate();
+  const { reason: offline } = useConnection();
   const { tr, dir, language } = useLanguage();
 
   const [f, setF] = useState({
@@ -194,14 +196,12 @@ function Signup() {
     const duplicateEmail =
       existing && (existing.email || "").trim().toLowerCase() === emailTrimmed.toLowerCase();
     if (existing && (duplicateShopName || duplicateEmail)) {
-      const message = tr(
-        "An account with this company name or email already exists on this device",
-      );
+      const message = tr("This business name or email is already registered. Log in instead.");
       setErr({
         ...(duplicateShopName ? { shopName: message } : {}),
         ...(duplicateEmail ? { email: message } : {}),
       });
-      toast.error(message);
+      toast.error(message, { action: { label: tr("Log In"), onClick: () => nav({ to: "/" }) } });
       return;
     }
 
@@ -308,8 +308,12 @@ function Signup() {
   return (
     <>
       <header className="signup-form-heading">
+        <ConnectionPill />
         <h1>{tr("Create Account")}</h1>
         <p>{tr("30-day free trial · no card needed")}</p>
+        {/* An account made without the server is kept only on this device (nothing links it online later), so say so first. */}
+        {offline === "internet" && <p className="login-offline" role="status">{tr("You're offline. An account created now works only on this phone or computer. Connect to the internet first to use it anywhere.")}</p>}
+        {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the Zakrio server right now. An account created now works only on this phone or computer. Try again in a moment to use it anywhere.")}</p>}
       </header>
 
       <form onSubmit={submit} className="signup-form">
@@ -406,6 +410,7 @@ function Signup() {
                 inputMode="tel"
                 autoComplete="tel-national"
                 className="signup-field-input signup-phone-input"
+                placeholder={tr("e.g. 712 345 678")}
                 value={f.phone}
                 aria-invalid={err.phone ? true : undefined}
                 onChange={(e) => {
@@ -440,7 +445,7 @@ function Signup() {
               onChange={set("password")}
               required
             />
-            {strength.level > 0 && <span className={`pw-meter is-${strength.level}`} role="status" aria-live="polite" title={tr("At least 6 characters. Longer, mixing letters, numbers, capitals and symbols, is stronger.")}>
+            {strength.level > 0 && <span className={`pw-meter is-${strength.level}`} role="status" aria-live="polite" title={tr("At least 6 characters")}>
               <span className="pw-meter-bar" aria-hidden><i /><i /><i /><i /></span><b>{tr(strength.label)}</b>
             </span>}
             </div>
@@ -493,8 +498,8 @@ function Signup() {
             </Link>
           </div>
 
-          {/* Google, Apple and Email (a one-time link that creates the account) on one line. */}
-          <SocialButtons mode="signup" />
+          {/* Google, Apple and Email on one line. */}
+          <SocialButtons />
         </div>
       </form>
     </>

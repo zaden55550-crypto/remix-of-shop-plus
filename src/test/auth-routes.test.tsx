@@ -15,7 +15,7 @@ const {
   toastError,
   toastCall,
 } = vi.hoisted(() => {
-  const toastCall = Object.assign(vi.fn(), { error: vi.fn() });
+  const toastCall = Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() });
   return {
     navigate: vi.fn(),
     employeeSignIn: vi.fn(),
@@ -176,7 +176,21 @@ describe("auth interface translations", () => {
     "Enter email address",
     "Repeat password",
     "An account with this shop name or email already exists on this device",
-    "Incorrect shop name, email, or password.",
+    "Incorrect business name, email, or password.",
+    "On a new phone or computer, log in with your email.",
+    "This business name or email is already registered. Log in instead.",
+    "You're offline. You can still log in if you've used the app here before. Google and Apple need internet.",
+    "At least 6 characters",
+    "You're offline. An account created now works only on this phone or computer. Connect to the internet first to use it anywhere.",
+    "e.g. 712 345 678",
+    "Can't reach the Zakrio server right now. You can still log in if you've used the app here before.",
+    "Need help?",
+    "WhatsApp support",
+    "Add a passkey on this phone or computer",
+    "Passkey sign-in is coming soon. For now, log in with your email, Google or Apple.",
+    "Passkeys aren't switched on for this app yet. Use your email and password.",
+    "New staff? Open the invitation link your employer sent you to set your password.",
+    "You can keep setting up now. Confirm your email later to log in from other phones or computers.",
   ])("translates %s in every offered language", (phrase) => {
     for (const language of LANGS.slice(1)) {
       expect(translateText(language, phrase), `${phrase} in ${language}`).not.toBe(phrase);
@@ -196,6 +210,26 @@ describe("login route", () => {
       expect(employeeSignIn).not.toHaveBeenCalled();
     },
   );
+
+  it("creates the online account for a business made offline, at its next login with internet", async () => {
+    store.save(owner({ setupPending: false, authMigration: { status: "not_started", updatedAt: 1 } }));
+    registerEmailIdentity.mockResolvedValueOnce({ user: { id: "u-later", identities: [{}] }, session: null, verificationRequired: true } as never);
+    await renderRoute("index");
+    fillLogin("owner@example.com");
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/apps" }));
+    expect(registerEmailIdentity).toHaveBeenCalledWith("owner@example.com", "correct-horse", "Kifaru General Supplies");
+    expect(store.get()?.authMigration).toMatchObject({ status: "pending", centralUserId: "u-later" });
+    expect(toastCall).toHaveBeenCalledWith(expect.stringContaining("Your account is going online. We sent a link to"));
+  });
+
+  it("still logs in a business made offline when there is still no internet, and tries again next time", async () => {
+    store.save(owner({ setupPending: false, authMigration: { status: "not_started", updatedAt: 1 } }));
+    await renderRoute("index");
+    fillLogin("owner@example.com");
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ to: "/apps" }));
+    expect(store.get()?.authMigration?.status).toBe("not_started");
+    expect(store.signedIn()).toBe(true);
+  });
 
   it("returns an owner with unfinished setup to Setup", async () => {
     store.save(owner({ setupPending: true }));
@@ -247,7 +281,7 @@ describe("login route", () => {
     fillLogin("owner@example.com", "wrong-password");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Incorrect shop name, email, or password.",
+        "Incorrect business name, email, or password.",
       ),
     );
     expect(toastError).not.toHaveBeenCalled();
@@ -275,7 +309,7 @@ describe("login route", () => {
     fillLogin("Unknown Shop");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Incorrect shop name, email, or password.",
+        "Incorrect business name, email, or password. On a new phone or computer, log in with your email.",
       ),
     );
     expect(store.get()).toBeNull();
@@ -298,7 +332,7 @@ describe("login route", () => {
     fillLogin("staff@example.com", "wrong-password");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Incorrect shop name, email, or password.",
+        "Incorrect business name, email, or password.",
       ),
     );
     expect(signInEmail).toHaveBeenCalledWith("staff@example.com", "wrong-password");
@@ -348,11 +382,11 @@ describe("login route", () => {
 });
 
 describe("signup route", () => {
-  it("starts with a blank optional phone-number entry", async () => {
+  it("starts with a blank phone-number entry that shows an example (owner's request, 2026-11-21)", async () => {
     await renderRoute("signup");
     const phone = screen.getByLabelText("Phone Number");
     expect(phone).toHaveValue("");
-    expect(phone).not.toHaveAttribute("placeholder");
+    expect(phone).toHaveAttribute("placeholder", "e.g. 712 345 678");
   });
 
   it("shows required-field errors when submitted empty", async () => {
@@ -367,9 +401,9 @@ describe("signup route", () => {
   it("accepts any password of 6 or more characters, and shows its strength as advice only", async () => {
     await renderRoute("signup");
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "abcdef" } });
-    expect(screen.getByRole("status").textContent).toContain("Weak");
+    expect(document.querySelector(".pw-meter")?.textContent).toContain("Weak");
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Abcdefgh12!x" } });
-    expect(screen.getByRole("status").textContent).toContain("Strong");
+    expect(document.querySelector(".pw-meter")?.textContent).toContain("Strong");
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "abc12" } });
     fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "abc12" } });
     fireEvent.submit(screen.getByRole("button", { name: "Create Account" }).closest("form")!);
@@ -414,7 +448,7 @@ describe("signup route", () => {
     fillSignup(duplicate);
     fireEvent.submit(screen.getByRole("button", { name: "Create Account" }).closest("form")!);
     expect(
-      screen.getByText("An account with this company name or email already exists on this device"),
+      screen.getByText("This business name or email is already registered. Log in instead."),
     ).toBeInTheDocument();
     expect(store.get()).toMatchObject({
       shopName: "Kifaru General Supplies",

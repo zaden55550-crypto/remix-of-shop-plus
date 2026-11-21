@@ -1,16 +1,23 @@
 import { useSyncExternalStore } from "react";
 
 export const ACTIVE_CHECK_MS = 5000;
-export type Connectivity = { internet: boolean; backend: "unknown" | "up" | "down"; checking: boolean; lastOk: number };
+/** `failures`: server checks failed in a row (internet on). One miss can be a slow moment, so the screen says offline from two. */
+export type Connectivity = { internet: boolean; backend: "unknown" | "up" | "down"; checking: boolean; lastOk: number; failures?: number };
 export type VisibleConnection = "online" | "connecting" | "offline" | "syncing";
-const initial: Connectivity = { internet: true, backend: "unknown", checking: false, lastOk: 0 };
+const initial: Connectivity = { internet: true, backend: "unknown", checking: false, lastOk: 0, failures: 0 };
 let state = initial;
 const listeners = new Set<() => void>();
 let retry: () => Promise<void> = async () => {};
 export const getConnectivity = () => state;
 const publish = (patch: Partial<Connectivity>) => { state = { ...state, ...patch }; listeners.forEach((f) => f()); };
+/** Why the app is offline, for the words on screen: no internet at all, or internet but the server isn't answering. */
+export function offlineReason(s: Connectivity): "internet" | "server" | null {
+  if (!s.internet) return "internet";
+  return s.backend === "down" && (s.failures ?? 2) >= 2 ? "server" : null;
+}
 export function connectionLabel(s: Connectivity, syncing: boolean): VisibleConnection {
-  if (!s.internet || s.backend === "down") return "offline";
+  if (offlineReason(s)) return "offline";
+  if (s.backend === "down") return "connecting";
   if (s.backend === "unknown") return "connecting";
   return syncing ? "syncing" : "online";
 }
@@ -46,7 +53,7 @@ export function startConnectivity(probe?: (signal: AbortSignal) => Promise<boole
       finally {
         clearTimeout(timeout);
         if (!stopped && id === generation) {
-          publish({ internet: navigator.onLine, checking: false, backend: ok && navigator.onLine ? "up" : "down", ...(ok && navigator.onLine ? { lastOk: Date.now() } : {}) });
+          publish({ internet: navigator.onLine, checking: false, backend: ok && navigator.onLine ? "up" : "down", failures: ok ? 0 : (state.failures ?? 0) + 1, ...(ok && navigator.onLine ? { lastOk: Date.now() } : {}) });
           window.dispatchEvent(new Event(ok ? "shopbook-backend-ready" : "shopbook-backend-down"));
         }
         running = undefined;

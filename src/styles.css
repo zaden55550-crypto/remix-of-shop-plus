@@ -3739,7 +3739,7 @@ video {
 @media (max-width: 767px) {
   .auth-login .login-benefits-footer {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     width: 96% !important;
     gap: 6px !important;
   }
@@ -4620,7 +4620,7 @@ video {
     margin: clamp(8px, 1.2vh, 14px) auto clamp(6px, 1vh, 12px) !important;
     padding: 0 !important;
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: clamp(8px, 1.2vw, 16px) !important;
     box-sizing: border-box !important;
     z-index: 1 !important;
@@ -5826,7 +5826,7 @@ body:has(.auth-login) #root {
     grid-row: 3 !important;
 
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 
     width: 100% !important;
     height: 100% !important;
@@ -19660,7 +19660,7 @@ body::after {
      by auto margins, which fall back to 0 when they are taller than the screen, so the top is always reachable and the page scrolls. */
   :root:root:root:root .auth-split-page > .login-benefits-footer.auth-benefits {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 14px !important;
     position: relative;
     z-index: 2;
@@ -20720,7 +20720,7 @@ body::after {
   /* The three benefit cards under the card on both pages, as on the laptop. */
   :root:root:root:root:root .auth-split-page > .login-benefits-footer.auth-benefits {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 6px !important;
     width: calc(100% - 24px) !important;
     max-width: 520px !important;
@@ -21130,7 +21130,7 @@ body::after {
   }
   :root:root:root:root .signup-page.auth-split-page .auth-social-row {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 7px !important;
     width: 100% !important;
   }
@@ -21228,7 +21228,7 @@ body::after {
   }
   :root:root:root:root:root .signup-page.auth-split-page > .login-benefits-footer.auth-benefits {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 7px !important;
     width: min(520px, 100%) !important;
     margin: 10px auto 2px !important;
@@ -23342,40 +23342,6 @@ p.verify-small { text-decoration: none; }
 @media (max-width: 1099px) { .bsetup-ready { display: none; } }
 /* ===== END SETUP READY CHECK & PLACE ===== */
 
-/* ===== AUTH DEVICE BUSINESS & TRIAL LINE (2026-11-21) =====
-   Log In shows the business already on this device (its logo or first letter, "This device: <name>"); tapping it fills the
-   Business Name box. Create Account states the trial above its button. Both inherit the page's text colour. */
-.login-device-biz {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  max-width: 100%;
-  margin-top: 0.45em;
-  padding: 0.25em 0.8em 0.25em 0.3em;
-  border: 1px solid rgba(16, 185, 129, 0.55);
-  border-radius: 999px;
-  background: color-mix(in srgb, #10b981 12%, transparent);
-  color: inherit;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.login-device-biz:disabled { cursor: default; }
-.login-device-biz > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.login-device-biz > img,
-.login-device-biz-mark {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  object-fit: contain;
-  background: #fff;
-}
-.login-device-biz-mark { display: grid; place-items: center; color: #0f2a4a; font-size: 13px; font-weight: 800; }
-
-/* ===== END AUTH DEVICE BUSINESS & TRIAL LINE ===== */
-
 /* ===== CREATE ACCOUNT ONE SCREEN (2026-11-21) =====
    The trial line is the heading's subtitle and "Have a promo code?" sits at the end of the agreement line, so the form,
    Create Account and Google/Apple fit inside the card at 1366×768 without smaller text or fields. */
@@ -23454,29 +23420,26 @@ p.verify-small { text-decoration: none; }
 }
 /* ===== END SETUP ON PHONES FITS THE SCREEN ===== */
 
-/* ===== GOOGLE · APPLE · EMAIL ROW (2026-11-21, owner's request) =====
-   Log In and Create Account share the same buttons: Google · Apple · Email on one line. Apple is solid black with a white logo so it reads clearly on
-   the glass in both themes (Apple's own sign-in style); Email opens the one-time link window. Rollback:
+/* ===== GOOGLE · APPLE ROW (2026-11-21, owner's request; Email button removed the same day: the form is the email sign-in) =====
+   Log In and Create Account share the same buttons: Google · Apple on one line. Apple is solid black with a white logo so it reads clearly on
+   the glass in both themes (Apple's own sign-in style). Rollback:
    .rollback/2026-11-21-social-row/ */
-:root:root:root:root:root:root:root:root:root .auth-social-row.auth-social-three,
-:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-row.auth-social-three {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+:root:root:root:root:root:root:root:root:root .auth-social-row.auth-social-two,
+:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-row.auth-social-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 }
-:root:root:root:root:root:root:root:root:root .auth-social-three > .auth-btn-social { min-width: 0; gap: 6px; }
-:root:root:root:root:root:root:root:root:root .auth-social-three > .auth-btn-apple,
+:root:root:root:root:root:root:root:root:root .auth-social-two > .auth-btn-social { min-width: 0; gap: 6px; }
+:root:root:root:root:root:root:root:root:root .auth-social-two > .auth-btn-apple,
 :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-row .auth-btn-apple {
   color: #ffffff !important;
   background: linear-gradient(180deg, #1f1f1f, #000000) !important;
   border-color: rgb(255 255 255 / 0.28) !important;
 }
-:root:root:root:root:root:root:root:root:root .auth-social-three > .auth-btn-apple:hover,
+:root:root:root:root:root:root:root:root:root .auth-social-two > .auth-btn-apple:hover,
 :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-row .auth-btn-apple:hover {
   background: linear-gradient(180deg, #2e2e2e, #0a0a0a) !important;
 }
-:root:root:root:root:root:root:root:root:root .auth-social-three > .auth-btn-apple .auth-social-icon { color: #ffffff !important; fill: #ffffff; }
-:root:root:root:root:root:root:root:root:root .auth-social-three > .auth-btn-email .auth-social-icon { color: currentColor !important; }
-.auth-email-dialog { color: var(--foreground); }
-.auth-email-dialog p { margin: 0; line-height: 1.45; }
+:root:root:root:root:root:root:root:root:root .auth-social-two > .auth-btn-apple .auth-social-icon { color: #ffffff !important; fill: #ffffff; }
 /* Create Account on a laptop up to 820px tall: the extra Email line fits by taking room from padding and gaps only (never the
    text, fields or buttons). */
 @media (min-width: 768px) and (max-height: 820px) {
@@ -23485,12 +23448,25 @@ p.verify-small { text-decoration: none; }
   :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .signup-field-label { margin-bottom: 1px !important; }
   :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page :is(.signup-form, .signup-actions) { gap: 4px !important; }
   :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .signup-form-fields { row-gap: 3px !important; }
-  :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-three { row-gap: 4px !important; }
+  :root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-two { row-gap: 4px !important; }
 }
-/* ===== END GOOGLE · APPLE · EMAIL ROW ===== */
-/* Email window (Log In / Create Account): its fields are the auth page's own Field boxes, floating over the page. */
-.auth-email-dialog .signup-field-label { display: block; margin-bottom: 4px; font-weight: 700; }
-.auth-email-forgot { align-self: flex-end; font-size: 14px; font-weight: 700; text-decoration: underline; color: inherit; }
+/* ===== END GOOGLE · APPLE ROW ===== */
+/* Log In: Google · Apple · Passkey when the browser supports passkeys (the Passkey button only renders then). */
+:root:root:root:root:root:root:root:root:root:root .auth-social-row.auth-social-two.auth-social-passkey,
+:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-row.auth-social-two.auth-social-passkey {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+:root:root:root:root:root:root:root:root:root .auth-social-two > .auth-btn-passkey .auth-social-icon { color: currentColor !important; }
+/* Log In: small lines under the buttons: new staff to their invitation link, then WhatsApp support. */
+:root:root:root:root:root:root:root:root .signup-page .login-help-note a { font-weight: 800; text-decoration: underline; color: inherit; }
+:root:root:root:root:root:root:root:root .signup-page :is(.login-staff-note, .login-help-note) {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  opacity: 0.85;
+}
 
 /* ===== SHORT LAPTOP SCREENS (2026-11-21, owner's request) =====
    On laptop windows up to 760px tall (a 1366×768 screen shows about 657px inside the browser) the card is always as tall as its
@@ -23564,7 +23540,7 @@ p.verify-small { text-decoration: none; }
   :root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .grid-phone .signup-phone-divider { display: none !important; }
   :root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .grid-phone .signup-phone-input { flex: 1 1 auto !important; min-width: 0 !important; }
   :root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page.auth-signup .auth-phone-brand { --ring: 92px !important; width: 92px !important; height: 92px !important; margin-bottom: 4px !important; }
-  :root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-three > .auth-btn-social { min-width: 0 !important; padding-inline: 4px !important; font-size: 14px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page .auth-social-two > .auth-btn-social { min-width: 0 !important; padding-inline: 4px !important; font-size: 14px !important; }
 }
 /* Phones: Country and Currency are only as wide as their three-letter code (KEN, KSH); Email and Phone take the rest. The search
    icon steps aside there (the whole box still opens the searchable list). */
@@ -23592,11 +23568,182 @@ p.verify-small { text-decoration: none; }
 }
 /* ===== END SHORT COUNTRY & CURRENCY ON BIG SCREENS ===== */
 
-/* Log In: under Business Name or Email, a one-line reminder that the business name only works on this device. */
-:root:root:root:root:root:root:root:root .signup-page .login-hint {
-  margin: -2px 0 0;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  opacity: 0.85;
+
+/* ===== BENEFITS ON ONE ROW (2026-11-21, owner's request) =====
+   Works Offline · All in One · Every Payment sit side by side on one row under the card, on Log In and Create Account, at every
+   width (earlier rules put two per row, so the third wrapped). Phones stack each card's icon over its text so three fit.
+   Short laptop windows (under 700px tall) still hide the row so the card fits. */
+@media (max-width: 767.98px), (min-height: 700px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .login-benefits-footer.auth-benefits {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .auth-benefits .signup-benefit {
+    grid-column: auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .auth-benefits .signup-benefit-text { min-width: 0 !important; }
 }
+@media (min-width: 768px) and (min-height: 700px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .login-benefits-footer.auth-benefits {
+    box-sizing: border-box !important;
+    width: min(1160px, 100% - 48px) !important; /* the card's own width, so the row lines up with it */
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .login-benefits-footer.auth-benefits {
+    gap: 6px !important;
+    width: min(520px, 100%) !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .auth-benefits .signup-benefit {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    padding: 8px 4px !important;
+    text-align: center !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .auth-benefits .signup-benefit-text h3 { font-size: 12px !important; line-height: 1.2 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .auth-benefits .signup-benefit-text p { font-size: 10.5px !important; line-height: 1.25 !important; }
+}
+@media (min-width: 768px) and (max-width: 1099.98px) and (min-height: 700px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root .signup-page.auth-split-page > .login-benefits-footer.auth-benefits { width: calc(100% - 2rem) !important; }
+}
+/* ===== END BENEFITS ON ONE ROW ===== */
+
+/* ===== CONNECTION PILL ON LOG IN & CREATE ACCOUNT (2026-11-21, owner's request) =====
+   Top corner of the form: green Wi-Fi Online · grey turning arrows Connecting · red crossed-out Wi-Fi Offline (ConnectionPill in
+   connection-status.tsx). */
+:root:root:root:root:root:root:root:root:root:root .signup-page .signup-form-heading { position: relative !important; }
+:root:root:root:root:root:root:root:root:root:root .signup-page .conn-pill {
+  position: absolute; top: 0; inset-inline-end: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--pill-line); background: var(--pill-bg); color: #fff;
+  font-size: 12px; font-weight: 800; line-height: 1.4; white-space: nowrap;
+}
+.conn-pill > svg { width: 14px; height: 14px; flex: none; color: var(--pill-dot); stroke-width: 2.6; }
+.conn-pill.is-online { --pill-dot: #4ade80; --pill-bg: rgb(22 163 74 / 0.28); --pill-line: rgb(34 197 94 / 0.6); }
+.conn-pill.is-connecting { --pill-dot: #e2e8f0; --pill-bg: rgb(100 116 139 / 0.35); --pill-line: rgb(203 213 225 / 0.5); }
+.conn-pill.is-offline { --pill-dot: #fca5a5; --pill-bg: rgb(220 38 38 / 0.3); --pill-line: rgb(248 113 113 / 0.65); }
+.conn-pill .conn-pill-spin { animation: conn-pill-spin 1s linear infinite; }
+@keyframes conn-pill-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .conn-pill .conn-pill-spin { animation: none; } }
+/* Phones: the pill sits in the card's top corner beside the logo, so a long translated title (e.g. Swahili) never runs into it. */
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root .signup-page .signup-form-heading { position: static !important; }
+  :root:root:root:root:root:root:root:root:root:root:root .signup-page .signup-form-panel { position: relative !important; }
+  :root:root:root:root:root:root:root:root:root:root:root .signup-page .conn-pill { top: 14px; inset-inline-end: 14px; }
+}
+/* ===== END CONNECTION PILL ===== */
+
+/* ===== TICK BOXES EASY TO SEE (2026-11-21, owner's request) =====
+   Unticked, the Terms (and Remember me) box was a dark square on the dark card: a light ring makes it stand out. */
+:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .signup-agreement-label input[type="checkbox"]:not(:checked) {
+  outline: 2px solid rgb(255 255 255 / 0.85) !important;
+  outline-offset: -1px !important;
+  border-radius: 3px !important;
+}
+/* ===== END TICK BOXES EASY TO SEE ===== */
+
+/* ===== READABLE PAGES (2026-11-21, owner's request) =====
+   What Log In and Create Account open (Terms, Privacy, Forgot Password, Verify email) is one large, clear card: solid background
+   (never text straight on the coloured page), bigger text, comfortable line length, bold labels, white boxes to type in and a big
+   Back button. Dark card in dark mode, white card in bright mode. */
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page { padding: 3vh 16px 6vh !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card {
+  --rd-bg: rgb(15 23 42 / 0.92); --rd-text: #f8fafc; --rd-soft: #cbd5e1; --rd-line: rgb(255 255 255 / 0.18); --rd-accent: #93c5fd;
+  background: var(--rd-bg) !important;
+  color: var(--rd-text) !important;
+  border: 1px solid var(--rd-line) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.35) !important;
+  backdrop-filter: blur(18px) !important;
+  max-width: 46rem !important;
+  width: 100% !important;
+  margin-inline: auto !important;
+  padding: clamp(22px, 4vw, 44px) !important;
+  font-size: clamp(18px, 1rem + 0.25vw, 19px) !important;
+  line-height: 1.75 !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .readable-page .readable-card { --rd-bg: rgb(255 255 255 / 0.97); --rd-text: #0f172a; --rd-soft: #475569; --rd-line: rgb(15 23 42 / 0.12); --rd-accent: #1d4ed8; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card :is(p, li, span, label) { color: inherit; font-size: inherit; line-height: inherit; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card :is(h1, h2) { color: var(--rd-text) !important; line-height: 1.25 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card h1 { font-size: clamp(30px, 2rem + 0.8vw, 40px) !important; margin: 0.3em 0 0.25em !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card h2 { font-size: clamp(21px, 1.2rem + 0.4vw, 24px) !important; margin: 1.5em 0 0.5em !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .legal-updated { color: var(--rd-soft) !important; font-size: 0.9em !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card a:not(.readable-back) { color: var(--rd-accent) !important; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .legal-section :is(p, li) { margin-bottom: 0.7em !important; }
+/* Forgot Password / Verify: bold labels over large white boxes; every line at full size. */
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .inventory-field > span {
+  display: block; margin-bottom: 6px; font-size: 17px !important; font-weight: 800 !important; color: var(--rd-text) !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .inventory-input {
+  height: 54px !important; padding: 0 16px !important; font-size: 18px !important;
+  background: #ffffff !important; color: #0f172a !important; border: 2px solid rgb(148 163 184 / 0.7) !important; border-radius: 12px !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .inventory-input::placeholder { color: #64748b !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .inventory-input:focus { outline: 3px solid #60a5fa !important; outline-offset: 1px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card :is(.verify-small:not(.readable-back), .verify-note, .verify-ok, .verify-err) { font-size: 17px !important; line-height: 1.6 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-card .verify-go { min-height: 54px !important; font-size: 19px !important; }
+/* The Back button: big, clear, easy to tap. */
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-back {
+  display: inline-flex !important; align-items: center; gap: 8px;
+  min-height: 48px; padding: 10px 18px !important; margin: 0 0 4px;
+  border: 2px solid var(--rd-line, rgb(255 255 255 / 0.25)); border-radius: 999px;
+  background: rgb(255 255 255 / 0.08); color: inherit !important;
+  font: inherit; font-size: 17px !important; font-weight: 800 !important; text-decoration: none !important; cursor: pointer;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:not(.dark) .readable-page .readable-back { background: rgb(15 23 42 / 0.05); }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-back:hover { background: rgb(255 255 255 / 0.16); }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-back:focus-visible { outline: 3px solid #60a5fa; outline-offset: 2px; }
+:root:root:root:root:root:root:root:root:root:root:root:root .readable-page .readable-back > svg { width: 20px; height: 20px; }
+[dir="rtl"] .readable-page .readable-back > svg { transform: scaleX(-1); } /* Back points the reading way */
+/* ===== END READABLE PAGES ===== */
+
+/* ===== PHONE: GOOGLE · APPLE · PASSKEY ON ONE ROW, ONE LINE (2026-11-21, owner's request) =====
+   Google and Apple are short words; a translated "Passkey" can be long ("Llave de acceso"), so on phones Passkey gets a larger
+   share of the row, and every label stays on one line inside its button: icon and words shrink a little before anything spills. */
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row.auth-social-two.auth-social-passkey {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.4fr) !important;
+    gap: 6px !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-btn-social {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    padding-inline: 6px !important;
+    gap: 5px !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-social-label {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-btn-passkey .auth-social-label {
+    font-size: clamp(12px, 3.7vw, 15px) !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-social-icon { flex: none !important; }
+}
+/* Very small phones (and long words, e.g. Portuguese at 360px): Google and Apple take exactly the room their names need (brand
+   names are never cut), Passkey takes the rest, all a little smaller. */
+@media (max-width: 374.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row.auth-social-two.auth-social-passkey { grid-template-columns: auto auto minmax(0, 1fr) !important; gap: 4px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-btn-social { padding-inline: 5px !important; gap: 4px !important; font-size: 13px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-social-label { font-size: 13px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-btn-passkey .auth-social-label { font-size: 12px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-social-icon { width: 14px !important; height: 14px !important; }
+}
+@media (min-width: 375px) and (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root .signup-page .auth-social-row .auth-btn-passkey .auth-social-label { font-size: clamp(12px, 3.5vw, 15px) !important; }
+}
+/* ===== END PHONE: GOOGLE · APPLE · PASSKEY ===== */

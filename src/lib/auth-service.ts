@@ -119,3 +119,55 @@ export async function signOutUnified() {
   store.signOut();
   if (error) throw new Error(authMessage(error));
 }
+
+/* Passkeys: sign in with the phone's or computer's fingerprint, face or screen lock instead of a password. A passkey belongs to an
+   online account, so it needs internet and is added from inside the app (Settings › Login Security) after a normal sign-in. */
+export type Passkey = { id: string; name: string; createdAt: string; lastUsedAt?: string | undefined };
+/** Whether the server has passkeys switched on (its public sign-in settings). Asked once per page load; false when unreachable,
+ *  so the Passkey button never shows for a sign-in that can't work. */
+let passkeysOnServer: Promise<boolean> | undefined;
+export function passkeysEnabled(): Promise<boolean> {
+  passkeysOnServer ??= (async () => {
+    const url = import.meta.env["VITE_SUPABASE_URL"], key = import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+    if (!url || !key) return false;
+    try {
+      const r = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } });
+      return r.ok && (await r.json() as { passkeys_enabled?: boolean }).passkeys_enabled === true;
+    } catch { passkeysOnServer = undefined; return false; }
+  })();
+  return passkeysOnServer;
+}
+export const passkeysSupported = () => typeof window !== "undefined" && "PublicKeyCredential" in window && Boolean(navigator.credentials);
+/** True when the person closed or cancelled the fingerprint/face prompt: nothing to report then. */
+export function passkeyCancelled(error: unknown) {
+  const e = error as { code?: string; name?: string; message?: string } | null;
+  return Boolean(e && (e.code === "ERROR_CEREMONY_ABORTED" || e.name === "NotAllowedError" || e.name === "AbortError" || /cancel|not allowed|abort|timed out/i.test(e.message ?? "")));
+}
+/** Plain words for passkey problems. */
+export function passkeyMessage(error: unknown) {
+  const raw = (error as { message?: string } | null)?.message ?? "";
+  if (/passkey.*(disabled|not enabled)|webauthn.*(disabled|not enabled)|404|not found/i.test(raw)) return "Passkeys aren't switched on for this app yet. Use your email and password.";
+  if (/no.*(credential|passkey)|unknown credential|not registered/i.test(raw)) return "No passkey for this app was found here. Log in with your email and password, then add one in Settings › Login Security.";
+  if (/already.*registered|excludeCredentials|InvalidStateError/i.test(raw)) return "This phone or computer already has a passkey for your account.";
+  if (/rp.?id|origin|SecurityError/i.test(raw)) return "Passkeys work on your published site, not on this test copy.";
+  return authMessage(error);
+}
+export async function signInPasskey() {
+  const { data, error } = await supabase.auth.signInWithPasskey();
+  if (error) throw error;
+  return data;
+}
+export async function addPasskey() {
+  const { data, error } = await supabase.auth.registerPasskey();
+  if (error) throw error;
+  return data;
+}
+export async function listPasskeys(): Promise<Passkey[]> {
+  const { data, error } = await supabase.auth.passkey.list();
+  if (error) throw error;
+  return (data ?? []).map((p) => ({ id: p.id, name: p.friendly_name || "Passkey", createdAt: p.created_at, lastUsedAt: p.last_used_at }));
+}
+export async function removePasskey(id: string) {
+  const { error } = await supabase.auth.passkey.delete({ passkeyId: id });
+  if (error) throw error;
+}

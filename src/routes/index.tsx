@@ -3,17 +3,18 @@ import { useEffect, useState } from "react";
 import { Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Field, SocialButtons, TopBar, rememberSignIn } from "@/components/shopbook/ui";
-import { useConnection } from "@/components/shopbook/connection-status";
+import { ConnectionPill, useConnection } from "@/components/shopbook/connection-status";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
+import { SUPPORT } from "@/lib/i18n";
 import { checkPassword } from "@/lib/device-password";
 import { PLANS, store, type Account, type PlanId } from "@/lib/shopbook";
 import { resumeEmployeeSession, signInEmployee, takeSignOutNotice } from "@/lib/staff-session";
-import { authenticatedContext, authMessage, currentIdentity, signInEmail } from "@/lib/auth-service";
+import { authenticatedContext, authMessage, currentIdentity, registerEmailIdentity, signInEmail } from "@/lib/auth-service";
 import { createOwnerFromIdentity, linkBusinessOnline } from "@/lib/owner-link";
 import { supabase } from "@/integrations/supabase/client";
 
-const INVALID_LOGIN_MESSAGE = "Incorrect shop name, email, or password.";
+const INVALID_LOGIN_MESSAGE = "Incorrect business name, email, or password.";
 const isInvalidLoginError = (error: unknown) => error instanceof Error && /invalid (?:login )?credentials|incorrect (?:email|password)|email or password is incorrect|this login has no access|not connected to an owner or employee/i.test(error.message);
 
 export const Route = createFileRoute("/")({
@@ -58,6 +59,21 @@ async function linkSignedInOwner(account: Account) {
     centralContext: { accountId: context.accountId, businesses: context.businesses, locations: context.locations, subscription: context.subscription, syncBusiness: context.syncBusiness, syncedAt: Date.now() },
   });
 }
+/** An account made without internet (Create Account couldn't reach the server, so authMigration is "not_started") has no online
+ *  identity: create it now with the same email and password, as Create Account would have. "verify": the email must be confirmed
+ *  first (the next login after that links the business, as for any pending owner). An existing online identity for the email is
+ *  linked only with its own password (linkOwnerOnline), never taken over. */
+async function connectOfflineOwner(account: Account, password: string): Promise<"linked" | "verify"> {
+  const made = await registerEmailIdentity(account.email, password, account.shopName);
+  if (made.user && !made.session && made.user.identities?.length === 0) { await linkOwnerOnline(account, password); return "linked"; }
+  if (made.verificationRequired) {
+    store.update({ authMigration: { status: "pending", ...(made.user ? { centralUserId: made.user.id } : {}), updatedAt: Date.now() } });
+    return "verify";
+  }
+  try { await linkSignedInOwner(account); }
+  catch (e) { await supabase.auth.signOut({ scope: "local" }).catch(() => undefined); throw e; }
+  return "linked";
+}
 const withTimeout = <T,>(p: Promise<T>, ms: number) => Promise.race([p, new Promise<never>((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
 
 function Login() {
@@ -66,12 +82,9 @@ function Login() {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [remember, setRemember] = useState(true);
-  // The business already on this device (read after mount, so server rendering never differs). Tapping it fills the box.
-  const [deviceBiz, setDeviceBiz] = useState<{ name: string; logo?: string | undefined; owner: boolean } | null>(null);
-  useEffect(() => { const a = store.get(); if (a?.shopName) setDeviceBiz({ name: a.shopName, logo: a.logo, owner: !a.staff }); }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { conn } = useConnection();
+  const { reason: offline } = useConnection();
   const [lockedUntil, setLockedUntil] = useState(0);
   const [fails, setFails] = useState<number[]>([]);
   const failedAttempt = () => setFails((list) => {
@@ -191,7 +204,14 @@ function Login() {
       // server step): try once, quietly, with the same email and password. Offline or not ready yet, the device login stands.
       if (account.authMigration?.status !== "complete" && account.authMigration?.status !== "manual_reconciliation" && account.email) {
         setBusy(true);
-        try { await withTimeout(linkOwnerOnline(account, pw), 9000); } catch { /* stays a device login; linking is retried next time */ }
+        try {
+          if (account.authMigration?.status === "not_started") {
+            // Made offline: create the online account now (the email is confirmed before the business is linked).
+            const result = await withTimeout(connectOfflineOwner(account, pw), 12000);
+            if (result === "verify") toast(tr("Your account is going online. We sent a link to {x}: open it, then log in again to finish.", account.email));
+            else if (store.get()?.authMigration?.status === "complete") toast.success(tr("Your account is now connected online."));
+          } else await withTimeout(linkOwnerOnline(account, pw), 9000);
+        } catch { /* stays a device login; linking is retried next time */ }
         finally { setBusy(false); }
       }
       rememberSignIn("email");
@@ -264,7 +284,8 @@ function Login() {
       store.signIn(remember);
       nav({ to: ownerAccount.plan ? (ownerAccount.setupPending ? "/setup" : "/apps") : "/plans" });
     } catch (error) {
-      if (isInvalidLoginError(error)) { setError(tr(INVALID_LOGIN_MESSAGE)); failedAttempt(); }
+      // A business name works only where the business was created, so a wrong one (no "@") also says how to log in elsewhere.
+      if (isInvalidLoginError(error)) { setError(id.includes("@") ? tr(INVALID_LOGIN_MESSAGE) : `${tr(INVALID_LOGIN_MESSAGE)} ${tr("On a new phone or computer, log in with your email.")}`); failedAttempt(); }
       else toast.error(tr(authMessage(error)));
     } finally {
       setBusy(false);
@@ -275,14 +296,12 @@ function Login() {
   return (
     <>
       <header className="signup-form-heading">
+        <ConnectionPill />
             <h1><span className="auth-phone-text">{tr("Log In")}</span><span className="auth-desk-text">{tr("Welcome back")}</span></h1>
             <p>{tr("Sign in to your business account")}</p>
-            {deviceBiz && <button type="button" className="login-device-biz" disabled={!deviceBiz.owner} title={deviceBiz.owner ? tr("Use this business") : undefined}
-              onClick={() => { if (deviceBiz.owner) { setId(deviceBiz.name); setError(null); } }}>
-              {deviceBiz.logo ? <img src={deviceBiz.logo} alt="" /> : <span className="login-device-biz-mark" aria-hidden>{deviceBiz.name.trim().charAt(0).toUpperCase()}</span>}
-              <span>{tr("This device: {x}", deviceBiz.name)}</span>
-            </button>}
-            {conn === "offline" && <p className="login-offline" role="status">{tr("You're offline. You can still log in on this device; Google, Apple and new devices need internet.")}</p>}
+            {/* No internet at all, or internet but the server isn't answering (said only after two missed checks in a row). */}
+            {offline === "internet" && <p className="login-offline" role="status">{tr("You're offline. You can still log in if you've used the app here before. Google and Apple need internet.")}</p>}
+            {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the Zakrio server right now. You can still log in if you've used the app here before.")}</p>}
           </header>
 
           <form onSubmit={submit} className="signup-form">
@@ -298,9 +317,6 @@ function Login() {
                 error={error ?? undefined}
                 required
               />
-              {/* The business name only works on the device that created the business; elsewhere the email does. */}
-              <p className="login-hint">{tr("On a new device, use your email.")}</p>
-
               <Field
                 icon={<Lock className="h-5 w-5" />}
                 password
@@ -342,9 +358,11 @@ function Login() {
                 </Link>
               </div>
 
-              {/* 3-in-1 Social Row: Google, Apple, 6-Digit */}
-              {/* Google, Apple and Email (a one-time link) on one line. */}
-              <SocialButtons mode="login" onEmailLogin={(email, password) => { setId(email); setPw(password); void logIn(email, password); }} />
+              {/* Google, Apple and Email on one line. */}
+              <SocialButtons passkey />
+              {/* New staff often arrive here before they have a password: the invitation link is where they set it. */}
+              <p className="login-staff-note">{tr("New staff? Open the invitation link your employer sent you to set your password.")}</p>
+              <p className="login-help-note">{tr("Need help?")} <a href={`https://wa.me/${SUPPORT.whatsapp}`} target="_blank" rel="noreferrer">{tr("WhatsApp support")}</a></p>
             </div>
       </form>
     </>
