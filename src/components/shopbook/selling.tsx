@@ -1,4 +1,5 @@
 import { clean } from "@/lib/format";
+import { paymentLines, printedRef } from "@/lib/ready-setup";
 import { GlassPage } from "@/components/shopbook/glass-page";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
 import { useNavigate } from "@tanstack/react-router";
@@ -166,7 +167,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       {cfg.taxPin && <p className="text-center">{tr("PIN")}: {cfg.taxPin}</p>}
       {cfg.hours && <p className="text-center">{cfg.hours}</p>}
       <div className="mt-2 border-t border-dashed border-current pt-2">
-        <p>{sale.ref} • {tr("Till")}: {sale.channel === "POS" ? String(sale.counter ?? 1).padStart(2, "0") : "—"}</p>
+        <p>{printedRef(sale.ref)} • {tr("Till")}: {sale.channel === "POS" ? String(sale.counter ?? 1).padStart(2, "0") : "—"}</p>
         <p>{tr("Cashier")}: {sale.cashier}</p>
         <p>{tr("Seller")}: {s.employees.find((e) => e.id === sale.sellerId)?.name ?? tr("Admin")}</p>
         <p>{dt(sale.at)}</p>
@@ -186,6 +187,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
         {erp.saleBalance(s, sale) > 0.001 && <div className="flex justify-between font-bold"><span>{tr("Balance due")}</span><span>{money(erp.saleBalance(s, sale))}</span></div>}
         {rets.map((r) => <div key={r.id} className="flex justify-between"><span>{tr("Returned")} {r.ref}</span><span>− {money(r.amount)}</span></div>)}
       </div>
+      {paymentLines(tr).map((l) => <p key={l} className="text-center">{l}</p>)}
       <p className="mt-3 text-center">{tr("Thank you!")}</p>
       {cfg.receiptFooter.trim() && <p className="mt-1 whitespace-pre-line text-center">{cfg.receiptFooter.trim()}</p>}
     </div>

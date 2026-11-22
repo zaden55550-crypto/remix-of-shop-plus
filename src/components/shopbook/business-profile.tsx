@@ -10,6 +10,9 @@ import { useSettings, type Branch } from "@/lib/settings-config";
 import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, businessTypesForFamily, isIndustryFamilyId } from "@/lib/industry-config";
 import { FeaturePanel, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { currentFeatures, saveFeatures } from "@/lib/trade-features";
+import { GlassPage } from "@/components/shopbook/glass-page";
+import { ReadyToSell } from "@/components/shopbook/ready-to-sell";
+import { useErp } from "@/components/shopbook/product-search";
 
 type Tr = (x: string) => string;
 
@@ -18,6 +21,7 @@ function F({ label, children, wide, tr }: { label: string; children: ReactNode; 
 /** Business Profile: logo, basic info, location, extra details, branches, currency. Saves to account + device settings only. */
 export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr; onAccount: (p: Partial<Account>) => void }) {
   const [cfg, save] = useSettings();
+  const erpState = useErp(), [ready, setReady] = useState(false);
   const currentBusinessTypes = businessTypesOf(acct);
   const primaryType = currentBusinessTypes[0] ?? cfg.businessType;
   const knownBusinessType = businessTypeByName(primaryType);
@@ -44,6 +48,8 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
       <p className="money-heading">{tr("Business Setup")}</p>
       <p className="settings-note">{tr("Add or rename shops and warehouses, counters, phones and people on one page. Nothing already recorded changes.")}</p>
       <Link to="/setup" className="bp-setup-link">{tr("Open Business Setup")}</Link>
+      <button type="button" className="bp-setup-link" onClick={() => setReady(true)}>{tr("Ready to sell")}</button>
+      {ready && <GlassPage label={tr("Ready to sell")} onClose={() => setReady(false)}><ReadyToSell s={erpState} onClose={() => setReady(false)} /></GlassPage>}
     </div>}
     <div className="bp-card bp-logo-card">
       <p className="money-heading">{tr("Business Logo")}</p>

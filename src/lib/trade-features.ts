@@ -62,7 +62,7 @@ export function defaultFeatures(types: readonly string[]): Features {
     serials: types.some((t) => SERIAL_TYPES.has(t)),
     gas: types.some((t) => GAS_TYPES.has(t)),
     layby: true,
-    quotations: types.some((t) => QUOTE_TYPES.has(t)),
+    quotations: true,
     breakdown: types.some((t) => BREAKDOWN_TYPES.has(t)),
     prescriptions: types.some((t) => RX_TYPES.has(t)),
   };
@@ -71,7 +71,7 @@ export function defaultFeatures(types: readonly string[]): Features {
 /** What a business is using now: its saved choices, then the starting choice for its types. VAT and barcodes are the existing settings. */
 /** Built into every business (owner's decision, 2026-11-22): always on, never shown as a switch. VAT is always available; whether a
  *  business charges it is its tax setting (Settings › Tax & Compliance), not a feature. */
-export const BUILT_IN: readonly FeatureId[] = ["weight", "vat", "expiry", "layby", "barcodes"];
+export const BUILT_IN: readonly FeatureId[] = ["weight", "vat", "expiry", "layby", "quotations", "barcodes"];
 /** The only switches shown on Business Setup's line; every other switch is under "All features". */
 export const PINNED: readonly FeatureId[] = ["counters", "prescriptions"];
 export const isBuiltIn = (id: string) => (BUILT_IN as readonly string[]).includes(id);
@@ -83,13 +83,12 @@ export function currentFeatures(types: readonly string[]): Features {
     priceLevels: typeof saved["priceLevels"] === "boolean" ? saved["priceLevels"] : base.priceLevels,
     serials: typeof saved["serials"] === "boolean" ? saved["serials"] : base.serials,
     gas: typeof saved["gas"] === "boolean" ? saved["gas"] : base.gas,
-    quotations: typeof saved["quotations"] === "boolean" ? saved["quotations"] : base.quotations,
     breakdown: typeof saved["breakdown"] === "boolean" ? saved["breakdown"] : base.breakdown,
     prescriptions: typeof saved["prescriptions"] === "boolean" ? saved["prescriptions"] : base.prescriptions,
     vat: getTax().on,
     barcodes: true,
     // Built in for everyone: an older saved "off" no longer hides them.
-    weight: true, expiry: true, layby: true,
+    weight: true, expiry: true, layby: true, quotations: true,
   };
 }
 

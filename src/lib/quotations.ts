@@ -1,6 +1,7 @@
 // Quotations (Settings › Features). A priced offer for a customer: it moves no stock and no money. It stays valid for 14 days
 // by default; it can be shared (WhatsApp or any app) and turned into a sale in one step, paid or on credit, at the prices
 // quoted. Every step is one ERP transaction; the sale is an ordinary sale (recordSale checks stock, serials, gas and payment).
+import { paymentLines, printedRef } from "@/lib/ready-setup";
 import { commit, confirmSale, ErpError, roundQty, runErpTransaction, shopPrice, uid, type CartLine, type ErpState, type Method, type Quotation, type Sale } from "@/lib/erp";
 
 export const QUOTE_DAYS = 14;
@@ -55,7 +56,7 @@ export function convertQuotation(id: string, how: { method: Method }, vatRate = 
 export function quotationText(s: Pick<ErpState, "customers">, q: Quotation, shop: string, money: (n: number) => string, tr: (x: string) => string, phone?: string) {
   const who = q.customerId ? s.customers.find((c) => c.id === q.customerId)?.name : q.customerName;
   const day = (t: number) => new Date(t).toLocaleDateString("en-GB");
-  return [`${shop}${phone ? ` · ${tr("Tel")}: ${phone}` : ""}`, `${tr("Quotation")} ${q.ref} · ${day(q.at)}`, ...(who ? [`${tr("For")}: ${who}`] : []), "",
+  return [`${shop}${phone ? ` · ${tr("Tel")}: ${phone}` : ""}`, `${tr("Quotation")} ${printedRef(q.ref)} · ${day(q.at)}`, ...(who ? [`${tr("For")}: ${who}`] : []), "",
     ...q.items.map((i) => `${i.name}  ${i.qty} × ${money(i.price)} = ${money(r2(i.qty * i.price))}`), "", `${tr("TOTAL")} ${money(q.total)}`,
-    `${tr("Valid until")} ${day(q.validUntil)}`, ...(q.note ? [q.note] : [])].join("\n");
+    `${tr("Valid until")} ${day(q.validUntil)}`, ...paymentLines(tr), ...(q.note ? [q.note] : [])].join("\n");
 }

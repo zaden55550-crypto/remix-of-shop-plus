@@ -20,6 +20,7 @@ import { NEW_LOCATION_TYPES, TYPE_LABEL, activateSetup, draftTypes, countTypes, 
 import { INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
 import { FeatureChecks, FeaturePanel, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
+import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
 import { currentFeatures, placeName, sellingPlaceName, type Features } from "@/lib/trade-features";
 import { listLocations, MAIN_LOCATION, saveLocation } from "@/lib/locations";
 import { NeedsConnection, sendSetupInvitation, stageOf, type InviteStage } from "@/lib/setup-invite";
@@ -88,6 +89,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [confirmActivate, setConfirmActivate] = useState(false);
   // "All features": every feature in groups, with suggestions for the chosen types (the same panel as Settings › Features).
   const [allFeatures, setAllFeatures] = useState(false);
+  // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
+  const [readyOpen, setReadyOpen] = useState(false);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
   const [welcome, setWelcome] = useState(() => { try { return !localStorage.getItem(welcomeKey); } catch { return false; } });
@@ -322,6 +325,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <ul className={cn("bsetup-ready", readyCount === ready.length && "is-all")} aria-label={tr("Ready to activate?")} title={tr("{x} of 4 ready", String(readyCount))}>
           {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.label)}</li>)}
         </ul>
+        <ReadyButton s={s} onOpen={() => setReadyOpen(true)} />
         <ShopButton className="bsetup-review" disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
       </div>
     </header>
@@ -350,6 +354,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
             <FeatureChecks value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} />
             <button type="button" className="bsetup-link-btn bsetup-all-features" onClick={() => setAllFeatures(true)}>{tr("All features")}</button>
           </div>}
+        {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => setReadyOpen(false)}><ReadyToSell s={s} onClose={() => setReadyOpen(false)} /></GlassPage>}
         {allFeatures && <GlassPage label={tr("All features")} onClose={() => setAllFeatures(false)}>
           <div className="inventory-box dash-panel feature-panel-page">
             <div className="feature-panel-head"><h3>{tr("All features")}</h3><ShopButton variant="outline" onClick={() => setAllFeatures(false)}>{tr("Done")}</ShopButton></div>

@@ -128,7 +128,7 @@ export type SupplierInvoice = AtShop & AtBusiness & { id: string; number: string
 export type PurchaseReturn = AtShop & AtBusiness & { id: string; ref: string; at: number; purchaseId: string; purchaseRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; reason?: string | undefined; user: string };
 export type Expense = AtShop & AtBusiness & { id: string; ref: string; at: number; category: string; description?: string | undefined; note?: string | undefined; amount: number; method: Method; user: string };
 export type CommissionRule = { kind: "none" | "percent" | "fixed" | "profit"; value: number; paidOnly: boolean; products?: { productId: string; kind: "percent" | "fixed" | "profit"; value: number }[] | undefined };
-export type Employee = AtBusiness & { id: string; name: string; phone?: string | undefined; notes?: string; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number;
+export type Employee = AtBusiness & { id: string; name: string; /** Staff quick PIN for shared tills (a salted hash). */ pin?: string | undefined; phone?: string | undefined; notes?: string; role: string; comp: "salary" | "salary+commission" | "commission"; salary: number; rule: CommissionRule; active: boolean; createdAt: number;
   /** People & Access. All optional: an employee made in Payroll has none of them until someone edits it there. */
   code?: string | undefined; email?: string | undefined; businessRefs?: string[] | undefined; locationIds?: string[] | undefined; accessRole?: string | undefined; startDate?: string | undefined; employmentType?: string | undefined; status?: "active" | "suspended" | "terminated" | undefined; terminatedAt?: number | undefined; memberId?: string | undefined;
   /** The counters this person may sell at, per shop (location id → counter numbers), chosen on Business Setup. A shop left out: any counter. */
@@ -621,6 +621,8 @@ const storageLocation = (s: ErpState, id?: string) => {
 
 function currentUser() {
   if (intentRun) return intentRun.user;
+  // A cashier who switched in with their PIN at a shared till (ready-setup.ts) is recorded by name.
+  try { const t = JSON.parse(localStorage.getItem("shopbook.tillCashier") || "null"); if (t?.name) return String(t.name); } catch { /* fall through */ }
   try { const a = JSON.parse(localStorage.getItem("shopbook.account") || "null"); return a?.shopName ? `Admin` : "Admin"; } catch { return "Admin"; }
 }
 
