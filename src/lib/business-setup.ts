@@ -29,7 +29,9 @@ export type SetupRow = { key: string; savedId?: string | undefined; type: Locati
   /** Which of the chosen business types this shop is (Supermarket, Butchery…); left out: the main type. */
   placeType?: string | undefined;
   /** The location's address (optional); left out keeps the saved one. */
-  address?: string | undefined };
+  address?: string | undefined;
+  /** This shop's or warehouse's own phone (optional), printed on its receipts instead of the business number; left out keeps the saved one. */
+  phone?: string | undefined };
 /** A person added here. They become an employee record on activation; their login is invited from People & Access. */
 export type SetupUser = { key: string; name: string; phone: string; email: string; role: string; locations: string[];
   /** Counters this person may use, per shop row key; a shop left out (or an empty list) means any counter. */
@@ -90,7 +92,7 @@ export function loginSummary(
 
 /** Locations that exist now become the first rows, in their saved order; archived ones stay out of the table. */
 export function rowsFromRecords(s: ErpState): SetupRow[] {
-  return listLocations(s).filter((l) => l.active !== false).map((l) => ({ key: l.id, savedId: l.id, type: l.type, name: l.name, code: l.id === MAIN_LOCATION && l.code === "MAIN" ? "" : l.code, ...(l.connected?.length ? { connected: [...l.connected] } : {}), ...(l.counters && l.counters > 1 ? { counters: l.counters } : {}), ...(l.placeType ? { placeType: l.placeType } : {}), ...(l.address ? { address: l.address } : {}) }));
+  return listLocations(s).filter((l) => l.active !== false).map((l) => ({ key: l.id, savedId: l.id, type: l.type, name: l.name, code: l.id === MAIN_LOCATION && l.code === "MAIN" ? "" : l.code, ...(l.connected?.length ? { connected: [...l.connected] } : {}), ...(l.counters && l.counters > 1 ? { counters: l.counters } : {}), ...(l.placeType ? { placeType: l.placeType } : {}), ...(l.address ? { address: l.address } : {}), ...(l.phone ? { phone: l.phone } : {}) }));
 }
 
 /** Rows grow or shrink to the chosen number. New rows are shops with the next free number; trailing rows are removed,
@@ -153,6 +155,9 @@ export function validate(
     else if ((names.get(norm(r.name)) ?? 0) > 1 || otherNames.some((n) => norm(n) === norm(r.name))) out.push({ key: r.key, field: "name", message: `“${r.name.trim()}” is used by another location` });
     // The number is optional; one that is given must be unique.
     if (r.code.trim() && ((codes.get(norm(r.code)) ?? 0) > 1 || otherCodes.some((c) => norm(c) === norm(r.code)))) out.push({ key: r.key, field: "code", message: `${r.code.trim()} is used by another location` });
+    // The location's own phone is optional; one that is given must look like a phone number.
+    const phone = (r.phone ?? "").trim(), phoneDigits = phone.replace(/\D/g, "");
+    if (phone && (phoneDigits.length < 7 || phoneDigits.length > 15 || !/^\+?[0-9][0-9 ()-]*[0-9]$/.test(phone))) out.push({ key: r.key, field: "phone", message: "Enter a valid phone number" });
   }
   const managers = d.users.filter((u) => isManagerRole(u.role)).length;
   if (staffing) {
@@ -204,7 +209,7 @@ export function activateSetup(d: SetupDraft) {
     const taken = [...listLocations(erp.load()).map((l) => l.code), ...liveRows(d.rows).map((r) => r.code.trim()).filter(Boolean)];
     const live = liveRows(d.rows).map((r) => { if (r.code.trim()) return r; const code = suggestCode(r.type, taken); taken.push(code); return { ...r, code }; });
     for (const r of live) {
-      const saved = saveLocation({ id: r.savedId, name: r.name, code: r.code, type: r.type, photos: r.photos, logo: r.logo, ...(r.type === "shop" && r.counters !== undefined ? { counters: r.counters } : {}), ...(r.type === "shop" && r.placeType ? { placeType: r.placeType } : {}), ...(r.address !== undefined ? { address: r.address } : {}) });
+      const saved = saveLocation({ id: r.savedId, name: r.name, code: r.code, type: r.type, photos: r.photos, logo: r.logo, ...(r.type === "shop" && r.counters !== undefined ? { counters: r.counters } : {}), ...(r.type === "shop" && r.placeType ? { placeType: r.placeType } : {}), ...(r.address !== undefined ? { address: r.address } : {}), ...(r.phone !== undefined ? { phone: r.phone.trim() || undefined } : {}) });
       map[r.key] = saved.id;
     }
     // Connections need every warehouse saved first. They are shops' viewing rights only: no stock moves and no slot is used.

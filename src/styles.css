@@ -23957,3 +23957,81 @@ p.verify-small { text-decoration: none; }
 @media (max-height: 640px) { .weight-pad-keys > button { height: 40px; } .weight-pad-entry { height: 52px; } }
 .pos-per { margin-inline-start: 1px; font-size: 0.78em; font-weight: 600; opacity: 0.75; }
 /* ===== END WEIGHT KEYPAD ===== */
+
+/* ===== CART SCREEN IS SOLID (2026-11-22) =====
+   The Cart & Payment page covers the till with `background: var(--background)`, but in the liquid-glass theme that colour is
+   transparent, so the product list showed through and the two read as one jumble. A frosted, nearly solid sheet in both themes. */
+:root:root:root:root .cart-page {
+  background: rgb(241 245 249 / 0.94) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.15);
+  backdrop-filter: blur(22px) saturate(1.15);
+}
+:root:root:root:root.dark .cart-page { background: rgb(13 20 42 / 0.94) !important; }
+/* ===== END CART SCREEN IS SOLID ===== */
+
+/* ===== SETUP: EACH LOCATION'S PHONE (2026-11-22, owner's request) =====
+   Row order: No. · Type · Name · Phone · Number · Logo · Counters · Actions. Name and the location's own phone share the name
+   column (one cell, two boxes), so the laptop table and the phone two-line layout keep their columns; the phone is printed on
+   that shop's receipts instead of the business number. */
+:root:root:root:root:root:root:root:root:root .bsetup .bsetup-name-cell {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 5px;
+  min-width: 0;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+:root:root:root:root:root:root:root:root:root .bsetup .bsetup-name-cell > input { min-width: 0; width: 100%; }
+:root:root:root:root:root:root:root:root:root .bsetup .bsetup-name-cell > .bsetup-name-input { font-weight: 600; text-overflow: ellipsis; }
+:root:root:root:root:root:root:root:root:root .bsetup .bsetup-name-cell > .bsetup-loc-phone { font-variant-numeric: tabular-nums; text-overflow: ellipsis; padding-inline: 0.5em; }
+:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry-head .bsetup-name-cell > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Wide screens (rows in two columns, ~690px each): Type and Number a little narrower, Name | Phone takes the rest. */
+@media (min-width: 1100px) {
+  :root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-entry, .bsetup-entry-head) {
+    grid-template-columns: 18px 156px minmax(0, 1fr) 118px var(--sq) max-content !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-cols.is-two :is(.bsetup-entry, .bsetup-entry-head) {
+    grid-template-columns: 18px 118px minmax(0, 1fr) 84px var(--sq) max-content !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > :is(.bsetup-type, .bsetup-code) { min-width: 0 !important; width: 100% !important; }
+}
+/* Up to 5 rows the panel uses its full width (the right half only fills with rows 6-10), so Name and Phone have room. */
+:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries > .bsetup-cols:not(.is-two) { grid-template-columns: minmax(0, 1fr) !important; }
+/* Two halves (6+ rows): the shared cell is narrower, so its text is a touch smaller. */
+:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-cols.is-two .bsetup-name-cell > input { font-size: 0.9em; }
+/* ===== END SETUP: EACH LOCATION'S PHONE ===== */
+
+/* ===== SETUP BUTTONS EASY TO SEE (2026-11-22, owner's request) =====
+   Edit owner, Manage Users, Manage Access, All features, Add another phone and each row's logo / upload / edit / remove were thin
+   outlines on the glass and blended in. They get a clear tinted fill, a firm border and bold text in both themes (red for remove). */
+:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-link-btn, .bsetup-all-features, .bsetup-more-phones) {
+  background: color-mix(in srgb, var(--primary) 20%, transparent) !important;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 70%, transparent) !important;
+  color: var(--foreground) !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.18) !important;
+  opacity: 1 !important;
+}
+:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-link-btn, .bsetup-all-features, .bsetup-more-phones):hover {
+  background: color-mix(in srgb, var(--primary) 32%, transparent) !important;
+}
+:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-link-btn, .bsetup-all-features, .bsetup-more-phones) svg { color: currentColor !important; opacity: 1 !important; }
+:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-all-features { padding: 6px 14px !important; border-radius: 999px !important; }
+/* Row buttons: logo, upload products, edit, remove. */
+:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-actions > button, .bsetup-logo:not(.has-logo)) {
+  background: color-mix(in srgb, var(--primary) 18%, transparent) !important;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 65%, transparent) !important;
+  color: var(--foreground) !important;
+  opacity: 1 !important;
+}
+:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions > button:disabled { opacity: 0.45 !important; }
+:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions > button.is-danger:not(:disabled) {
+  background: color-mix(in srgb, #ef4444 18%, transparent) !important;
+  border-color: color-mix(in srgb, #ef4444 70%, transparent) !important;
+  color: #ef4444 !important;
+}
+:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-actions > button, .bsetup-logo) svg { opacity: 1 !important; }
+/* ===== END SETUP BUTTONS EASY TO SEE ===== */

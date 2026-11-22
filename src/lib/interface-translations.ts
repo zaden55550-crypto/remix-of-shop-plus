@@ -2,6 +2,8 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Phone (optional)|Simu (si lazima)|Téléphone (facultatif)|الهاتف (اختياري)|Teléfono (opcional)|Telefone (opcional)|Telefon (optional)|Telefono (facoltativo)|电话（可选）|फ़ोन (वैकल्पिक)|Telefoon (ikhtiyaari)
+This location's phone, printed on its receipts. Empty: the business number.|Simu ya eneo hili, inachapishwa kwenye risiti zake. Ikiwa tupu: namba ya biashara.|Le téléphone de ce lieu, imprimé sur ses tickets. Vide : le numéro de l’entreprise.|هاتف هذا الموقع، يُطبع على إيصالاته. إذا ترك فارغًا: رقم النشاط التجاري.|El teléfono de este local, impreso en sus recibos. Vacío: el número del negocio.|O telefone deste local, impresso nos recibos dele. Vazio: o número da empresa.|Die Telefonnummer dieses Standorts, auf seinen Belegen gedruckt. Leer: die Firmennummer.|Il telefono di questa sede, stampato sui suoi scontrini. Vuoto: il numero dell’attività.|此地点的电话，打印在其收据上。留空则使用企业电话。|इस जगह का फ़ोन, इसकी रसीदों पर छपता है। खाली हो तो व्यवसाय का नंबर।|Telefoonka goobtan, wuxuu ku daabacan yahay rasiidhadeeda. Haddii madhan: lambarka ganacsiga.
 Weigh {x}|Pima {x}|Peser {x}|وزن {x}|Pesar {x}|Pesar {x}|{x} wiegen|Pesa {x}|称重 {x}|{x} तौलें|Miisaan {x}
 In stock|Kwenye hisa|En stock|في المخزون|En stock|Em estoque|Auf Lager|In magazzino|库存|स्टॉक में|Kaydka ku jira
 Sell by|Uza kwa|Vendre par|البيع حسب|Vender por|Vender por|Verkaufen nach|Vendi per|销售方式|बेचें|Ku iibi

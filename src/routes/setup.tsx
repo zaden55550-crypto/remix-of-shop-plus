@@ -391,10 +391,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         {columns.map((col, c) => <div key={c} className="bsetup-col" role="table" aria-label={`${tr("Entries")} ${c * PER_COLUMN + 1}–${c * PER_COLUMN + col.length}`}>
           <div className="bsetup-entry bsetup-entry-head" role="row">
             <span role="columnheader" className="bsetup-rownum-head"><span className="sr-only">{tr("Row")}</span></span>
-            <span role="columnheader">{tr("Type")}</span><span role="columnheader">{tr("Name")}</span><span role="columnheader" title={tr("No. (optional)")}>{tr("Number")}</span>
+            <span role="columnheader">{tr("Type")}</span><span role="columnheader" className="bsetup-name-cell"><span>{tr("Name")}</span><span>{tr("Phone")}</span></span><span role="columnheader" title={tr("No. (optional)")}>{tr("Number")}</span>
             <span role="columnheader">{tr("Logo")}</span><span role="columnheader">{`${tr("Counters")} · ${tr("Actions")}`}</span>
           </div>
-          {col.map((r, i) => <EntryRow key={r.key} r={r} n={c * PER_COLUMN + i + 1} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")}
+          {col.map((r, i) => <EntryRow key={r.key} r={r} n={c * PER_COLUMN + i + 1} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} onPhone={(phone) => setRow(r.key, { phone })}
             logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(n) => setRow(r.key, { counters: n })}
             canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })}
             canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key}
@@ -404,7 +404,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </div>)}
       </div>
       {live.length <= 3 && !full && <p className="bsetup-hint">{tr("Add your other shops and warehouses with the green buttons above. Each one uses one site of your plan.")}</p>}
-      {problems.filter((p) => p.key && (p.field === "name" || p.field === "code")).slice(0, 3).map((p) => <p key={p.key! + p.field} role="alert" className="bsetup-problem">{tr("Entry")} {live.findIndex((r) => r.key === p.key) + 1}: {tr(p.message)}</p>)}
+      {problems.filter((p) => p.key && (p.field === "name" || p.field === "code" || p.field === "phone")).slice(0, 3).map((p) => <p key={p.key! + p.field} role="alert" className="bsetup-problem">{tr("Entry")} {live.findIndex((r) => r.key === p.key) + 1}: {tr(p.message)}</p>)}
       {/* Only real connections are listed here; how connecting works is in the plan info pop-up and the pencil editor. */}
       {links.length > 0 && <p className="bsetup-links" title={links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")}>
         {links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")} · {tr("Authorized inventory visibility")}</p>}
@@ -544,8 +544,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
 /** One shop or warehouse, left to right: type, name, optional number, its own logo (opens the logo window), import products,
  *  edit (name, number, logo, stock visibility and this site's users) and delete last. Long names and numbers show in full as a tooltip and in the editor. */
-function EntryRow({ r, n, tr, nameProblem, codeProblem, logo, placeholder, counterMax, canImport, onImport, canRemove, selected, onType, onPlace, onName, onCode, onViewLogo, onCounters, onEdit, onRemove }: {
+function EntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, onPhone, logo, placeholder, counterMax, canImport, onImport, canRemove, selected, onType, onPlace, onName, onCode, onViewLogo, onCounters, onEdit, onRemove }: {
   r: SetupRow; n: number; tr: Tr; nameProblem?: string | undefined; codeProblem?: string | undefined; logo?: string | undefined; placeholder: string;
+  /** This location's own phone, printed on its receipts instead of the business number (optional). */
+  phoneProblem?: string | undefined; onPhone: (phone: string) => void;
   /** The most counters this shop may have (0 while Counters is off or for a warehouse). */
   counterMax: number; canRemove: boolean; selected: boolean;
   /** Upload products for this location: only once it is saved (after Activate). */
@@ -557,7 +559,7 @@ function EntryRow({ r, n, tr, nameProblem, codeProblem, logo, placeholder, count
   // One choice per ticked business type (each a shop), then Warehouse; an older warehouse keeps its own entry.
   const choices = [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) }));
   const value = r.type === "shop" ? `shop:${placeTypeOf(r) ?? ""}` : r.type;
-  return <div className={cn("bsetup-entry", `is-${r.type}`, selected && "is-selected", (nameProblem || codeProblem) && "has-problem")} role="row">
+  return <div className={cn("bsetup-entry", `is-${r.type}`, selected && "is-selected", (nameProblem || codeProblem || phoneProblem) && "has-problem")} role="row">
     {/* Where the row sits on the page (1-5 left, 6-10 middle). It is not the location's number and is never saved. */}
     <span className="bsetup-rownum" role="cell" aria-label={`${tr("Row")} ${n}`}>{n}</span>
     <select className="inventory-input bsetup-type" role="cell" aria-label={`${tr("Type")} · ${title}`} title={tr(label)} value={value} onChange={(e) => { const v = e.target.value; if (v.startsWith("shop:")) onPlace(v.slice(5)); else onType(v as erp.LocationType); }}>
@@ -565,8 +567,13 @@ function EntryRow({ r, n, tr, nameProblem, codeProblem, logo, placeholder, count
       <option value="store">{tr("Warehouse")}</option>
       {r.type === "warehouse" && <option value="warehouse">{`${tr("Warehouse")} (${tr("older")})`}</option>}
     </select>
-    <input id={`bsetup-name-${r.key}`} role="cell" className="inventory-input bsetup-entry-name" required aria-label={`${tr(`${label} Name`)} ${n}`} aria-invalid={!!nameProblem}
+    {/* Name and the location's own phone share the name column, so every row layout (laptop table, phone two-line) keeps working. */}
+    <span className="bsetup-entry-name bsetup-name-cell" role="cell">
+    <input id={`bsetup-name-${r.key}`} className="inventory-input bsetup-name-input" required aria-label={`${tr(`${label} Name`)} ${n}`} aria-invalid={!!nameProblem}
       title={nameProblem ? tr(nameProblem) : r.name || undefined} value={r.name} placeholder={r.type === "shop" ? `${tr(label)} · ${tr("Name")}` : tr("Warehouse name")} onChange={(e) => onName(e.target.value)} />
+    <input id={`bsetup-phone-${r.key}`} type="tel" inputMode="tel" autoComplete="off" className="inventory-input bsetup-loc-phone" aria-label={`${tr("Phone")} · ${title} (${tr("Optional")})`} aria-invalid={!!phoneProblem}
+      title={phoneProblem ? tr(phoneProblem) : tr("This location's phone, printed on its receipts. Empty: the business number.")} value={r.phone ?? ""} placeholder={tr("Phone (optional)")} onChange={(e) => onPhone(e.target.value)} />
+    </span>
     <input id={`bsetup-code-${r.key}`} role="cell" className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem}
       title={codeProblem ? tr(codeProblem) : r.code || `${placeholder} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode(e.target.value)} />
     {/* This entry's own logo, never the business logo, shown whole (contain) so no branding is cropped. It opens the logo window. */}

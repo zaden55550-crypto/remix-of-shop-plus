@@ -102,6 +102,25 @@ describe("the weight keypad", () => {
     expect(erp.lineAmount(state(), line)).toBe(100);
   });
 
+  it("sells even a tenth of a kilo", () => {
+    const { onSet, entry } = open();
+    fireEvent.change(entry, { target: { value: "0.1" } });
+    expect(screen.getByRole("status").textContent).toBe("0.1 kg × KSh 700/kg = KSh 70");
+    fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
+    expect(onSet).toHaveBeenCalledWith({ productId: "beef", qty: 0.1 });
+  });
+
+  it("works out the weight from the money: KSh 100 at 800/kg is 0.125 kg", () => {
+    const onSet = vi.fn();
+    const s = { ...state(), products: [{ ...beef, sell: 800 }] };
+    render(<WeightPad s={s} p={s.products[0]!} line={undefined} money={money} onSet={onSet} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("tab", { name: "Amount" }));
+    fireEvent.change(screen.getByLabelText("Amount", { selector: "input" }), { target: { value: "100" } });
+    expect(screen.getByRole("status").textContent).toBe("0.125 kg × KSh 800/kg = KSh 100");
+    fireEvent.click(screen.getByRole("button", { name: "Add to cart" }));
+    expect(onSet).toHaveBeenCalledWith({ productId: "beef", qty: 0.125 });
+  });
+
   it("uses the quick buttons", () => {
     const { onSet } = open();
     fireEvent.click(screen.getByRole("button", { name: "½ kg" }));

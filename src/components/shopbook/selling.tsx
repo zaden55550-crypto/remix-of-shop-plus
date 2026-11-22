@@ -25,6 +25,7 @@ import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import { WeightPad } from "@/components/shopbook/weight-pad";
 import { useFeature } from "@/lib/use-features";
 import { qtyTimesPrice, weighedUnit } from "@/lib/weight-display";
+import { MAIN_LOCATION } from "@/lib/locations";
 import { readSettings } from "@/lib/settings-config";
 import * as erp from "@/lib/erp";
 import { forOpenBusiness } from "@/lib/businesses";
@@ -144,7 +145,9 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
   const cust = sale.customerId ? s.customers.find((c) => c.id === sale.customerId) : undefined;
   const rets = s.returns.filter((r) => r.saleId === sale.id);
   // The business's own receipt details (Settings › Receipts and Business Profile); blank ones are left out.
-  const cfg = readSettings(), phone = cfg.phone || store.get()?.phone || "";
+  // The shop that made the sale prints its own phone (Business Setup › Phone); without one, the business number.
+  const shopPhone = s.locations.find((l) => l.id === (sale.locationId ?? MAIN_LOCATION))?.phone?.trim();
+  const cfg = readSettings(), phone = shopPhone || cfg.phone || store.get()?.phone || "";
   return (
     <div className="print-area receipt-paper mx-auto w-full max-w-xs rounded-xl p-4 font-mono text-[12px] leading-5">
       <p className="text-center text-sm font-bold">Zakrio Systems</p>
