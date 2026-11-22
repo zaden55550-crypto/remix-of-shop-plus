@@ -18,7 +18,8 @@ import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import { NEW_LOCATION_TYPES, TYPE_LABEL, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, resize, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
 import { INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
-import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
+import { FeatureChecks, FeaturePanel, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
+import { GlassPage } from "@/components/shopbook/glass-page";
 import { currentFeatures, placeName, sellingPlaceName, type Features } from "@/lib/trade-features";
 import { listLocations, MAIN_LOCATION, saveLocation } from "@/lib/locations";
 import { NeedsConnection, sendSetupInvitation, stageOf, type InviteStage } from "@/lib/setup-invite";
@@ -85,6 +86,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [problems, setProblems] = useState<SetupProblem[]>([]);
   const [access, setAccess] = useState<string | null>(null);
   const [confirmActivate, setConfirmActivate] = useState(false);
+  // "All features": every feature in groups, with suggestions for the chosen types (the same panel as Settings › Features).
+  const [allFeatures, setAllFeatures] = useState(false);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
   const [welcome, setWelcome] = useState(() => { try { return !localStorage.getItem(welcomeKey); } catch { return false; } });
@@ -345,7 +348,15 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </div>
         {selectedIndustry === "trade" && <div className="bsetup-field bsetup-features"><span>{tr("Settings for this business")}</span>
             <FeatureChecks value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} />
+            <button type="button" className="bsetup-link-btn bsetup-all-features" onClick={() => setAllFeatures(true)}>{tr("All features")}</button>
           </div>}
+        {allFeatures && <GlassPage label={tr("All features")} onClose={() => setAllFeatures(false)}>
+          <div className="inventory-box dash-panel feature-panel-page">
+            <div className="feature-panel-head"><h3>{tr("All features")}</h3><ShopButton variant="outline" onClick={() => setAllFeatures(false)}>{tr("Done")}</ShopButton></div>
+            <p className="settings-note">{tr("Every feature works for every shop. Switch on what you use; anything switched off stays out of the way, and switching it off never deletes records.")}</p>
+            <FeaturePanel value={features} types={draftTypes(d)} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} />
+          </div>
+        </GlassPage>}
         </div>
         <div className="bsetup-typefield">
           <label className="bsetup-field"><span>{tr("Industry")} <i aria-hidden>*</i></span>

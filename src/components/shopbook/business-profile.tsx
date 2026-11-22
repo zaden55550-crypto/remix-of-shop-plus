@@ -8,7 +8,7 @@ import { findByCountry } from "@/lib/world-data";
 import { store, businessTypesOf, type Account } from "@/lib/shopbook";
 import { useSettings, type Branch } from "@/lib/settings-config";
 import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, businessTypesForFamily, isIndustryFamilyId } from "@/lib/industry-config";
-import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
+import { FeaturePanel, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { currentFeatures, saveFeatures } from "@/lib/trade-features";
 
 type Tr = (x: string) => string;
@@ -80,8 +80,8 @@ export function BusinessProfile({ acct, tr, onAccount }: { acct: Account; tr: Tr
 
     {industryFamilyId === "trade" && <div className="bp-card">
       <p className="money-heading">{tr("Features")}</p>
-      <p className="settings-note">{tr("Every Trade business can use every feature. Your business type switched on the ones it usually needs; change any of them here.")}</p>
-      <FeatureChecks value={features} onChange={(p) => { saveFeatures(p); refresh((n) => n + 1); }} />
+      <p className="settings-note">{tr("Every feature works for every shop. Switch on what you use; anything switched off stays out of the way, and switching it off never deletes records.")}</p>
+      <FeaturePanel value={features} types={currentBusinessTypes} onChange={(p) => { saveFeatures(p); refresh((n) => n + 1); }} />
     </div>}
 
     <div className="bp-card">

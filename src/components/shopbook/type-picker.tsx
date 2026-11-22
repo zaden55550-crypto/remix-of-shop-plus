@@ -7,7 +7,7 @@ import { Check, ChevronDown, Star } from "lucide-react";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
 import { useLanguage } from "@/hooks/use-language";
 import { GENERAL_TRADE, INDUSTRIES, businessTypesForFamily, industryIsOpen, type IndustryFamilyId } from "@/lib/industry-config";
-import { FEATURE_IDS, FEATURE_INFO, type Features } from "@/lib/trade-features";
+import { FEATURE_GROUPS, FEATURE_IDS, FEATURE_INFO, featureEntry, isSuggested, type Features } from "@/lib/trade-features";
 import { cn } from "@/lib/utils";
 
 export function IndustrySelect({ id, value, onChange, keep, className, allowEmpty }: { id?: string; value: string; onChange: (id: IndustryFamilyId) => void; keep?: string | undefined; className?: string; allowEmpty?: boolean }) {
@@ -29,6 +29,36 @@ export function FeatureChecks({ value, onChange, className }: { value: Features;
       <input type="checkbox" checked={value[f]} onChange={(e) => onChange({ [f]: e.target.checked })} />
       <span>{tr(FEATURE_INFO[f].name)}</span>
     </label>)}
+  </div>;
+}
+
+/** Every feature as a card, in groups (Selling · Stock · Tax & compliance): what it does, an on/off tick, "Suggested for your shop"
+ *  when the business type usually needs it, and "Coming soon" for the ones not built yet (shown so owners see what is planned;
+ *  they can't be switched on). Used in Settings › Business Profile › Features and in Business Setup's "All features". */
+export function FeaturePanel({ value, onChange, types }: { value: Features; onChange: (patch: Partial<Features>) => void; types: readonly string[] }) {
+  const { tr } = useLanguage();
+  const built = FEATURE_IDS.filter((f) => value[f]).length;
+  return <div className="feature-panel">
+    <p className="feature-panel-count">{tr("{x} switched on", `${built} / ${FEATURE_IDS.length}`)}</p>
+    {FEATURE_GROUPS.map((g) => <section key={g.id} className="feature-group" aria-label={tr(g.name)}>
+      <h4 className="feature-group-name">{tr(g.name)}</h4>
+      <div className="feature-cards">
+        {g.features.map((id) => {
+          const e = featureEntry(id), on = e.built && value[id as keyof Features], suggested = isSuggested(id, types);
+          return <label key={id} className={cn("feature-card", on && "is-on", !e.built && "is-soon")}>
+            <input type="checkbox" checked={!!on} disabled={!e.built} onChange={(ev) => { if (e.built) onChange({ [id]: ev.target.checked } as Partial<Features>); }} />
+            <span className="feature-card-text">
+              <b>{tr(e.name)}</b>
+              <small>{tr(e.hint)}</small>
+              {(suggested || !e.built) && <span className="feature-badges">
+                {suggested && <em className="feature-badge is-suggested">{tr("Suggested for your shop")}</em>}
+                {!e.built && <em className="feature-badge is-soon">{tr("Coming soon")}</em>}
+              </span>}
+            </span>
+          </label>;
+        })}
+      </div>
+    </section>)}
   </div>;
 }
 
