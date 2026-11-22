@@ -2,7 +2,7 @@
 // every sale, return, purchase, expense, payroll and float move produces balanced lines.
 import { methodName, moneyMethods, payParts, type AccountMethod, type ErpState, type Method } from "@/lib/erp";
 
-export type FixedAccountId = "cash" | "mpesa" | "bank" | "receivables" | "inventory" | "payables" | "salariesPayable" | "equity" | "sales" | "salesReturns" | "cogs" | "expenses" | "salaries" | "stockAdj" | "vatPayable";
+export type FixedAccountId = "cash" | "mpesa" | "bank" | "receivables" | "inventory" | "payables" | "salariesPayable" | "equity" | "sales" | "salesReturns" | "cogs" | "expenses" | "salaries" | "stockAdj" | "vatPayable" | "cylinderDeposits";
 /** Each money account the owner named is an asset account of its own, under the same id payments use. */
 export type AccountId = FixedAccountId | AccountMethod;
 type AccountType = "Asset" | "Liability" | "Equity" | "Income" | "Expense";
@@ -10,6 +10,7 @@ export const ACCOUNT_INFO: Record<FixedAccountId, { name: string; type: AccountT
   cash: { name: "Cash", type: "Asset" }, mpesa: { name: "M-Pesa", type: "Asset" }, bank: { name: "Bank", type: "Asset" },
   receivables: { name: "Receivables", type: "Asset" }, inventory: { name: "Inventory", type: "Asset" },
   payables: { name: "Payables", type: "Liability" }, vatPayable: { name: "VAT payable", type: "Liability" }, salariesPayable: { name: "Salaries payable", type: "Liability" },
+  cylinderDeposits: { name: "Cylinder deposits held", type: "Liability" },
   equity: { name: "Owner equity", type: "Equity" },
   sales: { name: "Sales", type: "Income" }, salesReturns: { name: "Sales returns", type: "Expense" },
   cogs: { name: "Cost of goods sold", type: "Expense" }, expenses: { name: "Expenses", type: "Expense" },
@@ -35,7 +36,9 @@ export function journal(s: ErpState): Entry[] {
   const push = (at: number, ref: string, memo: string, lines: Line[]) => { const l = lines.filter((x) => x.debit || x.credit); if (l.length) E.push({ at, ref, memo, lines: l }); };
   s.sales.forEach((x) => {
     const cogs = x.items.reduce((a, i) => a + i.qty * i.cost, 0);
-    push(x.at, x.ref, "Sale", [...payParts(x.pay).map(([m, v]) => dr(acc(m), v)), cr("sales", x.total - (x.vat ?? 0)), cr("vatPayable", x.vat ?? 0), dr("cogs", cogs), cr("inventory", cogs)]);
+    // A new gas cylinder's deposit is held for the customer (paid back when the cylinder comes back), not sales income.
+    const deposits = Math.min(x.total - (x.vat ?? 0), x.items.reduce((a, i) => a + (i.gas?.mode === "new" ? i.gas.deposit * i.qty : 0), 0));
+    push(x.at, x.ref, "Sale", [...payParts(x.pay).map(([m, v]) => dr(acc(m), v)), cr("sales", x.total - (x.vat ?? 0) - deposits), cr("cylinderDeposits", deposits), cr("vatPayable", x.vat ?? 0), dr("cogs", cogs), cr("inventory", cogs)]);
   });
   s.returns.forEach((r) => {
     const sale = s.sales.find((x) => x.id === r.saleId);
@@ -56,6 +59,7 @@ export function journal(s: ErpState): Entry[] {
     if (p.method === "credit") return;
     const v = Math.abs(p.amount);
     if (p.kind === "DEBT") push(p.at, p.ref, `Debt • ${p.source}`, [dr(p.method, v), cr("receivables", v)]);
+    if (p.kind === "REFUND" && p.source.startsWith("CYL")) push(p.at, p.ref, `Cylinder deposit returned • ${p.source}`, [dr("cylinderDeposits", v), cr(p.method, v)]);
     if (p.kind === "SUPPLIER PAYMENT") push(p.at, p.ref, `Supplier • ${p.source}`, [dr("payables", v), cr(p.method, v)]);
     if (p.kind === "EXPENSE") push(p.at, p.source, "Expense", [dr("expenses", v), cr(p.method, v)]);
     if (p.kind === "DEPOSIT" || (p.kind === "TRANSFER" && p.amount > 0)) push(p.at, p.ref, p.kind === "DEPOSIT" ? "Deposit" : `Transfer ${p.source}`, [dr(p.method, v), cr("equity", v)]);

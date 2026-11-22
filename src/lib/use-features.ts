@@ -12,7 +12,7 @@ export function openBusinessTypes(): readonly string[] {
 
 export function useFeatures(): Features {
   const read = () => currentFeatures(openBusinessTypes());
-  const [f, setF] = useState<Features>({ expiry: false, counters: false, vat: false, barcodes: true, weight: false, priceLevels: false, serials: false });
+  const [f, setF] = useState<Features>({ expiry: false, counters: false, vat: false, barcodes: true, weight: false, priceLevels: false, serials: false, gas: false });
   useEffect(() => {
     const update = () => setF(read());
     update();

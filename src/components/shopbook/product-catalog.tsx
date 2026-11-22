@@ -41,7 +41,8 @@ export function ProductCatalog({ s, cart, tr, add, onScan }: {
   const byWeight = useFeature("weight");
   const cats = s.categories.filter((k) => s.products.some((p) => p.categoryId === k.id));
   const active = cats.some((k) => k.id === cat) ? cat : "all";
-  const list = useMemo(() => erp.searchProducts(s, q).filter((p) => active === "all" || p.categoryId === active), [s, q, active]);
+  // Empty gas cylinders are not sold: they come in with refills and deposit returns (Inventory › Gas Cylinders).
+  const list = useMemo(() => erp.searchProducts(s, q).filter((p) => p.gas?.kind !== "empty" && (active === "all" || p.categoryId === active)), [s, q, active]);
   return <>
     {cats.length > 0 && <Tabs small items={["all", ...cats.map((k) => k.id)]} value={active} onChange={setCat} tr={(k) => k === "all" ? tr("All") : cats.find((x) => x.id === k)?.name ?? k} />}
     <div className="mt-1.5"><ProductSearch q={q} setQ={setQ} tr={tr} onScan={onScan} /></div>

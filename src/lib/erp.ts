@@ -28,7 +28,14 @@ export type Product = AtShop & AtBusiness & {
   serialTracked?: boolean | undefined;
   warrantyMonths?: number | undefined;
   serials?: SerialUnit[] | undefined;
+  /** Gas cylinder exchange (Settings › Features): this product is the full or the empty cylinders of one brand and size,
+   *  `pairId` the other one. A full one's `deposit` is charged with a new cylinder and paid back when it is returned. */
+  gas?: GasCylinder | undefined;
 };
+export type GasCylinder = { brand: string; size: number; kind: "full" | "empty"; pairId: string; deposit?: number | undefined };
+/** How a full gas cylinder was sold: a refill for an empty brought in (`emptyId`, any brand of the same size), or a new
+ *  cylinder with its deposit (part of the line's price, held for the customer, not sales income). */
+export type GasSale = { mode: "refill"; emptyId: string } | { mode: "new"; deposit: number };
 /** One unit of a serial-tracked product: its serial / IMEI, and the sale it went to (none while in stock). */
 export type SerialUnit = { code: string; addedAt: number; sold?: { saleId: string; ref: string; at: number } | undefined };
 /** The location a record belongs to. Untagged means the main shop, so records from before shops were separated need no conversion. */
@@ -240,7 +247,9 @@ export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name
 /** `wholesale`: the line was charged the product's wholesale price (Wholesale & retail prices), so receipts can mark it. */
 export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined; wholesale?: true | undefined;
   /** The serials / IMEIs sold on this line and the warranty end (serial-tracked products). */
-  serials?: string[] | undefined; warrantyUntil?: number | undefined };
+  serials?: string[] | undefined; warrantyUntil?: number | undefined;
+  /** A gas cylinder sold as a refill (with the empty received) or as a new cylinder (with the deposit per unit). */
+  gas?: GasSale | undefined };
 export type Sale = AtShop & AtBusiness & AtCounter & {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
   pay: PayRecord; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
@@ -873,12 +882,26 @@ export const removeNamed = (kind: "categories" | "brands", id: string) => commit
 // ---------- Selling engine (shared by Sales → New Sale and POS → Sell) ----------
 /** `price` is a one-sale override (manual/wholesale); the product's default price is never changed. Quantities may be fractional (3 decimals). */
 /** `serials`: the serials / IMEIs chosen for a serial-tracked product, one per unit. */
-export type CartLine = { productId: string; qty: number; price?: number | undefined; priceReason?: string | undefined; serials?: string[] | undefined };
+export type CartLine = { productId: string; qty: number; price?: number | undefined; priceReason?: string | undefined; serials?: string[] | undefined;
+  /** A full gas cylinder: refill (with the empty brought in) or new (with its deposit). */
+  gas?: { mode: "refill"; emptyId: string } | { mode: "new" } | undefined };
 export const roundQty = (q: number) => Math.round(q * 1000) / 1000;
 /** A serial / IMEI as compared everywhere: trimmed, spaces removed, capitals. */
 export const serialKey = (code: string) => code.replace(/\s+/g, "").toUpperCase();
 /** The date a warranty of `months` starting at `at` ends. */
 export function warrantyEnd(at: number, months: number) { const d = new Date(at); d.setMonth(d.getMonth() + months); return d.getTime(); }
+/** A full gas cylinder sold as a refill must name an empty cylinder of the same size (any brand) that comes in; a new
+ *  cylinder carries the full one's deposit. Returns what the sale line records, or nothing for any other product. */
+function saleGas(s: ErpState, p: Product, l: CartLine, qty: number): GasSale | undefined {
+  if (!l.gas) return undefined;
+  if (p.gas?.kind !== "full") throw new ErpError(`${p.name} is not a full gas cylinder`);
+  if (!Number.isInteger(qty)) throw new ErpError(`${p.name} is sold in whole cylinders only`);
+  if (l.gas.mode === "new") return { mode: "new", deposit: Math.max(0, p.gas.deposit ?? 0) };
+  const empty = s.products.find((x) => x.id === (l.gas as { emptyId: string }).emptyId);
+  if (!empty || empty.gas?.kind !== "empty") throw new ErpError("Choose the empty cylinder the customer brought");
+  if (empty.gas.size !== p.gas.size) throw new ErpError(`The empty cylinder must be ${p.gas.size} kg like ${p.name}`);
+  return { mode: "refill", emptyId: empty.id };
+}
 /** A serial-tracked line must name exactly one unsold serial of the product per unit, each once. Returns the cleaned codes. */
 function saleSerials(p: Product, l: CartLine, qty: number): string[] | undefined {
   if (!p.serialTracked) return undefined;
@@ -964,8 +987,10 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
     if ((l.price ?? listed) < p.buy) c.audit("SOLD BELOW BUYING PRICE", `${p.name}: ${l.price ?? listed} (buying price ${p.buy})`);
     if (l.price !== undefined && l.price !== listed) c.audit("PRICE OVERRIDE", `${p.name}: ${listed} → ${l.price}${l.priceReason ? ` • ${l.priceReason}` : ""}`);
     const serials = saleSerials(p, l, qty);
+    const gas = saleGas(s, p, l, qty);
+    if (gas?.mode === "new" && (l.price ?? listed) < gas.deposit) throw new ErpError(`${p.name}: the price can't be below the cylinder deposit`);
     return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0, ...(p.unit ? { unit: p.unit } : {}), ...(l.priceReason?.startsWith("Wholesale price") ? { wholesale: true as const } : {}),
-      ...(serials ? { serials, ...(p.warrantyMonths ? { warrantyUntil: warrantyEnd(now, p.warrantyMonths) } : {}) } : {}) };
+      ...(serials ? { serials, ...(p.warrantyMonths ? { warrantyUntil: warrantyEnd(now, p.warrantyMonths) } : {}) } : {}), ...(gas ? { gas } : {}) };
   });
   if (new Set(items.map((i) => i.productId)).size !== items.length) throw new ErpError("A product appears twice in the cart");
   const subtotal = Math.round(items.reduce((a, i) => a + i.qty * i.price, 0) * 100) / 100;
@@ -984,6 +1009,8 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
   if (cust) c.here(cust);
   const ref = fixed?.ref ?? c.nextRef("S");
   items.forEach((i) => c.move(i.productId, "SALE", -i.qty, "Sale", ref));
+  // A refill takes the customer's empty cylinder in: it joins the empties, worth nothing in stock value.
+  items.forEach((i) => { if (i.gas?.mode === "refill") c.move(i.gas.emptyId, "STOCK IN", i.qty, "Empty cylinder received", ref); });
   const counter = cleanCounter(input.counter);
   payParts(input.pay).forEach(([m, v]) => { if (m !== "credit") s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: now, method: m, amount: v, kind: "SALE", source: ref, customerId: cust?.id, user: c.user, ...(counter ? { counter } : {}) }); });
   if (cust && input.pay.credit > 0) cust.balance += input.pay.credit;
@@ -1053,6 +1080,8 @@ export const returnSale = (saleId: string, lines: { productId: string; qty: numb
     if (roundQty(l.qty) > roundQty(it.qty - it.returned)) throw new ErpError(`Only ${roundQty(it.qty - it.returned)} of ${it.name} can be returned`);
     it.returned = roundQty(it.returned + l.qty);
     if (s.products.some((p) => p.id === it.productId)) c.move(it.productId, "RETURN", l.qty, `Return of ${sale.ref}`, ref);
+    // A returned refill gives the customer's empty cylinder back.
+    if (it.gas?.mode === "refill" && s.products.some((p) => p.id === (it.gas as { emptyId: string }).emptyId)) c.move(it.gas.emptyId, "STOCK OUT", -l.qty, `Empty given back • ${sale.ref}`, ref);
     // Serial-tracked units come back into stock: the line's serials still sold to this sale, last first.
     const back = (it.serials ?? []).filter((code) => product?.serials?.find((u) => serialKey(u.code) === code)?.sold?.saleId === sale.id).slice(-Math.round(l.qty));
     for (const code of back) { const unit = product?.serials?.find((u) => serialKey(u.code) === code); if (unit) unit.sold = undefined; }

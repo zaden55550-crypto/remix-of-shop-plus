@@ -175,6 +175,9 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><X className="h-4 w-4" /></ShopButton>
           {levels && wholesaleOf(p) && <WholesaleNote p={p} line={l} more={moreForWholesale(p, l.qty, customer)} money={money} tr={tr} setLine={setLine} />}
           {p.serialTracked && <SerialChooser p={p} line={l} setLine={setLine} />}
+          {l.gas && p.gas?.kind === "full" && <p className="cart-gas">{l.gas.mode === "refill"
+            ? <><b>{tr("Refill")}</b> · {tr("empty in")}: {(() => { const e = s.products.find((x) => x.id === (l.gas as { emptyId: string }).emptyId); return e?.gas ? `${e.gas.brand} ${e.gas.size} kg` : "—"; })()}</>
+            : <><b>{tr("New cylinder")}</b> · {tr("deposit")} {money(p.gas.deposit ?? 0)} {tr("each")}</>}</p>}
         </div>;
       })}
       {vr > 0 && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></div>}

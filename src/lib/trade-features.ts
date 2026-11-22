@@ -13,7 +13,7 @@
 import { readSettings, saveSettings } from "@/lib/settings-config";
 import { getTax, setTax } from "@/lib/prefs";
 
-export const FEATURE_IDS = ["expiry", "counters", "vat", "barcodes", "weight", "priceLevels", "serials"] as const;
+export const FEATURE_IDS = ["expiry", "counters", "vat", "barcodes", "weight", "priceLevels", "serials", "gas"] as const;
 export type FeatureId = (typeof FEATURE_IDS)[number];
 export type Features = Record<FeatureId, boolean>;
 
@@ -25,6 +25,7 @@ export const FEATURE_INFO: Record<FeatureId, { name: string; hint: string }> = {
   weight: { name: "Selling by weight", hint: "A kg keypad at the till with quick ¼, ½ and 1 kg buttons, and the price per kg on receipts" },
   priceLevels: { name: "Wholesale & retail prices", hint: "A cheaper price from a set quantity, or for wholesale customers, chosen automatically at the till" },
   serials: { name: "Serial / IMEI numbers & warranty", hint: "Record each item's serial or IMEI when selling; it shows on the receipt with the warranty end date and can be searched later" },
+  gas: { name: "Gas cylinder exchange", hint: "Refills and new cylinders with deposit, empty cylinders counted in stock, by size and brand" },
 };
 
 /** Types whose goods expire: expiry dates start switched on. */
@@ -35,6 +36,8 @@ const COUNTER_TYPES = new Set(["Supermarket", "Wholesale Business", "General Mer
 const WEIGHT_TYPES = new Set(["Butchery", "Cereals & Grains Shop", "Agrovet", "Grocery Store", "Supermarket", "Mini-mart / Kiosk"]);
 /** Types that sell both retail and wholesale: wholesale prices start switched on. */
 /** Types that sell serial-numbered goods: serial / IMEI tracking starts switched on. */
+/** Types that refill gas cylinders: gas cylinder exchange starts switched on. */
+const GAS_TYPES = new Set(["Gas / LPG Dealer"]);
 const SERIAL_TYPES = new Set(["Mobile Phones & Accessories", "Electronics Shop", "Jewellery Shop"]);
 const PRICE_LEVEL_TYPES = new Set(["Wholesale Business", "Hardware Shop", "Building Materials Shop", "Cereals & Grains Shop", "Agrovet", "Supermarket", "General Merchandise Store"]);
 
@@ -48,6 +51,7 @@ export function defaultFeatures(types: readonly string[]): Features {
     weight: types.some((t) => WEIGHT_TYPES.has(t)),
     priceLevels: types.some((t) => PRICE_LEVEL_TYPES.has(t)),
     serials: types.some((t) => SERIAL_TYPES.has(t)),
+    gas: types.some((t) => GAS_TYPES.has(t)),
   };
 }
 
@@ -60,6 +64,7 @@ export function currentFeatures(types: readonly string[]): Features {
     weight: typeof saved["weight"] === "boolean" ? saved["weight"] : base.weight,
     priceLevels: typeof saved["priceLevels"] === "boolean" ? saved["priceLevels"] : base.priceLevels,
     serials: typeof saved["serials"] === "boolean" ? saved["serials"] : base.serials,
+    gas: typeof saved["gas"] === "boolean" ? saved["gas"] : base.gas,
     vat: getTax().on,
     barcodes: s.searchBarcodes,
   };
@@ -81,7 +86,7 @@ export const featureOn = (id: FeatureId, types: readonly string[]) => currentFea
    A business type only suggests features (and, for the built ones, decides which start switched on, defaultFeatures above).
    Features not built yet are listed as "Coming soon" so owners see what is planned; they can't be switched on until they exist,
    and each is added to FEATURE_IDS (with its own saved switch) when it is built. */
-export type PlannedFeatureId = "layby" | "quotations" | "gas" | "breakdown" | "prescriptions";
+export type PlannedFeatureId = "layby" | "quotations" | "breakdown" | "prescriptions";
 export type AnyFeatureId = FeatureId | PlannedFeatureId;
 export type FeatureGroupId = "selling" | "stock" | "compliance";
 export type FeatureEntry = { id: AnyFeatureId; name: string; hint: string; built: boolean; suggestedFor: readonly string[] | "all" };
@@ -95,7 +100,7 @@ const SUGGEST: Record<AnyFeatureId, readonly string[] | "all"> = {
   quotations: ["Hardware Shop", "Building Materials Shop", "Furniture Shop", "Wholesale Business", "Automotive Parts Shop", "Electronics Shop"],
   expiry: [...EXPIRY_TYPES],
   serials: [...SERIAL_TYPES],
-  gas: ["Gas / LPG Dealer"],
+  gas: [...GAS_TYPES],
   breakdown: ["Butchery", "Mitumba (Second-hand Clothes)", "Cereals & Grains Shop"],
   vat: [],
   prescriptions: ["Pharmacy"],
@@ -103,7 +108,6 @@ const SUGGEST: Record<AnyFeatureId, readonly string[] | "all"> = {
 const PLANNED_INFO: Record<PlannedFeatureId, { name: string; hint: string }> = {
   layby: { name: "Deposits & lay-by", hint: "The customer pays part now and collects when the rest is paid; the goods are kept aside" },
   quotations: { name: "Quotations", hint: "Send a priced quotation and turn it into a sale or invoice when the customer agrees" },
-  gas: { name: "Gas cylinder exchange", hint: "Refills and new cylinders with deposit, empty cylinders counted in stock, by size and brand" },
   breakdown: { name: "Bale, carcass & sack breakdown", hint: "Buy a bale, carcass or sack, record the pieces or kilos you got and the waste, and see the true cost of each" },
   prescriptions: { name: "Prescriptions & controlled drugs", hint: "Keep the prescription with the sale and a register of controlled drugs" },
 };

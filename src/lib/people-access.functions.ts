@@ -198,7 +198,7 @@ export const staffSnapshot = createServerFn({ method: "POST" })
 const Money = z.number().finite().min(0).max(1e12);
 const Intent = z.discriminatedUnion("type", [
   z.object({ type: z.literal("sale"), at: z.number().int().positive(), input: z.object({
-    cart: z.array(z.object({ productId: z.string().min(1).max(100), qty: z.number().finite().positive(), price: Money.optional(), priceReason: z.string().max(200).optional(), serials: z.array(z.string().trim().min(1).max(64)).max(500).optional() })).min(1).max(500),
+    cart: z.array(z.object({ productId: z.string().min(1).max(100), qty: z.number().finite().positive(), price: Money.optional(), priceReason: z.string().max(200).optional(), serials: z.array(z.string().trim().min(1).max(64)).max(500).optional(), gas: z.union([z.object({ mode: z.literal("refill"), emptyId: z.string().min(1).max(100) }), z.object({ mode: z.literal("new") })]).optional() })).min(1).max(500),
     discount: Money, pay: z.object({ cash: Money, mpesa: Money, bank: Money, credit: Money }).catchall(Money).refine((p) => Object.keys(p).every((k) => ["cash", "mpesa", "bank", "credit"].includes(k) || /^acct-[a-z0-9]{1,40}$/.test(k)), "Unknown payment method"), customerId: z.string().max(100).optional(), channel: z.enum(["POS", "Sales"]), sellerId: z.string().max(100).optional(), vatRate: z.number().min(0).max(100).optional(),
   }) }),
   z.object({ type: z.literal("customer"), at: z.number().int().positive(), name: z.string().min(1).max(100), phone: z.string().max(40).optional() }),

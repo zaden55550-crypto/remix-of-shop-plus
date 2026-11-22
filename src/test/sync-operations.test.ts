@@ -15,6 +15,7 @@ import { createBusiness } from "@/lib/businesses";
 import { businessTypesForFamily } from "@/lib/industry-config";
 import { addSerials, removeSerial } from "@/lib/serials";
 import { applyPriceLevels } from "@/lib/price-levels";
+import { addGasCylinder, refundCylinderDeposit, sendEmpties } from "@/lib/gas";
 
 const OWNER = "00000000-0000-4000-8000-000000000001";
 
@@ -46,6 +47,21 @@ beforeEach(async () => {
 });
 
 describe("server sync accepts what the engine produces", () => {
+  it("takes gas cylinders: refills, new cylinders with deposit, deposits paid back and empties sent (Trade feature 4)", async () => {
+    const k = addGasCylinder({ brand: "K-Gas", size: 13, refillPrice: 3200, deposit: 3000, refillCost: 2700, full: 10, empty: 2 });
+    const t = addGasCylinder({ brand: "Total", size: 13, refillPrice: 3300, deposit: 3200, full: 4 });
+    erp.confirmSale({ cart: [{ productId: k.fullId, qty: 1, gas: { mode: "refill", emptyId: t.emptyId } }], discount: 0, pay: pay(3200), channel: "POS" });
+    erp.confirmSale({ cart: [{ productId: k.fullId, qty: 1, price: 6200, priceReason: "Includes cylinder deposit", gas: { mode: "new" } }], discount: 0, pay: pay(6200), channel: "POS" });
+    refundCylinderDeposit(k.emptyId, 1, "cash");
+    sendEmpties(k.emptyId, 2, "Kenol");
+    expect(await flush()).toEqual([]);
+    const remote = await server();
+    const q = (id: string) => remote?.products.find((p) => p.id === id)?.qty;
+    expect([q(k.fullId), q(k.emptyId), q(t.emptyId)]).toEqual([8, 1, 1]);
+    expect(remote?.sales.map((x) => x.items[0]?.gas)).toEqual(expect.arrayContaining([{ mode: "new", deposit: 3000 }, { mode: "refill", emptyId: t.emptyId }]));
+    expect(remote?.payments.some((p) => p.kind === "REFUND" && p.source.startsWith("CYL") && p.amount === -3000)).toBe(true);
+  });
+
   it("takes serial / IMEI tracking, wholesale prices and weighed sales (Trade features 1-3)", async () => {
     const phone = erp.addProduct({ name: "Samsung A15", buy: 15000, sell: 18000, qty: 3, unit: "pcs", serialTracked: true, warrantyMonths: 12 });
     addSerials(phone.id, ["356938035643801", "356938035643802", "356938035643803", "TYPO"]);

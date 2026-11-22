@@ -20,6 +20,7 @@ import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import { WeightPad } from "@/components/shopbook/weight-pad";
 import { addScannedSerial } from "@/components/shopbook/serial-chooser";
+import { GasPad } from "@/components/shopbook/gas-pad";
 import { useFeature } from "@/lib/use-features";
 import { CounterPicker, counterName } from "@/components/shopbook/counter-picker";
 import * as erp from "@/lib/erp";
@@ -91,8 +92,13 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const byWeight = useFeature("weight");
   const [weigh, setWeigh] = useState<string | null>(null);
   const weighed = weigh ? prod(weigh) : undefined;
+  // Gas cylinder exchange: a full cylinder asks Refill or New cylinder first.
+  const gasOn = useFeature("gas");
+  const [gasFor, setGasFor] = useState<string | null>(null);
+  const gasProduct = gasFor ? prod(gasFor) : undefined;
   const add = (id: string, from?: HTMLElement) => {
     const p = prod(id); if (!p) return;
+    if (gasOn && p.gas?.kind === "full") { setGasFor(id); return; }
     if (byWeight && erp.isWeightUnit(p.unit, s.units)) { setWeigh(id); return; }
     const inCart = cart.find((l) => l.productId === id)?.qty ?? 0;
     if (inCart + 1 > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
@@ -111,6 +117,8 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
       back={() => setStep("list")} saveDraft={saveDraft}
       onDone={(x) => { setCart([]); clearDraft(); setStep("list"); setDone(x); }} />}
     {done && <ReceiptSheet live sale={s.sales.find((x) => x.id === done.id) ?? done} s={s} money={money} tr={tr} shop={c.shop} onClose={() => setDone(null)} />}
+    {gasProduct && <GasPad s={s} p={gasProduct} line={cart.find((l) => l.productId === gasProduct.id)} money={money} onClose={() => setGasFor(null)}
+      onSet={(line) => setCart((x) => (x.some((l) => l.productId === line.productId) ? x.map((l) => (l.productId === line.productId ? line : l)) : [...x, line]))} />}
     {weighed && <WeightPad s={s} p={weighed} line={cart.find((l) => l.productId === weighed.id)} money={money} onClose={() => setWeigh(null)}
       onSet={(line) => { setCart((x) => (x.some((l) => l.productId === line.productId) ? x.map((l) => (l.productId === line.productId ? line : l)) : [...x, line])); if (cartBtn.current) cartBtn.current.animate?.([{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], { duration: 220 }); }} />}
   </>;

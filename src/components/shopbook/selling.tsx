@@ -24,6 +24,7 @@ import { SearchPicker } from "@/components/shopbook/search-picker";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import { WeightPad } from "@/components/shopbook/weight-pad";
 import { addScannedSerial } from "@/components/shopbook/serial-chooser";
+import { GasPad } from "@/components/shopbook/gas-pad";
 import { useFeature } from "@/lib/use-features";
 import { qtyTimesPrice, weighedUnit } from "@/lib/weight-display";
 import { MAIN_LOCATION } from "@/lib/locations";
@@ -103,9 +104,14 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
   const byWeight = useFeature("weight");
   const [weigh, setWeigh] = useState<string | null>(null);
   const weighed = weigh ? prod(weigh) : undefined;
+  // Gas cylinder exchange: a full cylinder asks Refill or New cylinder first.
+  const gasOn = useFeature("gas");
+  const [gasFor, setGasFor] = useState<string | null>(null);
+  const gasProduct = gasFor ? prod(gasFor) : undefined;
 
   const add = (id: string) => {
     const p = prod(id); if (!p) return;
+    if (gasOn && p.gas?.kind === "full") { setGasFor(id); return; }
     if (byWeight && erp.isWeightUnit(p.unit, s.units)) { setWeigh(id); return; }
     // Check inside the updater so rapid taps can't exceed stock through a stale cart.
     let blocked = false;
@@ -135,6 +141,8 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
         back={() => setStep(null)} saveDraft={saveDraft}
         onDone={(sale) => { setCart([]); clearDraft(); setStep(null); setReceipt(sale); }} />}
       {receipt && <ReceiptSheet live sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />}
+      {gasProduct && <GasPad s={s} p={gasProduct} line={cart.find((l) => l.productId === gasProduct.id)} money={money} onClose={() => setGasFor(null)}
+        onSet={(line) => setCart((c) => (c.some((l) => l.productId === line.productId) ? c.map((l) => (l.productId === line.productId ? line : l)) : [...c, line]))} />}
       {weighed && <WeightPad s={s} p={weighed} line={cart.find((l) => l.productId === weighed.id)} money={money} onClose={() => setWeigh(null)}
         onSet={(line) => setCart((c) => (c.some((l) => l.productId === line.productId) ? c.map((l) => (l.productId === line.productId ? line : l)) : [...c, line]))} />}
     </div>
@@ -166,7 +174,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
         {sale.items.map((i) => (
-          <div key={i.productId}><div className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}{i.wholesale ? ` · ${tr("Wholesale")}` : ""}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>{i.serials?.length ? <p className="receipt-serials">{i.serials.join(", ")}{i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}</p> : null}</div>
+          <div key={i.productId}><div className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}{i.wholesale ? ` · ${tr("Wholesale")}` : ""}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>{i.gas ? <p className="receipt-serials">{i.gas.mode === "refill" ? tr("Refill") : `${tr("New cylinder")} · ${tr("deposit")} ${i.gas.deposit.toLocaleString("en-KE")} ${tr("each")}`}</p> : null}{i.serials?.length ? <p className="receipt-serials">{i.serials.join(", ")}{i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}</p> : null}</div>
         ))}
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
@@ -186,7 +194,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
   const byWeight = useFeature("weight");
-  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}${i.serials?.length ? ` [${i.serials.join(", ")}${i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}]` : ""}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
+  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""}${i.gas ? ` (${i.gas.mode === "refill" ? tr("Refill") : `${tr("New cylinder")}, ${tr("deposit")} ${i.gas.deposit}`})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}${i.serials?.length ? ` [${i.serials.join(", ")}${i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}]` : ""}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
   const share = () => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); };
   const [print, setPrint] = useState<null | "print" | "pdf">(null);
   const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));
