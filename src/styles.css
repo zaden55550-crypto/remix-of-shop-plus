@@ -23925,3 +23925,35 @@ p.verify-small { text-decoration: none; }
 :root:root:root:root:root:root .feature-group-name { font-size: 15px !important; font-weight: 800 !important; letter-spacing: 0.01em; }
 :root:root:root:root:root:root .feature-panel-count { font-size: 13px !important; }
 /* ===== END ALL FEATURES PANEL ===== */
+
+/* ===== WEIGHT KEYPAD (Selling by weight, 2026-11-22) =====
+   weight-pad.tsx: kg | Amount switch, a big entry, quick amounts, a touch keypad and the live "1.25 kg × 700/kg = 875" line. */
+.weight-pad { display: grid; gap: 12px; }
+.weight-pad-head { display: flex; align-items: center; gap: 10px; }
+.weight-pad-head > svg { flex: none; width: 34px; height: 34px; padding: 6px; border-radius: 10px; color: var(--primary); background: color-mix(in srgb, var(--primary) 14%, transparent); }
+.weight-pad-name { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weight-pad-price { margin: 2px 0 0; font-size: 13px; color: var(--muted-foreground); }
+.weight-pad-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.weight-pad-modes > button { height: 38px; border-radius: 9px; font-weight: 800; font-size: 15px; color: var(--muted-foreground); }
+.weight-pad-modes > button.is-on { background: var(--card); color: var(--foreground); box-shadow: 0 1px 3px rgb(0 0 0 / 0.15); }
+.weight-pad-entry { display: flex; align-items: center; gap: 8px; padding: 0 14px; height: 60px; border-radius: 14px; border: 2px solid var(--border); background: var(--card); }
+.weight-pad-entry:focus-within { border-color: var(--primary); }
+.weight-pad-entry > input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--foreground); font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.weight-pad-entry > b { font-size: 18px; color: var(--muted-foreground); }
+.weight-pad-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.weight-pad-quick > button { height: 40px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.weight-pad-quick > button:hover { border-color: var(--primary); }
+.weight-pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.weight-pad-keys > button { height: 48px; border-radius: 12px; background: color-mix(in srgb, var(--foreground) 6%, transparent); font-size: 22px; font-weight: 800; display: grid; place-items: center; }
+.weight-pad-keys > button:active { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+.weight-pad-keys > button > svg { width: 22px; height: 22px; }
+.weight-pad-result { margin: 0; min-height: 44px; padding: 10px 12px; border-radius: 12px; font-size: 15px; font-weight: 800; line-height: 1.35; text-align: center;
+  background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--foreground); font-variant-numeric: tabular-nums; }
+.weight-pad-result.is-bad { background: color-mix(in srgb, #ef4444 14%, transparent); color: #b91c1c; }
+.dark .weight-pad-result.is-bad { color: #fca5a5; }
+.weight-pad-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.weight-pad-actions > button { height: 48px; font-size: 16px; }
+/* On phones with a keyboard showing, the on-screen keypad is redundant when the entry is focused by touch; it stays for taps. */
+@media (max-height: 640px) { .weight-pad-keys > button { height: 40px; } .weight-pad-entry { height: 52px; } }
+.pos-per { margin-inline-start: 1px; font-size: 0.78em; font-weight: 600; opacity: 0.75; }
+/* ===== END WEIGHT KEYPAD ===== */

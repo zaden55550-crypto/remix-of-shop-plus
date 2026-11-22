@@ -10,6 +10,7 @@ import { vatRate } from "@/lib/prefs";
 import { parseQty } from "@/lib/qty-parse";
 import { translateCurrent } from "@/lib/interface-translations";
 import * as erp from "@/lib/erp";
+import { useFeature } from "@/lib/use-features";
 
 export function useCartDraft(channel: string) {
   const [cart, setCart] = useState<erp.CartLine[]>([]);
@@ -98,6 +99,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   s: erp.ErpState; cart: erp.CartLine[]; money: (n: number) => string; tr: (x: string) => string; channel: "POS" | "Sales";
   setLine: (l: erp.CartLine) => void; remove: (id: string) => void; clear: () => void; back: () => void; saveDraft: () => void; onDone: (sale: erp.Sale) => void;
 }) {
+  const byWeight = useFeature("weight");
   const [bad, setBad] = useState<Record<string, boolean>>({});
   const [customerId, setCustomer] = useState("");
   const [pay, setPay] = useState<PayState>(emptyPay());
@@ -182,7 +184,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
           <AlertDialogDescription>{tr("This customer is paying for these goods at these prices. Is it confirmed?")}</AlertDialogDescription>
         </AlertDialogHeader>
         <ul className="cart-review">
-          {cart.map((l) => { const p = s.products.find((x) => x.id === l.productId); return p && <li key={p.id}><span>{p.name}: {fmt(l.qty)} {p.unit || "pcs"} × {money(erp.linePrice(s, l))}{belowBuying(s, l) && <small> ({tr("below buying price")})</small>}</span><b>{money(erp.lineAmount(s, l))}</b></li>; })}
+          {cart.map((l) => { const p = s.products.find((x) => x.id === l.productId); return p && <li key={p.id}><span>{p.name}: {fmt(l.qty)} {p.unit || "pcs"} × {money(erp.linePrice(s, l))}{byWeight && erp.isWeightUnit(p.unit, s.units) ? `/${p.unit}` : ""}{belowBuying(s, l) && <small> ({tr("below buying price")})</small>}</span><b>{money(erp.lineAmount(s, l))}</b></li>; })}
           <li className="cart-review-total"><span>{tr("Total")}</span><b>{money(total)}</b></li>
         </ul>
         <AlertDialogFooter>

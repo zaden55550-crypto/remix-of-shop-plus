@@ -6,6 +6,7 @@ import { ProductSearch } from "@/components/shopbook/product-search";
 import { clean } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
+import { useFeature } from "@/lib/use-features";
 
 /** Column titles for ProductRow lists. */
 export function ProductListHead({ tr, price = "Price" }: { tr: Tr; price?: string }) {
@@ -15,16 +16,17 @@ export function ProductListHead({ tr, price = "Price" }: { tr: Tr; price?: strin
 /** The one compact product row, as POS shows it: stock dot · name · stock · price · action icon.
  *  Callers own what a tap does — add to the cart (POS, Sales), add a line (Purchases), pick the product
  *  for a stock action (Inventory pickers) or open view/edit (All Products) — so browsing never sells. */
-export function ProductRow({ p, tr, price, onPick, action = "add", count = 0, selected = false, disabled = false }: {
+/** `per`: the unit a weighed product's price is for ("kg"), shown as "700/kg" (Selling by weight). */
+export function ProductRow({ p, tr, price, onPick, action = "add", count = 0, selected = false, disabled = false, per }: {
   p: erp.Product; tr: Tr; price: number; onPick: (from: HTMLElement) => void;
-  action?: "add" | "select" | "view"; count?: number; selected?: boolean; disabled?: boolean;
+  action?: "add" | "select" | "view"; count?: number; selected?: boolean; disabled?: boolean; per?: string | undefined;
 }) {
   const st = erp.stockStatus(p);
   const Icon = action === "view" ? ChevronRight : action === "select" && selected ? Check : Plus;
   return <ShopButton variant="bare" aria-label={`${tr(action === "view" ? "Open" : action === "select" ? "Select" : "Add")} ${p.name}`} aria-pressed={action === "select" ? selected : undefined} disabled={disabled} onClick={(e) => onPick(e.currentTarget)} className={cn("pos-row pos-product-button", (count > 0 || selected) && "pos-row-on")}>
     <span className="flex min-w-0 items-center gap-1.5"><Dot tone={st === "OUT" ? "bad" : st === "LOW" ? "warn" : "ok"} /><span className="truncate" title={p.name} translate="no">{p.name}</span>{count > 0 && <span className="pos-chip">×{count}</span>}</span>
     <span className="text-center tabular-nums">{p.qty}</span>
-    <span className="text-end tabular-nums">{clean(Math.round(clean(price) * 100) / 100).toLocaleString("en-KE")}</span>
+    <span className="text-end tabular-nums">{clean(Math.round(clean(price) * 100) / 100).toLocaleString("en-KE")}{per && <small className="pos-per">/{per}</small>}</span>
     <span className="pos-add" aria-hidden="true"><Icon className="h-3.5 w-3.5" /></span>
   </ShopButton>;
 }
@@ -36,6 +38,7 @@ export function ProductCatalog({ s, cart, tr, add, onScan }: {
 }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
+  const byWeight = useFeature("weight");
   const cats = s.categories.filter((k) => s.products.some((p) => p.categoryId === k.id));
   const active = cats.some((k) => k.id === cat) ? cat : "all";
   const list = useMemo(() => erp.searchProducts(s, q).filter((p) => active === "all" || p.categoryId === active), [s, q, active]);
@@ -44,6 +47,6 @@ export function ProductCatalog({ s, cart, tr, add, onScan }: {
     <div className="mt-1.5"><ProductSearch q={q} setQ={setQ} tr={tr} onScan={onScan} /></div>
     <ProductListHead tr={tr} />
     {list.length === 0 && <Empty>{s.products.length ? tr("No matching products") : tr("No products yet. Add products in Inventory.")}</Empty>}
-    {list.map((p) => <ProductRow key={p.id} p={p} tr={tr} price={p.sell} disabled={p.qty <= 0} count={cart.find((l) => l.productId === p.id)?.qty ?? 0} onPick={(from) => add(p.id, from)} />)}
+    {list.map((p) => <ProductRow key={p.id} p={p} tr={tr} price={p.sell} per={byWeight && erp.isWeightUnit(p.unit, s.units) ? p.unit : undefined} disabled={p.qty <= 0} count={cart.find((l) => l.productId === p.id)?.qty ?? 0} onPick={(from) => add(p.id, from)} />)}
   </>;
 }

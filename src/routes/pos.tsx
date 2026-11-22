@@ -18,6 +18,8 @@ import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { WeightPad } from "@/components/shopbook/weight-pad";
+import { useFeature } from "@/lib/use-features";
 import { CounterPicker, counterName } from "@/components/shopbook/counter-picker";
 import * as erp from "@/lib/erp";
 
@@ -84,8 +86,13 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
   const cartBtn = useRef<HTMLButtonElement>(null);
   const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
+  // Selling by weight: a weighed product opens the weight keypad instead of adding one.
+  const byWeight = useFeature("weight");
+  const [weigh, setWeigh] = useState<string | null>(null);
+  const weighed = weigh ? prod(weigh) : undefined;
   const add = (id: string, from?: HTMLElement) => {
     const p = prod(id); if (!p) return;
+    if (byWeight && erp.isWeightUnit(p.unit, s.units)) { setWeigh(id); return; }
     const inCart = cart.find((l) => l.productId === id)?.qty ?? 0;
     if (inCart + 1 > p.qty) { toast.error(`${tr("Insufficient stock")}: ${p.name} (${p.qty})`); return; }
     setCart((x) => (x.some((l) => l.productId === id) ? x.map((l) => (l.productId === id ? { ...l, qty: l.qty + 1 } : l)) : [...x, { productId: id, qty: 1 }]));
@@ -103,6 +110,8 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
       back={() => setStep("list")} saveDraft={saveDraft}
       onDone={(x) => { setCart([]); clearDraft(); setStep("list"); setDone(x); }} />}
     {done && <ReceiptSheet live sale={s.sales.find((x) => x.id === done.id) ?? done} s={s} money={money} tr={tr} shop={c.shop} onClose={() => setDone(null)} />}
+    {weighed && <WeightPad s={s} p={weighed} line={cart.find((l) => l.productId === weighed.id)} money={money} onClose={() => setWeigh(null)}
+      onSet={(line) => { setCart((x) => (x.some((l) => l.productId === line.productId) ? x.map((l) => (l.productId === line.productId ? line : l)) : [...x, line])); if (cartBtn.current) cartBtn.current.animate?.([{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], { duration: 220 }); }} />}
   </>;
 }
 

@@ -225,7 +225,8 @@ export function checkMethod(full: Pick<ErpState, "moneyAccounts">, m: Method, al
   if (!moneyMethods(s).includes(m)) throw new ErpError(known(s, m) ? `${methodName(m, s)} is no longer in use` : "Unknown payment method");
 }
 export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number };
-export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number };
+/** `unit`: the product's unit when sold (kg, pcs…), so receipts can say "1.25 kg × 700/kg". Older sales have none. */
+export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined };
 export type Sale = AtShop & AtBusiness & AtCounter & {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
   pay: PayRecord; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
@@ -864,6 +865,15 @@ export const isWholeUnit = (unit?: string, units?: Unit[]) => {
   const own = units?.find((u) => u.name.toLowerCase() === t || u.abbr.toLowerCase() === t);
   return own ? own.type === "quantity" : WHOLE_UNITS.has(t);
 };
+/** Units weighed on a scale (kilos, grams): with Selling by weight on, the till opens its weight keypad for these.
+ *  A shop's own unit says by its type (Settings › Units); otherwise the common names count. */
+const WEIGHT_UNITS = new Set(["kg", "kgs", "kilo", "kilos", "kilogram", "kilograms", "g", "gm", "gms", "gram", "grams"]);
+export const isWeightUnit = (unit?: string, units?: Unit[]) => {
+  const t = (unit || "").trim().toLowerCase();
+  if (!t) return false;
+  const own = units?.find((u) => u.name.toLowerCase() === t || u.abbr.toLowerCase() === t);
+  return own ? own.type === "weight" : WEIGHT_UNITS.has(t);
+};
 export const linePrice = (s: ErpState, l: CartLine) => l.price ?? s.products.find((p) => p.id === l.productId)?.sell ?? 0;
 export const lineAmount = (s: ErpState, l: CartLine) => Math.round(linePrice(s, l) * l.qty * 100) / 100;
 export const lineTotal = (s: ErpState, cart: CartLine[]) => Math.round(cart.reduce((a, l) => a + lineAmount(s, l), 0) * 100) / 100;
@@ -918,7 +928,7 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
     if (l.price !== undefined && !(l.price >= 0 && Number.isFinite(l.price))) throw new ErpError(`Invalid price for ${p.name}`);
     if ((l.price ?? listed) < p.buy) c.audit("SOLD BELOW BUYING PRICE", `${p.name}: ${l.price ?? listed} (buying price ${p.buy})`);
     if (l.price !== undefined && l.price !== listed) c.audit("PRICE OVERRIDE", `${p.name}: ${listed} → ${l.price}${l.priceReason ? ` • ${l.priceReason}` : ""}`);
-    return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0 };
+    return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0, ...(p.unit ? { unit: p.unit } : {}) };
   });
   if (new Set(items.map((i) => i.productId)).size !== items.length) throw new ErpError("A product appears twice in the cart");
   const subtotal = Math.round(items.reduce((a, i) => a + i.qty * i.price, 0) * 100) / 100;

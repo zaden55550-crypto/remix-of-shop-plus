@@ -13,6 +13,8 @@ import { Kpi, KpiRow } from "@/components/shopbook/kpi";
 import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, Tabs, toneOf } from "@/components/shopbook/erp-shell";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
+import { useFeature } from "@/lib/use-features";
+import { weighedUnit } from "@/lib/weight-display";
 
 export const Route = createFileRoute("/sales")({
   head: () => ({
@@ -144,6 +146,7 @@ function PayForm({ c, sale, done }: { c: Ctx; sale: erp.Sale; done?: () => void 
 
 function SaleDetail(c: Ctx & { id: string }) {
   const { s, money, tr, shop } = c;
+  const byWeight = useFeature("weight");
   const [tab, setTab] = useState("Items");
   const [adding, setAdding] = useState(false);
   const [receipt, setReceipt] = useState(false);
@@ -163,7 +166,7 @@ function SaleDetail(c: Ctx & { id: string }) {
     {bal > 0.001 && (adding ? <PayForm c={c} sale={x} done={() => setAdding(false)} /> : <BigButton onClick={() => setAdding(true)}><Plus className="h-4 w-4" />{tr("Add Payment")}</BigButton>)}
     <Tabs small items={["Items", "Payments", "Returns", "History"]} value={tab} onChange={setTab} tr={tr} />
     <div className="inventory-box mt-0">
-      {tab === "Items" && x.items.map((i) => <Row key={i.productId}><span className="pur-name">{i.name}</span><span className="pur-muted">× {i.qty}</span><span className="pur-muted">{i.price.toLocaleString("en-KE")}</span><span className="pur-amt">{money(i.qty * i.price)}</span></Row>)}
+      {tab === "Items" && x.items.map((i) => <Row key={i.productId}><span className="pur-name">{i.name}</span><span className="pur-muted">× {i.qty}{weighedUnit(s, i.productId, i.unit, byWeight) ? ` ${weighedUnit(s, i.productId, i.unit, byWeight)}` : ""}</span><span className="pur-muted">{i.price.toLocaleString("en-KE")}{weighedUnit(s, i.productId, i.unit, byWeight) ? `/${weighedUnit(s, i.productId, i.unit, byWeight)}` : ""}</span><span className="pur-amt">{money(i.qty * i.price)}</span></Row>)}
       {tab === "Payments" && (pays.length ? pays.map((p) => <Row key={p.id}><Dot tone="ok" /><span className="pur-name">{tr(erp.methodName(p.method))}</span><span className="pur-amt">{money(Math.abs(p.amount))}</span><span className="pur-muted">{new Date(p.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span></Row>) : <Empty>{tr("No payments yet")}</Empty>)}
       {tab === "Returns" && (rets.length ? rets.map((r) => <Row key={r.id}><b>{r.ref}</b><span className="pur-name">{r.items.map((i) => `${i.name} × ${i.qty}`).join(", ")}</span><span className="pur-amt">{money(r.amount)}</span></Row>) : <Empty>{tr("No returns yet")}</Empty>)}
       {tab === "History" && s.audit.filter((a) => a.detail.includes(x.ref)).map((a) => <Row key={a.id}><span className="pur-muted">{new Date(a.at).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span><span className="pur-name">{tr(a.action)}</span></Row>)}

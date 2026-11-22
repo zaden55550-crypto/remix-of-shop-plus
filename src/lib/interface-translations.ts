@@ -2,6 +2,14 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Weigh {x}|Pima {x}|Peser {x}|وزن {x}|Pesar {x}|Pesar {x}|{x} wiegen|Pesa {x}|称重 {x}|{x} तौलें|Miisaan {x}
+In stock|Kwenye hisa|En stock|في المخزون|En stock|Em estoque|Auf Lager|In magazzino|库存|स्टॉक में|Kaydka ku jira
+Sell by|Uza kwa|Vendre par|البيع حسب|Vender por|Vender por|Verkaufen nach|Vendi per|销售方式|बेचें|Ku iibi
+Enter a weight above zero|Weka uzito zaidi ya sifuri|Saisissez un poids supérieur à zéro|أدخل وزنًا أكبر من الصفر|Introduce un peso mayor que cero|Digite um peso maior que zero|Geben Sie ein Gewicht über null ein|Inserisci un peso maggiore di zero|请输入大于零的重量|शून्य से अधिक वज़न डालें|Geli miisaan ka badan eber
+Enter an amount above zero|Weka kiasi zaidi ya sifuri|Saisissez un montant supérieur à zéro|أدخل مبلغًا أكبر من الصفر|Introduce un importe mayor que cero|Digite um valor maior que zero|Geben Sie einen Betrag über null ein|Inserisci un importo maggiore di zero|请输入大于零的金额|शून्य से अधिक राशि डालें|Geli lacag ka badan eber
+Type the weight, or the amount the customer wants|Andika uzito, au kiasi cha pesa mteja anachotaka|Saisissez le poids, ou le montant que veut le client|اكتب الوزن، أو المبلغ الذي يريده العميل|Escribe el peso, o el importe que quiere el cliente|Digite o peso, ou o valor que o cliente quer|Gewicht eingeben oder den Betrag, den der Kunde möchte|Scrivi il peso, o l’importo che vuole il cliente|输入重量，或客户想要的金额|वज़न लिखें, या ग्राहक जितने पैसे का चाहता है|Qor miisaanka, ama lacagta macmiilku rabo
+Update cart|Sasisha kikapu|Mettre à jour le panier|تحديث السلة|Actualizar carrito|Atualizar carrinho|Warenkorb aktualisieren|Aggiorna carrello|更新购物车|कार्ट अपडेट करें|Cusboonaysii gaariga
+Add to cart|Ongeza kwenye kikapu|Ajouter au panier|أضف إلى السلة|Añadir al carrito|Adicionar ao carrinho|In den Warenkorb|Aggiungi al carrello|加入购物车|कार्ट में जोड़ें|Ku dar gaariga
 Tax & compliance|Kodi na uzingatiaji|Taxes et conformité|الضرائب والامتثال|Impuestos y cumplimiento|Impostos e conformidade|Steuern & Vorschriften|Tasse e conformità|税务与合规|कर और अनुपालन|Canshuurta iyo u hoggaansanaanta
 All features|Vipengele vyote|Toutes les fonctionnalités|كل الميزات|Todas las funciones|Todos os recursos|Alle Funktionen|Tutte le funzioni|全部功能|सभी सुविधाएँ|Dhammaan astaamaha
 Suggested for your shop|Imependekezwa kwa duka lako|Suggéré pour votre boutique|مقترح لمتجرك|Sugerido para tu tienda|Sugerido para sua loja|Empfohlen für Ihr Geschäft|Consigliato per il tuo negozio|为您的店铺推荐|आपकी दुकान के लिए सुझाया गया|Laguu soo jeediyay dukaankaaga

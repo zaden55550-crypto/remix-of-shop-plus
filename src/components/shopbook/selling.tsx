@@ -22,6 +22,9 @@ import { Empty, Tabs } from "@/components/shopbook/erp-shell";
 import { GlobalApplicationHeader } from "@/components/shopbook/global-application-header";
 import { SearchPicker } from "@/components/shopbook/search-picker";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
+import { WeightPad } from "@/components/shopbook/weight-pad";
+import { useFeature } from "@/lib/use-features";
+import { qtyTimesPrice, weighedUnit } from "@/lib/weight-display";
 import { readSettings } from "@/lib/settings-config";
 import * as erp from "@/lib/erp";
 import { forOpenBusiness } from "@/lib/businesses";
@@ -94,9 +97,14 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
   const [receipt, setReceipt] = useState<erp.Sale | null>(null);
   const count = cart.length;
   const prod = (id: string) => s.products.find((p) => p.id === id);
+  // Selling by weight: a weighed product opens the weight keypad instead of adding one.
+  const byWeight = useFeature("weight");
+  const [weigh, setWeigh] = useState<string | null>(null);
+  const weighed = weigh ? prod(weigh) : undefined;
 
   const add = (id: string) => {
     const p = prod(id); if (!p) return;
+    if (byWeight && erp.isWeightUnit(p.unit, s.units)) { setWeigh(id); return; }
     // Check inside the updater so rapid taps can't exceed stock through a stale cart.
     let blocked = false;
     setCart((c) => {
@@ -124,12 +132,15 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
         back={() => setStep(null)} saveDraft={saveDraft}
         onDone={(sale) => { setCart([]); clearDraft(); setStep(null); setReceipt(sale); }} />}
       {receipt && <ReceiptSheet live sale={receipt} s={s} money={money} tr={tr} shop={shop} onClose={() => setReceipt(null)} />}
+      {weighed && <WeightPad s={s} p={weighed} line={cart.find((l) => l.productId === weighed.id)} money={money} onClose={() => setWeigh(null)}
+        onSet={(line) => setCart((c) => (c.some((l) => l.productId === line.productId) ? c.map((l) => (l.productId === line.productId ? line : l)) : [...c, line]))} />}
     </div>
   );
 }
 
 // ---------------- RECEIPT (always white) ----------------
 export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string }) {
+  const byWeight = useFeature("weight");
   const cust = sale.customerId ? s.customers.find((c) => c.id === sale.customerId) : undefined;
   const rets = s.returns.filter((r) => r.saleId === sale.id);
   // The business's own receipt details (Settings › Receipts and Business Profile); blank ones are left out.
@@ -150,7 +161,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
         {sale.items.map((i) => (
-          <div key={i.productId} className="flex justify-between gap-2"><span className="truncate">{i.name} {i.qty} × {i.price.toLocaleString("en-KE")}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>
+          <div key={i.productId} className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>
         ))}
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
@@ -169,7 +180,8 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
 }
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
-  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${i.qty} × ${i.price} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
+  const byWeight = useFeature("weight");
+  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
   const share = () => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); };
   const [print, setPrint] = useState<null | "print" | "pdf">(null);
   const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));
