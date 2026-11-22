@@ -12,6 +12,7 @@ import { getTax } from "@/lib/prefs";
 import { readSettings, saveSettings } from "@/lib/settings-config";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { store } from "@/lib/shopbook";
+import { applyOB, obLabel, previewOB, suggestOB, type OBKind } from "@/lib/opening-import";
 import {
   READY_INFO, READY_STEPS, confirmStep, financialYearStart, paymentLines, printedRef, readyProgress, readyStatus, saveHours, saveNumbering,
   savePayments, saveTax, setOpeningFloat, setStaffPin, skipStep, type ReadyStep,
@@ -46,11 +47,11 @@ export function ReadyButton({ s, onOpen }: { s: erp.ErpState; onOpen: () => void
   </button>;
 }
 
-export function ReadyToSell({ s, onClose }: { s: erp.ErpState; onClose?: () => void }) {
+export function ReadyToSell({ s, onClose, start }: { s: erp.ErpState; onClose?: () => void; start?: ReadyStep | undefined }) {
   const { tr } = useLanguage();
   const [, bump] = useState(0);
   const status = useReadyStatus(s), done = readyProgress(status);
-  const [open, setOpen] = useState<ReadyStep | null>(() => READY_STEPS.find((k) => status[k] === "todo") ?? null);
+  const [open, setOpen] = useState<ReadyStep | null>(() => start ?? READY_STEPS.find((k) => status[k] === "todo") ?? null);
   const refresh = () => bump((n) => n + 1);
   const run = (fn: () => unknown, then?: ReadyStep) => {
     try { const r = fn(); const after = () => { toast.success(tr("Saved")); refresh(); setOpen(nextAfter(then)); };
@@ -103,6 +104,7 @@ function StepBody({ step, s, tr, run }: { step: ReadyStep; s: erp.ErpState; tr: 
       <ImportCenter tr={tr} only="Products" />
     </div>;
     case "cash": return <OpeningCash s={s} tr={tr} run={run} />;
+    case "balances": return <OpeningBalances s={s} tr={tr} run={run} />;
     case "receipt": return <ReceiptStep tr={tr} run={run} />;
     case "numbering": return <Numbering s={s} tr={tr} run={run} />;
     case "hours": return <Hours tr={tr} run={run} hours={cfg.hours} month={cfg.fyStartMonth} />;
@@ -255,5 +257,42 @@ function Move({ tr, run }: { tr: Tr; run: (fn: () => unknown, then?: ReadyStep) 
     <ol className="ready-guide">{guide.steps.map((x) => <li key={x}>{x}</li>)}</ol>
     <FullImport tr={tr} />
     <ShopButton variant="outline" onClick={() => run(() => confirmStep("move"), "move")}>{tr("I've brought everything over")}</ShopButton>
+  </div>;
+}
+
+/* Opening balances in one step (owner, 2026-11-22, like QuickBooks' opening balance wizard): typed lines go through the same engine
+   as the Opening Balances import (opening-import.ts), so they post as OPENING rows with an import key and saving twice never doubles. */
+type BalanceLine = { kind: OBKind; account: string; phone: string; amount: string };
+const BALANCE_KINDS: [OBKind, string][] = [["mpesa", "M-Pesa"], ["bank", "Bank"], ["cash", "Cash at hand"], ["receivable", "A customer owes you"], ["payable", "You owe a supplier"]];
+function OpeningBalances({ s, tr, run }: { s: erp.ErpState; tr: Tr; run: (fn: () => unknown, then?: ReadyStep) => void }) {
+  const blank = (kind: OBKind = "mpesa"): BalanceLine => ({ kind, account: "", phone: "", amount: "" });
+  const [lines, setLines] = useState<BalanceLine[]>(() => [blank("mpesa"), blank("bank"), blank("receivable")]);
+  const set = (i: number, p: Partial<BalanceLine>) => setLines(lines.map((l, j) => (j === i ? { ...l, ...p } : l)));
+  const save = () => run(() => {
+    const filled = lines.filter((l) => l.amount.trim());
+    if (!filled.length) throw new erp.ErpError("Enter at least one amount");
+    const label = Object.fromEntries(BALANCE_KINDS) as Record<OBKind, string>;
+    const today = new Date().toLocaleDateString("en-GB");
+    const sheet = { file: "Business Setup", sheet: "Opening balances", columns: ["Source ID", "Account Type", "Account", "Phone", "Opening Amount", "Effective Date"],
+      rows: filled.map((l) => ({ "Source ID": `SETUP-${l.kind}-${(l.account || label[l.kind]).trim().toLowerCase().replace(/s+/g, "-")}`, "Account Type": obLabel(l.kind), Account: l.account.trim() || label[l.kind], Phone: l.phone.trim(), "Opening Amount": l.amount.trim(), "Effective Date": today })) };
+    const rows = previewOB(s, [{ sheet, mapping: suggestOB(sheet.columns) }], "DMY");
+    const bad = rows.find((r) => r.status === "INVALID");
+    if (bad) throw new erp.ErpError(bad.issues[0]?.problem ?? "Check the amounts");
+    applyOB(rows, ["Business Setup"]);
+  }, "balances");
+  return <div className="ready-stack">
+    <p className="settings-note">{tr("What the business has and owes on the day you start. Cash in each till is under Opening cash. These never count as sales or expenses.")}</p>
+    <ul className="ready-balances">
+      {lines.map((l, i) => <li key={i}>
+        <select className="inventory-input" aria-label={tr("Account type")} value={l.kind} onChange={(e) => set(i, { kind: e.target.value as OBKind })}>{BALANCE_KINDS.map(([k, n]) => <option key={k} value={k}>{tr(n)}</option>)}</select>
+        <input className="inventory-input" aria-label={tr("Name")} placeholder={tr(l.kind === "receivable" ? "Customer name" : l.kind === "payable" ? "Supplier name" : "Account name (optional)")} value={l.account} onChange={(e) => set(i, { account: e.target.value })} />
+        {(l.kind === "receivable" || l.kind === "payable") ? <input className="inventory-input" aria-label={tr("Phone")} placeholder={tr("Phone (optional)")} value={l.phone} onChange={(e) => set(i, { phone: e.target.value })} /> : <span />}
+        <input className="inventory-input" aria-label={tr("Amount")} inputMode="decimal" placeholder="0" value={l.amount} onChange={(e) => set(i, { amount: e.target.value })} />
+      </li>)}
+    </ul>
+    <div className="ready-actions">
+      <ShopButton variant="outline" onClick={() => setLines([...lines, blank("receivable")])}>{tr("Add a line")}</ShopButton>
+      <ShopButton onClick={save}>{tr("Save")}</ShopButton>
+    </div>
   </div>;
 }

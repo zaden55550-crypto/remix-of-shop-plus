@@ -24665,4 +24665,164 @@ html.dark .bsetup {
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-table, .bsetup-table.has-counters) .bsetup-entry.bsetup-entry { grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr) !important; min-height: 0 !important; }
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry.bsetup-entry-head { display: none !important; }
 }
+/* ----- Round 4 (owner, 2026-11-22): bigger everywhere; Add Shop / Add Warehouse centred; Upload, Edit, Actions (Assign Users,
+   Manage Users, Manage Access) and Delete as glass buttons; up to 5 locations fill one full-width list, 6 or more split into two
+   columns of 5 on wide screens; many business documents with a list window; a bigger Business Type list. ----- */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-head-meta, .bsetup-saved, .bsetup-steps > li, .bsetup-ready) { font-size: 16px !important; padding: 7px 13px !important; border-radius: 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-id > .bsetup-title { font-size: 28px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > .bsetup-ready-sell { min-height: 46px; font-size: 16.5px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-review { min-height: 46px !important; font-size: 20px !important; padding: 0 20px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-steps > li, .bsetup-ready li) > svg, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready li > button > svg { width: 21px !important; height: 21px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready li > button { display: inline-flex; align-items: center; gap: 6px; padding: 0; background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready li:not(.is-ok) > button { text-decoration: underline dotted; text-underline-offset: 4px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready li.is-ok > button > svg { width: 21px; height: 21px; padding: 2px; border-radius: 999px; background: #10b981; color: #fff !important; stroke-width: 3; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready .bsetup-ready-dot { width: 19px; height: 19px; }
+
+/* Details: larger labels, fields and feature ticks. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-profile .bsetup-field > span, .bsetup-feature-row > span) { font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile :is(.inventory-input, .type-picker-button, select, .bsetup-doc-upload, .bsetup-more-phones) { height: 50px !important; min-height: 50px !important; font-size: 18px !important; font-weight: 700 !important; border-radius: 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-checks .feature-check { min-height: 48px !important; font-size: 17px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-checks .feature-check input { width: 22px !important; height: 22px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile > .bsetup-save-row > .bsetup-later { font-size: 21px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-doc-row { display: flex; gap: 6px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-doc-row > .bsetup-doc-upload { flex: 1 1 auto; min-width: 0; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-doc-count { display: inline-flex; align-items: center; gap: 5px; height: 50px; padding: 0 12px; border: 1px solid #34d399; border-radius: 12px; background: rgb(16 185 129 / 0.22); color: #ffffff; font-size: 18px; font-weight: 800; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-doc-count svg { width: 20px; height: 20px; }
+
+/* Shops & Warehouses head: title left, Add Shop / Add Warehouse centred, usage and Import from another system right. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head { display: grid !important; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px 16px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > h2 { justify-self: start; font-size: 24px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > h2 small { font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-add { justify-self: center; gap: 10px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-entries-tools { justify-self: end; display: flex; align-items: center; gap: 10px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-add-btn { min-height: 46px !important; padding: 0 18px !important; font-size: 17px !important; border-radius: 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-slot-usage { font-size: 17px !important; padding: 8px 14px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-other { width: auto !important; height: 46px !important; font-size: 16px !important; }
+
+/* Rows: … Logo · (Counters) · Upload · Edit · Actions · Delete; the name column no longer takes all the room. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table .bsetup-entry {
+  --c-type: 150px; --c-logo: 46px; --c-count: 64px; --c-up: 116px; --c-edit: 100px; --c-acts: 130px; --c-del: 110px;
+  grid-template-columns: 30px var(--c-type) minmax(150px, 1.1fr) minmax(130px, 1fr) minmax(120px, 0.9fr) var(--c-logo) var(--c-up) var(--c-edit) var(--c-acts) var(--c-del) !important;
+  min-height: 60px !important; font-size: 17px !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 30px var(--c-type) minmax(150px, 1.1fr) minmax(130px, 1fr) minmax(120px, 0.9fr) var(--c-logo) var(--c-count) var(--c-up) var(--c-edit) var(--c-acts) var(--c-del) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 46px !important; min-height: 46px !important; font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry .bsetup-type { font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry-head { min-height: 46px !important; font-size: 16px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-cell-logo .bsetup-logo { width: 46px !important; height: 46px !important; min-width: 46px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-counter { height: 46px !important; min-height: 46px !important; width: 60px !important; font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-glass-btn { height: 44px !important; font-size: 16px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-cell-upload, .bsetup-cell-delete) { display: flex; align-items: center; justify-content: stretch; min-width: 0; overflow: visible !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-glass-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-glass-btn.is-danger { background: linear-gradient(180deg, rgb(255 255 255 / 0.14), rgb(255 255 255 / 0.04)), rgb(239 68 68 / 0.32) !important; border-color: rgb(252 165 165 / 0.6) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-glass-btn.is-danger:hover:not(:disabled) { background: linear-gradient(180deg, rgb(255 255 255 / 0.18), rgb(255 255 255 / 0.06)), rgb(239 68 68 / 0.5) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table > .bsetup-entry:nth-last-child(-n+2) .bsetup-actions-menu > .bsetup-more-pop { top: auto; bottom: calc(100% + 4px); }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table > .bsetup-entry:only-of-type .bsetup-actions-menu > .bsetup-more-pop,
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table > .bsetup-entry:nth-child(2) .bsetup-actions-menu > .bsetup-more-pop { top: calc(100% + 4px); bottom: auto; }
+
+/* One full-width list up to 5 locations (the second table only exists from 6). Two columns of 5 from 6 on wide screens. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables { grid-template-columns: minmax(0, 1fr) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table + .bsetup-table .bsetup-entry-head { display: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { padding: 0 !important; border: 0 !important; background: transparent !important; }
+@container (max-width: 1399px) {
+  /* Narrower cards: Upload, Edit and Delete show their icon, with the name in the tooltip, so names and numbers keep their room. */
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table .bsetup-entry { --c-up: 52px; --c-edit: 52px; --c-del: 52px; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables :is(.bsetup-cell-upload, .bsetup-cell-edit, .bsetup-cell-delete) .bsetup-glass-btn { padding: 0 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables :is(.bsetup-cell-upload, .bsetup-cell-edit, .bsetup-cell-delete) .bsetup-glass-btn > span { display: none; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry-head > [role="columnheader"]:is(:nth-last-child(1), :nth-last-child(3), :nth-last-child(4)) { font-size: 13.5px !important; }
+}
+@container (min-width: 1400px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; column-gap: 18px; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two > .bsetup-table + .bsetup-table .bsetup-entry-head { display: grid !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two > .bsetup-table { padding: 0 6px 6px !important; border: 1px solid rgb(190 215 255 / 0.3) !important; border-radius: 14px; background: rgb(255 255 255 / 0.03) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table .bsetup-entry { --c-type: 124px; --c-up: 46px; --c-edit: 46px; --c-acts: 50px; --c-del: 46px; --c-count: 58px; gap: 6px !important;
+    grid-template-columns: 26px var(--c-type) minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.85fr) var(--c-logo) var(--c-up) var(--c-edit) var(--c-acts) var(--c-del) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 26px var(--c-type) minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.85fr) var(--c-logo) var(--c-count) var(--c-up) var(--c-edit) var(--c-acts) var(--c-del) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two :is(.bsetup-cell-upload, .bsetup-cell-edit, .bsetup-cell-delete, .bsetup-cell-actions) .bsetup-glass-btn { padding: 0 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two :is(.bsetup-cell-upload, .bsetup-cell-edit, .bsetup-cell-delete) .bsetup-glass-btn > span,
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-cell-actions .bsetup-glass-btn > :is(span, svg:last-child) { display: none; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry-head > [role="columnheader"] { font-size: 14px !important; }
+}
+
+/* Business documents window. */
+.bsetup-docs-page { width: min(46rem, 92vw); display: flex; flex-direction: column; gap: 12px; }
+.bsetup-docs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 55vh; overflow-y: auto; }
+.bsetup-docs-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid rgb(190 215 255 / 0.35); border-radius: 12px; background: rgb(255 255 255 / 0.06); }
+.bsetup-docs-open { display: flex; align-items: center; gap: 10px; min-width: 0; text-align: start; font-size: 17px; }
+.bsetup-docs-open svg { width: 24px; height: 24px; flex: 0 0 auto; }
+.bsetup-docs-open > span { display: flex; flex-direction: column; min-width: 0; }
+.bsetup-docs-open b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bsetup-docs-open small { opacity: 0.8; font-size: 14px; }
+.bsetup-docs-remove { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; color: #fca5a5; font-size: 15px; font-weight: 700; }
+.bsetup-docs-remove svg { width: 18px; height: 18px; }
+/* Role preview when adding a person. */
+.bsetup-role-preview { margin: 6px 0 4px; padding: 10px 14px; border: 1px solid rgb(52 211 153 / 0.5); border-radius: 12px; background: rgb(16 185 129 / 0.12); font-size: 16px; line-height: 1.45; }
+.bsetup-role-preview small { opacity: 0.85; font-size: 14px; }
+/* Opening balances lines. */
+.ready-balances { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.ready-balances > li { display: grid; grid-template-columns: 13rem minmax(0, 1fr) 11rem 9rem; gap: 6px; }
+@media (max-width: 700px) { .ready-balances > li { grid-template-columns: 1fr 1fr; } }
+/* The Business Type list opens big and clear. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog { width: min(52rem, 94vw) !important; max-width: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog :is(h2, h3) { font-size: 24px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog .type-picker-hint { font-size: 16.5px !important; line-height: 1.45; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog .type-picker-list { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 8px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog .type-picker-list > li { min-height: 52px; padding: 6px 12px !important; border-radius: 12px; font-size: 18px !important; font-weight: 700 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog .type-picker-list > li :is(input[type="checkbox"]) { width: 22px !important; height: 22px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog .type-picker-list > li svg { width: 22px; height: 22px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog button:not(.type-picker-star) { min-height: 48px; font-size: 18px !important; }
+
+/* Phones: rows keep their card; the four row buttons share the last line. */
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head { grid-template-columns: minmax(0, 1fr) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > * { justify-self: start !important; flex-wrap: wrap; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-table, .bsetup-table.has-counters) .bsetup-entry.bsetup-entry { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; grid-template-areas: "num type type type" "name name name name" "phone phone code code" "logo counters counters counters" "upload edit acts delete" !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-upload { grid-area: upload; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-delete { grid-area: delete; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-rownum { padding-top: 0; align-self: center; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-cell-upload, .bsetup-cell-edit, .bsetup-cell-delete, .bsetup-cell-actions) .bsetup-glass-btn { padding: 0 6px !important; font-size: 14px !important; }
+}
+/* Round 4 fixes: heading parts in their places, header fits one row on wide screens, two-column rows keep names and numbers. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head { grid-template-areas: "title add tools"; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > h2 { grid-area: title; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-add { grid-area: add; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-entries-tools { grid-area: tools; }
+@container (max-width: 1499px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head { grid-template-columns: minmax(0, 1fr) auto !important; grid-template-areas: "title tools" "add add"; }
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-head-meta, .bsetup-saved, .bsetup-steps > li, .bsetup-ready) { padding: 6px 11px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head { gap: 8px 10px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > .bsetup-ready-sell .bsetup-ready-sell-bar { width: 44px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-review { font-size: 19px !important; padding: 0 16px !important; }
+@container (min-width: 1400px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table .bsetup-entry { --c-type: 108px; --c-logo: 42px; --c-count: 54px; --c-up: 42px; --c-edit: 42px; --c-acts: 46px; --c-del: 42px; min-height: 56px !important; font-size: 16px !important;
+    grid-template-columns: 24px var(--c-type) minmax(0, 1.7fr) minmax(0, 0.7fr) minmax(0, 0.85fr) var(--c-logo) var(--c-up) var(--c-edit) var(--c-acts) var(--c-del) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 24px var(--c-type) minmax(0, 1.7fr) minmax(0, 0.7fr) minmax(0, 0.85fr) var(--c-logo) var(--c-count) var(--c-up) var(--c-edit) var(--c-acts) var(--c-del) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 42px !important; min-height: 42px !important; font-size: 16px !important; padding: 0 7px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two :is(.bsetup-cell-logo .bsetup-logo, .bsetup-glass-btn) { height: 42px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-cell-logo .bsetup-logo { width: 42px !important; min-width: 42px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-counter { height: 42px !important; min-height: 42px !important; width: 54px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry-head { font-size: 13.5px !important; }
+}
+@media (max-width: 1499.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-checks .feature-check { font-size: 15.5px !important; padding: 0 8px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile :is(.inventory-input, .type-picker-button, select, .bsetup-doc-upload, .bsetup-more-phones) { font-size: 17px !important; }
+}
+/* Short laptop windows (under 820px tall): the bigger text needs the page to scroll, so the list shows in full instead of in a small box. */
+@media (min-width: 1100px) and (max-height: 819.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup-page { overflow-y: auto !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup { height: auto !important; flex: 0 0 auto !important; grid-template-rows: none !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup > .bsetup-entries { grid-template-rows: none !important; overflow: visible !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries > .bsetup-tables { overflow: visible !important; }
+}
+@media (max-width: 1399.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-checks .feature-check { font-size: 14.5px !important; gap: 5px; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-row { gap: 8px; }
+}
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head { grid-template-columns: minmax(0, 1fr) !important; grid-template-areas: "title" "tools" "add" !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-entries-tools { flex-wrap: wrap; justify-self: stretch !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-add { justify-self: stretch !important; display: grid; grid-template-columns: 1fr 1fr; }
+}
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */
+.bsetup-docs-page .settings-note { font-size: 15px; }

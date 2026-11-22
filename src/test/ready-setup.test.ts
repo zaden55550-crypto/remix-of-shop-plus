@@ -134,3 +134,27 @@ describe("moving from another system", () => {
     expect(zoho).toMatchObject({ "Item Name": "name", "Selling Price": "sell", "Purchase Price": "buy", "Stock On Hand": "qty" });
   });
 });
+
+describe("setup suggestions", () => {
+  it("fills the time zone, date format and VAT rate from the country, never over the owner's own choice", async () => {
+    const { applyCountryDefaults } = await import("@/lib/ready-setup");
+    const { saveSettings } = await import("@/lib/settings-config");
+    applyCountryDefaults("UGA");
+    expect(readSettings().timezone).toBe("Africa/Kampala");
+    expect(getTax().rate).toBe(18);
+    saveSettings({ timezone: "Africa/Cairo" });
+    applyCountryDefaults("USA");
+    expect(readSettings().timezone).toBe("Africa/Cairo");
+    expect(readSettings().dateFormat).toBe("MM/DD/YYYY");
+  });
+  it("counts opening balances as done once one is posted", async () => {
+    const { applyOB, previewOB, suggestOB } = await import("@/lib/opening-import");
+    const sheet = { file: "Business Setup", sheet: "Opening balances", columns: ["Source ID", "Account Type", "Account", "Opening Amount"], rows: [{ "Source ID": "SETUP-mpesa", "Account Type": "M-Pesa", Account: "Till", "Opening Amount": "42000" }] };
+    expect(readyStatus(erp.load()).balances).toBe("todo");
+    applyOB(previewOB(erp.load(), [{ sheet, mapping: suggestOB(sheet.columns) }], "DMY"), ["Business Setup"]);
+    expect(readyStatus(erp.load()).balances).toBe("done");
+    // Saving the same line again never doubles it.
+    applyOB(previewOB(erp.load(), [{ sheet, mapping: suggestOB(sheet.columns) }], "DMY"), ["Business Setup"]);
+    expect(erp.load().payments.filter((p) => p.kind === "OPENING")).toHaveLength(1);
+  });
+});

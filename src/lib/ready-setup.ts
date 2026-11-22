@@ -4,20 +4,22 @@
 // system. Business details are business settings (settings-config.ts); records go through the ERP engine (commit).
 import { commit, ErpError, MAIN_LOCATION, activeShop, shopCounters, type ErpState } from "@/lib/erp";
 import { hashPassword, checkPassword } from "@/lib/device-password";
-import { getTax } from "@/lib/prefs";
-import { readSettings, saveSettings } from "@/lib/settings-config";
+import { getTax, setTax } from "@/lib/prefs";
+import { countryDefaults } from "@/lib/country-defaults";
+import { DEFAULT_SETTINGS, readSettings, saveSettings } from "@/lib/settings-config";
 import { store } from "@/lib/shopbook";
 import { isManagerRole } from "@/lib/staff-access";
 import { TILL_CASHIER, tillCashier, tillLimited } from "@/lib/till-cashier";
 
 export type PaymentDetails = { tillNumber?: string; paybill?: string; paybillAccount?: string; bankName?: string; bankAccount?: string };
-export const READY_STEPS = ["payments", "tax", "stock", "cash", "receipt", "numbering", "hours", "pins", "sample", "move"] as const;
+export const READY_STEPS = ["payments", "tax", "stock", "cash", "balances", "receipt", "numbering", "hours", "pins", "sample", "move"] as const;
 export type ReadyStep = (typeof READY_STEPS)[number];
 export const READY_INFO: Record<ReadyStep, { title: string; hint: string }> = {
   payments: { title: "Payment details", hint: "M-Pesa Till or Paybill and bank, printed on receipts and quotations" },
   tax: { title: "Tax", hint: "VAT-registered or not, the VAT rate and your KRA PIN" },
   stock: { title: "Opening stock", hint: "Bring in your products and the stock you have now" },
   cash: { title: "Opening cash", hint: "The money in each till's drawer before the first sale" },
+  balances: { title: "Opening balances", hint: "Money in M-Pesa and the bank, what customers owe you and what you owe suppliers, in one step" },
   receipt: { title: "Receipt", hint: "Footer message and paper size, with a preview" },
   numbering: { title: "Document numbering", hint: "A prefix for your receipts and quotations, and where numbering starts" },
   hours: { title: "Hours & financial year", hint: "Opening hours and the month your financial year starts" },
@@ -27,13 +29,14 @@ export const READY_INFO: Record<ReadyStep, { title: string; hint: string }> = {
 };
 
 /** Whether each step is done, read from real settings and records; skipped steps count as handled. */
-export function readyStatus(s: Pick<ErpState, "products" | "cash" | "employees" | "seq" | "locations">): Record<ReadyStep, "done" | "skipped" | "todo"> {
+export function readyStatus(s: Pick<ErpState, "products" | "cash" | "employees" | "seq" | "locations" | "payments">): Record<ReadyStep, "done" | "skipped" | "todo"> {
   const cfg = readSettings(), skipped = new Set(cfg.readySkipped ?? []), pay = cfg.payment ?? {};
   const done: Record<ReadyStep, boolean> = {
     payments: !!(pay.tillNumber || pay.paybill || pay.bankAccount),
     tax: !!cfg.taxConfirmed,
     stock: s.products.some((p) => !p.archived),
     cash: s.cash.some((e) => e.type === "OPENING"),
+    balances: s.payments.some((p) => p.kind === "OPENING"),
     receipt: !!cfg.receiptConfirmed,
     numbering: !!cfg.docPrefix || Object.keys(s.seq).length > 0 && !!cfg.numberingConfirmed,
     hours: !!cfg.hours.trim() && !!cfg.fyStartMonth,
@@ -173,3 +176,15 @@ export async function endCashier(s: Pick<ErpState, "employees">, secret = "") {
 }
 
 export const confirmStep = (step: "receipt" | "move" | "sample") => saveSettings(step === "receipt" ? { receiptConfirmed: true } : step === "move" ? { moveConfirmed: true } : { sampleTried: true });
+
+/** After Activate: the country's time zone, date format and VAT rate (country-defaults.ts), only where the owner hasn't set them. */
+export function applyCountryDefaults(country?: string | null) {
+  const c = countryDefaults(country);
+  if (!c) return;
+  const cfg = readSettings();
+  const patch: Partial<typeof cfg> = {};
+  if (cfg.timezone === DEFAULT_SETTINGS.timezone && c.timezone !== cfg.timezone) patch.timezone = c.timezone;
+  if (cfg.dateFormat === DEFAULT_SETTINGS.dateFormat && c.dateFormat !== cfg.dateFormat) patch.dateFormat = c.dateFormat;
+  if (Object.keys(patch).length) saveSettings(patch);
+  if (!cfg.taxConfirmed && c.vatRate > 0 && !getTax().on) setTax({ on: false, rate: c.vatRate });
+}

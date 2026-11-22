@@ -21,6 +21,9 @@ import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, isIndustryFamilyId, type
 import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
+import { applyCountryDefaults, type ReadyStep } from "@/lib/ready-setup";
+import { DOC_MAX_BYTES, DOC_MAX_COUNT, deleteDocument, formatSize, openDocument, putDocument } from "@/lib/doc-store";
+import { rolePreview } from "@/lib/role-preview";
 import { currentFeatures, placeName, sellingPlaceName, type Features } from "@/lib/trade-features";
 import { listLocations, MAIN_LOCATION, saveLocation } from "@/lib/locations";
 import { NeedsConnection, sendSetupInvitation, stageOf, type InviteStage } from "@/lib/setup-invite";
@@ -87,7 +90,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [access, setAccess] = useState<string | null>(null);
   const [confirmActivate, setConfirmActivate] = useState(false);
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
-  const [readyOpen, setReadyOpen] = useState(false);
+  const [readyOpen, setReadyOpen] = useState(false), [readyStart, setReadyStart] = useState<ReadyStep | undefined>(undefined);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
   const [welcome, setWelcome] = useState(() => { try { return !localStorage.getItem(welcomeKey); } catch { return false; } });
@@ -139,23 +142,27 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     r.onload = () => { const v = String(r.result); try { store.update({ logo: v }); setHeadLogo(v); toast.success(tr("Logo saved")); } catch { toast.error(tr("This device has no room to save the setup")); } };
     r.readAsDataURL(f);
   };
+  // Business documents (KRA certificate, licences, permits…): as many as needed, each up to 10 MB. The files are kept in this
+  // device's document store (doc-store.ts); the setup only keeps their names, so many fit.
   const pickBusinessDocuments = async (files: FileList | null) => {
     const picked = Array.from(files ?? []);
     if (!picked.length) return;
-    if (picked.some((f) => f.size > 600_000)) { toast.error(tr("Each business document must be 600 KB or smaller")); return; }
+    if (picked.some((f) => f.size > DOC_MAX_BYTES)) { toast.error(tr("Each business document must be 10 MB or smaller")); return; }
     const current = d.businessDocuments ?? [];
-    const total = current.reduce((sum, f) => sum + f.size, 0) + picked.reduce((sum, f) => sum + f.size, 0);
-    if (picked.length + current.length > 4 || total > 1_200_000) { toast.error(tr("Choose up to four business documents, 1.2 MB total")); return; }
+    if (picked.length + current.length > DOC_MAX_COUNT) { toast.error(tr("Up to 30 business documents")); return; }
     try {
-      const documents = await Promise.all(picked.map((file) => new Promise<BusinessDocument>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve({ id: newKey(), name: file.name, mime: file.type || "application/octet-stream", size: file.size, dataUrl: String(reader.result) });
-        reader.onerror = () => reject(reader.error ?? new Error("Document could not be read"));
-        reader.readAsDataURL(file);
-      })));
+      const documents: BusinessDocument[] = [];
+      for (const file of picked) {
+        const id = newKey();
+        await putDocument(id, file);
+        documents.push({ id, name: file.name, mime: file.type || "application/octet-stream", size: file.size });
+      }
       set({ businessDocuments: [...current, ...documents] });
+      toast.success(`${documents.length} ${tr(documents.length === 1 ? "document uploaded" : "documents uploaded")}`);
     } catch { toast.error(tr("This device could not read that document")); }
   };
+  const removeBusinessDocument = (id: string) => { set({ businessDocuments: (d.businessDocuments ?? []).filter((x) => x.id !== id) }); void deleteDocument(id).catch(() => {}); };
+  const [docsOpen, setDocsOpen] = useState(false);
   // Country and currency come from Create Account and can be corrected here (the same pickers); saved on the account at once.
   const [place, setPlace] = useState({ country: acct.country ?? "", currency: acct.currency ?? "" });
   const [placeOpen, setPlaceOpen] = useState(false);
@@ -295,6 +302,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     setActivating(true);
     try {
       activateSetup(d);
+      applyCountryDefaults(place.country || acct.country);
       toast.success(tr("Your business is set up"), { description: tr("Next steps are on your Dashboard: add products, make a test sale and invite your staff.") });
       onDone();
     } catch (e) { toast.error(tr(e instanceof Error ? e.message : "Setup could not be saved")); setActivating(false); }
@@ -302,10 +310,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
   // What Activate needs, ticked as it is filled in (Activate still checks everything itself).
   const ready = [
-    { label: "Business Name", short: "Name", ok: !!d.businessName.trim() },
-    { label: "Business Type", short: "Type", ok: selectedIndustry === "trade" || !!chosenTypes.length },
-    { label: "Primary phone", short: "Phone", ok: !!d.phone?.trim() },
-    { label: "Name every location", short: "Locations", ok: live.length > 0 && live.every((r) => !!r.name.trim()) },
+    { label: "Business Name", short: "Name", ok: !!d.businessName.trim(), field: "bsetup-business-name" },
+    { label: "Business Type", short: "Type", ok: selectedIndustry === "trade" || !!chosenTypes.length, field: "bsetup-business-type" },
+    { label: "Primary phone", short: "Phone", ok: !!d.phone?.trim(), field: "bsetup-phone" },
+    { label: "Name every location", short: "Locations", ok: live.length > 0 && live.every((r) => !!r.name.trim()), field: `bsetup-name-${live.find((r) => !r.name.trim())?.key ?? live[0]?.key ?? ""}` },
   ];
   const readyCount = ready.filter((x) => x.ok).length;
   const price = planPrice(plan, acct.plan === plan.id ? acct.billing : "monthly");
@@ -314,6 +322,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const full = live.length >= plan.locations;
   const bySlot = new Map(live.map((r, index) => [r.slotNumber ?? index + 1, r]));
   const tableSlots = Array.from({ length: Math.max(plan.locations, live.length) }, (_, index) => ({ n: index + 1, r: bySlot.get(index + 1) }));
+  // Only real entries are listed (owner, 2026-11-22): up to 5 fill one full-width list, more split into two columns of 5.
+  // New ones come from Add Shop / Add Warehouse; with none at all, the first empty slot shows so a type can be chosen.
+  const filledSlots = tableSlots.filter((x) => x.r);
+  const shownSlots = filledSlots.length ? filledSlots : tableSlots.slice(0, 1);
   const links = live.filter(isStorage).map((w) => ({ w, shops: live.filter((r) => r.type === "shop" && r.connected?.includes(w.key)) })).filter((x) => x.shops.length);
   const placeName = (k: string) => { const r = live.find((x) => x.key === k); return r ? r.name || r.code : ""; };
   const savedPlaceName = (id: string) => live.find((r) => r.savedId === id)?.name || records.find((l) => l.id === id)?.name || "";
@@ -348,7 +360,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       </ol>
       <div className="bsetup-head-actions">
         <ul className={cn("bsetup-ready", readyCount === ready.length && "is-all")} aria-label={tr("Ready to activate?")} title={tr("{x} of 4 ready", String(readyCount))}>
-          {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined} title={tr(x.label)}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.short)}</li>)}
+          {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined}><button type="button" title={x.ok ? tr(x.label) : `${tr(x.label)} · ${tr("Tap to fill it in")}`} onClick={() => { const el = document.getElementById(x.field); el?.scrollIntoView({ block: "center", behavior: "smooth" }); el?.focus(); }}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.short)}</button></li>)}
         </ul>
         <ReadyButton s={s} onOpen={() => setReadyOpen(true)} />
         <ShopButton className="bsetup-review" disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
@@ -382,8 +394,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </div>
         <div className="bsetup-field bsetup-documents"><span>{tr("Business Documents")} <small>({tr("Optional")})</small></span>
           <input ref={businessFiles} hidden type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx" onChange={(e) => { void pickBusinessDocuments(e.target.files); e.target.value = ""; }} />
-          <button type="button" className="bsetup-doc-upload" title={tr("Upload KRA certificates and other business files")} onClick={() => businessFiles.current?.click()}><Paperclip aria-hidden /> {tr("Upload files")}</button>
-          {!!d.businessDocuments?.length && <ul className="bsetup-doc-list">{d.businessDocuments.map((doc) => <li key={doc.id}><FileText aria-hidden /><a href={doc.dataUrl} download={doc.name} title={doc.name}>{doc.name}</a><button type="button" aria-label={`${tr("Remove")} ${doc.name}`} title={tr("Remove")} onClick={() => set({ businessDocuments: (d.businessDocuments ?? []).filter((x) => x.id !== doc.id) })}><Trash2 aria-hidden /></button></li>)}</ul>}
+          <div className="bsetup-doc-row">
+            <button type="button" className="bsetup-doc-upload" title={tr("Upload KRA certificates and other business files")} onClick={() => businessFiles.current?.click()}><Paperclip aria-hidden /> {tr("Upload files")}</button>
+            {!!d.businessDocuments?.length && <button type="button" className="bsetup-doc-count" title={tr("See uploaded documents")} onClick={() => setDocsOpen(true)}><FileText aria-hidden /> {d.businessDocuments.length}</button>}
+          </div>
         </div>
       </div>
       {selectedIndustry === "trade" && <div className="bsetup-feature-row"><span>{tr("Business Features")}</span><FeatureChecks className="bsetup-feature-checks" value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} /></div>}
@@ -391,21 +405,33 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <ShopButton variant="outline" className="bsetup-later" disabled={activating} onClick={saveLater}><Save /> {tr("Save")}</ShopButton>
       </div>
     </section>
-    {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => setReadyOpen(false)}><ReadyToSell s={s} onClose={() => setReadyOpen(false)} /></GlassPage>}
+    {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => { setReadyOpen(false); setReadyStart(undefined); }}><ReadyToSell s={s} start={readyStart} onClose={() => { setReadyOpen(false); setReadyStart(undefined); }} /></GlassPage>}
+    {docsOpen && <GlassPage label={tr("Business Documents")} onClose={() => setDocsOpen(false)}>
+      <div className="inventory-box dash-panel bsetup-docs-page">
+        <div className="feature-panel-head"><h3>{tr("Business Documents")} · {d.businessDocuments?.length ?? 0}</h3><ShopButton variant="outline" onClick={() => setDocsOpen(false)}>{tr("Done")}</ShopButton></div>
+        <p className="settings-note">{tr("Kept on this device. Tap a document to open it.")}</p>
+        <ul className="bsetup-docs-list">{(d.businessDocuments ?? []).map((doc) => <li key={doc.id}>
+          <button type="button" className="bsetup-docs-open" onClick={() => { void openDocument(doc).catch(() => toast.error(tr("This document isn't on this device"))); }}><FileText aria-hidden /><span><b>{doc.name}</b><small>{formatSize(doc.size)}</small></span></button>
+          <button type="button" className="bsetup-docs-remove" aria-label={`${tr("Remove")} ${doc.name}`} onClick={() => removeBusinessDocument(doc.id)}><Trash2 aria-hidden /> {tr("Remove")}</button>
+        </li>)}</ul>
+        <ShopButton onClick={() => businessFiles.current?.click()}><Paperclip aria-hidden /> {tr("Upload more")}</ShopButton>
+      </div>
+    </GlassPage>}
 
     <section className="bsetup-card bsetup-entries" aria-label={tr("Shops & Warehouses")}>
       <header className="bsetup-entries-head">
         <h2>{tr("Shops & Warehouses")} <small>{counts.shops} {tr(shopWord)} · {stores} {tr(stores === 1 ? "Warehouse" : "Warehouses")}</small></h2>
-        <span className="bsetup-slot-usage">{live.length}/{plan.locations} {tr("used")} · {Math.max(0, plan.locations - live.length)} {tr("remaining")}</span>
+        <span className="bsetup-entries-tools"><span className="bsetup-slot-usage">{live.length}/{plan.locations} {tr("used")} · {Math.max(0, plan.locations - live.length)} {tr("remaining")}</span>
+        <button type="button" className="bsetup-glass-btn bsetup-import-other" title={tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")} onClick={() => { setReadyStart("move"); setReadyOpen(true); }}><Upload aria-hidden /> {tr("Import from another system")}</button></span>
         {!full && <span className="bsetup-add">{NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
       </header>
       {/* Rows 1-5 and 6-10 as two tables side by side when the card is wide enough (owner, 2026-11-22); one column below that. */}
-      <div className="bsetup-tables">
-      {[tableSlots.slice(0, 5), tableSlots.slice(5)].filter((g) => g.length).map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Shops & Warehouses")} ${group[0]!.n}-${group[group.length - 1]!.n}`}>
+      <div className={cn("bsetup-tables", shownSlots.length > 5 && "is-two")}>
+      {[shownSlots.slice(0, 5), shownSlots.slice(5)].filter((g) => g.length).map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Shops & Warehouses")} ${group[0]!.n}-${group[group.length - 1]!.n}`}>
           <div className={cn("bsetup-entry bsetup-entry-head", gi > 0 && "is-second", features.counters && "has-counters")} role="row">
             <span role="columnheader" className="bsetup-rownum-head">#</span><span role="columnheader">{tr("Shop / Warehouse")}</span><span role="columnheader">{tr("Location Name")}</span><span role="columnheader">{tr("Phone")}</span><span role="columnheader">{tr("Location Number")}</span><span role="columnheader">{tr("Logo")}</span>
             {features.counters && <span role="columnheader">{tr("Counters")}</span>}
-            <span role="columnheader">{tr("Edit")}</span><span role="columnheader">{tr("Actions")}</span>
+            <span role="columnheader">{tr("Upload")}</span><span role="columnheader">{tr("Edit")}</span><span role="columnheader">{tr("Actions")}</span><span role="columnheader">{tr("Delete")}</span>
           </div>
           {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onViewLogo={() => setViewingLogo(r.key)} onEdit={() => setEditingRow({ key: r.key })} onManageUsers={() => setManaging(r.key)} onManageAccess={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onAssignUsers={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onRemove={() => removeRow(r)} />
             : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} counterMax={features.counters ? 1 : 0} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
@@ -590,17 +616,17 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, lo
     <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-logo" role="cell">{r ? <button type="button" className={cn("bsetup-logo", logo && "has-logo")} aria-label={`${tr(logo ? "Change logo" : "Add logo")} · ${title}`} title={tr(logo ? "Change logo" : "Add logo")} onClick={onViewLogo}>{logo ? <img src={logo} alt="" /> : <ImagePlus aria-hidden />}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     {counterMax > 0 && <span className="bsetup-cell-counters" role="cell">{showCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-empty" aria-hidden />}</span>}
+    <span className="bsetup-cell-upload" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Upload products")} · ${title}`} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} disabled={!canImport} onClick={onImport}><Upload aria-hidden /><span>{tr("Upload")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-edit" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Edit")} · ${title}`} title={tr("Edit Location")} onClick={onEdit}><Pencil aria-hidden /><span>{tr("Edit")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-actions" role="cell">{r ? <details className="bsetup-more-menu bsetup-actions-menu">
       <summary className="bsetup-glass-btn" aria-label={`${tr("Actions")} · ${title}`}><MoreHorizontal aria-hidden /><span>{tr("Actions")}</span><ChevronDown aria-hidden /></summary>
       <div className="bsetup-more-pop" role="menu">
-        <button type="button" role="menuitem" disabled={!canImport} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}><Upload aria-hidden /> {tr("Upload Products")}</button>
         <button type="button" role="menuitem" onClick={onAssignUsers}><Users aria-hidden /> {tr("Assign Users")}</button>
         <button type="button" role="menuitem" onClick={onManageUsers}><Users aria-hidden /> {tr("Manage Users")}</button>
         <button type="button" role="menuitem" onClick={onManageAccess}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
-        <button type="button" role="menuitem" className="is-danger" disabled={!canRemove} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}><Trash2 aria-hidden /> {tr("Delete")}</button>
       </div>
     </details> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-delete" role="cell">{r ? <button type="button" className="bsetup-glass-btn is-danger" disabled={!canRemove} aria-label={`${tr("Delete")} · ${title}`} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}><Trash2 aria-hidden /><span>{tr("Delete")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
   </div>;
 }
 void LegacyEntryRow;
@@ -919,6 +945,11 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
               </select>
             </label>
           </div>
+          {u.role && rolePreview(u.role) && <div className="bsetup-role-preview" aria-live="polite">
+            <p><b>{tr("Can")}:</b> {rolePreview(u.role)!.can.map((x) => tr(x)).join(" · ")}</p>
+            <p><b>{tr("Cannot")}:</b> {rolePreview(u.role)!.cannot.map((x) => tr(x)).join(" · ")}</p>
+            <small>{tr("Change exact permissions any time in Manage Access.")}</small>
+          </div>}
           <SitePicks tr={tr} five rows={current} list={places} chosen={u.locations} legend={tr("Assigned shops / warehouses")}
             onToggle={(k, on) => setU({ ...u, locations: on ? [...u.locations, k] : u.locations.filter((x) => x !== k) })} />
           <CounterPicks tr={tr} rows={current} chosen={u.locations} value={u.counters} onChange={(counters) => setU({ ...u, counters })} />
