@@ -302,10 +302,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
   // What Activate needs, ticked as it is filled in (Activate still checks everything itself).
   const ready = [
-    { label: "Business Name", ok: !!d.businessName.trim() },
-    { label: "Business Type", ok: selectedIndustry === "trade" || !!chosenTypes.length },
-    { label: "Primary phone", ok: !!d.phone?.trim() },
-    { label: "Name every location", ok: live.length > 0 && live.every((r) => !!r.name.trim()) },
+    { label: "Business Name", short: "Name", ok: !!d.businessName.trim() },
+    { label: "Business Type", short: "Type", ok: selectedIndustry === "trade" || !!chosenTypes.length },
+    { label: "Primary phone", short: "Phone", ok: !!d.phone?.trim() },
+    { label: "Name every location", short: "Locations", ok: live.length > 0 && live.every((r) => !!r.name.trim()) },
   ];
   const readyCount = ready.filter((x) => x.ok).length;
   const price = planPrice(plan, acct.plan === plan.id ? acct.billing : "monthly");
@@ -341,14 +341,14 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </span>
       </div>
       <ol className="bsetup-steps" aria-label={tr("Getting started")}>
-        <li className="is-done"><CircleCheck aria-hidden /> {tr("Create Account")}</li>
-        <li className="is-done"><CircleCheck aria-hidden /> {tr("Choose plan")}</li>
-        <li className="is-now" aria-current="step"><span>3</span> {tr("Business Setup")}</li>
+        <li className="is-done" title={tr("Create Account")}><CircleCheck aria-hidden /> {tr("Account")}</li>
+        <li className="is-done" title={tr("Choose plan")}><CircleCheck aria-hidden /> {tr("Plan")}</li>
+        <li className="is-now" aria-current="step" title={tr("Business Setup")}><span>3</span> {tr("Setup")}</li>
         <li><span>4</span> {tr("Activate")}</li>
       </ol>
       <div className="bsetup-head-actions">
         <ul className={cn("bsetup-ready", readyCount === ready.length && "is-all")} aria-label={tr("Ready to activate?")} title={tr("{x} of 4 ready", String(readyCount))}>
-          {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.label)}</li>)}
+          {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined} title={tr(x.label)}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.short)}</li>)}
         </ul>
         <ReadyButton s={s} onOpen={() => setReadyOpen(true)} />
         <ShopButton className="bsetup-review" disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
@@ -399,14 +399,17 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <span className="bsetup-slot-usage">{live.length}/{plan.locations} {tr("used")} · {Math.max(0, plan.locations - live.length)} {tr("remaining")}</span>
         {!full && <span className="bsetup-add">{NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
       </header>
-      <div className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={tr("Shops & Warehouses")}>
-        <div className={cn("bsetup-entry bsetup-entry-head", features.counters && "has-counters")} role="row">
-          <span role="columnheader" className="bsetup-rownum-head">#</span><span role="columnheader">{tr("Shop / Warehouse")}</span><span role="columnheader">{tr("Location Name")}</span><span role="columnheader">{tr("Phone")}</span><span role="columnheader">{tr("Location Number")}</span><span role="columnheader">{tr("Logo")}</span>
-          {features.counters && <span role="columnheader">{tr("Counters")}</span>}
-          <span role="columnheader">{tr("Upload Products")}</span><span role="columnheader">{tr("Edit")}</span><span className="bsetup-divider" role="separator" aria-hidden="true" /><span role="columnheader">{tr("More Options")}</span><span className="bsetup-divider" role="separator" aria-hidden="true" /><span role="columnheader">{tr("Assign Users")}</span><span role="columnheader">{tr("Delete")}</span>
-        </div>
-        {tableSlots.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onViewLogo={() => setViewingLogo(r.key)} onEdit={() => setEditingRow({ key: r.key })} onManageUsers={() => setManaging(r.key)} onManageAccess={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onAssignUsers={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onRemove={() => removeRow(r)} />
-          : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} counterMax={features.counters ? 1 : 0} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
+      {/* Rows 1-5 and 6-10 as two tables side by side when the card is wide enough (owner, 2026-11-22); one column below that. */}
+      <div className="bsetup-tables">
+      {[tableSlots.slice(0, 5), tableSlots.slice(5)].filter((g) => g.length).map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Shops & Warehouses")} ${group[0]!.n}-${group[group.length - 1]!.n}`}>
+          <div className={cn("bsetup-entry bsetup-entry-head", gi > 0 && "is-second", features.counters && "has-counters")} role="row">
+            <span role="columnheader" className="bsetup-rownum-head">#</span><span role="columnheader">{tr("Shop / Warehouse")}</span><span role="columnheader">{tr("Location Name")}</span><span role="columnheader">{tr("Phone")}</span><span role="columnheader">{tr("Location Number")}</span><span role="columnheader">{tr("Logo")}</span>
+            {features.counters && <span role="columnheader">{tr("Counters")}</span>}
+            <span role="columnheader">{tr("Edit")}</span><span role="columnheader">{tr("Actions")}</span>
+          </div>
+          {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onViewLogo={() => setViewingLogo(r.key)} onEdit={() => setEditingRow({ key: r.key })} onManageUsers={() => setManaging(r.key)} onManageAccess={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onAssignUsers={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onRemove={() => removeRow(r)} />
+            : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} counterMax={features.counters ? 1 : 0} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
+        </div>)}
       </div>
       {problems.filter((p) => p.key && (p.field === "name" || p.field === "code" || p.field === "phone")).slice(0, 3).map((p) => <p key={p.key! + p.field} role="alert" className="bsetup-problem">{tr("Entry")} {live.find((r) => r.key === p.key)?.slotNumber ?? live.findIndex((r) => r.key === p.key) + 1}: {tr(p.message)}</p>)}
       {links.length > 0 && <p className="bsetup-links" title={links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")}>{links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")} · {tr("Authorized inventory visibility")}</p>}
@@ -587,13 +590,17 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, lo
     <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-logo" role="cell">{r ? <button type="button" className={cn("bsetup-logo", logo && "has-logo")} aria-label={`${tr(logo ? "Change logo" : "Add logo")} · ${title}`} title={tr(logo ? "Change logo" : "Add logo")} onClick={onViewLogo}>{logo ? <img src={logo} alt="" /> : <ImagePlus aria-hidden />}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     {counterMax > 0 && <span className="bsetup-cell-counters" role="cell">{showCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-empty" aria-hidden />}</span>}
-    <span className="bsetup-cell-upload" role="cell">{r ? <button type="button" aria-label={`${tr("Upload products")} · ${title}`} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} disabled={!canImport} onClick={onImport}><Upload /><span>{tr("Upload Products")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-cell-edit" role="cell">{r ? <button type="button" aria-label={`${tr("Edit")} · ${title}`} title={tr("Edit Location")} onClick={onEdit}><Pencil /><span>{tr("Edit")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-divider" role="separator" aria-hidden="true" />
-    <span className="bsetup-cell-more" role="cell">{r ? <details className="bsetup-more-menu"><summary><MoreHorizontal aria-hidden /><span>{tr("More Options")}</span><ChevronDown aria-hidden /></summary><div className="bsetup-more-pop" role="menu"><button type="button" role="menuitem" onClick={onManageUsers}>{tr("Manage Users")}</button><button type="button" role="menuitem" onClick={onManageAccess}>{tr("Manage Access")}</button><button type="button" role="menuitem" onClick={onEdit}>{tr("Edit Location")}</button></div></details> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-divider" role="separator" aria-hidden="true" />
-    <span className="bsetup-cell-assign" role="cell">{r ? <button type="button" onClick={onAssignUsers}><Users aria-hidden /><span>{tr("Assign Users")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-cell-delete" role="cell">{r ? <button type="button" className="is-danger" disabled={!canRemove} aria-label={`${tr("Delete")} · ${title}`} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}>{tr("Delete")}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-edit" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Edit")} · ${title}`} title={tr("Edit Location")} onClick={onEdit}><Pencil aria-hidden /><span>{tr("Edit")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-actions" role="cell">{r ? <details className="bsetup-more-menu bsetup-actions-menu">
+      <summary className="bsetup-glass-btn" aria-label={`${tr("Actions")} · ${title}`}><MoreHorizontal aria-hidden /><span>{tr("Actions")}</span><ChevronDown aria-hidden /></summary>
+      <div className="bsetup-more-pop" role="menu">
+        <button type="button" role="menuitem" disabled={!canImport} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}><Upload aria-hidden /> {tr("Upload Products")}</button>
+        <button type="button" role="menuitem" onClick={onAssignUsers}><Users aria-hidden /> {tr("Assign Users")}</button>
+        <button type="button" role="menuitem" onClick={onManageUsers}><Users aria-hidden /> {tr("Manage Users")}</button>
+        <button type="button" role="menuitem" onClick={onManageAccess}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
+        <button type="button" role="menuitem" className="is-danger" disabled={!canRemove} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}><Trash2 aria-hidden /> {tr("Delete")}</button>
+      </div>
+    </details> : <span className="bsetup-empty-cell" aria-hidden />}</span>
   </div>;
 }
 void LegacyEntryRow;

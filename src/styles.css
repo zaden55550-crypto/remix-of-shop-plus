@@ -24571,4 +24571,98 @@ html.dark .bsetup {
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > :is(.bsetup-ready-sell, .bsetup-review) { min-width: 0 !important; }
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile > .bsetup-save-row > .bsetup-later { height: 46px !important; }
 }
+/* ----- Round 3 (owner, 2026-11-22): the header in one row with clear ticks; Edit and one Actions menu as glass buttons; rows
+   1-5 and 6-10 side by side when the card is wide enough (about 1600px CSS), one column that scrolls inside the card below that. ----- */
+/* Header: Business Setup · Kenya · KES · Saved | Create Account ✓ Choose plan ✓ Business Setup Activate | the four ready ticks |
+   Ready to sell | Activate, all on one line; on a narrower window it wraps rather than overlap. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head { display: flex !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between; gap: 10px 14px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head > .bsetup-head-id { display: flex !important; flex-wrap: nowrap; align-items: center; gap: 10px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-id > .bsetup-head-sub { display: flex !important; flex-direction: row !important; gap: 8px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head > .bsetup-steps { display: flex !important; flex-wrap: nowrap !important; gap: 6px !important; margin: 0; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head > .bsetup-head-actions { display: flex !important; flex-wrap: nowrap; align-items: center; gap: 10px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > .bsetup-ready { display: flex !important; flex-wrap: nowrap; gap: 6px 14px; padding: 7px 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > :is(.bsetup-ready, .bsetup-ready-sell, .bsetup-review) { grid-row: auto; grid-column: auto; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > .bsetup-ready-sell { min-height: 40px; padding: 0 14px; border-radius: 12px; }
+/* Done is unmistakable: a filled green tick and a green box; to do is a hollow circle. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-steps > li.is-done, .bsetup-ready li.is-ok) { color: var(--bs-text) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-steps > li.is-done { border-color: rgb(52 211 153 / 0.75) !important; background: linear-gradient(180deg, rgb(16 185 129 / 0.28), rgb(16 185 129 / 0.1)) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-steps > li.is-done, .bsetup-ready li.is-ok) > svg { width: 19px; height: 19px; padding: 2px; border-radius: 999px; background: #10b981; color: #ffffff !important; stroke-width: 3; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-steps > li:not(.is-done) > span { display: inline-grid; place-items: center; width: 19px; height: 19px; border: 2px solid currentColor; border-radius: 999px; font-size: 11px; color: var(--bs-label) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-steps > li.is-now > span { border-color: #34d399; color: #34d399 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready li { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready li:not(.is-ok) { color: var(--bs-label) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-ready .bsetup-ready-dot { display: inline-block; width: 17px; height: 17px; border: 2px solid var(--bs-label); border-radius: 999px; }
+
+/* Glass buttons in the rows: Edit, and Actions (Upload Products, Assign Users, Manage Users, Manage Access, Delete). */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-glass-btn {
+  display: inline-flex !important; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 38px !important; padding: 0 12px !important;
+  border: 1px solid rgb(190 215 255 / 0.5) !important; border-radius: 11px !important;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.05)), rgb(59 130 246 / 0.25) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 12px rgb(5 15 45 / 0.3); color: #ffffff !important; font-size: 15px !important; font-weight: 800 !important; white-space: nowrap; cursor: pointer; list-style: none;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-glass-btn:hover { background: linear-gradient(180deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0.08)), rgb(59 130 246 / 0.4) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-glass-btn svg { width: 17px; height: 17px; flex: 0 0 auto; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu { width: 100%; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu[open] > summary { border-color: #93c5fd !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop { inset-inline-start: auto; inset-inline-end: 0; min-width: 220px; padding: 6px; border-radius: 14px; border: 1px solid rgb(190 215 255 / 0.5); background: linear-gradient(180deg, #1d3a85, #142a63) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 14px 34px rgb(0 0 0 / 0.45); }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop > button { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 9px; color: #ffffff !important; font-size: 15px; font-weight: 700; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop > button svg { width: 18px; height: 18px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop > button:hover:not(:disabled) { background: rgb(255 255 255 / 0.12); }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop > button:disabled { opacity: 0.5; cursor: not-allowed; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop > button.is-danger { margin-top: 4px; border-top: 1px solid rgb(255 255 255 / 0.15); border-radius: 0 0 9px 9px; color: #fca5a5 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-cell-edit, .bsetup-cell-actions) { display: flex; align-items: center; justify-content: stretch; min-width: 0; overflow: visible !important; }
+
+/* Row columns: # · Shop / Warehouse · Location Name · Phone · Location Number · Logo · (Counters) · Edit · Actions. Bigger rows. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry {
+  --c-type: 130px; --c-logo: 40px; --c-count: 58px; --c-edit: 84px; --c-acts: 118px;
+  grid-template-columns: 28px var(--c-type) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr) var(--c-logo) var(--c-edit) var(--c-acts) !important;
+  gap: 8px !important; min-height: 52px !important; padding: 6px 8px !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 28px var(--c-type) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr) var(--c-logo) var(--c-count) var(--c-edit) var(--c-acts) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 40px !important; min-height: 40px !important; font-size: 16px !important; border-radius: 10px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry .bsetup-type { font-size: 16px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-rownum { font-size: 16px; font-weight: 800; color: var(--bs-text) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-cell-logo .bsetup-logo { width: 40px !important; height: 40px !important; min-width: 40px !important; border-radius: 10px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-counter { height: 40px !important; min-height: 40px !important; width: 56px !important; font-size: 16px !important; font-weight: 700; border-radius: 10px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry-head { min-height: 42px !important; font-size: 15px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry-head > [role="columnheader"]:nth-child(n+6) { text-align: center; }
+
+/* Two tables side by side once the card is wide enough; below that one table, the second heading hidden so it reads as one list. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries { container-type: inline-size; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; min-height: 0; align-content: start; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table + .bsetup-table .bsetup-entry-head { display: none !important; }
+@container (min-width: 1560px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 18px; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table + .bsetup-table .bsetup-entry-head { display: grid !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { padding: 0 6px 6px; border: 1px solid rgb(190 215 255 / 0.3); border-radius: 14px; background: rgb(255 255 255 / 0.03); }
+}
+@media (min-width: 1100px) and (min-height: 600px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup > .bsetup-entries { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries > .bsetup-tables { overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgb(147 182 255 / 0.7) transparent; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { overflow: visible !important; height: auto !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table:first-child .bsetup-entry-head, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table .bsetup-entry-head { position: sticky; top: 0; z-index: 5; }
+}
+/* Phones: the location cards keep their layout; Edit and Actions share the last line. */
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-table, .bsetup-table.has-counters) .bsetup-entry.bsetup-entry { grid-template-areas: "num type name" "num phone code" "logo counters counters" "edit acts acts" !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-actions { grid-area: acts; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head > :is(.bsetup-head-id, .bsetup-steps, .bsetup-head-actions) { flex-wrap: wrap !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > .bsetup-ready { display: none !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > :is(.bsetup-ready-sell, .bsetup-review) { flex: 1 1 0; }
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry { --c-type: 118px; --c-edit: 78px; --c-acts: 112px; grid-template-columns: 28px var(--c-type) minmax(0, 1.9fr) minmax(0, 0.85fr) minmax(0, 0.85fr) var(--c-logo) var(--c-edit) var(--c-acts) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 28px var(--c-type) minmax(0, 1.9fr) minmax(0, 0.85fr) minmax(0, 0.85fr) var(--c-logo) var(--c-count) var(--c-edit) var(--c-acts) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table .bsetup-entry :is(.bsetup-loc-phone, .bsetup-code) { padding: 0 6px !important; font-size: 15px !important; }
+@container (min-width: 1560px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry { --c-type: 112px; --c-edit: 44px; --c-count: 54px; grid-template-columns: 26px var(--c-type) minmax(0, 1.9fr) minmax(104px, 0.8fr) minmax(104px, 0.8fr) var(--c-logo) var(--c-edit) var(--c-acts) !important; min-height: 58px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 26px var(--c-type) minmax(0, 1.9fr) minmax(104px, 0.8fr) minmax(104px, 0.8fr) var(--c-logo) var(--c-count) var(--c-edit) var(--c-acts) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-cell-edit .bsetup-glass-btn { padding: 0 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-cell-edit .bsetup-glass-btn > span { display: none; }
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry-head > [role="columnheader"] { word-break: keep-all !important; overflow-wrap: normal !important; hyphens: none; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-table > .bsetup-entry:nth-last-child(-n+2) .bsetup-actions-menu > .bsetup-more-pop { top: auto; bottom: calc(100% + 4px); }
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-table, .bsetup-table.has-counters) .bsetup-entry.bsetup-entry { grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr) !important; min-height: 0 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry.bsetup-entry-head { display: none !important; }
+}
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */

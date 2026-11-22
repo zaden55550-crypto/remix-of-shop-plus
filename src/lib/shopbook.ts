@@ -133,8 +133,8 @@ export const PLANS: {
     shopkeepersPerShop: 2,
     storekeepersPerStore: 1,
     managerRoles: true,
-    counters: 10,
-    countersPerShop: true,
+    counters: 20,
+    countersPerShop: false,
     intro: "Everything in Growth, plus:",
     best: true,
     features: [
@@ -301,7 +301,8 @@ export function loginAllowance(a: Pick<Account, "plan"> | null, _n: LocationCoun
   return { total, staff, managers: p.maxManagers, shopkeepers: staff, storekeepers: p.id === "basic" ? 0 : staff };
 }
 
-/** The counters (tills) a plan allows: Basic 1, Growth up to 10 in total, Business up to 10 at each shop. The trial has Business limits. */
+/** The counters (tills) a plan allows, in total across all shops, one per staff place (owner, 2026-11-22): Basic 1, Growth 10, Business 20.
+ *  Once used, a counter must be removed from a shop before another can be added. The trial has Business limits. */
 export function counterLimit(a: Pick<Account, "plan"> | null) {
   const p = planOf(a) ?? PLANS[0]!;
   return { max: p.counters, perShop: p.countersPerShop };

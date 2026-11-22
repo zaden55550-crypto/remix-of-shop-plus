@@ -2,6 +2,8 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Setup|Usanidi|Configuration|الإعداد|Configuración|Configuração|Einrichtung|Configurazione|设置|सेटअप|Habayn
+Up to 20 Counters|Hadi kaunta 20|Jusqu’à 20 caisses|حتى 20 نقطة بيع|Hasta 20 cajas|Até 20 caixas|Bis zu 20 Kassen|Fino a 20 casse|最多 20 个收银台|अधिकतम 20 काउंटर|Ilaa 20 miis
 Turn ended|Zamu imeisha|Service terminé|انتهت الوردية|Turno terminado|Turno encerrado|Schicht beendet|Turno terminato|班次已结束|पारी समाप्त|Wareegii waa dhammaaday
 Owner password or manager PIN|Nenosiri la mmiliki au PIN ya meneja|Mot de passe du propriétaire ou PIN du gérant|كلمة مرور المالك أو رمز PIN للمدير|Contraseña del dueño o PIN del gerente|Senha do dono ou PIN do gerente|Inhaberpasswort oder Manager-PIN|Password del titolare o PIN del responsabile|店主密码或经理 PIN|मालिक का पासवर्ड या मैनेजर PIN|Furaha milkiilaha ama PIN-ka maamulaha
 Only the owner or a manager can end this turn|Mmiliki au meneja pekee ndiye anaweza kumaliza zamu hii|Seul le propriétaire ou un gérant peut terminer ce service|لا يمكن إنهاء هذه الوردية إلا للمالك أو المدير|Solo el dueño o un gerente puede terminar este turno|Só o dono ou um gerente pode encerrar este turno|Nur der Inhaber oder ein Manager kann diese Schicht beenden|Solo il titolare o un responsabile può terminare questo turno|只有店主或经理可以结束此班次|केवल मालिक या मैनेजर यह पारी समाप्त कर सकता है|Milkiilaha ama maamule keliya ayaa dhammayn kara wareeggan

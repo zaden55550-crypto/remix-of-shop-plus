@@ -1,5 +1,5 @@
 // Trade expansion (2026-11-20): the 25 Trade types with General Trade as the skipped type, several types per business, the
-// feature switches the types start with, counters within the plan (Basic 1, Growth 10 in total, Business 10 per shop) with a
+// feature switches the types start with, counters within the plan (Basic 1, Growth 10, Business 20, in total) with a
 // drawer per counter, and batches with expiry dates worked out from the movements (earliest expiry sold first).
 import { beforeEach, describe, expect, it } from "vitest";
 import * as erp from "@/lib/erp";
@@ -118,12 +118,12 @@ describe("feature switches", () => {
 });
 
 describe("counters", () => {
-  it("plans allow 1, 10 in total, and 10 per shop", () => {
-    expect(PLANS.map((p) => [p.id, p.counters, p.countersPerShop])).toEqual([["basic", 1, false], ["growth", 10, false], ["business", 10, true]]);
-    expect(PLANS.map(planCounterLine)).toEqual(["1 Counter", "Up to 10 Counters", "Up to 10 Counters per Shop"]);
-    expect(counterLimit({ plan: "trial" })).toEqual({ max: 10, perShop: true });
+  it("plans allow 1, 10 and 20 counters in total, one per staff place", () => {
+    expect(PLANS.map((p) => [p.id, p.counters, p.countersPerShop])).toEqual([["basic", 1, false], ["growth", 10, false], ["business", 20, false]]);
+    expect(PLANS.map(planCounterLine)).toEqual(["1 Counter", "Up to 10 Counters", "Up to 20 Counters"]);
+    expect(counterLimit({ plan: "trial" })).toEqual({ max: 20, perShop: false });
   });
-  it("Basic refuses a second counter; Growth shares 10 across shops; Business allows 10 at each shop", () => {
+  it("Basic refuses a second counter; Growth shares 10 across shops; Business shares 20", () => {
     account("basic");
     expect(() => saveLocation({ id: erp.MAIN_LOCATION, name: "Main", type: "shop", counters: 2 })).toThrow(/allows 1 counter/);
     account("growth");
@@ -134,7 +134,11 @@ describe("counters", () => {
     account("business");
     saveLocation({ id: erp.MAIN_LOCATION, name: "Main", type: "shop", counters: 10 });
     saveLocation({ id: town.id, name: "Town", type: "shop", counters: 10 });
-    expect(() => saveLocation({ id: town.id, name: "Town", type: "shop", counters: 11 })).toThrow(/10 counters at each shop/);
+    // All 20 are used: another needs one taken off a shop first.
+    expect(() => saveLocation({ id: town.id, name: "Town", type: "shop", counters: 11 })).toThrow(/up to 20 counters in total/);
+    saveLocation({ id: erp.MAIN_LOCATION, name: "Main", type: "shop", counters: 9 });
+    expect(saveLocation({ id: town.id, name: "Town", type: "shop", counters: 11 }).counters).toBe(11);
+    saveLocation({ id: town.id, name: "Town", type: "shop", counters: 10 });
     // A smaller plan never blocks an edit that doesn't add counters.
     account("basic");
     expect(saveLocation({ id: town.id, name: "Town Centre", type: "shop" }).counters).toBe(10);
