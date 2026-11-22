@@ -2,7 +2,7 @@
 // every sale, return, purchase, expense, payroll and float move produces balanced lines.
 import { methodName, moneyMethods, payParts, type AccountMethod, type ErpState, type Method } from "@/lib/erp";
 
-export type FixedAccountId = "cash" | "mpesa" | "bank" | "receivables" | "inventory" | "payables" | "salariesPayable" | "equity" | "sales" | "salesReturns" | "cogs" | "expenses" | "salaries" | "stockAdj" | "vatPayable" | "cylinderDeposits";
+export type FixedAccountId = "cash" | "mpesa" | "bank" | "receivables" | "inventory" | "payables" | "salariesPayable" | "equity" | "sales" | "salesReturns" | "cogs" | "expenses" | "salaries" | "stockAdj" | "vatPayable" | "cylinderDeposits" | "laybyDeposits" | "laybyFees";
 /** Each money account the owner named is an asset account of its own, under the same id payments use. */
 export type AccountId = FixedAccountId | AccountMethod;
 type AccountType = "Asset" | "Liability" | "Equity" | "Income" | "Expense";
@@ -11,6 +11,7 @@ export const ACCOUNT_INFO: Record<FixedAccountId, { name: string; type: AccountT
   receivables: { name: "Receivables", type: "Asset" }, inventory: { name: "Inventory", type: "Asset" },
   payables: { name: "Payables", type: "Liability" }, vatPayable: { name: "VAT payable", type: "Liability" }, salariesPayable: { name: "Salaries payable", type: "Liability" },
   cylinderDeposits: { name: "Cylinder deposits held", type: "Liability" },
+  laybyDeposits: { name: "Lay-by deposits held", type: "Liability" }, laybyFees: { name: "Lay-by cancellation fees", type: "Income" },
   equity: { name: "Owner equity", type: "Equity" },
   sales: { name: "Sales", type: "Income" }, salesReturns: { name: "Sales returns", type: "Expense" },
   cogs: { name: "Cost of goods sold", type: "Expense" }, expenses: { name: "Expenses", type: "Expense" },
@@ -59,12 +60,16 @@ export function journal(s: ErpState): Entry[] {
     if (p.method === "credit") return;
     const v = Math.abs(p.amount);
     if (p.kind === "DEBT") push(p.at, p.ref, `Debt • ${p.source}`, [dr(p.method, v), cr("receivables", v)]);
+    // Lay-by money is held for the customer: in with each part payment, out when it is collected (as the sale) or refunded.
+    if (p.kind === "LAYBY") push(p.at, p.ref, `Lay-by • ${p.source}`, p.amount >= 0 ? [dr(p.method, v), cr("laybyDeposits", v)] : [dr("laybyDeposits", v), cr(p.method, v)]);
     if (p.kind === "REFUND" && p.source.startsWith("CYL")) push(p.at, p.ref, `Cylinder deposit returned • ${p.source}`, [dr("cylinderDeposits", v), cr(p.method, v)]);
     if (p.kind === "SUPPLIER PAYMENT") push(p.at, p.ref, `Supplier • ${p.source}`, [dr("payables", v), cr(p.method, v)]);
     if (p.kind === "EXPENSE") push(p.at, p.source, "Expense", [dr("expenses", v), cr(p.method, v)]);
     if (p.kind === "DEPOSIT" || (p.kind === "TRANSFER" && p.amount > 0)) push(p.at, p.ref, p.kind === "DEPOSIT" ? "Deposit" : `Transfer ${p.source}`, [dr(p.method, v), cr("equity", v)]);
     if (p.kind === "WITHDRAWAL" || (p.kind === "TRANSFER" && p.amount < 0)) push(p.at, p.ref, p.kind === "WITHDRAWAL" ? "Withdrawal" : `Transfer ${p.source}`, [dr("equity", v), cr(p.method, v)]);
   });
+  // A cancelled lay-by's fee is kept: it leaves the deposits held and becomes income.
+  (s.laybys ?? []).forEach((l) => { if (l.status === "cancelled" && l.fee) push(l.closedAt ?? l.at, l.ref, `Lay-by cancelled • fee`, [dr("laybyDeposits", l.fee), cr("laybyFees", l.fee)]); });
   s.payrolls.forEach((r) => push(r.at, r.ref, "Payroll", [dr("salaries", r.net), cr("salariesPayable", r.net)]));
   s.payrollPayments.forEach((p) => { if (p.method !== "credit") push(p.at, p.ref, "Payroll payment", [dr("salariesPayable", p.amount), cr(p.method, p.amount)]); });
   s.cash.forEach((e) => {

@@ -13,6 +13,8 @@ import * as erp from "@/lib/erp";
 import { useFeature } from "@/lib/use-features";
 import { WHOLESALE_AUTO, applyPriceLevels, chooseWholesale, isWholesaleLine, moreForWholesale, wholesaleOf } from "@/lib/price-levels";
 import { SerialChooser, missingSerials } from "@/components/shopbook/serial-chooser";
+import { CartDocActions, RxForm } from "@/components/shopbook/trade-docs";
+import { checkRx, rxProducts, sellWithPrescription, type RxDetails } from "@/lib/prescriptions";
 
 export function useCartDraft(channel: string) {
   const [cart, setCart] = useState<erp.CartLine[]>([]);
@@ -124,6 +126,10 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   const rec = payRecord(pay, total);
   const invalid = cart.some((l) => bad[l.productId]);
   // Serial / IMEI: a tracked product's line needs one serial per unit before the sale can complete.
+  // Features 5, 6, 8: lay-by and quotation actions, and the prescription for prescription-only or controlled products.
+  const laybyOn = useFeature("layby"), quotesOn = useFeature("quotations"), rxOn = useFeature("prescriptions");
+  const rxNeeded = rxOn ? rxProducts(s, cart.map((l) => l.productId)) : [];
+  const [rx, setRx] = useState<RxDetails>({ patient: "", prescriber: "" });
   const needSerials = cart.find((l) => { const p = s.products.find((x) => x.id === l.productId); return !!p && missingSerials(p, l) > 0; });
   const mark = (id: string) => (b: boolean) => setBad((c) => (c[id] === b ? c : { ...c, [id]: b }));
   const unconfirmed = (l: erp.CartLine) => belowBuying(s, l) && okayed[l.productId] !== erp.linePrice(s, l);
@@ -132,6 +138,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   const askedProduct = s.products.find((p) => p.id === asking);
   const review = () => {
     if (invalid) { toast.error(tr("Fix the highlighted quantities or amounts")); return; }
+    if (rxNeeded.length && checkRx(rx)) { toast.error(tr(checkRx(rx))); return; }
     if (needSerials) { toast.error(`${tr("Choose the serial / IMEI numbers for")} ${s.products.find((x) => x.id === needSerials.productId)?.name ?? ""}`); return; }
     if (payInvalid(pay, total)) { toast.error(tr("Check the payment amounts")); return; }
     if (rec.credit > 0.001 && !customerId) { toast.error(tr("Credit needs a registered customer")); return; }
@@ -142,7 +149,8 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   const complete = () => {
     try {
       // Seller is always the signed-in user (recorded as the sale's cashier).
-      const sale = erp.confirmSale({ cart, discount: 0, pay: rec, customerId: customerId || undefined, channel, vatRate: vr });
+      const input = { cart, discount: 0, pay: rec, customerId: customerId || undefined, channel, vatRate: vr };
+      const sale = rxNeeded.length ? sellWithPrescription(input, rx) : erp.confirmSale(input);
       toast.success(`${tr("Sale completed")} • ${sale.ref}`);
       onDone(sale);
     } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); }
@@ -182,7 +190,9 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
       })}
       {vr > 0 && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></div>}
       <div className="mt-2"><PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote={customerId ? undefined : "Credit needs a registered customer"} /></div>
-      <ShopButton className="inventory-save mt-2 w-full" disabled={!cart.length || invalid || !!needSerials} onClick={review}>{tr("Complete Sale")} • {money(total)}</ShopButton>
+      {rxNeeded.length > 0 && <RxForm products={rxNeeded} value={rx} onChange={setRx} />}
+      <ShopButton className="inventory-save mt-2 w-full" disabled={!cart.length || invalid || !!needSerials || (rxNeeded.length > 0 && !!checkRx(rx))} onClick={review}>{tr("Complete Sale")} • {money(total)}</ShopButton>
+      <CartDocActions s={s} cart={cart} customerId={customerId} money={money} layby={laybyOn} quotes={quotesOn} onSaved={clear} />
     </section>
     <AlertDialog open={!!askedLine && !!askedProduct} onOpenChange={(open) => { if (!open) setAsking(null); }}>
       <AlertDialogContent>

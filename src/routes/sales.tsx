@@ -14,6 +14,7 @@ import { BigButton, Badge, Box, Dot, Empty, ErpShell, MoneyTrio, Row, Search, Ta
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import { useFeature } from "@/lib/use-features";
+import { LaybysPage, QuotationsPage } from "@/components/shopbook/trade-docs";
 import { weighedUnit } from "@/lib/weight-display";
 
 export const Route = createFileRoute("/sales")({
@@ -37,6 +38,8 @@ const MENUS = {
   Customers: [],
   Payments: ["All Payments", "Add Payment", "P.PAY"],
   Returns: ["All Returns", "New Return"],
+  "Lay-bys": [],
+  Quotations: [],
   Reports: [],
 } as const;
 type Menu = keyof typeof MENUS;
@@ -49,6 +52,9 @@ function Sales() {
   const { tr } = useLanguage();
   const s = useShopErp();
   const per = usePeriod(null);
+  // Lay-bys and Quotations show while their features are on (Settings › Features).
+  const laybyOn = useFeature("layby"), quotesOn = useFeature("quotations");
+  const menus = Object.fromEntries(Object.entries(MENUS).filter(([k]) => (k !== "Lay-bys" || laybyOn) && (k !== "Quotations" || quotesOn))) as typeof MENUS;
   // A Dashboard link may name the starting tab (?menu=…&sub=…).
   const search = Route.useSearch();
   const [start] = useState(() => startView(MENUS, search, "Overview"));
@@ -60,7 +66,7 @@ function Sales() {
   const ctx: Ctx = { s, money: moneyFor(acct.currency || "KSh"), tr, shop: acct.shopName, channel: "Sales", go, open: setView };
   const dated = view?.k !== "new" && (menu === "Overview" || menu === "Reports");
   return (
-    <ErpShell period={dated ? per : undefined} title="Sales" shop={acct.shopName} menus={MENUS} menu={menu} sub={view?.k === "new" ? "" : sub} hideSub={view?.k === "new"} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
+    <ErpShell period={dated ? per : undefined} title="Sales" shop={acct.shopName} menus={menus} menu={menu} sub={view?.k === "new" ? "" : sub} hideSub={view?.k === "new"} deps={s} onMenu={(m) => go(m as Menu)} onSub={(x) => { setView(null); setSub(x); }}>
       {view?.k === "new" ? <><p className="inventory-form-title">{tr("New Sale")}</p><Sell {...ctx} /></>
         : <>
           {menu === "Overview" && <Overview {...ctx} s={scopeToPeriod(s, per)} range={per.range} />}
@@ -69,6 +75,8 @@ function Sales() {
           {menu === "Payments" && (sub === "Add Payment" ? <AddPayment {...ctx} /> : sub === "P.PAY" ? <OpenSales {...ctx} /> : <PaymentList {...ctx} />)}
           {menu === "Returns" && (sub === "New Return" ? <NewReturn {...ctx} /> : <ReturnsList {...ctx} />)}
           {menu === "Reports" && <SalesReport {...ctx} period={per} />}
+          {menu === "Lay-bys" && <LaybysPage s={s} money={ctx.money} />}
+          {menu === "Quotations" && <QuotationsPage s={s} money={ctx.money} shop={acct.shopName} phone={acct.phone} />}
         </>}
       {view?.k === "detail" && <GlassPage label={tr("Sale details")} onClose={() => setView(null)}><SaleDetail {...ctx} id={view.id} /></GlassPage>}
     </ErpShell>

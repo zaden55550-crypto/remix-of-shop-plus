@@ -10,10 +10,13 @@ export function businessId(): string {
   const account = JSON.parse(localStorage.getItem("shopbook.account") || "null");
   return account?.businessId || `${account?.shopName ?? "device"}:${account?.phone ?? ""}`;
 }
+/** Collections the live server doesn't accept yet (proposed 0021 adds them). They stay on this device and in backups; their
+ *  stock movements and payments are ordinary records and sync as usual. Empty this list once 0021 is applied. */
+export const HELD_ON_DEVICE: readonly string[] = ["laybys", "quotations", "prescriptions"];
 export function diffRecords(before: ErpState, after: ErpState): Change[] {
   const changes: Change[] = [];
   for (const collection of Object.keys(after) as (keyof ErpState)[]) {
-    if (collection === "seq") continue;
+    if (collection === "seq" || HELD_ON_DEVICE.includes(collection)) continue;
     const a = new Map(before[collection].map((r) => [r.id, r]));
     const b = new Map(after[collection].map((r) => [r.id, r]));
     for (const id of new Set([...a.keys(), ...b.keys()])) {

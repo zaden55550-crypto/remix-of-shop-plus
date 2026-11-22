@@ -20,10 +20,10 @@ export const BASE = `CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN
 /** In the migration journal. */
 export const JOURNAL = ["0000_system_announcements", "0001_acknowledged_shopbook_operations", "0002_verify_health_and_audited_stock", "0003_bind_sync_projection_to_business", "0004_correct_correlated_stock_validation", "0005_sync_product_setup_records", "0006_sync_purchase_orders_invoices", "0007_sync_locations", "0008_owner_accounts_entitlements_permissions", "0009_people_and_access", "0010_fix_sync_payment_check"];
 /** Awaiting approval, in the order they must run. The files keep their working names until they are approved. */
-export const PROPOSED = ["0010_fix_sync_validation", "0011_dynamic_user_allowance", "0012_enforce_synced_location_limit", "0013_staff_recording", "0014_trial_read_only", "0015_money_accounts", "0016_flat_login_allowance", "0019_sync_businesses", "0020_member_business_access"];
+export const PROPOSED = ["0010_fix_sync_validation", "0011_dynamic_user_allowance", "0012_enforce_synced_location_limit", "0013_staff_recording", "0014_trial_read_only", "0015_money_accounts", "0016_flat_login_allowance", "0019_sync_businesses", "0020_member_business_access", "0021_sync_trade_documents"];
 /** Reverses PROPOSED, last first. Each is named for the number its migration would take; 0019_sync_businesses keeps its working
  *  number (0018 is already taken by the separate unified-identity proposal) until the owner approves an order. */
-export const ROLLBACK = ["0020_member_business_access", "0019_sync_businesses", "0017_flat_login_allowance", "0016_money_accounts", "0015_trial_read_only", "0014_staff_recording", "0013_enforce_synced_location_limit", "0012_dynamic_user_allowance", "0011_fix_sync_validation"];
+export const ROLLBACK = ["0021_sync_trade_documents", "0020_member_business_access", "0019_sync_businesses", "0017_flat_login_allowance", "0016_money_accounts", "0015_trial_read_only", "0014_staff_recording", "0013_enforce_synced_location_limit", "0012_dynamic_user_allowance", "0011_fix_sync_validation"];
 
 export const journalFile = (n: string) => readFileSync(resolve(`drizzle/migrations/${n}.sql`), "utf8");
 export const proposedFile = (n: string) => readFileSync(resolve(`drizzle/proposed/${n}.sql`), "utf8");

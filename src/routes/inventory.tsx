@@ -2,6 +2,7 @@ import { clean } from "@/lib/format";
 import { useFeature } from "@/lib/use-features";
 import { WholesaleFields, readWholesale, wholesaleDraft } from "@/components/shopbook/wholesale-fields";
 import { GasCylinders } from "@/components/shopbook/gas-cylinders";
+import { BreakdownPage, PrescriptionsPage } from "@/components/shopbook/trade-docs";
 import { ExpiryList } from "@/components/shopbook/expiry-list";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -102,7 +103,7 @@ export const Route = createFileRoute("/inventory")({
 /** 4-Menu Architecture matching specification */
 const MENUS = {
   overview: [],
-  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry", "Gas Cylinders"],
+  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry", "Gas Cylinders", "Breakdown", "Prescriptions"],
   "returns & transfers": ["Customer Returns", "Supplier Returns", "New Transfer", "Transfer History", "Warehouse Stock"],
   configuration: ["Product Setup", "Stock Setup"],
 } as const;
@@ -286,6 +287,7 @@ function Inventory() {
   const s = useShopErp();
   // Gas cylinder exchange: its Gas Cylinders page shows only while the feature is on.
   const gasOn = useFeature("gas");
+  const breakdownOn = useFeature("breakdown"), rxOn = useFeature("prescriptions");
   const cur = acct?.currency || "USD";
   const currencyLabel = /^[A-Za-z]{3,5}$/.test(cur) ? cur.toLocaleLowerCase() : cur;
   const money = (n: number) =>
@@ -351,7 +353,7 @@ function Inventory() {
         />
         {MENUS[menu].length > 0 && (
           // Add Product opens from the button on All Products, which stays the lit tab behind it.
-          <Tabs small items={[...MENUS[menu]].filter((k: string) => k !== "Add Product" && (k !== "Gas Cylinders" || gasOn))} value={sub === "Add Product" ? "All Products" : sub} onChange={setSub} label={(k) => tr(k)} />
+          <Tabs small items={[...MENUS[menu]].filter((k: string) => k !== "Add Product" && (k !== "Gas Cylinders" || gasOn) && (k !== "Breakdown" || breakdownOn) && (k !== "Prescriptions" || rxOn))} value={sub === "Add Product" ? "All Products" : sub} onChange={setSub} label={(k) => tr(k)} />
         )}
       </nav>
 
@@ -415,6 +417,18 @@ function Inventory() {
       {menu === "products & stock" && sub === "Adjustments" && (
         <GlassPage label={tr("Stock Adjustment — Physical Count Correction")} onClose={() => go("products & stock", "All Products")}>
           <AdjustmentsScreen {...ctx} />
+        </GlassPage>
+      )}
+
+      {menu === "products & stock" && sub === "Breakdown" && (
+        <GlassPage label={tr("Breakdown")} onClose={() => go("products & stock", "All Products")}>
+          <BreakdownPage s={s} money={money} />
+        </GlassPage>
+      )}
+
+      {menu === "products & stock" && sub === "Prescriptions" && (
+        <GlassPage label={tr("Prescriptions")} onClose={() => go("products & stock", "All Products")}>
+          <PrescriptionsPage s={s} />
         </GlassPage>
       )}
 

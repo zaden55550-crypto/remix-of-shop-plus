@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { empty, load, type ErpState } from "@/lib/erp";
 import { applyOperation } from "@/lib/sync.functions";
-import { businessId, createOperation, getOutbox, pendingOperations, persistErp, retryDelay, updateOperation } from "@/lib/outbox";
+import { HELD_ON_DEVICE, businessId, createOperation, getOutbox, pendingOperations, persistErp, retryDelay, updateOperation } from "@/lib/outbox";
 import { getConnectivity, ACTIVE_CHECK_MS } from "@/lib/connectivity";
 import { canRecord, store } from "@/lib/shopbook";
 
@@ -98,6 +98,9 @@ export function startShopSync() {
       if (r.data) {
         // No unacknowledged changes: authoritative server projection is safe to adopt.
         const server = { ...empty(), ...(r.data.payload as unknown as ErpState) };
+        // Collections the server doesn't hold yet stay as this device has them (HELD_ON_DEVICE, outbox.ts).
+        const mine = load();
+        for (const key of HELD_ON_DEVICE) if (!Array.isArray((r.data.payload as Record<string, unknown>)?.[key])) (server as Record<string, unknown>)[key] = (mine as Record<string, unknown>)[key] ?? [];
         for (const key of Object.keys(empty()) as (keyof ErpState)[]) if (Array.isArray(server[key])) (server[key] as { at?: number }[]).sort((a,b) => (b.at ?? 0) - (a.at ?? 0));
         persistErp(server);
         window.dispatchEvent(new Event("shopbook-erp-remote")); window.dispatchEvent(new Event("storage"));

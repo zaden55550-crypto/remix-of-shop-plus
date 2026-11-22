@@ -31,6 +31,8 @@ export type Product = AtShop & AtBusiness & {
   /** Gas cylinder exchange (Settings › Features): this product is the full or the empty cylinders of one brand and size,
    *  `pairId` the other one. A full one's `deposit` is charged with a new cylinder and paid back when it is returned. */
   gas?: GasCylinder | undefined;
+  /** Prescriptions & controlled drugs: a sale of it needs the prescription's details; controlled ones go in the register. */
+  rx?: "prescription" | "controlled" | undefined;
 };
 export type GasCylinder = { brand: string; size: number; kind: "full" | "empty"; pairId: string; deposit?: number | undefined };
 /** How a full gas cylinder was sold: a refill for an empty brought in (`emptyId`, any brand of the same size), or a new
@@ -97,7 +99,21 @@ export type ErpState = {
   moneyAccounts: MoneyAccount[];
   /** One row per business the owner runs. Untagged means the first business, so older records need no conversion. */
   businesses: Business[];
+  /** Trade documents (features 5, 6, 8). Device-only until proposed 0021 is applied (HELD_ON_DEVICE in outbox.ts). */
+  laybys: Layby[]; quotations: Quotation[]; prescriptions: Prescription[];
 };
+/** Deposits & lay-by: goods kept aside for a customer who pays in parts and collects when paid in full. The goods leave
+ *  sellable stock when it starts (a STOCK OUT "Lay-by held"), and come back if it is cancelled; each part payment is a
+ *  payment (kind DEBT, source the lay-by's ref) into "Lay-by deposits held"; collecting turns it into a normal sale. */
+export type Layby = AtShop & AtBusiness & { id: string; ref: string; at: number; customerId: string; items: { productId: string; name: string; qty: number; price: number }[];
+  total: number; paid: number; dueAt?: number | undefined; status: "open" | "collected" | "cancelled"; saleId?: string | undefined; saleRef?: string | undefined;
+  fee?: number | undefined; refunded?: number | undefined; closedAt?: number | undefined; user: string; note?: string | undefined };
+/** Quotations: a priced offer that changes nothing until it is turned into a sale. */
+export type Quotation = AtShop & AtBusiness & { id: string; ref: string; at: number; validUntil: number; customerId?: string | undefined; customerName?: string | undefined;
+  items: { productId: string; name: string; qty: number; price: number }[]; total: number; status: "open" | "converted" | "cancelled"; saleId?: string | undefined; saleRef?: string | undefined; note?: string | undefined; user: string };
+/** Prescriptions & controlled drugs: the prescription kept with a sale of prescription-only or controlled products. */
+export type Prescription = AtShop & AtBusiness & { id: string; at: number; saleId: string; saleRef: string; patient: string; prescriber: string; number?: string | undefined;
+  photo?: string | undefined; items: { productId: string; name: string; qty: number; controlled: boolean }[]; user: string };
 export type ContactDetails = { email?: string | undefined; address?: string | undefined; notes?: string | undefined; active?: boolean | undefined };
 export type OtherContact = ContactDetails & AtBusiness & { id: string; name: string; phone?: string | undefined; category?: string | undefined; createdAt: number };
 export type PayrollDraft = AtBusiness & { id: string; employeeId: string; from: number; to: number; deductions: number; notes?: string; at: number };
@@ -260,13 +276,13 @@ export type Sale = AtShop & AtBusiness & AtCounter & {
   /** Set when the sale came from the Universal Import Center; blocks re-import. */
   importKey?: string | undefined;
 };
-export type Payment = AtShop & AtBusiness & AtCounter & { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL" | "OPENING"; source: string; customerId?: string | undefined; supplierId?: string | undefined; importKey?: string | undefined; user: string; docRef?: string | undefined; note?: string | undefined };
+export type Payment = AtShop & AtBusiness & AtCounter & { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL" | "OPENING" | "LAYBY"; source: string; customerId?: string | undefined; supplierId?: string | undefined; importKey?: string | undefined; user: string; docRef?: string | undefined; note?: string | undefined };
 export type SaleReturn = AtShop & AtBusiness & AtCounter & { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number; serials?: string[] | undefined }[]; amount: number; refund: Method; user: string };
 export type CashEvent = AtShop & AtBusiness & AtCounter & { id: string; at: number; type: "OPENING" | "CASH IN" | "CASH OUT" | "CASH UP"; amount: number; note?: string | undefined; expected?: number | undefined; counted?: number | undefined; user: string };
 
 const KEY = "shopbook.erp";
 const EVT = "shopbook-erp";
-export const empty = (): ErpState => ({ products: [], categories: [], brands: [], units: [], attributes: [], locations: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [], suppliers: [], purchases: [], purchaseReturns: [], purchaseOrders: [], supplierInvoices: [], expenses: [], expenseCategories: [], otherContacts: [], contactCategories: [], payrollDrafts: [], moneyAccounts: [], businesses: [] });
+export const empty = (): ErpState => ({ products: [], categories: [], brands: [], units: [], attributes: [], locations: [], movements: [], transfers: [], audit: [], seq: {}, customers: [], sales: [], payments: [], returns: [], cash: [], employees: [], commissions: [], payrolls: [], payrollPayments: [], suppliers: [], purchases: [], purchaseReturns: [], purchaseOrders: [], supplierInvoices: [], expenses: [], expenseCategories: [], otherContacts: [], contactCategories: [], payrollDrafts: [], moneyAccounts: [], businesses: [], laybys: [], quotations: [], prescriptions: [] });
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 let transaction: { state: ErpState; preview?: boolean } | undefined;
 /** Set while an employee's sale is worked out, on the server against the real records or on their device against their copy. Everything inside is synchronous. */

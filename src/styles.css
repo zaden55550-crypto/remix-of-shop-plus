@@ -24159,3 +24159,40 @@ p.verify-small { text-decoration: none; }
   .gas-head > :nth-child(6) { display: none; }
 }
 /* ===== END GAS CYLINDER EXCHANGE ===== */
+
+/* ===== LAY-BYS, QUOTATIONS, BREAKDOWN, PRESCRIPTIONS (Trade features 5-8, 2026-11-22) =====
+   trade-docs.tsx: document rows with status, filters, the cart's extra actions and the prescription form. Reuses .gas-* forms. */
+.doc-list { display: grid; gap: 6px; }
+.doc-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto; align-items: center; gap: 8px 14px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: color-mix(in srgb, var(--card) 70%, transparent); font-size: 14px; }
+.doc-row > .gas-form { grid-column: 1 / -1; }
+.doc-main { display: grid; gap: 2px; min-width: 0; }
+.doc-main > small { color: var(--muted-foreground); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-money { display: flex; flex-wrap: wrap; gap: 4px 12px; font-variant-numeric: tabular-nums; }
+.doc-money > span { color: var(--muted-foreground); }
+.doc-status { padding: 3px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800; }
+.doc-status.is-ok { background: #d1fae5; color: #065f46; }
+.doc-status.is-warn { background: #fef3c7; color: #92400e; }
+.doc-status.is-muted { background: color-mix(in srgb, var(--foreground) 10%, transparent); color: var(--muted-foreground); }
+.dark .doc-status.is-ok { background: rgb(16 185 129 / 0.22); color: #a7f3d0; }
+.dark .doc-status.is-warn { background: rgb(245 158 11 / 0.22); color: #fde68a; }
+.doc-filter { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px; background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.doc-filter > button { padding: 5px 12px; border-radius: 9px; font-weight: 800; font-size: 13px; color: var(--muted-foreground); }
+.doc-filter > button.is-on { background: var(--card); color: var(--foreground); box-shadow: 0 1px 3px rgb(0 0 0 / 0.15); }
+.doc-fee { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
+.doc-fee > input { width: 80px; }
+.gas-actions > button.is-danger, .breakdown-out > button.is-danger { background: linear-gradient(180deg, #ef4444, #b91c1c); border-color: #fca5a5; color: #fff; }
+.gas-actions > button:disabled { opacity: 0.45; }
+.cart-doc-actions { display: grid; gap: 8px; margin-top: 8px; }
+.cart-doc-buttons { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.cart-doc-buttons > button { height: 42px; border-radius: 12px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: 1px solid #60a5fa; }
+.cart-doc-buttons > button:disabled { opacity: 0.45; }
+.rx-form { display: grid; gap: 8px; margin-top: 10px; padding: 12px; border-radius: 14px; border: 2px solid color-mix(in srgb, #f59e0b 60%, var(--border)); background: color-mix(in srgb, #f59e0b 8%, transparent); }
+.rx-form.is-missing { border-color: #ef4444; }
+.rx-form-head { margin: 0; font-size: 14px; }
+.rx-photo { max-width: 120px; max-height: 90px; margin-top: 4px; border-radius: 8px; object-fit: contain; }
+.breakdown-out { display: grid; grid-template-columns: minmax(0, 1fr) 120px 40px; gap: 8px; align-items: center; }
+.breakdown-out > button { height: 40px; border-radius: 10px; font-size: 20px; font-weight: 800; border: 1px solid; }
+.breakdown-add { justify-content: flex-start; }
+@media (max-width: 767.98px) { .doc-row { grid-template-columns: minmax(0, 1fr); } .breakdown-out { grid-template-columns: minmax(0, 1fr) 90px 40px; } }
+/* ===== END LAY-BYS, QUOTATIONS, BREAKDOWN, PRESCRIPTIONS ===== */

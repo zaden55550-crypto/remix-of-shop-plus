@@ -212,6 +212,8 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
   const levels = useFeature("priceLevels");
   // Serial / IMEI numbers: the section shows while the feature is on, or for a product already tracked.
   const serialsOn = useFeature("serials");
+  // Prescriptions & controlled drugs: a product can need a prescription or be a controlled drug.
+  const rxOn = useFeature("prescriptions");
   const [ws, setWs] = useState(() => wholesaleDraft(p));
   const wsStart = useMemo(() => wholesaleDraft(p), [p.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ask, setAsk] = useState(false);
@@ -275,6 +277,8 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
         {otherShops.map((l) => <PwField key={l.id} label={`${tr("Selling Price")} · ${l.name}`}><input type="number" min="0" step="any" className="inventory-input" placeholder={f.sell} value={shopPrices[l.id] ?? ""} onChange={(e) => setShopPrices({ ...shopPrices, [l.id]: e.target.value })} /></PwField>)}
       </div>}
       {(serialsOn || p.serialTracked) && <SerialManager s={s} productId={p.id} />}
+      {(rxOn || p.rx) && <PwField label={tr("Prescription")} wide><select className="inventory-input" value={p.rx ?? ""} onChange={(e) => { const v = e.target.value as "" | "prescription" | "controlled"; attempt(() => erp.updateProduct(p.id, { rx: v || undefined }), tr("Saved")); }}>
+        <option value="">{tr("Not needed")}</option><option value="prescription">{tr("Prescription only")}</option><option value="controlled">{tr("Controlled drug (register)")}</option></select></PwField>}
       <PwField label={tr("Description (optional)")} wide><textarea className="inventory-input" rows={3} value={f.description} onChange={set("description")} /></PwField>
       {(activeAttributes(s).length > 0 || Object.keys(f.attributes).length > 0) && <AttributePicker s={s} value={f.attributes} onChange={(attributes) => setF({ ...f, attributes })} tr={tr} />}
       <ImageChooser value={f.image} onChange={(image) => setF({ ...f, image })} tr={tr} />
