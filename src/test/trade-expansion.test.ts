@@ -108,11 +108,12 @@ describe("feature switches", () => {
   it("start from the types and keep what the owner changed", () => {
     expect(defaultFeatures(["Pharmacy"])).toMatchObject({ expiry: true, counters: false });
     expect(defaultFeatures(["Supermarket"])).toMatchObject({ expiry: true, counters: true });
-    expect(defaultFeatures(["Hardware Shop"])).toMatchObject({ expiry: false, counters: false });
-    expect(defaultFeatures(["Hardware Shop", "Butchery"]).expiry).toBe(true);
-    saveFeatures({ expiry: false });
-    expect(currentFeatures(["Pharmacy"]).expiry).toBe(false);
-    expect(currentFeatures(["Supermarket"]).counters).toBe(true);
+    expect(defaultFeatures(["Hardware Shop"])).toMatchObject({ expiry: true, counters: false });
+    saveFeatures({ counters: false });
+    expect(currentFeatures(["Supermarket"]).counters).toBe(false);
+    // Built in for every business (owner's decision, 2026-11-22): an older saved "off" is ignored.
+    saveFeatures({ expiry: false, weight: false, layby: false });
+    expect(currentFeatures(["Hardware Shop"])).toMatchObject({ expiry: true, weight: true, layby: true, barcodes: true });
   });
 });
 

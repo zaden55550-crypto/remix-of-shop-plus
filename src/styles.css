@@ -24196,3 +24196,6 @@ p.verify-small { text-decoration: none; }
 .breakdown-add { justify-content: flex-start; }
 @media (max-width: 767.98px) { .doc-row { grid-template-columns: minmax(0, 1fr); } .breakdown-out { grid-template-columns: minmax(0, 1fr) 90px 40px; } }
 /* ===== END LAY-BYS, QUOTATIONS, BREAKDOWN, PRESCRIPTIONS ===== */
+
+/* All features: the built-in line above the switches (2026-11-22). */
+.feature-builtin { margin: 0; padding: 10px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; background: color-mix(in srgb, #10b981 12%, transparent); border: 1px solid color-mix(in srgb, #10b981 45%, transparent); }

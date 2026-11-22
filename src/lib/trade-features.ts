@@ -53,15 +53,15 @@ const PRICE_LEVEL_TYPES = new Set(["Wholesale Business", "Hardware Shop", "Build
 /** The starting choice for a business of these types (any one type is enough to switch a feature on). */
 export function defaultFeatures(types: readonly string[]): Features {
   return {
-    expiry: types.some((t) => EXPIRY_TYPES.has(t)),
+    expiry: true,
     counters: types.some((t) => COUNTER_TYPES.has(t)),
     vat: false,
     barcodes: true,
-    weight: types.some((t) => WEIGHT_TYPES.has(t)),
+    weight: true,
     priceLevels: types.some((t) => PRICE_LEVEL_TYPES.has(t)),
     serials: types.some((t) => SERIAL_TYPES.has(t)),
     gas: types.some((t) => GAS_TYPES.has(t)),
-    layby: types.some((t) => LAYBY_TYPES.has(t)),
+    layby: true,
     quotations: types.some((t) => QUOTE_TYPES.has(t)),
     breakdown: types.some((t) => BREAKDOWN_TYPES.has(t)),
     prescriptions: types.some((t) => RX_TYPES.has(t)),
@@ -69,21 +69,27 @@ export function defaultFeatures(types: readonly string[]): Features {
 }
 
 /** What a business is using now: its saved choices, then the starting choice for its types. VAT and barcodes are the existing settings. */
+/** Built into every business (owner's decision, 2026-11-22): always on, never shown as a switch. VAT is always available; whether a
+ *  business charges it is its tax setting (Settings › Tax & Compliance), not a feature. */
+export const BUILT_IN: readonly FeatureId[] = ["weight", "vat", "expiry", "layby", "barcodes"];
+/** The only switches shown on Business Setup's line; every other switch is under "All features". */
+export const PINNED: readonly FeatureId[] = ["counters", "prescriptions"];
+export const isBuiltIn = (id: string) => (BUILT_IN as readonly string[]).includes(id);
+
 export function currentFeatures(types: readonly string[]): Features {
   const s = readSettings(), base = defaultFeatures(types), saved = s.features ?? {};
   return {
-    expiry: typeof saved["expiry"] === "boolean" ? saved["expiry"] : base.expiry,
     counters: typeof saved["counters"] === "boolean" ? saved["counters"] : base.counters,
-    weight: typeof saved["weight"] === "boolean" ? saved["weight"] : base.weight,
     priceLevels: typeof saved["priceLevels"] === "boolean" ? saved["priceLevels"] : base.priceLevels,
     serials: typeof saved["serials"] === "boolean" ? saved["serials"] : base.serials,
     gas: typeof saved["gas"] === "boolean" ? saved["gas"] : base.gas,
-    layby: typeof saved["layby"] === "boolean" ? saved["layby"] : base.layby,
     quotations: typeof saved["quotations"] === "boolean" ? saved["quotations"] : base.quotations,
     breakdown: typeof saved["breakdown"] === "boolean" ? saved["breakdown"] : base.breakdown,
     prescriptions: typeof saved["prescriptions"] === "boolean" ? saved["prescriptions"] : base.prescriptions,
     vat: getTax().on,
-    barcodes: s.searchBarcodes,
+    barcodes: true,
+    // Built in for everyone: an older saved "off" no longer hides them.
+    weight: true, expiry: true, layby: true,
   };
 }
 

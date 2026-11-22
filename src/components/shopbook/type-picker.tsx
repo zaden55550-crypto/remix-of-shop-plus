@@ -7,7 +7,7 @@ import { Check, ChevronDown, Star } from "lucide-react";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
 import { useLanguage } from "@/hooks/use-language";
 import { GENERAL_TRADE, INDUSTRIES, businessTypesForFamily, industryIsOpen, type IndustryFamilyId } from "@/lib/industry-config";
-import { FEATURE_GROUPS, FEATURE_IDS, FEATURE_INFO, featureEntry, isSuggested, type Features } from "@/lib/trade-features";
+import { BUILT_IN, FEATURE_GROUPS, FEATURE_INFO, PINNED, featureEntry, isBuiltIn, isSuggested, type Features } from "@/lib/trade-features";
 import { cn } from "@/lib/utils";
 
 export function IndustrySelect({ id, value, onChange, keep, className, allowEmpty }: { id?: string; value: string; onChange: (id: IndustryFamilyId) => void; keep?: string | undefined; className?: string; allowEmpty?: boolean }) {
@@ -25,9 +25,9 @@ export function IndustrySelect({ id, value, onChange, keep, className, allowEmpt
 export function FeatureChecks({ value, onChange, className }: { value: Features; onChange: (patch: Partial<Features>) => void; className?: string }) {
   const { tr } = useLanguage();
   return <div className={cn("feature-checks", className)} role="group" aria-label={tr("Settings for this business")}>
-    {FEATURE_IDS.map((f) => <label key={f} className={cn("feature-check", value[f] && "is-on")} title={tr(FEATURE_INFO[f].hint)}>
+    {PINNED.map((f) => <label key={f} className={cn("feature-check", value[f] && "is-on")} title={tr(FEATURE_INFO[f].hint)}>
       <input type="checkbox" checked={value[f]} onChange={(e) => onChange({ [f]: e.target.checked })} />
-      <span>{tr(FEATURE_INFO[f].name)}</span>
+      <span>{tr(f === "prescriptions" ? "Prescriptions" : FEATURE_INFO[f].name)}</span>
     </label>)}
   </div>;
 }
@@ -37,13 +37,16 @@ export function FeatureChecks({ value, onChange, className }: { value: Features;
  *  they can't be switched on). Used in Settings › Business Profile › Features and in Business Setup's "All features". */
 export function FeaturePanel({ value, onChange, types }: { value: Features; onChange: (patch: Partial<Features>) => void; types: readonly string[] }) {
   const { tr } = useLanguage();
-  const built = FEATURE_IDS.filter((f) => value[f]).length;
+  // Built-in features are always on and never shown as switches; the rest are counted here.
+  const optional = FEATURE_GROUPS.flatMap((g) => g.features).filter((f) => !isBuiltIn(f));
+  const on = optional.filter((f) => value[f as keyof Features]).length;
   return <div className="feature-panel">
-    <p className="feature-panel-count">{tr("{x} switched on", `${built} / ${FEATURE_IDS.length}`)}</p>
-    {FEATURE_GROUPS.map((g) => <section key={g.id} className="feature-group" aria-label={tr(g.name)}>
+    <p className="feature-builtin"><b>{tr("Built in for every business")}:</b> {BUILT_IN.map((f) => tr(FEATURE_INFO[f].name)).join(" · ")}</p>
+    <p className="feature-panel-count">{tr("{x} switched on", `${on} / ${optional.length}`)}</p>
+    {FEATURE_GROUPS.filter((g) => g.features.some((f) => !isBuiltIn(f))).map((g) => <section key={g.id} className="feature-group" aria-label={tr(g.name)}>
       <h4 className="feature-group-name">{tr(g.name)}</h4>
       <div className="feature-cards">
-        {g.features.map((id) => {
+        {g.features.filter((id) => !isBuiltIn(id)).map((id) => {
           const e = featureEntry(id), on = e.built && value[id as keyof Features], suggested = isSuggested(id, types);
           return <label key={id} className={cn("feature-card", on && "is-on", !e.built && "is-soon")}>
             <input type="checkbox" checked={!!on} disabled={!e.built} onChange={(ev) => { if (e.built) onChange({ [id]: ev.target.checked } as Partial<Features>); }} />

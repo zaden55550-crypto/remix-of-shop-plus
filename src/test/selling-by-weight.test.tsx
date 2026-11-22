@@ -30,17 +30,11 @@ describe("which units are weighed", () => {
 });
 
 describe("the Selling by weight switch", () => {
-  it("starts on for shops that weigh what they sell", () => {
+  it("is built in for every business, whatever its type or an older saved switch", () => {
     expect(defaultFeatures(["Butchery"]).weight).toBe(true);
-    expect(defaultFeatures(["Cereals & Grains Shop"]).weight).toBe(true);
-    expect(defaultFeatures(["Hardware Shop"]).weight).toBe(false);
-    expect(defaultFeatures(["Hardware Shop", "Agrovet"]).weight).toBe(true);
-  });
-  it("keeps the owner's own choice over the type's", () => {
+    expect(defaultFeatures(["Hardware Shop"]).weight).toBe(true);
     saveFeatures({ weight: false });
-    expect(currentFeatures(["Butchery"]).weight).toBe(false);
-    saveFeatures({ weight: true });
-    expect(currentFeatures(["Hardware Shop"]).weight).toBe(true);
+    expect(currentFeatures(["Butchery"]).weight).toBe(true);
   });
 });
 

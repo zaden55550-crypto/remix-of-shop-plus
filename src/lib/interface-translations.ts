@@ -2,6 +2,7 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Built in for every business|Imejengwa ndani kwa kila biashara|Inclus pour chaque entreprise|مضمّن في كل نشاط تجاري|Incluido en todos los negocios|Incluído em todas as empresas|Für jedes Unternehmen enthalten|Incluso per ogni attività|所有企业均内置|हर व्यवसाय में शामिल|Ku dhex jira ganacsi kasta
 Lay-bys|Lipa kidogo kidogo|Mises de côté|الحجوزات بالتقسيط|Apartados|Reservas|Zurückgelegt|Prenotazioni|分期预留|ले-बाय|Kaydinta qaybaha
 Breakdown|Kufungua|Découpe|التفكيك|Desglose|Desmembramento|Aufteilung|Scomposizione|拆分|बंटवारा|Kala qaadis
 Prescriptions|Maagizo ya daktari|Ordonnances|الوصفات الطبية|Recetas|Receitas|Rezepte|Ricette|处方|पर्चे|Warqadaha dhakhtarka
