@@ -24074,3 +24074,53 @@ p.verify-small { text-decoration: none; }
 }
 :root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions > button:disabled { opacity: 0.45 !important; box-shadow: none !important; }
 /* ===== END SETUP BUTTONS SOLID BLUE ===== */
+
+/* ===== SERIAL / IMEI NUMBERS & WARRANTY (2026-11-22) =====
+   Cart: chosen serials as chips under the line, a red "still needed" note and the Choose serials button; the chooser window;
+   the receipt line; Edit Product's serial section. Theme tokens, so both modes work. */
+.cart-row > .cart-serials { grid-column: 1 / -1; }
+.cart-serials { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 3px 0 0; font-size: 12px; }
+.cart-serial-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 9px; border-radius: 999px; font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700;
+  background: color-mix(in srgb, var(--primary) 16%, transparent); border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); }
+.cart-serial-chip > button { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 999px; }
+.cart-serial-chip > button > svg { width: 12px; height: 12px; }
+.cart-serial-need { font-weight: 800; color: #dc2626; }
+.dark .cart-serial-need { color: #fca5a5; }
+.cart-serial-btn { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: 12.5px; color: #fff;
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: 1px solid #60a5fa; }
+.cart-serial-btn > svg { width: 14px; height: 14px; }
+.cart-serials.is-missing .cart-serial-btn { box-shadow: 0 0 0 3px rgb(239 68 68 / 0.35); }
+.serial-window { display: grid; gap: 10px; }
+.serial-window-head { margin: 0; font-size: 15px; }
+.serial-list { display: grid; gap: 4px; max-height: min(50vh, 360px); overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.serial-list button { display: flex; width: 100%; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card);
+  font-family: ui-monospace, monospace; font-size: 14px; font-weight: 700; text-align: start; }
+.serial-list button.is-on { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 16%, var(--card)); }
+.serial-list button:disabled { opacity: 0.45; }
+.serial-list button > svg { width: 18px; height: 18px; color: var(--primary); }
+.serial-box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--muted-foreground); }
+.serial-window-foot { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.receipt-serials { margin: 0 0 2px; padding-inline-start: 8px; font-size: 11px; line-height: 1.35; word-break: break-all; }
+.serial-manager { display: grid; gap: 10px; padding: 14px; border-radius: 14px; border: 1.5px solid var(--border); background: color-mix(in srgb, var(--card) 70%, transparent); }
+.serial-manager-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; }
+.serial-track { display: flex; align-items: flex-start; gap: 10px; flex: 1 1 320px; }
+.serial-track > input { width: 20px; height: 20px; margin-top: 2px; accent-color: #2563eb; }
+.serial-track > span { display: grid; gap: 2px; }
+.serial-track small { color: var(--muted-foreground); font-size: 12.5px; }
+.serial-warranty { display: grid; gap: 4px; width: 160px; font-weight: 700; font-size: 13px; }
+.serial-counts { margin: 0; font-size: 14px; }
+.serial-mismatch { margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 13px; font-weight: 700; background: rgb(245 158 11 / 0.16); color: #b45309; }
+.dark .serial-mismatch { color: #fbbf24; }
+.serial-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+:root:root:root:root:root:root .serial-add > textarea { height: auto !important; min-height: 84px !important; font-family: ui-monospace, monospace; font-size: 14px !important; padding: 8px 12px !important; line-height: 1.4 !important; }
+.serial-add-btn { padding: 0 18px; border-radius: 12px; font-weight: 800; color: #fff; background: linear-gradient(180deg, #3b82f6, #1d4ed8); border: 1px solid #60a5fa; }
+.serial-add-btn:disabled { opacity: 0.45; }
+.serial-rows { display: grid; gap: 4px; max-height: 300px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+.serial-rows > li { display: grid; grid-template-columns: minmax(130px, auto) minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--border); font-size: 13px; }
+.serial-rows > li.is-sold { opacity: 0.85; }
+.serial-code { font-family: ui-monospace, monospace; font-weight: 800; }
+.serial-status { color: var(--muted-foreground); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.serial-status.is-in { color: #059669; font-weight: 800; }
+.dark .serial-status.is-in { color: #6ee7b7; }
+.serial-rows button > svg { width: 16px; height: 16px; color: #ef4444; }
+/* ===== END SERIAL / IMEI NUMBERS & WARRANTY ===== */

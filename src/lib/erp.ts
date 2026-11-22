@@ -23,7 +23,14 @@ export type Product = AtShop & AtBusiness & {
   /** Wholesale & retail prices (Settings › Features): this price each from `from` units (6 and above…), and for wholesale
    *  customers. Applied at the till as the line's own price (reason "Wholesale price"), so the sale records what was charged. */
   wholesale?: { price: number; from: number } | undefined;
+  /** Serial / IMEI tracking (Settings › Features): every unit sold must name one of `serials`, and each is sold once
+   *  (recordSale refuses otherwise, on the device and on the server). `warrantyMonths` dates the warranty on the receipt. */
+  serialTracked?: boolean | undefined;
+  warrantyMonths?: number | undefined;
+  serials?: SerialUnit[] | undefined;
 };
+/** One unit of a serial-tracked product: its serial / IMEI, and the sale it went to (none while in stock). */
+export type SerialUnit = { code: string; addedAt: number; sold?: { saleId: string; ref: string; at: number } | undefined };
 /** The location a record belongs to. Untagged means the main shop, so records from before shops were separated need no conversion. */
 export type AtShop = { locationId?: string | undefined };
 /** The business a record belongs to. Untagged means the owner's first/active business, so records from before multi-business
@@ -231,7 +238,9 @@ export function checkMethod(full: Pick<ErpState, "moneyAccounts">, m: Method, al
 export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number; wholesale?: boolean | undefined };
 /** `unit`: the product's unit when sold (kg, pcs…), so receipts can say "1.25 kg × 700/kg". Older sales have none. */
 /** `wholesale`: the line was charged the product's wholesale price (Wholesale & retail prices), so receipts can mark it. */
-export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined; wholesale?: true | undefined };
+export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined; wholesale?: true | undefined;
+  /** The serials / IMEIs sold on this line and the warranty end (serial-tracked products). */
+  serials?: string[] | undefined; warrantyUntil?: number | undefined };
 export type Sale = AtShop & AtBusiness & AtCounter & {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
   pay: PayRecord; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
@@ -243,7 +252,7 @@ export type Sale = AtShop & AtBusiness & AtCounter & {
   importKey?: string | undefined;
 };
 export type Payment = AtShop & AtBusiness & AtCounter & { id: string; ref: string; at: number; method: Method; amount: number; kind: "SALE" | "DEBT" | "REFUND" | "PURCHASE" | "SUPPLIER PAYMENT" | "SUPPLIER REFUND" | "EXPENSE" | "TRANSFER" | "DEPOSIT" | "WITHDRAWAL" | "OPENING"; source: string; customerId?: string | undefined; supplierId?: string | undefined; importKey?: string | undefined; user: string; docRef?: string | undefined; note?: string | undefined };
-export type SaleReturn = AtShop & AtBusiness & AtCounter & { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number }[]; amount: number; refund: Method; user: string };
+export type SaleReturn = AtShop & AtBusiness & AtCounter & { id: string; ref: string; at: number; saleId: string; saleRef: string; items: { productId: string; name: string; qty: number; amount: number; serials?: string[] | undefined }[]; amount: number; refund: Method; user: string };
 export type CashEvent = AtShop & AtBusiness & AtCounter & { id: string; at: number; type: "OPENING" | "CASH IN" | "CASH OUT" | "CASH UP"; amount: number; note?: string | undefined; expected?: number | undefined; counted?: number | undefined; user: string };
 
 const KEY = "shopbook.erp";
@@ -610,10 +619,13 @@ export function searchProducts(s: ErpState, q: string) {
   const t = q.trim().toLowerCase();
   const live = s.products.filter((p) => !p.archived);
   if (!t) return live;
-  return live.filter((p) => [p.name, p.sku, p.barcode].some((v) => v?.toLowerCase().includes(t)));
+  // A serial / IMEI (5+ characters, typed or scanned in full) finds its product too.
+  const serial = t.length >= 5 ? serialKey(t) : "";
+  return live.filter((p) => [p.name, p.sku, p.barcode].some((v) => v?.toLowerCase().includes(t)) || (!!serial && !!p.serials?.some((u) => serialKey(u.code) === serial)));
 }
 export const findByCode = (s: ErpState, code: string) =>
-  s.products.find((p) => !p.archived && (p.barcode === code || p.sku?.toLowerCase() === code.toLowerCase()));
+  s.products.find((p) => !p.archived && (p.barcode === code || p.sku?.toLowerCase() === code.toLowerCase()))
+  ?? s.products.find((p) => !p.archived && !!p.serials?.some((u) => serialKey(u.code) === serialKey(code)));
 
 /** Reorder level used when a product has none of its own. Every screen, report and the Dashboard share it. */
 export const DEFAULT_MIN_STOCK = 5;
@@ -860,8 +872,26 @@ export const removeNamed = (kind: "categories" | "brands", id: string) => commit
 
 // ---------- Selling engine (shared by Sales → New Sale and POS → Sell) ----------
 /** `price` is a one-sale override (manual/wholesale); the product's default price is never changed. Quantities may be fractional (3 decimals). */
-export type CartLine = { productId: string; qty: number; price?: number | undefined; priceReason?: string | undefined };
+/** `serials`: the serials / IMEIs chosen for a serial-tracked product, one per unit. */
+export type CartLine = { productId: string; qty: number; price?: number | undefined; priceReason?: string | undefined; serials?: string[] | undefined };
 export const roundQty = (q: number) => Math.round(q * 1000) / 1000;
+/** A serial / IMEI as compared everywhere: trimmed, spaces removed, capitals. */
+export const serialKey = (code: string) => code.replace(/\s+/g, "").toUpperCase();
+/** The date a warranty of `months` starting at `at` ends. */
+export function warrantyEnd(at: number, months: number) { const d = new Date(at); d.setMonth(d.getMonth() + months); return d.getTime(); }
+/** A serial-tracked line must name exactly one unsold serial of the product per unit, each once. Returns the cleaned codes. */
+function saleSerials(p: Product, l: CartLine, qty: number): string[] | undefined {
+  if (!p.serialTracked) return undefined;
+  const codes = (l.serials ?? []).map(serialKey).filter(Boolean);
+  if (!Number.isInteger(qty) || codes.length !== qty) throw new ErpError(`Choose ${qty} serial / IMEI number${qty === 1 ? "" : "s"} for ${p.name}`);
+  if (new Set(codes).size !== codes.length) throw new ErpError(`A serial is chosen twice for ${p.name}`);
+  for (const code of codes) {
+    const unit = p.serials?.find((u) => serialKey(u.code) === code);
+    if (!unit) throw new ErpError(`${code} is not a serial of ${p.name}`);
+    if (unit.sold) throw new ErpError(`${code} was already sold (${unit.sold.ref})`);
+  }
+  return codes;
+}
 /** Units sold only in whole numbers (packets, pieces, boxes…). Weight/volume/length units allow fractions. */
 const WHOLE_UNITS = new Set(["pcs", "pc", "piece", "pieces", "packet", "packets", "pkt", "box", "boxes", "bottle", "bottles", "carton", "cartons", "dozen", "pack", "packs", "bag", "bags", "tin", "tins", "unit", "units", "item", "items", "roll", "rolls", "pair", "pairs", "sachet", "sachets", "bar", "bars", "can", "cans", "crate", "crates"]);
 export const isWholeUnit = (unit?: string, units?: Unit[]) => {
@@ -933,7 +963,9 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
     if (l.price !== undefined && !(l.price >= 0 && Number.isFinite(l.price))) throw new ErpError(`Invalid price for ${p.name}`);
     if ((l.price ?? listed) < p.buy) c.audit("SOLD BELOW BUYING PRICE", `${p.name}: ${l.price ?? listed} (buying price ${p.buy})`);
     if (l.price !== undefined && l.price !== listed) c.audit("PRICE OVERRIDE", `${p.name}: ${listed} → ${l.price}${l.priceReason ? ` • ${l.priceReason}` : ""}`);
-    return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0, ...(p.unit ? { unit: p.unit } : {}), ...(l.priceReason?.startsWith("Wholesale price") ? { wholesale: true as const } : {}) };
+    const serials = saleSerials(p, l, qty);
+    return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0, ...(p.unit ? { unit: p.unit } : {}), ...(l.priceReason?.startsWith("Wholesale price") ? { wholesale: true as const } : {}),
+      ...(serials ? { serials, ...(p.warrantyMonths ? { warrantyUntil: warrantyEnd(now, p.warrantyMonths) } : {}) } : {}) };
   });
   if (new Set(items.map((i) => i.productId)).size !== items.length) throw new ErpError("A product appears twice in the cart");
   const subtotal = Math.round(items.reduce((a, i) => a + i.qty * i.price, 0) * 100) / 100;
@@ -961,6 +993,11 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
   if (input.sellerId && !seller && !intentRun?.copy) throw new ErpError("Seller not found");
   if (intentRun?.copy && input.sellerId) sale.sellerId = input.sellerId;
   if (seller) { sale.sellerId = seller.id; const amt = commissionFor(seller, sale); if (amt > 0) s.commissions.unshift({ id: uid(), at: Date.now(), employeeId: seller.id, source: ref, amount: amt, kind: "EARNED", pending: seller.rule.paidOnly && input.pay.credit > 0, productAmounts: commissionProducts(seller, sale) }); }
+  // Serial-tracked units leave stock: each named serial is marked sold to this sale.
+  for (const it of items) for (const code of it.serials ?? []) {
+    const unit = s.products.find((p) => p.id === it.productId)?.serials?.find((u) => serialKey(u.code) === code);
+    if (unit) unit.sold = { saleId: sale.id, ref, at: now };
+  }
   s.sales.unshift(sale);
   c.audit("SALE", `${ref} • ${total}${cust ? ` • ${cust.name}` : ""}`);
   return sale;
@@ -1016,7 +1053,10 @@ export const returnSale = (saleId: string, lines: { productId: string; qty: numb
     if (roundQty(l.qty) > roundQty(it.qty - it.returned)) throw new ErpError(`Only ${roundQty(it.qty - it.returned)} of ${it.name} can be returned`);
     it.returned = roundQty(it.returned + l.qty);
     if (s.products.some((p) => p.id === it.productId)) c.move(it.productId, "RETURN", l.qty, `Return of ${sale.ref}`, ref);
-    return { productId: it.productId, name: it.name, qty: l.qty, amount: Math.round(l.qty * it.price * ratio * 100) / 100 };
+    // Serial-tracked units come back into stock: the line's serials still sold to this sale, last first.
+    const back = (it.serials ?? []).filter((code) => product?.serials?.find((u) => serialKey(u.code) === code)?.sold?.saleId === sale.id).slice(-Math.round(l.qty));
+    for (const code of back) { const unit = product?.serials?.find((u) => serialKey(u.code) === code); if (unit) unit.sold = undefined; }
+    return { productId: it.productId, name: it.name, qty: l.qty, amount: Math.round(l.qty * it.price * ratio * 100) / 100, ...(back.length ? { serials: back } : {}) };
   });
   const amount = items.reduce((a, i) => a + i.amount, 0);
   const cust = sale.customerId ? s.customers.find((x) => x.id === sale.customerId) : undefined;

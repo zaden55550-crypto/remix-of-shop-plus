@@ -13,6 +13,8 @@ import { resetData } from "@/lib/reset-data";
 import { applyChain } from "./migration-chain";
 import { createBusiness } from "@/lib/businesses";
 import { businessTypesForFamily } from "@/lib/industry-config";
+import { addSerials, removeSerial } from "@/lib/serials";
+import { applyPriceLevels } from "@/lib/price-levels";
 
 const OWNER = "00000000-0000-4000-8000-000000000001";
 
@@ -44,6 +46,27 @@ beforeEach(async () => {
 });
 
 describe("server sync accepts what the engine produces", () => {
+  it("takes serial / IMEI tracking, wholesale prices and weighed sales (Trade features 1-3)", async () => {
+    const phone = erp.addProduct({ name: "Samsung A15", buy: 15000, sell: 18000, qty: 3, unit: "pcs", serialTracked: true, warrantyMonths: 12 });
+    addSerials(phone.id, ["356938035643801", "356938035643802", "356938035643803", "TYPO"]);
+    removeSerial(phone.id, "TYPO");
+    const soda = erp.addProduct({ name: "Soda", buy: 40, sell: 60, qty: 24, unit: "pcs", wholesale: { price: 50, from: 6 } });
+    const beef = erp.addProduct({ name: "Beef", buy: 500, sell: 700, qty: 10, unit: "kg" });
+    const cart = applyPriceLevels(erp.load(), [{ productId: phone.id, qty: 1, serials: ["356938035643801"] }, { productId: soda.id, qty: 6 }, { productId: beef.id, qty: 1.25 }], true);
+    const sale = erp.confirmSale({ cart, discount: 0, pay: pay(18000 + 300 + 875), channel: "POS" });
+    erp.returnSale(sale.id, [{ productId: phone.id, qty: 1 }], "cash");
+    expect(await flush()).toEqual([]);
+    const remote = await server();
+    const items = remote?.sales[0]?.items ?? [];
+    expect(items.find((i) => i.productId === phone.id)).toMatchObject({ serials: ["356938035643801"] });
+    expect(items.find((i) => i.productId === soda.id)).toMatchObject({ price: 50, wholesale: true });
+    expect(items.find((i) => i.productId === beef.id)).toMatchObject({ qty: 1.25, unit: "kg" });
+    const remotePhone = remote?.products.find((p) => p.id === phone.id);
+    expect(remotePhone?.serials?.map((u) => u.code)).toEqual(["356938035643801", "356938035643802", "356938035643803"]);
+    expect(remotePhone?.serials?.every((u) => !u.sold)).toBe(true);
+    expect(remote?.products.find((p) => p.id === soda.id)?.wholesale).toEqual({ price: 50, from: 6 });
+  });
+
   it("takes every kind of ERP action, in order, and ends with the same records as the device", async () => {
     const p = erp.addProduct({ name: "A", buy: 5, sell: 10, qty: 100, unit: "pcs" });
     const kg = erp.addProduct({ name: "Sugar", buy: 90.5, sell: 120.25, qty: 7.5, unit: "kg" });

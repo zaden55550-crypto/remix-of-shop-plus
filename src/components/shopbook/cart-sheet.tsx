@@ -12,6 +12,7 @@ import { translateCurrent } from "@/lib/interface-translations";
 import * as erp from "@/lib/erp";
 import { useFeature } from "@/lib/use-features";
 import { WHOLESALE_AUTO, applyPriceLevels, chooseWholesale, isWholesaleLine, moreForWholesale, wholesaleOf } from "@/lib/price-levels";
+import { SerialChooser, missingSerials } from "@/components/shopbook/serial-chooser";
 
 export function useCartDraft(channel: string) {
   const [cart, setCart] = useState<erp.CartLine[]>([]);
@@ -122,6 +123,8 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   const total = Math.round((subtotal + vat) * 100) / 100;
   const rec = payRecord(pay, total);
   const invalid = cart.some((l) => bad[l.productId]);
+  // Serial / IMEI: a tracked product's line needs one serial per unit before the sale can complete.
+  const needSerials = cart.find((l) => { const p = s.products.find((x) => x.id === l.productId); return !!p && missingSerials(p, l) > 0; });
   const mark = (id: string) => (b: boolean) => setBad((c) => (c[id] === b ? c : { ...c, [id]: b }));
   const unconfirmed = (l: erp.CartLine) => belowBuying(s, l) && okayed[l.productId] !== erp.linePrice(s, l);
   const warnIfLow = (id: string) => { const l = cart.find((x) => x.productId === id); if (l && unconfirmed(l)) setAsking(id); };
@@ -129,6 +132,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   const askedProduct = s.products.find((p) => p.id === asking);
   const review = () => {
     if (invalid) { toast.error(tr("Fix the highlighted quantities or amounts")); return; }
+    if (needSerials) { toast.error(`${tr("Choose the serial / IMEI numbers for")} ${s.products.find((x) => x.id === needSerials.productId)?.name ?? ""}`); return; }
     if (payInvalid(pay, total)) { toast.error(tr("Check the payment amounts")); return; }
     if (rec.credit > 0.001 && !customerId) { toast.error(tr("Credit needs a registered customer")); return; }
     const low = cart.find(unconfirmed);
@@ -170,11 +174,12 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
           <AmountCell s={s} p={p} line={l} tr={tr} setLine={setLine} onBad={mark(p.id)} onLeave={() => warnIfLow(p.id)} />
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><X className="h-4 w-4" /></ShopButton>
           {levels && wholesaleOf(p) && <WholesaleNote p={p} line={l} more={moreForWholesale(p, l.qty, customer)} money={money} tr={tr} setLine={setLine} />}
+          {p.serialTracked && <SerialChooser p={p} line={l} setLine={setLine} />}
         </div>;
       })}
       {vr > 0 && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></div>}
       <div className="mt-2"><PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote={customerId ? undefined : "Credit needs a registered customer"} /></div>
-      <ShopButton className="inventory-save mt-2 w-full" disabled={!cart.length || invalid} onClick={review}>{tr("Complete Sale")} • {money(total)}</ShopButton>
+      <ShopButton className="inventory-save mt-2 w-full" disabled={!cart.length || invalid || !!needSerials} onClick={review}>{tr("Complete Sale")} • {money(total)}</ShopButton>
     </section>
     <AlertDialog open={!!askedLine && !!askedProduct} onOpenChange={(open) => { if (!open) setAsking(null); }}>
       <AlertDialogContent>

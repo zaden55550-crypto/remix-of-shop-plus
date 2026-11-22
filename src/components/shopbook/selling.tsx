@@ -23,6 +23,7 @@ import { GlobalApplicationHeader } from "@/components/shopbook/global-applicatio
 import { SearchPicker } from "@/components/shopbook/search-picker";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import { WeightPad } from "@/components/shopbook/weight-pad";
+import { addScannedSerial } from "@/components/shopbook/serial-chooser";
 import { useFeature } from "@/lib/use-features";
 import { qtyTimesPrice, weighedUnit } from "@/lib/weight-display";
 import { MAIN_LOCATION } from "@/lib/locations";
@@ -118,7 +119,8 @@ export function Sell({ s, money, tr, shop, channel }: SCtx) {
     if (blocked || (cart.find((l) => l.productId === id)?.qty ?? 0) >= p.qty) toast.error(`${tr("Insufficient stock")}: ${p.name} (${tr("Available")} ${p.qty})`, { id: `stock-${id}` });
   };
   const setQty = (id: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((l) => l.productId !== id) : c.map((l) => (l.productId === id ? { ...l, qty } : l))));
-  const onScan = (code: string) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); };
+  // A scanned serial / IMEI adds its product with that serial already chosen; any other code adds the product as usual.
+  const onScan = (code: string) => { const bySerial = addScannedSerial(s, cart, code); if (bySerial) { setCart(bySerial.cart); toast.success(`${bySerial.product.name} · ${erp.serialKey(code)}`); return; } const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); };
 
   return (
     <div>
@@ -164,7 +166,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
         {sale.items.map((i) => (
-          <div key={i.productId} className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}{i.wholesale ? ` · ${tr("Wholesale")}` : ""}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>
+          <div key={i.productId}><div className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}{i.wholesale ? ` · ${tr("Wholesale")}` : ""}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>{i.serials?.length ? <p className="receipt-serials">{i.serials.join(", ")}{i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}</p> : null}</div>
         ))}
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
@@ -184,7 +186,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
   const byWeight = useFeature("weight");
-  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
+  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}${i.serials?.length ? ` [${i.serials.join(", ")}${i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}]` : ""}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
   const share = () => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); };
   const [print, setPrint] = useState<null | "print" | "pdf">(null);
   const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));

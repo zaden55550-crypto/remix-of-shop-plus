@@ -18,6 +18,7 @@ import * as erp from "@/lib/erp";
 import { store } from "@/lib/shopbook";
 import { useFeature } from "@/lib/use-features";
 import { WholesaleFields, readWholesale, wholesaleDraft } from "@/components/shopbook/wholesale-fields";
+import { SerialManager } from "@/components/shopbook/serial-manager";
 
 type Tr = (t: string) => string;
 type Base = { s: erp.ErpState; tr: Tr; money: (n: number) => string };
@@ -209,6 +210,8 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
   const [f, setF] = useState(start);
   // Wholesale & retail prices: the product's wholesale price and the quantity it starts from (shown while the feature is on).
   const levels = useFeature("priceLevels");
+  // Serial / IMEI numbers: the section shows while the feature is on, or for a product already tracked.
+  const serialsOn = useFeature("serials");
   const [ws, setWs] = useState(() => wholesaleDraft(p));
   const wsStart = useMemo(() => wholesaleDraft(p), [p.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ask, setAsk] = useState(false);
@@ -271,6 +274,7 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
       {otherShops.length > 0 && <div className="pw-row6">
         {otherShops.map((l) => <PwField key={l.id} label={`${tr("Selling Price")} · ${l.name}`}><input type="number" min="0" step="any" className="inventory-input" placeholder={f.sell} value={shopPrices[l.id] ?? ""} onChange={(e) => setShopPrices({ ...shopPrices, [l.id]: e.target.value })} /></PwField>)}
       </div>}
+      {(serialsOn || p.serialTracked) && <SerialManager s={s} productId={p.id} />}
       <PwField label={tr("Description (optional)")} wide><textarea className="inventory-input" rows={3} value={f.description} onChange={set("description")} /></PwField>
       {(activeAttributes(s).length > 0 || Object.keys(f.attributes).length > 0) && <AttributePicker s={s} value={f.attributes} onChange={(attributes) => setF({ ...f, attributes })} tr={tr} />}
       <ImageChooser value={f.image} onChange={(image) => setF({ ...f, image })} tr={tr} />

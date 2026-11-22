@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { ProductCatalog } from "@/components/shopbook/product-catalog";
 import { CartCheckout, useCartDraft } from "@/components/shopbook/cart-sheet";
 import { WeightPad } from "@/components/shopbook/weight-pad";
+import { addScannedSerial } from "@/components/shopbook/serial-chooser";
 import { useFeature } from "@/lib/use-features";
 import { CounterPicker, counterName } from "@/components/shopbook/counter-picker";
 import * as erp from "@/lib/erp";
@@ -102,7 +103,7 @@ function Sell(c: Ctx & { openSale: (id: string) => void }) {
 
   return <>
     <CounterPicker s={s} />
-    <ProductCatalog s={s} cart={cart} tr={tr} add={add} onScan={(code) => { const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
+    <ProductCatalog s={s} cart={cart} tr={tr} add={add} onScan={(code) => { const bySerial = addScannedSerial(s, cart, code); if (bySerial) { setCart(bySerial.cart); toast.success(`${bySerial.product.name} · ${erp.serialKey(code)}`); return; } const p = erp.findByCode(s, code); if (p) { add(p.id); toast.success(p.name); } else toast.error(tr("Barcode not found — add it in Inventory")); }} />
     <ShopButton variant="bare" ref={cartBtn} aria-label={`${tr("Cart")} (${count})`} onClick={() => (cart.length ? setStep("cart") : toast(tr("Cart is empty")))} className="pos-fab"><ShoppingCart className="h-6 w-6" />{count > 0 && <span className="pos-fab-count">{count}</span>}</ShopButton>
     {step === "cart" && <CartCheckout s={s} money={money} tr={tr} cart={cart} channel="POS"
       setLine={(l) => setCart((x) => x.map((v) => v.productId === l.productId ? l : v))}
