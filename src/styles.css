@@ -24052,3 +24052,25 @@ p.verify-small { text-decoration: none; }
 .dark .wholesale-warn { color: #fbbf24; }
 .wholesale-customer-tick { padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--border); }
 /* ===== END WHOLESALE & RETAIL PRICES ===== */
+
+/* ===== SETUP BUTTONS SOLID BLUE (2026-11-22, owner's request; replaces the tinted look above) =====
+   Edit owner, Manage Users, Manage Access, All features, Add another phone and each row's logo / upload / edit buttons are solid
+   blue with white writing, the same blue as Add User; Remove is solid red. */
+:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-link-btn, .bsetup-all-features, .bsetup-more-phones, .bsetup-actions > button:not(.is-danger), .bsetup-logo:not(.has-logo)) {
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important;
+  border: 1.5px solid #60a5fa !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff;
+  box-shadow: 0 4px 12px rgb(29 78 216 / 0.35) !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-link-btn, .bsetup-all-features, .bsetup-more-phones, .bsetup-actions > button:not(.is-danger), .bsetup-logo:not(.has-logo)):hover:not(:disabled) {
+  background: linear-gradient(180deg, #60a5fa, #2563eb) !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-link-btn, .bsetup-all-features, .bsetup-more-phones, .bsetup-actions > button, .bsetup-logo) svg { color: #ffffff !important; stroke: currentColor; }
+:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions > button.is-danger {
+  background: linear-gradient(180deg, #ef4444, #b91c1c) !important;
+  border: 1.5px solid #fca5a5 !important;
+  color: #ffffff !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions > button:disabled { opacity: 0.45 !important; box-shadow: none !important; }
+/* ===== END SETUP BUTTONS SOLID BLUE ===== */

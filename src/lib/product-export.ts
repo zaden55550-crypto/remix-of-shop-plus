@@ -20,6 +20,8 @@ export const EXPORT_COLUMNS: Column[] = [
   { key: "qty", label: "Current Stock", value: (p) => p.qty },
   { key: "buy", label: "Buying Price", value: (p) => p.buy },
   { key: "sell", label: "Selling Price", value: (p) => p.sell },
+  { key: "wholesale", label: "Wholesale price", value: (p) => p.wholesale?.price ?? "" },
+  { key: "wholesaleFrom", label: "Wholesale from (qty)", value: (p) => p.wholesale?.from ?? "" },
   { key: "status", label: "Stock Status", value: (p) => statusLabel(p) },
 ];
 

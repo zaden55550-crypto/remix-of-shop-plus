@@ -182,6 +182,7 @@ function ProductDetails({ p, s, tr, money, onBack }: Base & { p: erp.Product; on
         <Card label={tr("Current Stock")} value={String(p.qty)} money />
         <Card label={tr("Buying Price")} value={money(p.buy)} money />
         <Card label={tr("Selling Price")} value={money(p.sell)} money />
+        {p.wholesale && <Card label={tr("Wholesale price")} value={`${money(p.wholesale.price)} · ${p.wholesale.from}+`} money />}
         <Card label={tr("Description")} value={p.description} wrap />
       </div>
       {!!p.variants?.length && (

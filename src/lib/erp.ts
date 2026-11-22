@@ -230,7 +230,8 @@ export function checkMethod(full: Pick<ErpState, "moneyAccounts">, m: Method, al
 /** `wholesale`: a wholesale customer, who gets each product's wholesale price whatever the quantity (Wholesale & retail prices). */
 export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number; wholesale?: boolean | undefined };
 /** `unit`: the product's unit when sold (kg, pcs…), so receipts can say "1.25 kg × 700/kg". Older sales have none. */
-export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined };
+/** `wholesale`: the line was charged the product's wholesale price (Wholesale & retail prices), so receipts can mark it. */
+export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined; wholesale?: true | undefined };
 export type Sale = AtShop & AtBusiness & AtCounter & {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
   pay: PayRecord; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
@@ -932,7 +933,7 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
     if (l.price !== undefined && !(l.price >= 0 && Number.isFinite(l.price))) throw new ErpError(`Invalid price for ${p.name}`);
     if ((l.price ?? listed) < p.buy) c.audit("SOLD BELOW BUYING PRICE", `${p.name}: ${l.price ?? listed} (buying price ${p.buy})`);
     if (l.price !== undefined && l.price !== listed) c.audit("PRICE OVERRIDE", `${p.name}: ${listed} → ${l.price}${l.priceReason ? ` • ${l.priceReason}` : ""}`);
-    return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0, ...(p.unit ? { unit: p.unit } : {}) };
+    return { productId: p.id, name: p.name, qty, price: l.price ?? listed, cost: p.buy, returned: 0, ...(p.unit ? { unit: p.unit } : {}), ...(l.priceReason?.startsWith("Wholesale price") ? { wholesale: true as const } : {}) };
   });
   if (new Set(items.map((i) => i.productId)).size !== items.length) throw new ErpError("A product appears twice in the cart");
   const subtotal = Math.round(items.reduce((a, i) => a + i.qty * i.price, 0) * 100) / 100;

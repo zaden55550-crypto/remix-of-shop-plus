@@ -164,7 +164,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
         {sale.items.map((i) => (
-          <div key={i.productId} className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>
+          <div key={i.productId} className="flex justify-between gap-2"><span className="truncate">{i.name} {qtyTimesPrice(i.qty, i.price.toLocaleString("en-KE"), weighedUnit(s, i.productId, i.unit, byWeight))}{i.wholesale ? ` · ${tr("Wholesale")}` : ""}</span><span>{(i.qty * i.price).toLocaleString("en-KE")}</span></div>
         ))}
       </div>
       <div className="mt-2 border-t border-dashed border-current pt-2">
@@ -184,7 +184,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
   const byWeight = useFeature("weight");
-  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
+  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
   const share = () => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); };
   const [print, setPrint] = useState<null | "print" | "pdf">(null);
   const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));

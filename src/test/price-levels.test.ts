@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import * as erp from "@/lib/erp";
 import { WHOLESALE_AUTO, WHOLESALE_CHOSEN, applyPriceLevels, chooseWholesale, moreForWholesale, qualifies } from "@/lib/price-levels";
 import { readWholesale } from "@/components/shopbook/wholesale-fields";
+import { exportTable } from "@/lib/product-export";
 import { currentFeatures, defaultFeatures, saveFeatures } from "@/lib/trade-features";
 
 // Soda: retail 60, wholesale 50 each from 6 bottles.
@@ -25,6 +26,20 @@ describe("the wholesale rule", () => {
   });
   it("a product without a wholesale price never qualifies", () => {
     expect(qualifies(bread, 100, { wholesale: true })).toBe(false);
+  });
+});
+
+describe("each product sets its own wholesale quantity", () => {
+  it("8+ for one product, 4+ for another, 1.5 kg+ for a weighed one", () => {
+    const crate: erp.Product = { ...soda, id: "crate", wholesale: { price: 900, from: 8 } };
+    const oil: erp.Product = { ...soda, id: "oil", wholesale: { price: 280, from: 4 } };
+    const rice: erp.Product = { ...soda, id: "rice", unit: "kg", wholesale: { price: 150, from: 1.5 } };
+    expect([qualifies(crate, 7), qualifies(crate, 8)]).toEqual([false, true]);
+    expect([qualifies(oil, 3), qualifies(oil, 4)]).toEqual([false, true]);
+    expect([qualifies(rice, 1.25), qualifies(rice, 1.5)]).toEqual([false, true]);
+    expect(moreForWholesale(crate, 5)).toBe(3);
+    const cart = applyPriceLevels({ products: [crate, oil] }, [{ productId: "crate", qty: 8 }, { productId: "oil", qty: 3 }], true);
+    expect(cart.map((l) => l.price)).toEqual([900, undefined]);
   });
 });
 
@@ -62,10 +77,19 @@ describe("a real sale records the wholesale price", () => {
     localStorage.setItem("shopbook.erp", JSON.stringify({ products: [soda, bread] }));
     const cart = applyPriceLevels(erp.load(), [{ productId: "soda", qty: 6 }, { productId: "bread", qty: 1 }], true);
     const sale = erp.confirmSale({ cart, discount: 0, pay: { cash: 365, mpesa: 0, bank: 0, credit: 0 }, channel: "POS", vatRate: 0 });
-    expect(sale.items.find((i) => i.productId === "soda")).toMatchObject({ qty: 6, price: 50 });
+    expect(sale.items.find((i) => i.productId === "soda")).toMatchObject({ qty: 6, price: 50, wholesale: true });
     expect(sale.items.find((i) => i.productId === "bread")).toMatchObject({ qty: 1, price: 65 });
+    expect(sale.items.find((i) => i.productId === "bread")?.wholesale).toBeUndefined();
     expect(sale.total).toBe(365);
     expect(erp.load().audit.some((a) => a.action === "PRICE OVERRIDE" && a.detail.includes("Wholesale price"))).toBe(true);
+  });
+});
+
+describe("product exports", () => {
+  it("include the wholesale price and its quantity", () => {
+    const t = exportTable({ ...erp.empty(), products: [soda, bread] }, [soda, bread], ["name", "wholesale", "wholesaleFrom"]);
+    expect(t.head).toEqual(["Product Name", "Wholesale price", "Wholesale from (qty)"]);
+    expect(t.rows).toEqual([["Soda", 50, 6], ["Bread", "", ""]]);
   });
 });
 
