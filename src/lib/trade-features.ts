@@ -7,12 +7,13 @@
 // - vat:      the device's VAT setting (prefs.ts getTax/setTax), shown here so it can be switched on at setup.
 // - barcodes: the existing "search barcodes" setting.
 // - weight:   a kg keypad at the till for weighed products (kg or money), and the price per kg on tiles, cart and receipts.
+// - priceLevels: a product's wholesale price from a set quantity (6 and above…), and wholesale customers; applied at the till.
 // Expiry and counters are saved per business in its settings (`features`, settings-config.ts); a feature never saved
 // follows the business types. Records made while a feature was on stay as they are when it is switched off.
 import { readSettings, saveSettings } from "@/lib/settings-config";
 import { getTax, setTax } from "@/lib/prefs";
 
-export const FEATURE_IDS = ["expiry", "counters", "vat", "barcodes", "weight"] as const;
+export const FEATURE_IDS = ["expiry", "counters", "vat", "barcodes", "weight", "priceLevels"] as const;
 export type FeatureId = (typeof FEATURE_IDS)[number];
 export type Features = Record<FeatureId, boolean>;
 
@@ -22,6 +23,7 @@ export const FEATURE_INFO: Record<FeatureId, { name: string; hint: string }> = {
   vat: { name: "VAT on sales", hint: "Add VAT to sales on this device" },
   barcodes: { name: "Barcode scanning", hint: "Find products by barcode when selling and searching" },
   weight: { name: "Selling by weight", hint: "A kg keypad at the till with quick ¼, ½ and 1 kg buttons, and the price per kg on receipts" },
+  priceLevels: { name: "Wholesale & retail prices", hint: "A cheaper price from a set quantity, or for wholesale customers, chosen automatically at the till" },
 };
 
 /** Types whose goods expire: expiry dates start switched on. */
@@ -30,6 +32,8 @@ const EXPIRY_TYPES = new Set(["Pharmacy", "Supermarket", "Grocery Store", "Agrov
 const COUNTER_TYPES = new Set(["Supermarket", "Wholesale Business", "General Merchandise Store"]);
 /** Types that weigh what they sell (meat, grains, feeds, loose groceries): selling by weight starts switched on. */
 const WEIGHT_TYPES = new Set(["Butchery", "Cereals & Grains Shop", "Agrovet", "Grocery Store", "Supermarket", "Mini-mart / Kiosk"]);
+/** Types that sell both retail and wholesale: wholesale prices start switched on. */
+const PRICE_LEVEL_TYPES = new Set(["Wholesale Business", "Hardware Shop", "Building Materials Shop", "Cereals & Grains Shop", "Agrovet", "Supermarket", "General Merchandise Store"]);
 
 /** The starting choice for a business of these types (any one type is enough to switch a feature on). */
 export function defaultFeatures(types: readonly string[]): Features {
@@ -39,6 +43,7 @@ export function defaultFeatures(types: readonly string[]): Features {
     vat: false,
     barcodes: true,
     weight: types.some((t) => WEIGHT_TYPES.has(t)),
+    priceLevels: types.some((t) => PRICE_LEVEL_TYPES.has(t)),
   };
 }
 
@@ -49,6 +54,7 @@ export function currentFeatures(types: readonly string[]): Features {
     expiry: typeof saved["expiry"] === "boolean" ? saved["expiry"] : base.expiry,
     counters: typeof saved["counters"] === "boolean" ? saved["counters"] : base.counters,
     weight: typeof saved["weight"] === "boolean" ? saved["weight"] : base.weight,
+    priceLevels: typeof saved["priceLevels"] === "boolean" ? saved["priceLevels"] : base.priceLevels,
     vat: getTax().on,
     barcodes: s.searchBarcodes,
   };
@@ -70,7 +76,7 @@ export const featureOn = (id: FeatureId, types: readonly string[]) => currentFea
    A business type only suggests features (and, for the built ones, decides which start switched on, defaultFeatures above).
    Features not built yet are listed as "Coming soon" so owners see what is planned; they can't be switched on until they exist,
    and each is added to FEATURE_IDS (with its own saved switch) when it is built. */
-export type PlannedFeatureId = "priceLevels" | "layby" | "quotations" | "serials" | "gas" | "breakdown" | "prescriptions";
+export type PlannedFeatureId = "layby" | "quotations" | "serials" | "gas" | "breakdown" | "prescriptions";
 export type AnyFeatureId = FeatureId | PlannedFeatureId;
 export type FeatureGroupId = "selling" | "stock" | "compliance";
 export type FeatureEntry = { id: AnyFeatureId; name: string; hint: string; built: boolean; suggestedFor: readonly string[] | "all" };
@@ -79,7 +85,7 @@ const SUGGEST: Record<AnyFeatureId, readonly string[] | "all"> = {
   barcodes: "all",
   counters: [...COUNTER_TYPES],
   weight: [...WEIGHT_TYPES],
-  priceLevels: ["Wholesale Business", "Hardware Shop", "Building Materials Shop", "Cereals & Grains Shop", "Agrovet", "Supermarket", "General Merchandise Store"],
+  priceLevels: [...PRICE_LEVEL_TYPES],
   layby: ["Furniture Shop", "Electronics Shop", "Jewellery Shop", "Mobile Phones & Accessories"],
   quotations: ["Hardware Shop", "Building Materials Shop", "Furniture Shop", "Wholesale Business", "Automotive Parts Shop", "Electronics Shop"],
   expiry: [...EXPIRY_TYPES],
@@ -90,7 +96,6 @@ const SUGGEST: Record<AnyFeatureId, readonly string[] | "all"> = {
   prescriptions: ["Pharmacy"],
 };
 const PLANNED_INFO: Record<PlannedFeatureId, { name: string; hint: string }> = {
-  priceLevels: { name: "Wholesale & retail prices", hint: "A cheaper price from a set quantity, or for wholesale customers, chosen automatically at the till" },
   layby: { name: "Deposits & lay-by", hint: "The customer pays part now and collects when the rest is paid; the goods are kept aside" },
   quotations: { name: "Quotations", hint: "Send a priced quotation and turn it into a sale or invoice when the customer agrees" },
   serials: { name: "Serial / IMEI numbers & warranty", hint: "Record each item's serial or IMEI when selling; it shows on the receipt with the warranty end date and can be searched later" },

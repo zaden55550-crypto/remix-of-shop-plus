@@ -1,5 +1,6 @@
 import { clean } from "@/lib/format";
 import { useFeature } from "@/lib/use-features";
+import { WholesaleFields, readWholesale, wholesaleDraft } from "@/components/shopbook/wholesale-fields";
 import { ExpiryList } from "@/components/shopbook/expiry-list";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -764,6 +765,9 @@ function AddProduct({ s, tr, barcode, done, draft, onRegister }: Ctx & { barcode
     image: "",
   };
   const [f, setF] = useState(draft?.f ?? blank);
+  // Wholesale & retail prices: an optional wholesale price from a set quantity (shown while the feature is on).
+  const levels = useFeature("priceLevels");
+  const [ws, setWs] = useState(() => wholesaleDraft());
   const noTicks = { category: false, brand: false, sku: false, barcode: Boolean(barcode) };
   const [ticks, setTicks] = useState(draft?.ticks ?? noTicks);
   /** Unticking clears that detail, so what isn't ticked is never saved. */
@@ -844,6 +848,11 @@ function AddProduct({ s, tr, barcode, done, draft, onRegister }: Ctx & { barcode
       toast.error(tr("Quantity can't be negative"));
       return;
     }
+    const wholesale = readWholesale(ws, f.unit, s.units);
+    if (!wholesale.ok) {
+      toast.error(tr(wholesale.message));
+      return;
+    }
     // addProduct checks any supplied identifiers and records opening stock as a movement.
     saving.current = true;
     const made = run(() =>
@@ -861,6 +870,7 @@ function AddProduct({ s, tr, barcode, done, draft, onRegister }: Ctx & { barcode
         description: f.description.trim() || undefined,
         image: f.image || undefined,
         attributes: Object.keys(attributes).length ? attributes : undefined,
+        ...(levels && wholesale.value ? { wholesale: wholesale.value } : {}),
         variants: withVariants
           ? variants.map((v, i) => ({
               id: `${i + 1}-${v.id}`,
@@ -927,6 +937,7 @@ function AddProduct({ s, tr, barcode, done, draft, onRegister }: Ctx & { barcode
           <PwField label={tr("Selling Price")} required>
             <input type="number" min="0" step="any" className={inventoryInput} value={f.sell} onChange={set("sell")} />
           </PwField>
+          {levels && <WholesaleFields value={ws} onChange={setWs} sell={f.sell} Field={PwField} />}
         </div>
 
         <div className="pw-ticks">

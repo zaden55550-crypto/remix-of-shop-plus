@@ -20,6 +20,9 @@ export type Product = AtShop & AtBusiness & {
   attributes?: Record<string, string[]> | undefined;
   /** What another shop charges, by location id. A shop not listed charges `sell`, which is also the main shop's price. */
   prices?: Record<string, number> | undefined;
+  /** Wholesale & retail prices (Settings › Features): this price each from `from` units (6 and above…), and for wholesale
+   *  customers. Applied at the till as the line's own price (reason "Wholesale price"), so the sale records what was charged. */
+  wholesale?: { price: number; from: number } | undefined;
 };
 /** The location a record belongs to. Untagged means the main shop, so records from before shops were separated need no conversion. */
 export type AtShop = { locationId?: string | undefined };
@@ -224,7 +227,8 @@ export function checkMethod(full: Pick<ErpState, "moneyAccounts">, m: Method, al
   if (m === "credit") { if (!allowCredit) throw new ErpError("Choose where the money goes"); return; }
   if (!moneyMethods(s).includes(m)) throw new ErpError(known(s, m) ? `${methodName(m, s)} is no longer in use` : "Unknown payment method");
 }
-export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number };
+/** `wholesale`: a wholesale customer, who gets each product's wholesale price whatever the quantity (Wholesale & retail prices). */
+export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number; wholesale?: boolean | undefined };
 /** `unit`: the product's unit when sold (kg, pcs…), so receipts can say "1.25 kg × 700/kg". Older sales have none. */
 export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined };
 export type Sale = AtShop & AtBusiness & AtCounter & {

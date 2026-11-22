@@ -24035,3 +24035,20 @@ p.verify-small { text-decoration: none; }
 }
 :root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-actions > button, .bsetup-logo) svg { opacity: 1 !important; }
 /* ===== END SETUP BUTTONS EASY TO SEE ===== */
+
+/* ===== WHOLESALE & RETAIL PRICES (2026-11-22) =====
+   Cart: a note under a product with a wholesale price (applied, or how many more make it wholesale, with "Use wholesale price"),
+   and a line when a wholesale customer is chosen. */
+.cart-row > .cart-wholesale { grid-column: 1 / -1; }
+.cart-wholesale { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 2px 0 0; font-size: 12px; color: var(--muted-foreground); }
+.cart-wholesale.is-on { color: var(--foreground); }
+.cart-wholesale.is-on > b { padding: 1px 8px; border-radius: 999px; background: #d1fae5; color: #065f46; font-size: 11.5px; }
+.dark .cart-wholesale.is-on > b { background: rgb(16 185 129 / 0.22); color: #a7f3d0; }
+.cart-wholesale > button { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800;
+  border: 1.5px solid color-mix(in srgb, var(--primary) 65%, transparent); background: color-mix(in srgb, var(--primary) 14%, transparent); color: var(--foreground); }
+.cart-wholesale-customer { margin: 6px 0 0; padding: 6px 10px; border-radius: 10px; font-size: 12.5px; font-weight: 700;
+  background: color-mix(in srgb, #10b981 14%, transparent); color: var(--foreground); }
+.wholesale-warn { grid-column: 1 / -1; color: #b45309; }
+.dark .wholesale-warn { color: #fbbf24; }
+.wholesale-customer-tick { padding: 8px 10px; border-radius: 10px; border: 1.5px solid var(--border); }
+/* ===== END WHOLESALE & RETAIL PRICES ===== */

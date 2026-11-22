@@ -11,6 +11,7 @@ import { parseQty } from "@/lib/qty-parse";
 import { translateCurrent } from "@/lib/interface-translations";
 import * as erp from "@/lib/erp";
 import { useFeature } from "@/lib/use-features";
+import { WHOLESALE_AUTO, applyPriceLevels, chooseWholesale, isWholesaleLine, moreForWholesale, wholesaleOf } from "@/lib/price-levels";
 
 export function useCartDraft(channel: string) {
   const [cart, setCart] = useState<erp.CartLine[]>([]);
@@ -100,8 +101,16 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
   setLine: (l: erp.CartLine) => void; remove: (id: string) => void; clear: () => void; back: () => void; saveDraft: () => void; onDone: (sale: erp.Sale) => void;
 }) {
   const byWeight = useFeature("weight");
+  // Wholesale & retail prices: the wholesale price is applied (or taken off) by itself as quantities and the customer change.
+  const levels = useFeature("priceLevels");
   const [bad, setBad] = useState<Record<string, boolean>>({});
   const [customerId, setCustomer] = useState("");
+  const customer = s.customers.find((c) => c.id === customerId);
+  useEffect(() => {
+    const next = applyPriceLevels(s, cart, levels, customer);
+    next.forEach((line, i) => { if (line !== cart[i]) setLine(line); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run when the lines, the switch or the customer's kind change
+  }, [cart, levels, customer?.wholesale, s.products]);
   const [pay, setPay] = useState<PayState>(emptyPay());
   // Prices already confirmed as below the buying price, and the product the warning is open for.
   const [okayed, setOkayed] = useState<Record<string, number>>({});
@@ -147,6 +156,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
         <SearchPicker tr={tr} items={s.customers.map((c) => ({ id: c.id, label: c.name, hint: c.phone }))} value={customerId} onChange={setCustomer} noneLabel={tr("No Customer")} placeholder={tr("Select customer")} addLabel={tr("Add Customer")} withPhone
           onAdd={(n, ph) => { try { return erp.addCustomer(n, ph).id; } catch (e) { toast.error(translateCurrent(e instanceof Error ? e.message : "Failed")); return undefined; } }} />
       </div>
+      {levels && customer?.wholesale && <p className="cart-wholesale-customer">{tr("Wholesale customer: wholesale prices apply to every item that has one.")}</p>}
       <p className="inventory-field mt-2">{tr("Items")} ({cart.length})</p>
       <div className="cart-row cart-row-head"><span>{tr("Item")}</span><span>{tr("Qty")}</span><span>{tr("Unit")}</span><span className="text-end">{tr("Price")}</span><span className="text-end">{tr("Amount")}</span><span /></div>
       {cart.map((l) => {
@@ -159,6 +169,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
           <PriceCell s={s} p={p} line={l} tr={tr} setLine={setLine} onBad={mark(p.id)} onLeave={() => warnIfLow(p.id)} />
           <AmountCell s={s} p={p} line={l} tr={tr} setLine={setLine} onBad={mark(p.id)} onLeave={() => warnIfLow(p.id)} />
           <ShopButton variant="bare" className="cart-icon text-destructive" aria-label={`${tr("Remove")} ${p.name}`} onClick={() => remove(p.id)}><X className="h-4 w-4" /></ShopButton>
+          {levels && wholesaleOf(p) && <WholesaleNote p={p} line={l} more={moreForWholesale(p, l.qty, customer)} money={money} tr={tr} setLine={setLine} />}
         </div>;
       })}
       {vr > 0 && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></div>}
@@ -194,4 +205,24 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
       </AlertDialogContent>
     </AlertDialog>
   </div>;
+}
+
+/** Under a product that has a wholesale price: whether this line is wholesale, or how many more make it so, with the cashier's
+ *  choice to charge the wholesale price anyway (and to undo that choice). */
+function WholesaleNote({ p, line, more, money, tr, setLine }: { p: erp.Product; line: erp.CartLine; more: number; money: (n: number) => string; tr: (x: string) => string; setLine: (l: erp.CartLine) => void }) {
+  const w = wholesaleOf(p);
+  if (!w) return null;
+  const each = `${money(w.price)} ${tr("each")}`;
+  if (isWholesaleLine(line)) {
+    const auto = line.priceReason === WHOLESALE_AUTO;
+    return <p className="cart-wholesale is-on">
+      <b>{tr("Wholesale")}</b> · {auto ? `${w.from}+ = ${each}` : `${tr("chosen by the cashier")} · ${each}`}
+      {!auto && <button type="button" onClick={() => { const { price: _p, priceReason: _r, ...retail } = line; setLine(retail); }}>{tr("Undo")}</button>}
+    </p>;
+  }
+  if (line.price !== undefined) return null; // a typed price stays as the cashier set it
+  return <p className="cart-wholesale">
+    {more > 0 && <span>{erp.roundQty(more)} {tr("more for the wholesale price")} ({each})</span>}
+    <button type="button" onClick={() => setLine(chooseWholesale(p, line))}>{tr("Use wholesale price")}</button>
+  </p>;
 }

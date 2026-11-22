@@ -16,6 +16,8 @@ import { sharePdfTable } from "@/components/shopbook/print";
 import { cn } from "@/lib/utils";
 import * as erp from "@/lib/erp";
 import { store } from "@/lib/shopbook";
+import { useFeature } from "@/lib/use-features";
+import { WholesaleFields, readWholesale, wholesaleDraft } from "@/components/shopbook/wholesale-fields";
 
 type Tr = (t: string) => string;
 type Base = { s: erp.ErpState; tr: Tr; money: (n: number) => string };
@@ -204,6 +206,10 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
     description: p.description ?? "", image: p.image ?? "", attributes: p.attributes ?? {},
   }), [p.id]); // eslint-disable-line react-hooks/exhaustive-deps -- the form starts once per product
   const [f, setF] = useState(start);
+  // Wholesale & retail prices: the product's wholesale price and the quantity it starts from (shown while the feature is on).
+  const levels = useFeature("priceLevels");
+  const [ws, setWs] = useState(() => wholesaleDraft(p));
+  const wsStart = useMemo(() => wholesaleDraft(p), [p.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ask, setAsk] = useState(false);
   const admin = erp.isAdmin();
   // With all shops showing, the price above is the main shop's and each other shop may have its own. Inside one shop, the price above is that shop's.
@@ -211,7 +217,7 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
   const realPrices = real.products.find((x) => x.id === p.id)?.prices;
   const [shopPrices, setShopPrices] = useState<Record<string, string>>(() => Object.fromEntries(otherShops.map((l) => [l.id, realPrices?.[l.id] === undefined ? "" : String(realPrices[l.id])])));
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
-  const dirty = JSON.stringify(f) !== JSON.stringify(start) || otherShops.some((l) => (shopPrices[l.id] ?? "") !== (realPrices?.[l.id] === undefined ? "" : String(realPrices[l.id])));
+  const dirty = JSON.stringify(f) !== JSON.stringify(start) || JSON.stringify(ws) !== JSON.stringify(wsStart) || otherShops.some((l) => (shopPrices[l.id] ?? "") !== (realPrices?.[l.id] === undefined ? "" : String(realPrices[l.id])));
   const stocked = p.qty > 0, history = erp.productHistory(s, p.id);
   const optional = (v: string) => (v.trim() === "" ? undefined : Number(v));
 
@@ -221,11 +227,14 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
     if (!Number.isInteger(pieces) || pieces < 1) { toast.error(tr("Pieces must be a whole number of 1 or more")); return; }
     if (!(Number(f.buy) >= 0) || !(Number(f.sell) >= 0) || f.buy.trim() === "" || f.sell.trim() === "") { toast.error(tr("Prices can't be negative")); return; }
     if (otherShops.some((l) => { const v = shopPrices[l.id]?.trim() ?? ""; return v !== "" && !(Number(v) >= 0); })) { toast.error(tr("Prices can't be negative")); return; }
+    const wholesale = readWholesale(ws, f.unit, s.units);
+    if (!wholesale.ok) { toast.error(tr(wholesale.message)); return; }
     const ok = attempt(() => erp.runErpTransaction(() => { otherShops.forEach((l) => { const v = shopPrices[l.id]?.trim() ?? ""; erp.setShopPrice(p.id, l.id, v === "" ? null : Number(v)); }); erp.updateProduct(p.id, {
       name: f.name, categoryId: f.categoryId || undefined, brandId: f.brandId || undefined, sku: f.sku, barcode: f.barcode,
       unit: f.unit, pieces, buy: Number(f.buy), sell: Number(f.sell), minStock: optional(f.minStock), reorderLevel: optional(f.reorderLevel),
       description: f.description.trim() || undefined, image: f.image || undefined,
       attributes: Object.keys(f.attributes).length ? f.attributes : undefined,
+      ...(levels || p.wholesale ? { wholesale: wholesale.value } : {}),
     }); }), tr("Product updated"));
     if (ok) onBack();
   };
@@ -254,6 +263,7 @@ function ProductEdit({ p, s, tr, money, onBack }: Base & { p: erp.Product; onBac
         <PwField label={tr("Pieces")} required><input type="number" min="1" step="1" className="inventory-input" value={f.pieces} onChange={set("pieces")} /></PwField>
         <PwField label={tr("Buying Price")} required><input type="number" min="0" step="any" className="inventory-input" value={f.buy} onChange={set("buy")} /></PwField>
         <PwField label={tr("Selling Price")} required><input type="number" min="0" step="any" className="inventory-input" value={f.sell} onChange={set("sell")} /></PwField>
+        {levels && <WholesaleFields value={ws} onChange={setWs} sell={f.sell} Field={PwField} />}
         <PwField label={tr("Minimum Stock")}><input type="number" min="0" step="any" className="inventory-input" placeholder={String(erp.DEFAULT_MIN_STOCK)} value={f.minStock} onChange={set("minStock")} /></PwField>
         <PwField label={tr("Reorder Level")}><input type="number" min="0" step="any" className="inventory-input" value={f.reorderLevel} onChange={set("reorderLevel")} /></PwField>
       </div>
