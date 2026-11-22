@@ -154,6 +154,8 @@ export const PLANS: {
 
 const RANK: Record<Tier, number> = { basic: 1, growth: 2, business: 3 };
 
+export type BusinessDocument = { id: string; name: string; mime: string; size: number; dataUrl: string };
+
 export type Account = {
   shopName: string;
   email: string;
@@ -161,6 +163,8 @@ export type Account = {
   /** A second and third business phone number (Business Setup), optional. `phone` is the primary one, given when registering. */
   phone2?: string | undefined;
   phone3?: string | undefined;
+  /** Optional business files (KRA certificates and related records), kept with the local business account. */
+  businessDocuments?: BusinessDocument[] | undefined;
   language?: string;
   currency: string;
   country?: string;

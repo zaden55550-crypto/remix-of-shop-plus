@@ -6,7 +6,7 @@ import { cancelLayby, collectLayby, laybyBalance, laybyDepositsHeld, payLayby, s
 import { cancelQuotation, convertQuotation, createQuotation, QUOTE_DAYS, quoteExpired, quotationText } from "@/lib/quotations";
 import { breakDown, previewBreakdown } from "@/lib/breakdown";
 import { checkRx, controlledRegister, sellWithPrescription } from "@/lib/prescriptions";
-import { diffRecords, HELD_ON_DEVICE } from "@/lib/outbox";
+import { diffRecords, heldOnDevice, noteServerCollections } from "@/lib/outbox";
 import { FEATURE_GROUPS, featureEntry } from "@/lib/trade-features";
 
 const credit = (account: string) => Math.round(journal(erp.load()).flatMap((e) => e.lines).filter((l) => l.account === account).reduce((a, l) => a + l.credit - l.debit, 0) * 100) / 100;
@@ -145,7 +145,12 @@ describe("all features are built, and the new documents stay on the device until
     startLayby({ customerId: cust.id, cart: [{ productId: sofa.id, qty: 1 }], deposit: 1000, method: "cash" });
     createQuotation({ cart: [{ productId: sofa.id, qty: 1 }] });
     const changes = diffRecords(before, erp.load());
-    expect(changes.some((c) => HELD_ON_DEVICE.includes(c.collection))).toBe(false);
+    expect(changes.some((c) => heldOnDevice().includes(c.collection))).toBe(false);
+    // Once the server says it takes them (proposed 0021), they sync like every other record.
+    noteServerCollections(["laybys", "quotations", "prescriptions"]);
+    expect(heldOnDevice()).toEqual([]);
+    noteServerCollections(null);
+    expect(heldOnDevice()).toEqual(["laybys", "quotations", "prescriptions"]);
     expect(changes.map((c) => c.collection)).toEqual(expect.arrayContaining(["payments", "movements", "products"]));
   });
 });

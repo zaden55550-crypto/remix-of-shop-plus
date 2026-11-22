@@ -73,7 +73,9 @@ export function defaultFeatures(types: readonly string[]): Features {
  *  business charges it is its tax setting (Settings › Tax & Compliance), not a feature. */
 export const BUILT_IN: readonly FeatureId[] = ["weight", "vat", "expiry", "layby", "quotations", "barcodes"];
 /** The only switches shown on Business Setup's line; every other switch is under "All features". */
-export const PINNED: readonly FeatureId[] = ["counters", "prescriptions"];
+export const PINNED: readonly FeatureId[] = ["counters", "prescriptions", "priceLevels", "serials", "gas", "breakdown"];
+/** The short names the Setup ticks use (two rows of three). */
+export const SHORT_NAME: Partial<Record<FeatureId, string>> = { counters: "Counters", prescriptions: "Prescriptions", priceLevels: "Wholesale prices", serials: "Serial / IMEI", gas: "Gas cylinders", breakdown: "Breakdown" };
 export const isBuiltIn = (id: string) => (BUILT_IN as readonly string[]).includes(id);
 
 export function currentFeatures(types: readonly string[]): Features {

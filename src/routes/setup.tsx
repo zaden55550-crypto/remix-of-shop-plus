@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Building2, Camera, CircleCheck, Crown, ImagePlus, Info, Pencil, Plus, Save, ShieldCheck, Store, Trash2, Upload, UserPlus, Users, Warehouse } from "lucide-react";
+import { Building2, Camera, ChevronDown, CircleCheck, Crown, FileText, ImagePlus, Info, MoreHorizontal, Paperclip, Pencil, Plus, Save, ShieldCheck, Store, Trash2, Upload, UserPlus, Users, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
@@ -16,9 +16,9 @@ import { PEOPLE_SECTIONS, PeoplePanel } from "@/components/shopbook/people-acces
 import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
-import { NEW_LOCATION_TYPES, TYPE_LABEL, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, resize, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
-import { INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
-import { FeatureChecks, FeaturePanel, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
+import { NEW_LOCATION_TYPES, TYPE_LABEL, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
+import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
+import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
 import { currentFeatures, placeName, sellingPlaceName, type Features } from "@/lib/trade-features";
@@ -27,7 +27,7 @@ import { NeedsConnection, sendSetupInvitation, stageOf, type InviteStage } from 
 import { friendly } from "@/lib/people-cloud";
 import { readProductImage } from "@/lib/product-export";
 import { ROLES, isManagerRole, roleLabel } from "@/lib/staff-access";
-import { businessTypesOf, canOpen, planAllowanceLines, planCounterLine, planEmployeeRule, planPrice, store, type Account } from "@/lib/shopbook";
+import { businessTypesOf, canOpen, planAllowanceLines, planCounterLine, planEmployeeRule, planPrice, store, type Account, type BusinessDocument } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/setup")({
@@ -37,7 +37,6 @@ export const Route = createFileRoute("/setup")({
 
 type Tr = (t: string, x?: string) => string;
 const TYPE_ICON = { shop: Store, store: Building2, warehouse: Warehouse } as const;
-const PER_COLUMN = 5;
 /** What this page calls each kind of location. A selling place follows the business type (a Supermarket's shops are
  *  "Supermarket"); stores and older warehouses are both "Warehouse". Set by SetupScreen on each render, read by its rows. */
 let shopWord = "Shop";
@@ -72,23 +71,21 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [d, setD] = useState<SetupDraft>(() => {
     const saved = readDraft();
     const savedType = saved?.businessType === "Other" && saved.otherType.trim() ? saved.otherType.trim() : saved?.businessType;
-    const businessType = savedType ?? businessTypesOf(acct)[0] ?? "";
+    const businessType = savedType ?? businessTypesOf(acct)[0] ?? GENERAL_TRADE;
     const industryFamilyId = businessTypeByName(businessType)?.familyId
       ?? (isIndustryFamilyId(saved?.industryFamilyId) ? saved.industryFamilyId : undefined)
       ?? (isIndustryFamilyId(acct.industryFamilyId) ? acct.industryFamilyId : undefined)
       ?? "trade";
-    if (saved) return { ...saved, businessType, otherType: "", extraBusinessTypes: saved.extraBusinessTypes ?? [], industryFamilyId };
+    if (saved) return { ...saved, businessType, otherType: "", extraBusinessTypes: saved.extraBusinessTypes ?? [], industryFamilyId, businessDocuments: saved.businessDocuments ?? acct.businessDocuments ?? [] };
     // An empty number stays empty: its placeholder shows the number it will be given on activation, and nothing generated is typed in for the owner.
     const rows = rowsFromRecords(erp.load());
     // Every type already saved on the account comes back ticked, not only the main one.
     const extraBusinessTypes = businessTypesOf(acct).filter((t) => t !== businessType);
-    return { businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: acct.phone ?? "", phone2: acct.phone2 ?? "", phone3: acct.phone3 ?? "", taxPin: readSettings().taxPin, rows, users: [] };
+    return { businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: acct.phone ?? "", phone2: acct.phone2 ?? "", phone3: acct.phone3 ?? "", taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
   });
   const [problems, setProblems] = useState<SetupProblem[]>([]);
   const [access, setAccess] = useState<string | null>(null);
   const [confirmActivate, setConfirmActivate] = useState(false);
-  // "All features": every feature in groups, with suggestions for the chosen types (the same panel as Settings › Features).
-  const [allFeatures, setAllFeatures] = useState(false);
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
   const [readyOpen, setReadyOpen] = useState(false);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
@@ -99,8 +96,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [confirmRemove, setConfirmRemove] = useState<{ rows: SetupRow[]; next: SetupRow[] } | null>(null);
   // An unsaved entry is removed only after a named confirmation too.
   const [confirmDraft, setConfirmDraft] = useState<SetupRow | null>(null);
-  const [managing, setManaging] = useState(false), [ownerInfo, setOwnerInfo] = useState(false);
+  const [managing, setManaging] = useState<string | null>(null), [ownerInfo, setOwnerInfo] = useState(false);
   const [editingUser, setEditingUser] = useState<SetupUser | "new" | null>(null);
+  const [newUserLocation, setNewUserLocation] = useState<string | null>(null);
+  const [accessSiteId, setAccessSiteId] = useState<string | null>(null);
   const [editingRow, setEditingRow] = useState<{ key: string; focus?: "name" | "code" } | null>(null);
   // Set while Activate is saving, so a second click can't save twice.
   const [activating, setActivating] = useState(false);
@@ -131,7 +130,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   useEffect(() => { if (!savedAt) return; const t = window.setInterval(() => tick((n) => n + 1), 30_000); return () => window.clearInterval(t); }, [savedAt]);
   const savedText = savedAt == null ? "" : Date.now() - savedAt < 60_000 ? tr("Saved just now") : tr("Saved {x} min ago", String(Math.floor((Date.now() - savedAt) / 60_000)));
   // The business logo (no longer asked on Create Account): tap the header mark to add or change it. Saved on the account at once.
-  const logoFile = useRef<HTMLInputElement>(null);
+  const logoFile = useRef<HTMLInputElement>(null), businessFiles = useRef<HTMLInputElement>(null);
   const [headLogo, setHeadLogo] = useState(acct.logo ?? "");
   const pickHeadLogo = (f?: File) => {
     if (!f) return;
@@ -139,6 +138,23 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     const r = new FileReader();
     r.onload = () => { const v = String(r.result); try { store.update({ logo: v }); setHeadLogo(v); toast.success(tr("Logo saved")); } catch { toast.error(tr("This device has no room to save the setup")); } };
     r.readAsDataURL(f);
+  };
+  const pickBusinessDocuments = async (files: FileList | null) => {
+    const picked = Array.from(files ?? []);
+    if (!picked.length) return;
+    if (picked.some((f) => f.size > 600_000)) { toast.error(tr("Each business document must be 600 KB or smaller")); return; }
+    const current = d.businessDocuments ?? [];
+    const total = current.reduce((sum, f) => sum + f.size, 0) + picked.reduce((sum, f) => sum + f.size, 0);
+    if (picked.length + current.length > 4 || total > 1_200_000) { toast.error(tr("Choose up to four business documents, 1.2 MB total")); return; }
+    try {
+      const documents = await Promise.all(picked.map((file) => new Promise<BusinessDocument>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve({ id: newKey(), name: file.name, mime: file.type || "application/octet-stream", size: file.size, dataUrl: String(reader.result) });
+        reader.onerror = () => reject(reader.error ?? new Error("Document could not be read"));
+        reader.readAsDataURL(file);
+      })));
+      set({ businessDocuments: [...current, ...documents] });
+    } catch { toast.error(tr("This device could not read that document")); }
   };
   // Country and currency come from Create Account and can be corrected here (the same pickers); saved on the account at once.
   const [place, setPlace] = useState({ country: acct.country ?? "", currency: acct.currency ?? "" });
@@ -160,12 +176,18 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const problem = (key: string | undefined, field: string) => problems.find((x) => x.key === key && x.field === field)?.message;
   const savedPhotos = (r: SetupRow) => r.photos ?? records.find((l) => l.id === r.savedId)?.photos ?? [];
 
+  const addRowAt = (slot: number, type: "shop" | "store", placeType?: string) => {
+    const existing = live.find((r, index) => (r.slotNumber ?? index + 1) === slot);
+    if (existing) { if (existing.type !== type) changeType(existing, type); if (placeType) setRow(existing.key, { placeType }); return; }
+    if (live.length >= plan.locations) return;
+    set({ rows: [...d.rows, { key: newKey(), slotNumber: slot, type, name: "", code: "", ...(placeType ? { placeType } : {}) }] });
+  };
   const addRow = (type: "shop" | "store") => {
     if (live.length >= plan.locations) return;
-    const out = resize(d.rows, live.length + 1, otherCodes);
-    const added = out.rows[out.rows.length - 1]!;
-    // The number is optional: left empty, the next free one is given on activation (shown meanwhile as the placeholder).
-    set({ rows: out.rows.map((r) => (r.key === added.key ? { ...r, type, code: "" } : r)) });
+    const occupied = new Set(live.map((r, index) => r.slotNumber ?? index + 1));
+    let slot = 1;
+    while (occupied.has(slot)) slot++;
+    addRowAt(slot, type);
   };
   /** The number a row would get if left empty, among every number already taken or typed. */
   const suggestedCode = (r: SetupRow) => {
@@ -189,6 +211,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   };
   /** The most counters a shop row may have: the plan's per-shop number, or what is left of its total. Always shown on Setup. */
   const counterMax = (r: SetupRow) => {
+    if (!features.counters) return 0;
+    if (r.type !== "shop") return 1;
     if (plan.countersPerShop) return plan.counters;
     const others = live.filter((x) => x.type === "shop" && x.key !== r.key).reduce((n, x) => n + Math.max(1, x.counters ?? 1), 0);
     return Math.max(1, plan.counters - others);
@@ -236,7 +260,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     const first = found[0];
     if (first) {
       // Say which entry, and bring its field into view.
-      const n = first.key ? live.findIndex((r) => r.key === first.key) + 1 : 0;
+      const n = first.key ? live.find((r, index) => r.key === first.key)?.slotNumber ?? live.findIndex((r) => r.key === first.key) + 1 : 0;
       const empty = live.filter((r) => !r.savedId && !r.name.trim());
       const onlyEmpty = empty.length > 0 && found.every((p) => p.key && empty.some((r) => r.key === p.key));
       toast.error(n > 0 ? `${tr("Entry")} ${n}: ${tr(first.message)}` : tr(first.message), onlyEmpty ? {
@@ -250,7 +274,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     return !found.length;
   };
   // Manage Access opens over this page (the same People & Access panels as Settings); nothing navigates away.
-  const openAccess = (section = "Users & Login Accounts") => { setManaging(false); setAccess(section); };
+  const openAccess = (section = "Users & Login Accounts", locationId: string | null = null) => { setManaging(null); setAccessSiteId(locationId); setAccess(section); };
   const saveLater = () => {
     try { saveDraft(d); toast.success(tr("Setup saved on this device. Continue any time.")); }
     catch {
@@ -288,7 +312,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const trial = acct.plan === "trial";
   const stores = counts.warehouses + counts.stores;
   const full = live.length >= plan.locations;
-  const columns = Array.from({ length: Math.max(1, Math.ceil(live.length / PER_COLUMN)) }, (_, i) => live.slice(i * PER_COLUMN, (i + 1) * PER_COLUMN));
+  const bySlot = new Map(live.map((r, index) => [r.slotNumber ?? index + 1, r]));
+  const tableSlots = Array.from({ length: Math.max(plan.locations, live.length) }, (_, index) => ({ n: index + 1, r: bySlot.get(index + 1) }));
   const links = live.filter(isStorage).map((w) => ({ w, shops: live.filter((r) => r.type === "shop" && r.connected?.includes(w.key)) })).filter((x) => x.shops.length);
   const placeName = (k: string) => { const r = live.find((x) => x.key === k); return r ? r.name || r.code : ""; };
   const savedPlaceName = (id: string) => live.find((r) => r.savedId === id)?.name || records.find((l) => l.id === id)?.name || "";
@@ -330,147 +355,79 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       </div>
     </header>
 
-    <section className="bsetup-toprow" aria-label={tr("Business details")}>
-      <div className="bsetup-business-fields">
+    <section className="bsetup-toprow bsetup-profile" aria-label={tr("Business details")}>
+      <div className="bsetup-profile-grid">
         <label className="bsetup-field bsetup-name"><span>{tr("Business Name")} <i aria-hidden>*</i></span>
           <input id="bsetup-business-name" className="inventory-input" required value={d.businessName} aria-invalid={!!problem(undefined, "businessName")} onChange={(e) => set({ businessName: e.target.value })} placeholder={tr("Enter business name")} />
         </label>
-        {/* Line 2: the business's phone numbers, then its settings. */}
-        <div className="bsetup-row2">
-        <div className="bsetup-phones">
-        <label className="bsetup-field bsetup-phone"><span>{tr("Primary phone")}</span>
-          <input id="bsetup-phone" className="inventory-input" inputMode="tel" autoComplete="tel" value={d.phone ?? ""} aria-invalid={!!problem(undefined, "phone")} onChange={(e) => set({ phone: e.target.value })} placeholder="+254 7XX XXX XXX" />
-        </label>
-        {morePhones ? <>
-        <label className="bsetup-field bsetup-phone2"><span>{tr("Second phone")}</span>
-          <input id="bsetup-phone2" className="inventory-input" inputMode="tel" value={d.phone2 ?? ""} aria-invalid={!!problem(undefined, "phone2")} onChange={(e) => set({ phone2: e.target.value })} placeholder={tr("Optional")} />
-        </label>
-        <label className="bsetup-field bsetup-phone3"><span>{tr("Third phone")}</span>
-          <input id="bsetup-phone3" className="inventory-input" inputMode="tel" value={d.phone3 ?? ""} aria-invalid={!!problem(undefined, "phone3")} onChange={(e) => set({ phone3: e.target.value })} placeholder={tr("Optional")} />
-        </label>
-        </> : <button type="button" className="bsetup-link-btn bsetup-more-phones" onClick={() => setMorePhones(true)}><Plus aria-hidden /> {tr("Add another phone")}</button>}
-        </div>
-        {selectedIndustry === "trade" && <div className="bsetup-field bsetup-features"><span>{tr("Settings for this business")}</span>
-            <FeatureChecks value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} />
-            <button type="button" className="bsetup-link-btn bsetup-all-features" onClick={() => setAllFeatures(true)}>{tr("All features")}</button>
-          </div>}
-        {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => setReadyOpen(false)}><ReadyToSell s={s} onClose={() => setReadyOpen(false)} /></GlassPage>}
-        {allFeatures && <GlassPage label={tr("All features")} onClose={() => setAllFeatures(false)}>
-          <div className="inventory-box dash-panel feature-panel-page">
-            <div className="feature-panel-head"><h3>{tr("All features")}</h3><ShopButton variant="outline" onClick={() => setAllFeatures(false)}>{tr("Done")}</ShopButton></div>
-            <p className="settings-note">{tr("Every feature works for every shop. Switch on what you use; anything switched off stays out of the way, and switching it off never deletes records.")}</p>
-            <FeaturePanel value={features} types={draftTypes(d)} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} />
-          </div>
-        </GlassPage>}
-        </div>
-        <div className="bsetup-typefield">
-          <label className="bsetup-field"><span>{tr("Industry")} <i aria-hidden>*</i></span>
-            <IndustrySelect id="bsetup-industry" value={selectedIndustry} keep={isIndustryFamilyId(acct.industryFamilyId) ? acct.industryFamilyId : undefined} onChange={(id) => {
-              if (!isIndustryFamilyId(id) || id === selectedIndustry) return;
-              set({ industryFamilyId: id, businessType: "", otherType: "", extraBusinessTypes: [] });
-            }} />
+        <div className="bsetup-profile-phone">
+          <label className="bsetup-field bsetup-phone"><span>{tr("Primary phone")}</span>
+            <input id="bsetup-phone" className="inventory-input" inputMode="tel" autoComplete="tel" value={d.phone ?? ""} aria-invalid={!!problem(undefined, "phone")} onChange={(e) => set({ phone: e.target.value })} placeholder="+254 7XX XXX XXX" />
           </label>
-          <div className="bsetup-field"><span>{tr("Business Type")}{selectedIndustry === "trade" ? <small> ({tr("Optional")})</small> : <i aria-hidden> *</i>}</span>
-            <TypePicker id="bsetup-business-type" industry={selectedIndustry} value={chosenTypes} invalid={!!problem(undefined, "businessType")}
-              onChange={(types) => set({ businessType: types[0] ?? "", otherType: "", extraBusinessTypes: types.slice(1) })} />
-          </div>
-          {selectedIndustryConfig?.implementationStatus === "configuration-only" && <p className="bsetup-note">{tr("This records your industry and business type; its specialized operating modules are not available yet.")}</p>}
+          {morePhones ? <div className="bsetup-extra-phones">
+            <label className="bsetup-field bsetup-phone2"><span>{tr("Second phone")}</span><input id="bsetup-phone2" className="inventory-input" inputMode="tel" value={d.phone2 ?? ""} aria-invalid={!!problem(undefined, "phone2")} onChange={(e) => set({ phone2: e.target.value })} placeholder={tr("Optional")} /></label>
+            <label className="bsetup-field bsetup-phone3"><span>{tr("Third phone")}</span><input id="bsetup-phone3" className="inventory-input" inputMode="tel" value={d.phone3 ?? ""} aria-invalid={!!problem(undefined, "phone3")} onChange={(e) => set({ phone3: e.target.value })} placeholder={tr("Optional")} /></label>
+          </div> : <button type="button" className="bsetup-link-btn bsetup-more-phones" onClick={() => setMorePhones(true)}><Plus aria-hidden /> {tr("Add another phone")}</button>}
         </div>
-        <label className="bsetup-field bsetup-taxpin"><span>{tr("Tax PIN")} <small>({tr("Optional")})</small></span>
-          <input id="bsetup-taxpin" className="inventory-input" autoComplete="off" value={d.taxPin ?? ""} onChange={(e) => set({ taxPin: e.target.value.toUpperCase() })} placeholder={tr("KRA PIN / Tax ID")} />
+        <label className="bsetup-field"><span>{tr("Industry")} <i aria-hidden>*</i></span>
+          <IndustrySelect id="bsetup-industry" value={selectedIndustry} keep={isIndustryFamilyId(acct.industryFamilyId) ? acct.industryFamilyId : undefined} onChange={(id) => {
+            if (!isIndustryFamilyId(id) || id === selectedIndustry) return;
+            set({ industryFamilyId: id, businessType: "", otherType: "", extraBusinessTypes: [] });
+          }} />
         </label>
+        <div className="bsetup-field"><span>{tr("Business Type")}{selectedIndustry === "trade" ? <small> ({tr("Optional")})</small> : <i aria-hidden> *</i>}</span>
+          <TypePicker id="bsetup-business-type" industry={selectedIndustry} value={chosenTypes} invalid={!!problem(undefined, "businessType")}
+            onChange={(types) => set({ businessType: types[0] ?? "", otherType: "", extraBusinessTypes: types.slice(1) })} />
+          {selectedIndustryConfig?.implementationStatus === "configuration-only" && <small className="bsetup-note">{tr("This records your industry and business type; its specialized operating modules are not available yet.")}</small>}
+        </div>
+        <div className="bsetup-field bsetup-documents"><span>{tr("Business Documents")} <small>({tr("Optional")})</small></span>
+          <input ref={businessFiles} hidden type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx" onChange={(e) => { void pickBusinessDocuments(e.target.files); e.target.value = ""; }} />
+          <button type="button" className="bsetup-doc-upload" title={tr("Upload KRA certificates and other business files")} onClick={() => businessFiles.current?.click()}><Paperclip aria-hidden /> {tr("Upload files")}</button>
+          {!!d.businessDocuments?.length && <ul className="bsetup-doc-list">{d.businessDocuments.map((doc) => <li key={doc.id}><FileText aria-hidden /><a href={doc.dataUrl} download={doc.name} title={doc.name}>{doc.name}</a><button type="button" aria-label={`${tr("Remove")} ${doc.name}`} title={tr("Remove")} onClick={() => set({ businessDocuments: (d.businessDocuments ?? []).filter((x) => x.id !== doc.id) })}><Trash2 aria-hidden /></button></li>)}</ul>}
+        </div>
+      </div>
+      {selectedIndustry === "trade" && <div className="bsetup-feature-row"><span>{tr("Business Features")}</span><FeatureChecks className="bsetup-feature-checks" value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} /></div>}
+      <div className="bsetup-save-row">
         <ShopButton variant="outline" className="bsetup-later" disabled={activating} onClick={saveLater}><Save /> {tr("Save")}</ShopButton>
       </div>
     </section>
+    {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => setReadyOpen(false)}><ReadyToSell s={s} onClose={() => setReadyOpen(false)} /></GlassPage>}
 
-    {/* Rows 1-5 and 6-10 in two columns, Assign Users and the optional import in a permanent third column on the right. */}
-    <div className="bsetup-main">
     <section className="bsetup-card bsetup-entries" aria-label={tr("Shops & Warehouses")}>
       <header className="bsetup-entries-head">
-        <h2>{tr("Shops & Warehouses")} <small>{live.length} / {plan.locations}</small></h2>
-        {!full && <span className="bsetup-add">
-          {NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr(shopWord)}` : tr("Add Warehouse")}</button>; })}
-        </span>}
+        <h2>{tr("Shops & Warehouses")} <small>{counts.shops} {tr(shopWord)} · {stores} {tr(stores === 1 ? "Warehouse" : "Warehouses")}</small></h2>
+        <span className="bsetup-slot-usage">{live.length}/{plan.locations} {tr("used")} · {Math.max(0, plan.locations - live.length)} {tr("remaining")}</span>
+        {!full && <span className="bsetup-add">{NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
       </header>
-      <div className={cn("bsetup-cols", columns.length > 1 && "is-two")}>
-        {columns.map((col, c) => <div key={c} className="bsetup-col" role="table" aria-label={`${tr("Entries")} ${c * PER_COLUMN + 1}–${c * PER_COLUMN + col.length}`}>
-          <div className="bsetup-entry bsetup-entry-head" role="row">
-            <span role="columnheader" className="bsetup-rownum-head"><span className="sr-only">{tr("Row")}</span></span>
-            <span role="columnheader">{tr("Type")}</span><span role="columnheader" className="bsetup-name-cell"><span>{tr("Name")}</span><span>{tr("Phone")}</span></span><span role="columnheader" title={tr("No. (optional)")}>{tr("Number")}</span>
-            <span role="columnheader">{tr("Logo")}</span><span role="columnheader">{`${tr("Counters")} · ${tr("Actions")}`}</span>
-          </div>
-          {col.map((r, i) => <EntryRow key={r.key} r={r} n={c * PER_COLUMN + i + 1} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} onPhone={(phone) => setRow(r.key, { phone })}
-            logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(n) => setRow(r.key, { counters: n })}
-            canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })}
-            canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key}
-            onType={(t) => changeType(r, t)} onPlace={(t) => { if (r.type !== "shop") changeType(r, "shop"); setD((x) => ({ ...x, rows: x.rows.map((y) => (y.key === r.key ? { ...y, type: "shop", placeType: t || undefined } : y)) })); }} onName={(name) => setRow(r.key, { name })} onCode={(code) => setRow(r.key, { code: code.toUpperCase() })}
-            onViewLogo={() => setViewingLogo(r.key)}
-            onEdit={() => setEditingRow({ key: r.key })} onRemove={() => removeRow(r)} />)}
-        </div>)}
+      <div className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={tr("Shops & Warehouses")}>
+        <div className={cn("bsetup-entry bsetup-entry-head", features.counters && "has-counters")} role="row">
+          <span role="columnheader" className="bsetup-rownum-head">#</span><span role="columnheader">{tr("Shop / Warehouse")}</span><span role="columnheader">{tr("Location Name")}</span><span role="columnheader">{tr("Phone")}</span><span role="columnheader">{tr("Location Number")}</span><span role="columnheader">{tr("Logo")}</span>
+          {features.counters && <span role="columnheader">{tr("Counters")}</span>}
+          <span role="columnheader">{tr("Upload Products")}</span><span role="columnheader">{tr("Edit")}</span><span className="bsetup-divider" role="separator" aria-hidden="true" /><span role="columnheader">{tr("More Options")}</span><span className="bsetup-divider" role="separator" aria-hidden="true" /><span role="columnheader">{tr("Assign Users")}</span><span role="columnheader">{tr("Delete")}</span>
+        </div>
+        {tableSlots.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onViewLogo={() => setViewingLogo(r.key)} onEdit={() => setEditingRow({ key: r.key })} onManageUsers={() => setManaging(r.key)} onManageAccess={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onAssignUsers={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onRemove={() => removeRow(r)} />
+          : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} counterMax={features.counters ? 1 : 0} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
       </div>
-      {live.length <= 3 && !full && <p className="bsetup-hint">{tr("Add your other shops and warehouses with the green buttons above. Each one uses one site of your plan.")}</p>}
-      {problems.filter((p) => p.key && (p.field === "name" || p.field === "code" || p.field === "phone")).slice(0, 3).map((p) => <p key={p.key! + p.field} role="alert" className="bsetup-problem">{tr("Entry")} {live.findIndex((r) => r.key === p.key) + 1}: {tr(p.message)}</p>)}
-      {/* Only real connections are listed here; how connecting works is in the plan info pop-up and the pencil editor. */}
-      {links.length > 0 && <p className="bsetup-links" title={links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")}>
-        {links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")} · {tr("Authorized inventory visibility")}</p>}
+      {problems.filter((p) => p.key && (p.field === "name" || p.field === "code" || p.field === "phone")).slice(0, 3).map((p) => <p key={p.key! + p.field} role="alert" className="bsetup-problem">{tr("Entry")} {live.find((r) => r.key === p.key)?.slotNumber ?? live.findIndex((r) => r.key === p.key) + 1}: {tr(p.message)}</p>)}
+      {links.length > 0 && <p className="bsetup-links" title={links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")}>{links.map(({ w, shops }) => `${w.name || w.code} → ${shops.map((x) => x.name || x.code).join(", ")}`).join(" · ")} · {tr("Authorized inventory visibility")}</p>}
     </section>
 
-    <aside className="bsetup-side" aria-label={tr("Assign Users")}>
-    <section id="bsetup-users" tabIndex={-1} className={cn("bsetup-card bsetup-users", userProblems.length > 0 && "has-problem")} aria-label={tr("Assign Users")}>
-      <h2>{tr("Assign Users")} <small>({tr("Optional")})</small></h2>
-      {/* The owner, wrapped inside the panel: the email may break anywhere rather than run under the buttons. */}
-      <div className="bsetup-owner-card">
-        <b className="bsetup-owner-email" title={acct.email || undefined}>{acct.email || tr("Owner")}</b>
-        <span>{tr("Owner")} · {tr("All Shops and Warehouses")}</span>
+    <footer className={cn("bsetup-card bsetup-footer", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
+      <div className="bsetup-footer-summary" role="group" aria-label={tr("Plan Usage & Summary")}>
+        <p className="bsetup-plan-line"><Crown aria-hidden /> <b>{plan.name}</b><span>· {trial ? <>{tr("Free trial")} · </> : null}${price.amount} {tr(price.period === "year" ? "/ year" : "/ month")}</span><button type="button" className="bsetup-info" aria-label={tr("How plan limits work")} title={tr("How plan limits work")} onClick={() => setInfo(true)}><Info /></button></p>
+        <p className="bsetup-plan-sub"><span>{tr("Accounts")} <b>{logins.used}/{logins.total}</b></span><span>· {tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span><span>· {tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span></p>
+        <p className="bsetup-plan-sub"><span>{tr("Sites")} <b>{live.length}/{plan.locations}</b> · {Math.max(0, plan.locations - live.length)} {tr("remaining")}</span><span>· {counts.shops} {tr("Shop")}</span><span>· {stores} {tr(stores === 1 ? "Warehouse" : "Warehouses")}</span></p>
       </div>
-      <div className={cn("bsetup-plan-sum", (live.length > plan.locations || logins.used > logins.total) && "is-over")} aria-label={tr("Plan Usage & Summary")} role="group">
-        <p className="bsetup-plan-line">
-          <Crown aria-hidden /> <b>{plan.name}</b>
-          <span>· {trial ? <>{tr("Free trial")} · </> : null}${price.amount} {tr(price.period === "year" ? "/ year" : "/ month")}</span>
-          <button type="button" className="bsetup-info" aria-label={tr("How plan limits work")} title={tr("How plan limits work")} onClick={() => setInfo(true)}><Info /></button>
-        </p>
-            <p className="bsetup-plan-sub">
-              <span>
-                {tr("Accounts")} <b>{logins.used}/{logins.total}</b>
-              </span>
-              <span>
-                · {tr("Sites")} <b>{live.length}/{plan.locations}</b>
-              </span>
-              <span>
-                · {counts.shops} {tr(shopWord)}
-              </span>
-              <span>
-            · {stores} {tr(stores === 1 ? "Warehouse" : "Warehouses")}
-              </span>
-            </p>
-            <p className="bsetup-plan-sub">
-              <span>{tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span>
-              <span> · {tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span>
-              <span> · {tr("Total active users")} <b>{logins.used}</b></span>
-            </p>
-      </div>
-      {(existingPeople.length > 0 || d.users.length > 0) && <ul className="bsetup-side-people" aria-label={tr("Users")}>
-        {existingPeople.map((e) => <li key={e.id} className="is-saved"><b>{e.name}</b><span>{tr(roleLabel(e.accessRole, setupFamily))} · {(e.locationIds ?? []).map(savedPlaceName).filter(Boolean).join(", ") || "—"}</span></li>)}
-        {d.users.map((u) => <li key={u.key}><b>{u.name}</b><span>{tr(roleLabel(u.role, setupFamily))} · {u.locations.map(placeName).filter(Boolean).join(", ") || "—"}</span>
-          <span className="bsetup-side-person-actions">
-            <button type="button" aria-label={`${tr("Edit")} ${u.name}`} title={tr("Edit")} onClick={() => { setEditingUser(u); }}><Pencil /></button>
-            <button type="button" className="is-danger" aria-label={`${tr("Remove")} ${u.name}`} title={tr("Remove")} onClick={() => set({ users: d.users.filter((x) => x.key !== u.key) })}><Trash2 /></button>
-          </span></li>)}
-      </ul>}
-      <div className="bsetup-side-actions">
-        <button type="button" className="bsetup-link-btn" onClick={() => setOwnerInfo(true)}><Pencil aria-hidden /> {tr("Edit owner")}</button>
-        <button type="button" className="bsetup-link-btn" onClick={() => setManaging(true)}><Users aria-hidden /> {tr("Manage Users")}</button>
-        {/* Role templates, permissions, invitations and suspensions live in Settings › People & Access; the draft is kept first. */}
+      <div className="bsetup-footer-actions" aria-label={tr("Company-wide actions")}>
+        <button type="button" className="bsetup-link-btn" onClick={() => setOwnerInfo(true)}><Pencil aria-hidden /> {tr("Edit Owner")}</button>
+        <button type="button" className="bsetup-link-btn" onClick={() => setManaging("company")}><Users aria-hidden /> {tr("Manage Users")}</button>
         <button type="button" className="bsetup-link-btn" title={tr("Set role templates and individual employee permissions, review invitations, reset access and suspend or reactivate logins. Business Setup and Settings use the same employee and permission records.")} onClick={() => openAccess()}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
-        <ShopButton className="bsetup-user-btn" disabled={loginFull} title={loginFull ? tr("Your plan has no more login accounts") : undefined} onClick={() => { setEditingUser("new"); }}><UserPlus /> {tr("Add User")}</ShopButton>
+        <ShopButton className="bsetup-user-btn" disabled={loginFull} title={loginFull ? tr("Your plan has no more login accounts") : undefined} onClick={() => { setNewUserLocation(null); setEditingUser("new"); }}><UserPlus /> {tr("Add User")}</ShopButton>
       </div>
       {userProblems.slice(0, 2).map((p) => <p key={p.message} role="alert" className="bsetup-problem">{tr(p.message)}</p>)}
-    </section>
+    </footer>
 
-    </aside>
-    </div>
-
-    {confirmRemove && <GlassNotice title={tr("Remove saved locations?")} onClose={() => setConfirmRemove(null)}>
+    {confirmRemove && <GlassNotice title={confirmRemove.rows.length === 1 ? `${tr("Delete")} · ${confirmRemove.rows[0]?.name || confirmRemove.rows[0]?.code || tr("Location")}` : tr("Remove saved locations?")} onClose={() => setConfirmRemove(null)}>
       <p>{tr("These locations already exist. They will be archived when you activate, not deleted: their sales, stock and history are kept and you can bring them back in Settings.")}</p>
       <ul className="bsetup-confirm-list">{confirmRemove.rows.map((r) => <li key={r.key}>{r.code} · {r.name}</li>)}</ul>
       <div className="flex gap-2 pt-1">
@@ -494,15 +451,19 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       onClose={() => setEditingRow(null)}
       onSave={(rows, users) => { set({ rows: d.rows.map((x) => rows.find((y) => y.key === x.key) ?? x), users }); setEditingRow(null); }} />}
 
-    {editingUser && <UserEditor tr={tr} rows={live} canManager={plan.managerRoles} initial={editingUser === "new" ? undefined : editingUser} business={d.businessName.trim() || acct.shopName || ""}
-      onSend={sendInvite} onConnect={(u) => void connectServer(u)}
-      takenEmails={takenEmails(editingUser === "new" ? undefined : editingUser.key)}
-      onClose={() => setEditingUser(null)}
-      onSave={(u) => { putUser(u); setEditingUser(null); }} />}
+    {editingUser && <UserEditor tr={tr} rows={live} canManager={plan.managerRoles} initial={editingUser === "new" ? (newUserLocation ? { key: newKey(), name: "", phone: "", email: "", role: "staff", locations: [newUserLocation] } : undefined) : editingUser} business={d.businessName.trim() || acct.shopName || ""}
+      onSend={sendInvite} onConnect={(u) => void connectServer(u)} takenEmails={takenEmails(editingUser === "new" ? undefined : editingUser.key)}
+      onClose={() => { setEditingUser(null); setNewUserLocation(null); }} onSave={(u) => { putUser(u); setEditingUser(null); setNewUserLocation(null); }} />}
 
-    {managing && <ManageUsers tr={tr} owner={acct.email || tr("Owner")} people={existingPeople} users={d.users} placeName={placeName} savedPlaceName={savedPlaceName} logins={logins}
-      onEdit={(u) => { setManaging(false); setEditingUser(u); }} onRemove={(u) => set({ users: d.users.filter((x) => x.key !== u.key) })}
-      onAdd={() => { setManaging(false); setEditingUser("new"); }} onAccess={() => openAccess()} onClose={() => setManaging(false)} />}
+    {managing && (() => {
+      const site = managing === "company" ? undefined : live.find((r) => r.key === managing);
+      const scopedUsers = site ? d.users.filter((u) => u.locations.includes(site.key)) : d.users;
+      const otherUsers = site ? d.users.filter((u) => !u.locations.includes(site.key)) : [];
+      return <ManageUsers tr={tr} owner={acct.email || tr("Owner")} site={site} siteName={site ? site.name || site.code : undefined} people={site ? peopleAt(site) : existingPeople} users={scopedUsers} others={otherUsers} placeName={placeName} savedPlaceName={savedPlaceName} logins={logins}
+        onEdit={(u) => { setManaging(null); setEditingUser(u); }} onRemove={(u) => set({ users: d.users.filter((x) => x.key !== u.key) })}
+        onAssign={site ? (u) => set({ users: d.users.map((x) => x.key === u.key ? { ...x, locations: [...new Set([...x.locations, site.key])] } : x) }) : undefined}
+        onAdd={() => { setManaging(null); setNewUserLocation(site?.key ?? null); setEditingUser("new"); }} onAccess={() => openAccess("Location Assignments", site?.savedId ?? null)} onClose={() => setManaging(null)} />;
+    })()}
     {welcome && <GlassNotice title={tr("Welcome to Business Setup")} onClose={closeWelcome} className="bsetup-dialog bsetup-welcome">
       <p>{tr("Four short steps, all on this page:")}</p>
       <ol className="bsetup-welcome-steps">
@@ -515,7 +476,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       <div className="flex justify-end pt-1"><ShopButton className="bsetup-welcome-go" onClick={closeWelcome}>{tr("Let's start")}</ShopButton></div>
     </GlassNotice>}
     {confirmActivate && <ActivateSummary tr={tr} d={d} live={live} plan={plan} logins={logins} existing={existingPeople.length} onBack={() => setConfirmActivate(false)} onGo={activateNow} />}
-    {access && <AccessDialog tr={tr} section={access} onSection={setAccess} onClose={() => setAccess(null)} />}
+    {access && <AccessDialog tr={tr} section={access} siteId={accessSiteId ?? undefined} siteName={accessSiteId ? savedPlaceName(accessSiteId) : undefined} onSection={setAccess} onClose={() => { setAccess(null); setAccessSiteId(null); }} />}
 
     {ownerInfo && <GlassNotice title={tr("Owner")} onClose={() => setOwnerInfo(false)} className="bsetup-dialog">
       <dl className="bsetup-review-facts"><dt>{tr("Email")}</dt><dd>{acct.email || "—"}</dd><dt>{tr("Role")}</dt><dd>{tr("Owner")}</dd><dt>{tr("Access")}</dt><dd>{tr("All Shops and Warehouses")}</dd></dl>
@@ -549,7 +510,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
 /** One shop or warehouse, left to right: type, name, optional number, its own logo (opens the logo window), import products,
  *  edit (name, number, logo, stock visibility and this site's users) and delete last. Long names and numbers show in full as a tooltip and in the editor. */
-function EntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, onPhone, logo, placeholder, counterMax, canImport, onImport, canRemove, selected, onType, onPlace, onName, onCode, onViewLogo, onCounters, onEdit, onRemove }: {
+function LegacyEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, onPhone, logo, placeholder, counterMax, canImport, onImport, canRemove, selected, onType, onPlace, onName, onCode, onViewLogo, onCounters, onEdit, onRemove }: {
   r: SetupRow; n: number; tr: Tr; nameProblem?: string | undefined; codeProblem?: string | undefined; logo?: string | undefined; placeholder: string;
   /** This location's own phone, printed on its receipts instead of the business number (optional). */
   phoneProblem?: string | undefined; onPhone: (phone: string) => void;
@@ -599,6 +560,44 @@ function EntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, onPhone, l
   </div>;
 }
 
+type LocationEntryProps = {
+  r?: SetupRow | undefined; n: number; tr: Tr; nameProblem?: string | undefined; codeProblem?: string | undefined; phoneProblem?: string | undefined; logo?: string | undefined; placeholder?: string | undefined;
+  counterMax?: number | undefined; canImport?: boolean | undefined; canRemove?: boolean | undefined; selected?: boolean | undefined;
+  onType: (t: erp.LocationType) => void; onPlace: (type: string) => void; onName?: (name: string) => void; onPhone?: (phone: string) => void; onCode?: (code: string) => void;
+  onViewLogo?: (() => void) | undefined; onCounters?: (n: number) => void; onImport?: (() => void) | undefined; onEdit?: (() => void) | undefined; onManageUsers?: (() => void) | undefined; onManageAccess?: (() => void) | undefined; onAssignUsers?: (() => void) | undefined; onRemove?: (() => void) | undefined;
+};
+function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, logo, placeholder, counterMax = 0, canImport = false, canRemove = false, selected = false, onType, onPlace, onName, onPhone, onCode, onViewLogo, onCounters, onImport, onEdit, onManageUsers, onManageAccess, onAssignUsers, onRemove }: LocationEntryProps) {
+  const label = r ? placeOf(r) : shopWord;
+  const title = r ? r.name || `${tr(label)} ${n}` : `${tr("Location")} ${n}`;
+  const choices = [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) }));
+  const value = r ? r.type === "shop" ? `shop:${placeTypeOf(r) ?? ""}` : r.type : "";
+  const showCounters = !!r && r.type === "shop" && counterMax > 0;
+  const counters = r?.counters ?? 1;
+  const pickType = (v: string) => { if (v.startsWith("shop:")) onPlace(v.slice(5)); else if (v) onType(v as erp.LocationType); };
+  return <div className={cn("bsetup-entry", r && `is-${r.type}`, !r && "is-empty-slot", selected && "is-selected", (nameProblem || codeProblem || phoneProblem) && "has-problem")} role="row">
+    <span className="bsetup-rownum" role="cell" aria-label={`${tr("Row")} ${n}`}>{n}</span>
+    <select className="inventory-input bsetup-type" role="cell" aria-label={`${tr("Type")} · ${title}`} title={r ? tr(label) : tr("Choose Shop or Warehouse")} value={value} onChange={(e) => pickType(e.target.value)}>
+      {!r && <option value="">{tr("Choose…")}</option>}
+      {choices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}
+      <option value="store">{tr("Warehouse")}</option>
+      {r?.type === "warehouse" && <option value="warehouse">{`${tr("Warehouse")} (${tr("older")})`}</option>}
+    </select>
+    <span className="bsetup-cell-name" role="cell">{r ? <input id={`bsetup-name-${r.key}`} className="inventory-input bsetup-name-input" required aria-label={`${tr(`${label} Name`)} ${n}`} aria-invalid={!!nameProblem} title={nameProblem ? tr(nameProblem) : r.name || undefined} value={r.name} placeholder={r.type === "shop" ? `${tr(label)} · ${tr("Name")}` : tr("Warehouse name")} onChange={(e) => onName?.(e.target.value)} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-phone" role="cell">{r ? <input id={`bsetup-phone-${r.key}`} type="tel" inputMode="tel" autoComplete="off" className="inventory-input bsetup-loc-phone" aria-label={`${tr("Phone")} · ${title} (${tr("Optional")})`} aria-invalid={!!phoneProblem} title={phoneProblem ? tr(phoneProblem) : tr("This location's phone, printed on its receipts. Empty: the business number.")} value={r.phone ?? ""} placeholder={tr("Optional")} onChange={(e) => onPhone?.(e.target.value)} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-logo" role="cell">{r ? <button type="button" className={cn("bsetup-logo", logo && "has-logo")} aria-label={`${tr(logo ? "Change logo" : "Add logo")} · ${title}`} title={tr(logo ? "Change logo" : "Add logo")} onClick={onViewLogo}>{logo ? <img src={logo} alt="" /> : <ImagePlus aria-hidden />}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    {counterMax > 0 && <span className="bsetup-cell-counters" role="cell">{showCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-empty" aria-hidden />}</span>}
+    <span className="bsetup-cell-upload" role="cell">{r ? <button type="button" aria-label={`${tr("Upload products")} · ${title}`} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} disabled={!canImport} onClick={onImport}><Upload /><span>{tr("Upload Products")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-edit" role="cell">{r ? <button type="button" aria-label={`${tr("Edit")} · ${title}`} title={tr("Edit Location")} onClick={onEdit}><Pencil /><span>{tr("Edit")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-divider" role="separator" aria-hidden="true" />
+    <span className="bsetup-cell-more" role="cell">{r ? <details className="bsetup-more-menu"><summary><MoreHorizontal aria-hidden /><span>{tr("More Options")}</span><ChevronDown aria-hidden /></summary><div className="bsetup-more-pop" role="menu"><button type="button" role="menuitem" onClick={onManageUsers}>{tr("Manage Users")}</button><button type="button" role="menuitem" onClick={onManageAccess}>{tr("Manage Access")}</button><button type="button" role="menuitem" onClick={onEdit}>{tr("Edit Location")}</button></div></details> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-divider" role="separator" aria-hidden="true" />
+    <span className="bsetup-cell-assign" role="cell">{r ? <button type="button" onClick={onAssignUsers}><Users aria-hidden /><span>{tr("Assign Users")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-delete" role="cell">{r ? <button type="button" className="is-danger" disabled={!canRemove} aria-label={`${tr("Delete")} · ${title}`} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}>{tr("Delete")}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+  </div>;
+}
+void LegacyEntryRow;
+
 /** Upload products (or opening stock) for one location, from its row. The device works at that location while this is open. */
 function ImportPanel({ tr, kind, start, onClose }: { tr: Tr; kind: "Products" | "Opening Stock"; start?: string | undefined; onClose: () => void }) {
   const s = useErp();
@@ -645,14 +644,15 @@ function ActivateSummary({ tr, d, live, plan, logins, existing, onBack, onGo }: 
 
 /** Manage Access over the Setup page: the same People & Access panels as Settings (employees, logins, roles and permissions,
  *  locations, invitations, access and security), on the same records, so the two never differ. */
-function AccessDialog({ tr, section, onSection, onClose }: { tr: Tr; section: string; onSection: (s: string) => void; onClose: () => void }) {
+function AccessDialog({ tr, section, siteId, siteName, onSection, onClose }: { tr: Tr; section: string; siteId?: string | undefined; siteName?: string | undefined; onSection: (s: string) => void; onClose: () => void }) {
   const s = useErp();
   const history = <div>{s.audit.slice(0, 30).map((x) => <div className="settings-audit" key={x.id}><b>{tr(x.action)}</b><span>{x.detail}</span><small>{x.user} • {new Date(x.at).toLocaleString("en-GB")}</small></div>)}</div>;
   return <GlassNotice title={tr("Manage Access")} onClose={onClose} className="bsetup-dialog is-wide bsetup-access-dialog">
     <div className="bsetup-access-tabs" role="tablist" aria-label={tr("Manage Access")}>
       {PEOPLE_SECTIONS.map((x) => <button key={x} type="button" role="tab" aria-selected={x === section} className={cn("bsetup-access-tab", x === section && "is-on")} onClick={() => onSection(x)}>{tr(x)}</button>)}
     </div>
-    <div className="bsetup-access-body"><PeoplePanel name={section} tr={tr} history={history} /></div>
+    {siteName && <p className="bsetup-note">{tr("Location")}: <b>{siteName}</b></p>}
+    <div className="bsetup-access-body"><PeoplePanel name={section} tr={tr} history={history} locationId={siteId} /></div>
   </GlassNotice>;
 }
 
@@ -986,7 +986,7 @@ function UserEditor({ tr, rows, canManager, initial, business, takenEmails, onSe
 /** Everyone on the business in one list: the owner, people already saved (managed in People & Access) and people added on this page. */
 function ManageUsers({ tr, owner, site, siteName, people, users, others = [], placeName, savedPlaceName, logins, onEdit, onRemove, onAssign, onAdd, onAccess, onClose }: {
   tr: Tr; owner: string; site?: SetupRow | undefined; siteName?: string | undefined; people: erp.Employee[]; users: SetupUser[]; others?: SetupUser[]; placeName: (k: string) => string; savedPlaceName: (id: string) => string; logins: ReturnType<typeof loginSummary>;
-  onEdit: (u: SetupUser) => void; onRemove: (u: SetupUser) => void; onAssign?: (u: SetupUser) => void; onAdd: () => void; onAccess?: () => void; onClose: () => void;
+  onEdit: (u: SetupUser) => void; onRemove: (u: SetupUser) => void; onAssign?: ((u: SetupUser) => void) | undefined; onAdd: () => void; onAccess?: (() => void) | undefined; onClose: () => void;
 }) {
   const [removing, setRemoving] = useState<SetupUser | null>(null);
   return <GlassNotice title={site ? `${tr("Manage users")} · ${siteName}` : tr("Manage Users")} onClose={onClose} className="bsetup-dialog is-wide">

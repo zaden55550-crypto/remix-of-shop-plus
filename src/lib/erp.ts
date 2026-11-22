@@ -1,6 +1,7 @@
 // Zakrio Systems ERP Core — shared business data + one transaction engine.
 // Every module (Inventory, Sales, POS, Purchases, Returns, Reports) reads and
 // writes through `commit`, which validates and applies a whole transaction or nothing.
+import { tillCashier } from "@/lib/till-cashier";
 import { randomUUID } from "@/lib/id";
 import { businessId, createOperation, getOutbox, persistErp, type Operation } from "@/lib/outbox";
 import { canRecord, READ_ONLY_MESSAGE, STAFF_READ_ONLY_MESSAGE, store as accountStore } from "@/lib/shopbook";
@@ -99,7 +100,7 @@ export type ErpState = {
   moneyAccounts: MoneyAccount[];
   /** One row per business the owner runs. Untagged means the first business, so older records need no conversion. */
   businesses: Business[];
-  /** Trade documents (features 5, 6, 8). Device-only until proposed 0021 is applied (HELD_ON_DEVICE in outbox.ts). */
+  /** Trade documents (features 5, 6, 8). Held on this device until the server says it takes them (proposed 0021; heldOnDevice in outbox.ts). */
   laybys: Layby[]; quotations: Quotation[]; prescriptions: Prescription[];
 };
 /** Deposits & lay-by: goods kept aside for a customer who pays in parts and collects when paid in full. The goods leave
@@ -268,7 +269,7 @@ export type SaleItem = { productId: string; name: string; qty: number; price: nu
   gas?: GasSale | undefined };
 export type Sale = AtShop & AtBusiness & AtCounter & {
   id: string; ref: string; at: number; items: SaleItem[]; subtotal: number; discount: number; total: number;
-  pay: PayRecord; customerId?: string | undefined; cashier: string; channel: "POS" | "Sales"; sellerId?: string | undefined;
+  pay: PayRecord; customerId?: string | undefined; cashier: string; /** The employee who switched in by PIN at a shared till (checked by the server). */ cashierId?: string | undefined; channel: "POS" | "Sales"; sellerId?: string | undefined;
   /** Credit paid off after the sale; `pay` stays as recorded at sale time so accounting never double counts. */
   settled?: number | undefined;
   /** VAT included in `total` (0 when VAT is off). */
@@ -622,7 +623,7 @@ const storageLocation = (s: ErpState, id?: string) => {
 function currentUser() {
   if (intentRun) return intentRun.user;
   // A cashier who switched in with their PIN at a shared till (ready-setup.ts) is recorded by name.
-  try { const t = JSON.parse(localStorage.getItem("shopbook.tillCashier") || "null"); if (t?.name) return String(t.name); } catch { /* fall through */ }
+  const t = tillCashier(); if (t) return t.name;
   try { const a = JSON.parse(localStorage.getItem("shopbook.account") || "null"); return a?.shopName ? `Admin` : "Admin"; } catch { return "Admin"; }
 }
 
@@ -1032,7 +1033,7 @@ const recordSale = (input: SaleInput, fixed?: { id: string; ref: string; at: num
   const counter = cleanCounter(input.counter);
   payParts(input.pay).forEach(([m, v]) => { if (m !== "credit") s.payments.unshift({ id: uid(), ref: c.nextRef("PAY"), at: now, method: m, amount: v, kind: "SALE", source: ref, customerId: cust?.id, user: c.user, ...(counter ? { counter } : {}) }); });
   if (cust && input.pay.credit > 0) cust.balance += input.pay.credit;
-  const sale: Sale = { id: fixed?.id ?? uid(), ref, at: now, items, subtotal, discount, total, vat: vat || undefined, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, channel: input.channel, sellerId: undefined, ...(counter ? { counter } : {}) };
+  const sale: Sale = { id: fixed?.id ?? uid(), ref, at: now, items, subtotal, discount, total, vat: vat || undefined, pay: { ...input.pay }, customerId: cust?.id, cashier: c.user, ...(!intentRun && tillCashier() ? { cashierId: tillCashier()!.id } : {}), channel: input.channel, sellerId: undefined, ...(counter ? { counter } : {}) };
   // An employee's copy has no pay rules. The server works out commission when it records the sale.
   const seller = input.sellerId && !intentRun?.copy ? s.employees.find((e) => e.id === input.sellerId && e.active) : undefined;
   if (input.sellerId && !seller && !intentRun?.copy) throw new ErpError("Seller not found");

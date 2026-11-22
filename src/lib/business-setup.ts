@@ -10,7 +10,7 @@ import { isManagerRole } from "@/lib/staff-access";
 import { BUSINESS_TYPES as CATALOGUE_BUSINESS_TYPES, GENERAL_TRADE, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
 import { saveFeatures, type Features } from "@/lib/trade-features";
 import { saveSettings } from "@/lib/settings-config";
-import { PLANS, loginAllowance, store, type Account, type LocationCounts, type PlanId } from "@/lib/shopbook";
+import { PLANS, loginAllowance, store, type Account, type BusinessDocument, type LocationCounts, type PlanId } from "@/lib/shopbook";
 
 /** New subscriptions create Shops or Stores. Older warehouse records remain supported as storage locations. */
 export const NEW_LOCATION_TYPES = ["shop", "store"] as const;
@@ -23,7 +23,7 @@ export const TYPE_LABEL: Record<LocationType, string> = { shop: "Shop", store: "
  *  `connected` (shops only) lists the keys of the warehouse rows whose stock the shop may view: no extra location is used.
  *  `photos` and `logo` are data URLs, left out to keep a saved location's as they are. `code` is optional: left empty, the
  *  next free number (SHOP-001, WH-001…) is given on activation. The row's identity is `key` (a saved location's id), never its position. */
-export type SetupRow = { key: string; savedId?: string | undefined; type: LocationType; name: string; code: string; archive?: boolean | undefined; connected?: string[] | undefined; photos?: string[] | undefined; logo?: string | undefined;
+export type SetupRow = { key: string; savedId?: string | undefined; slotNumber?: number | undefined; type: LocationType; name: string; code: string; archive?: boolean | undefined; connected?: string[] | undefined; photos?: string[] | undefined; logo?: string | undefined;
   /** A shop's counters (tills); left out keeps the saved number. */
   counters?: number | undefined;
   /** Which of the chosen business types this shop is (Supermarket, Butchery…); left out: the main type. */
@@ -43,6 +43,7 @@ export type SetupDraft = { businessName: string; businessType: string; otherType
   phone?: string | undefined; phone2?: string | undefined; phone3?: string | undefined;
   /** The business's tax number (KRA PIN or similar), for receipts; saved in its settings. */
   taxPin?: string | undefined;
+  businessDocuments?: BusinessDocument[] | undefined;
   rows: SetupRow[]; users: SetupUser[] };
 
 /** The draft's types, main first, with a skipped Trade type saved as General Trade. */
@@ -92,7 +93,7 @@ export function loginSummary(
 
 /** Locations that exist now become the first rows, in their saved order; archived ones stay out of the table. */
 export function rowsFromRecords(s: ErpState): SetupRow[] {
-  return listLocations(s).filter((l) => l.active !== false).map((l) => ({ key: l.id, savedId: l.id, type: l.type, name: l.name, code: l.id === MAIN_LOCATION && l.code === "MAIN" ? "" : l.code, ...(l.connected?.length ? { connected: [...l.connected] } : {}), ...(l.counters && l.counters > 1 ? { counters: l.counters } : {}), ...(l.placeType ? { placeType: l.placeType } : {}), ...(l.address ? { address: l.address } : {}), ...(l.phone ? { phone: l.phone } : {}) }));
+  return listLocations(s).filter((l) => l.active !== false).map((l, index) => ({ key: l.id, savedId: l.id, slotNumber: index + 1, type: l.type, name: l.name, code: l.id === MAIN_LOCATION && l.code === "MAIN" ? "" : l.code, ...(l.connected?.length ? { connected: [...l.connected] } : {}), ...(l.counters && l.counters > 1 ? { counters: l.counters } : {}), ...(l.placeType ? { placeType: l.placeType } : {}), ...(l.address ? { address: l.address } : {}), ...(l.phone ? { phone: l.phone } : {}) }));
 }
 
 /** Rows grow or shrink to the chosen number. New rows are shops with the next free number; trailing rows are removed,
@@ -207,7 +208,7 @@ export function activateSetup(d: SetupDraft) {
     for (const r of d.rows.filter((x) => x.archive && x.savedId)) setLocationActive(r.savedId!, false);
     // An empty number gets the next free one, in row order, skipping every number already saved or typed on any row.
     const taken = [...listLocations(erp.load()).map((l) => l.code), ...liveRows(d.rows).map((r) => r.code.trim()).filter(Boolean)];
-    const live = liveRows(d.rows).map((r) => { if (r.code.trim()) return r; const code = suggestCode(r.type, taken); taken.push(code); return { ...r, code }; });
+    const live = liveRows(d.rows).sort((a, b) => (a.slotNumber ?? 0) - (b.slotNumber ?? 0)).map((r) => { if (r.code.trim()) return r; const code = suggestCode(r.type, taken); taken.push(code); return { ...r, code }; });
     for (const r of live) {
       const saved = saveLocation({ id: r.savedId, name: r.name, code: r.code, type: r.type, photos: r.photos, logo: r.logo, ...(r.type === "shop" && r.counters !== undefined ? { counters: r.counters } : {}), ...(r.type === "shop" && r.placeType ? { placeType: r.placeType } : {}), ...(r.address !== undefined ? { address: r.address } : {}), ...(r.phone !== undefined ? { phone: r.phone.trim() || undefined } : {}) });
       map[r.key] = saved.id;
@@ -238,7 +239,7 @@ export function activateSetup(d: SetupDraft) {
   });
   // The account lives outside the ERP records, so it is updated once the records are safely saved.
   const phones = { ...(d.phone !== undefined ? { phone: d.phone.trim() } : {}), ...(d.phone2 !== undefined ? { phone2: d.phone2.trim() || undefined } : {}), ...(d.phone3 !== undefined ? { phone3: d.phone3.trim() || undefined } : {}) };
-  store.update({ shopName: d.businessName.trim(), businessType: undefined, businessTypes, ...(industryFamilyId ? { industryFamilyId } : {}), ...phones, setupPending: undefined });
+  store.update({ shopName: d.businessName.trim(), businessType: undefined, businessTypes, ...(industryFamilyId ? { industryFamilyId } : {}), ...phones, ...(d.businessDocuments !== undefined ? { businessDocuments: d.businessDocuments } : {}), setupPending: undefined });
   // Only the switches the owner changed here are saved; the others keep following the business types.
   if (d.features && Object.keys(d.features).length) saveFeatures(d.features);
   if (d.taxPin !== undefined) saveSettings({ taxPin: d.taxPin.trim().toUpperCase() });

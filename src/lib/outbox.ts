@@ -10,13 +10,23 @@ export function businessId(): string {
   const account = JSON.parse(localStorage.getItem("shopbook.account") || "null");
   return account?.businessId || `${account?.shopName ?? "device"}:${account?.phone ?? ""}`;
 }
-/** Collections the live server doesn't accept yet (proposed 0021 adds them). They stay on this device and in backups; their
- *  stock movements and payments are ordinary records and sync as usual. Empty this list once 0021 is applied. */
-export const HELD_ON_DEVICE: readonly string[] = ["laybys", "quotations", "prescriptions"];
+/** Collections a server without proposed 0021 refuses. Until the server says it takes them (its shopbook_sync_collections(),
+ *  asked by shop-sync.ts), they stay on this device and in backups; their stock movements and payments sync as usual. */
+export const TRADE_DOCS: readonly string[] = ["laybys", "quotations", "prescriptions"];
+const SERVER_TAKES = "shopbook.serverTakesTradeDocs";
+export function serverTakesTradeDocs() { try { return localStorage.getItem(SERVER_TAKES) === "1"; } catch { return false; } }
+/** Records what the server said it accepts (or that it couldn't say: then everything new stays held). */
+export function noteServerCollections(list: unknown) {
+  const yes = Array.isArray(list) && TRADE_DOCS.every((c) => list.includes(c));
+  try { if (yes) localStorage.setItem(SERVER_TAKES, "1"); else localStorage.removeItem(SERVER_TAKES); } catch { /* storage unavailable: stay held */ }
+  return yes;
+}
+/** The collections kept on this device right now. */
+export const heldOnDevice = (): readonly string[] => (serverTakesTradeDocs() ? [] : TRADE_DOCS);
 export function diffRecords(before: ErpState, after: ErpState): Change[] {
-  const changes: Change[] = [];
+  const changes: Change[] = [], held = heldOnDevice();
   for (const collection of Object.keys(after) as (keyof ErpState)[]) {
-    if (collection === "seq" || HELD_ON_DEVICE.includes(collection)) continue;
+    if (collection === "seq" || held.includes(collection)) continue;
     const a = new Map(before[collection].map((r) => [r.id, r]));
     const b = new Map(after[collection].map((r) => [r.id, r]));
     for (const id of new Set([...a.keys(), ...b.keys()])) {

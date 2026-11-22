@@ -255,12 +255,12 @@ function EmployeeForm({ s, cloud, item, tr, onClose, onIssued }: { s: ErpState; 
   </div></GlassPage>;
 }
 
-function AssignForm({ e, s, cloud, tr, onClose }: { e: Employee; s: ErpState; cloud: Cloud; tr: Tr; onClose: () => void }) {
+function AssignForm({ e, s, cloud, tr, locationId, onClose }: { e: Employee; s: ErpState; cloud: Cloud; tr: Tr; locationId?: string | undefined; onClose: () => void }) {
   const d = cloud.data, member = memberOf(d, e), businesses = businessRows(d);
   const start = member && d ? member.businesses : e.businessRefs ?? [];
   const startPlaces = member && d ? d.locations.filter((l) => member.locations.includes(l.id) && l.erpRef).map((l) => l.erpRef as string) : e.locationIds ?? [];
   const [biz, setBiz] = useState<string[]>(start.filter((b) => businesses.some((x) => x.id === b)).length ? start : businesses.length === 1 ? [businesses[0]!.id] : []);
-  const [places, setPlaces] = useState<string[]>(startPlaces);
+  const [places, setPlaces] = useState<string[]>(() => locationId ? [...new Set([...startPlaces, locationId])] : startPlaces);
   const [role, setRole] = useState(member?.role ?? e.accessRole ?? "shopkeeper");
   const family = industryFamilyOf(s, store.get());
   const roleOptions = rolesForIndustry(family);
@@ -368,7 +368,7 @@ function EmployeeCard({ e, s, cloud, tr, onClose, onEdit, onAssign, onPermission
 }
 
 // ---------- Screens ----------
-type Dialog = { kind: "add" } | { kind: "edit" | "card" | "assign"; e: Employee } | { kind: "perms"; m: Member } | { kind: "link"; issued: IssuedLink; name: string } | null;
+type Dialog = { kind: "add" } | { kind: "edit" | "card"; e: Employee } | { kind: "assign"; e: Employee; locationId?: string | undefined } | { kind: "perms"; m: Member } | { kind: "link"; issued: IssuedLink; name: string } | null;
 
 function useDialogs(s: ErpState, cloud: Cloud, tr: Tr) {
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -378,7 +378,7 @@ function useDialogs(s: ErpState, cloud: Cloud, tr: Tr) {
   const node = !dialog ? null
     : dialog.kind === "add" ? <EmployeeForm s={s} cloud={cloud} tr={tr} onClose={close} onIssued={issued} />
     : dialog.kind === "edit" ? <EmployeeForm s={s} cloud={cloud} item={fresh(dialog.e)} tr={tr} onClose={close} onIssued={issued} />
-    : dialog.kind === "assign" ? <AssignForm e={fresh(dialog.e)} s={s} cloud={cloud} tr={tr} onClose={close} />
+    : dialog.kind === "assign" ? <AssignForm e={fresh(dialog.e)} s={s} cloud={cloud} tr={tr} locationId={dialog.locationId} onClose={close} />
     : dialog.kind === "card" ? <EmployeeCard e={fresh(dialog.e)} s={s} cloud={cloud} tr={tr} onClose={close} onEdit={() => setDialog({ kind: "edit", e: dialog.e })} onAssign={() => setDialog({ kind: "assign", e: dialog.e })} onPermissions={(m) => setDialog({ kind: "perms", m })} onIssued={issued} />
     : dialog.kind === "perms" ? <PermissionPage m={dialog.m} cloud={cloud} tr={tr} onClose={close} />
     : dialog.kind !== "link" ? null
@@ -436,12 +436,16 @@ function LoginAccounts({ s, cloud, tr }: { s: ErpState; cloud: Cloud; tr: Tr }) 
   </div></CloudGate>;
 }
 
-function Assignments({ s, cloud, tr }: { s: ErpState; cloud: Cloud; tr: Tr }) {
+function Assignments({ s, cloud, tr, locationId }: { s: ErpState; cloud: Cloud; tr: Tr; locationId?: string | undefined }) {
   const { open, node } = useDialogs(s, cloud, tr), d = cloud.data;
-  const all = listLocations(s);
+  const all = listLocations(s), scope = locationId ? all.find((l) => l.id === locationId) : undefined;
   const refs = (e: Employee) => { const m = memberOf(d, e); return m && d && m.status !== "revoked" ? d.locations.filter((l) => m.locations.includes(l.id)).map((l) => l.erpRef ?? "") : e.locationIds ?? []; };
   const names = (e: Employee) => all.filter((l) => refs(e).includes(l.id)).map((l) => l.name).join(", ");
-  const rows = s.employees.filter((e) => employeeStatus(e) !== "Terminated");
+  const rows = s.employees.filter((e) => employeeStatus(e) !== "Terminated").filter((e) => {
+    if (!scope) return true;
+    const role = memberOf(d, e)?.role ?? e.accessRole ?? "";
+    return refs(e).includes(scope.id) || isManagerRole(role) || (scope.type === "shop" ? role === "shopkeeper" : role === "warehouse_staff");
+  });
   const access = (e: Employee) => { const m = memberOf(d, e); return !m ? "No login" : STATUS[m.status]; };
   const remove = async (e: Employee) => {
     if (!window.confirm(`${tr("Remove all location assignments for")} ${e.name}?`)) return;
@@ -457,8 +461,9 @@ function Assignments({ s, cloud, tr }: { s: ErpState; cloud: Cloud; tr: Tr }) {
   ];
   return <div className="pm-form people-screen">
     <p className="pw-note">{tr("An employee assigned to one shop doesn't reach another. A manager can be given several.")}</p>
-    <ListScreen title="Location Assignments" shop={store.get()?.shopName ?? ""} items={rows} columns={columns} idOf={(e) => e.id} money={String} tr={tr} empty="No employees yet" ph="Search employees..." text={(e) => `${e.name} ${names(e)}`}
-      actions={(e) => <><Act label={`${tr(refs(e).length ? "Edit" : "Add")} ${e.name}`} onClick={() => open({ kind: "assign", e })}>{tr(refs(e).length ? "Edit" : "Add")}</Act>{refs(e).length > 0 && <Act label={`${tr("Remove")} ${e.name}`} onClick={() => void remove(e)}>{tr("Remove")}</Act>}</>} />
+    {scope && <p className="pw-note"><b>{tr("Location")}: {scope.name}</b> · {tr("Only compatible employees are listed for this location.")}</p>}
+    <ListScreen title={scope ? `${tr("Location Assignments")} · ${scope.name}` : "Location Assignments"} shop={store.get()?.shopName ?? ""} items={rows} columns={columns} idOf={(e) => e.id} money={String} tr={tr} empty="No employees yet" ph="Search employees..." text={(e) => `${e.name} ${names(e)}`}
+      actions={(e) => <><Act label={`${tr(refs(e).length ? "Edit" : "Add")} ${e.name}`} onClick={() => open({ kind: "assign", e, ...(scope ? { locationId: scope.id } : {}) })}>{tr(refs(e).length ? "Edit" : "Add")}</Act>{refs(e).length > 0 && <Act label={`${tr("Remove")} ${e.name}`} onClick={() => void remove(e)}>{tr("Remove")}</Act>}</>} />
     {node}
   </div>;
 }
@@ -535,12 +540,12 @@ function Security({ s, cloud, tr, history }: { s: ErpState; cloud: Cloud; tr: Tr
 }
 const EventList = ({ rows, empty }: { rows: string[][]; empty: string }) => rows.length ? <ul className="people-events">{rows.map((r, i) => <li key={i}>{r.filter(Boolean).map((v, j) => <span key={j}>{v}</span>)}</li>)}</ul> : <Empty>{empty}</Empty>;
 
-export function PeoplePanel({ name, tr, history }: { name: string; tr: Tr; history: ReactNode }) {
+export function PeoplePanel({ name, tr, history, locationId }: { name: string; tr: Tr; history: ReactNode; locationId?: string | undefined }) {
   const s = useErp(), cloud = usePeopleCloud();
   if (name === "Employees") return <Employees s={s} cloud={cloud} tr={tr} />;
   if (name === "Users & Login Accounts") return <LoginAccounts s={s} cloud={cloud} tr={tr} />;
   if (name === "Roles & Permissions") return <RolesPanel cloud={cloud} tr={tr} />;
-  if (name === "Location Assignments") return <Assignments s={s} cloud={cloud} tr={tr} />;
+  if (name === "Location Assignments") return <Assignments s={s} cloud={cloud} tr={tr} locationId={locationId} />;
   if (name === "Invitations") return <Invitations s={s} cloud={cloud} tr={tr} />;
   return <Security s={s} cloud={cloud} tr={tr} history={history} />;
 }

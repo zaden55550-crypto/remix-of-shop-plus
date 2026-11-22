@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import * as erp from "@/lib/erp";
 import { readSettings } from "@/lib/settings-config";
+import { store } from "@/lib/shopbook";
+import { hashPassword } from "@/lib/device-password";
+import { tillLimited, tillMayOpen } from "@/lib/till-cashier";
 import { getTax } from "@/lib/prefs";
 import { suggestMapping } from "@/lib/import-center";
 import {
@@ -78,8 +81,38 @@ describe("Ready to sell", () => {
     expect(tillCashier()?.name).toBe("Juma");
     erp.commit((_s, c) => c.audit("TEST", "x"));
     expect(erp.load().audit[0]!.user).toBe("Juma");
-    endCashier();
+    await endCashier(erp.load(), "x"); // the test owner's device password
     expect(tillCashier()).toBeNull();
+  });
+
+  it("limits a cashier to selling screens and needs the owner or a manager to end their turn", async () => {
+    store.update({ password: await hashPassword("owner-secret") });
+    erp.commit((st) => { st.employees = [{ id: "c1", name: "Amina", role: "shopkeeper", active: true } as erp.Employee, { id: "m1", name: "Baraka", role: "manager", active: true } as erp.Employee]; });
+    await setStaffPin("c1", "1111"); await setStaffPin("m1", "2222");
+    await switchCashier(erp.load(), "1111");
+    expect(tillLimited()).toBe(true);
+    expect(tillMayOpen("/pos")).toBe(true);
+    expect(tillMayOpen("/settings")).toBe(false);
+    expect(tillMayOpen("/setup")).toBe(false);
+    await expect(endCashier(erp.load(), "1111")).rejects.toThrow("owner or a manager");
+    await expect(endCashier(erp.load(), "wrong")).rejects.toThrow("owner or a manager");
+    await endCashier(erp.load(), "2222");
+    expect(tillCashier()).toBeNull();
+    await switchCashier(erp.load(), "1111");
+    await endCashier(erp.load(), "owner-secret");
+    expect(tillCashier()).toBeNull();
+    await switchCashier(erp.load(), "2222");
+    expect(tillLimited()).toBe(false);
+  });
+
+  it("puts the cashier's employee id on the sale", async () => {
+    erp.commit((st) => { st.employees = [{ id: "c1", name: "Amina", role: "shopkeeper", active: true } as erp.Employee]; });
+    await setStaffPin("c1", "1111");
+    await switchCashier(erp.load(), "1111");
+    const p = erp.addProduct({ name: "Soap", buy: 50, sell: 80, qty: 5, unit: "pcs" });
+    const sale = erp.confirmSale({ cart: [{ productId: p.id, qty: 1 }], pay: { cash: 80, mpesa: 0, bank: 0, credit: 0 }, channel: "POS", discount: 0 } as unknown as erp.SaleInput);
+    expect(sale.cashier).toBe("Amina");
+    expect(sale.cashierId).toBe("c1");
   });
 });
 

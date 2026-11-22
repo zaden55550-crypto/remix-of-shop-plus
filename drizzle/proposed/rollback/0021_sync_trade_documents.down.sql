@@ -73,3 +73,4 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.apply_shopbook_operation_for(uuid,uuid,uuid,text,text,jsonb,jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.apply_shopbook_operation_for(uuid,uuid,uuid,text,text,jsonb,jsonb) TO service_role;
+DROP FUNCTION IF EXISTS public.shopbook_sync_collections();

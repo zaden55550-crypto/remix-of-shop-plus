@@ -7,7 +7,7 @@ import { Check, ChevronDown, Star } from "lucide-react";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
 import { useLanguage } from "@/hooks/use-language";
 import { GENERAL_TRADE, INDUSTRIES, businessTypesForFamily, industryIsOpen, type IndustryFamilyId } from "@/lib/industry-config";
-import { BUILT_IN, FEATURE_GROUPS, FEATURE_INFO, PINNED, featureEntry, isBuiltIn, isSuggested, type Features } from "@/lib/trade-features";
+import { BUILT_IN, FEATURE_GROUPS, FEATURE_INFO, PINNED, SHORT_NAME, featureEntry, isBuiltIn, isSuggested, type Features } from "@/lib/trade-features";
 import { cn } from "@/lib/utils";
 
 export function IndustrySelect({ id, value, onChange, keep, className, allowEmpty }: { id?: string; value: string; onChange: (id: IndustryFamilyId) => void; keep?: string | undefined; className?: string; allowEmpty?: boolean }) {
@@ -24,10 +24,10 @@ export function IndustrySelect({ id, value, onChange, keep, className, allowEmpt
 /** The feature switches (trade-features.ts) as one compact row of ticks, used under the type on Business Setup and in Settings. */
 export function FeatureChecks({ value, onChange, className }: { value: Features; onChange: (patch: Partial<Features>) => void; className?: string }) {
   const { tr } = useLanguage();
-  return <div className={cn("feature-checks", className)} role="group" aria-label={tr("Settings for this business")}>
+  return <div className={cn("feature-checks", className)} role="group" aria-label={tr("Features for this business")}>
     {PINNED.map((f) => <label key={f} className={cn("feature-check", value[f] && "is-on")} title={tr(FEATURE_INFO[f].hint)}>
       <input type="checkbox" checked={value[f]} onChange={(e) => onChange({ [f]: e.target.checked })} />
-      <span>{tr(f === "prescriptions" ? "Prescriptions" : FEATURE_INFO[f].name)}</span>
+      <span>{tr(SHORT_NAME[f] ?? FEATURE_INFO[f].name)}</span>
     </label>)}
   </div>;
 }

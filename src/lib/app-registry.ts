@@ -8,6 +8,7 @@
 // 3. Subscription: an app the plan doesn't include is listed but locked (canOpen in shopbook.ts decides; plans are not changed here).
 // 4. Permissions: an employee sees only the apps their login may view; the owner may hide apps (Settings › Manage Apps).
 // Settings is always separate (its own row on the launcher). The launcher lays tiles out four to a row.
+import { TILL_APPS, tillLimited } from "@/lib/till-cashier";
 import { APPS, canOpen, type Account } from "@/lib/shopbook";
 import { INDUSTRIES, INDUSTRY_APP_NAMES, PLANNED_INDUSTRY_APP_IDS, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
 import { IMPLEMENTED_APPS, MODULES, requirementsOf, type ImplementedApp, type ModuleId } from "@/lib/app-requirements";
@@ -69,7 +70,9 @@ export function launcherFor({ industryFamilyId, businessType, account, hiddenApp
   const need = requirementsFor(industryFamilyId, businessType);
   const capable = new Set<string>(need.apps);
   const permitted = account.staff ? new Set<string>(allowedApps(account.staff.permissions)) : undefined;
-  const mayView = (id: string) => !permitted || permitted.has(id);
+  // A cashier switched in by PIN at a shared till (till-cashier.ts) sees only the selling apps until their turn ends.
+  const till = tillLimited();
+  const mayView = (id: string) => (!permitted || permitted.has(id)) && (!till || TILL_APPS.includes(id));
   const apps = APPS.filter((a) => a.id !== "settings" && capable.has(a.id) && !hiddenApps.includes(a.id) && mayView(a.id));
   const settingsApp = APPS.find((a) => a.id === "settings");
   return {

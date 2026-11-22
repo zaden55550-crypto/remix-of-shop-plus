@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { appOfPath, launcherFor, mayOpenPath } from "@/lib/app-registry";
+import { tillMayOpen } from "@/lib/till-cashier";
 import { forOpenBusiness } from "@/lib/businesses";
 import { subscribe } from "@/lib/erp";
 import { readSettings } from "@/lib/settings-config";
@@ -26,12 +27,17 @@ export function AppAccessGate() {
   const [version, setVersion] = useState(0);
   useEffect(() => {
     const again = () => setVersion((n) => n + 1);
-    const events = ["shopbook-settings", "shopbook-session", "shopbook-staff"];
+    const events = ["shopbook-settings", "shopbook-session", "shopbook-staff", "shopbook-cashier"];
     for (const e of events) window.addEventListener(e, again);
     const stop = subscribe(again); // a business switch or a change to the business's records
     return () => { for (const e of events) window.removeEventListener(e, again); stop(); };
   }, []);
   useEffect(() => {
+    if (!tillMayOpen(pathname)) {
+      toast.error(translateCurrent("A cashier is on this till. End their turn to open other screens."));
+      void nav({ to: "/pos", replace: true });
+      return;
+    }
     if (!appOfPath(pathname) || pageAllowed(pathname)) return;
     toast.error(translateCurrent("This app is not available for this business"));
     void nav({ to: "/apps", replace: true });

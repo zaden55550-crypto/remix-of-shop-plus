@@ -6,6 +6,9 @@ import { commit, ErpError, MAIN_LOCATION, activeShop, shopCounters, type ErpStat
 import { hashPassword, checkPassword } from "@/lib/device-password";
 import { getTax } from "@/lib/prefs";
 import { readSettings, saveSettings } from "@/lib/settings-config";
+import { store } from "@/lib/shopbook";
+import { isManagerRole } from "@/lib/staff-access";
+import { TILL_CASHIER, tillCashier, tillLimited } from "@/lib/till-cashier";
 
 export type PaymentDetails = { tillNumber?: string; paybill?: string; paybillAccount?: string; bankName?: string; bankAccount?: string };
 export const READY_STEPS = ["payments", "tax", "stock", "cash", "receipt", "numbering", "hours", "pins", "sample", "move"] as const;
@@ -115,7 +118,10 @@ export function financialYearStart(now = new Date(), month = readSettings().fySt
 }
 
 /* ---------- Staff quick PIN for shared tills ---------- */
-const TILL_CASHIER = "shopbook.tillCashier";
+// A cashier who switches in is the name and employee id on sales from this device (the server checks the id is an active employee
+// with a PIN, proposed 0021). Unless their role is admin or manager, only the selling screens open (till-cashier.ts), and only the
+// owner's password, the owner's till PIN or an admin/manager PIN ends their turn.
+export { tillCashier, tillLimited } from "@/lib/till-cashier";
 export const PIN = /^\d{4}$/;
 export const setStaffPin = async (employeeId: string, pin: string) => {
   if (!PIN.test(pin)) throw new ErpError("A PIN is 4 digits");
@@ -127,16 +133,43 @@ export const setStaffPin = async (employeeId: string, pin: string) => {
     c.audit("STAFF PIN SET", e.name);
   });
 };
-/** The cashier now serving at this device's till (their name is recorded on sales), or none (the signed-in owner). */
-export function tillCashier(): { id: string; name: string } | null { try { return JSON.parse(localStorage.getItem(TILL_CASHIER) || "null"); } catch { return null; } }
+/** The owner's own till PIN (a salted hash in business settings), to end a cashier's turn quickly. */
+export async function setOwnerPin(pin: string) {
+  if (!PIN.test(pin)) throw new ErpError("A PIN is 4 digits");
+  saveSettings({ ownerPin: await hashPassword(pin) });
+}
 /** Switches the till's cashier by PIN. Returns the cashier, or throws on a wrong PIN. */
 export async function switchCashier(s: Pick<ErpState, "employees">, pin: string) {
   if (!PIN.test(pin)) throw new ErpError("A PIN is 4 digits");
   for (const e of s.employees.filter((x) => x.active && x.pin)) {
-    if ((await checkPassword(pin, e.pin!)).ok) { const who = { id: e.id, name: e.name }; localStorage.setItem(TILL_CASHIER, JSON.stringify(who)); window.dispatchEvent(new Event("shopbook-cashier")); return who; }
+    if ((await checkPassword(pin, e.pin!)).ok) {
+      const who = { id: e.id, name: e.name, role: e.role };
+      localStorage.setItem(TILL_CASHIER, JSON.stringify(who));
+      window.dispatchEvent(new Event("shopbook-cashier"));
+      return who;
+    }
   }
   throw new ErpError("Wrong PIN");
 }
-export function endCashier() { localStorage.removeItem(TILL_CASHIER); window.dispatchEvent(new Event("shopbook-cashier")); }
+/** Whether anything can unlock the till: an owner password, an owner till PIN or an admin/manager with a PIN. */
+export function tillHasUnlock(s: Pick<ErpState, "employees">) {
+  return !!(store.get()?.password || readSettings().ownerPin || s.employees.some((e) => e.active && e.pin && isManagerRole(e.role)));
+}
+/** Ends the cashier's turn. A limited cashier's turn needs the owner's password, the owner's till PIN or an admin/manager PIN. */
+export async function endCashier(s: Pick<ErpState, "employees">, secret = "") {
+  const who = tillCashier();
+  if (!who) return;
+  if (tillLimited() && tillHasUnlock(s)) {
+    const owner = store.get()?.password, ownerPin = readSettings().ownerPin;
+    const managers = s.employees.filter((e) => e.active && e.pin && isManagerRole(e.role));
+    const ok = (!!owner && secret !== "" && (await checkPassword(secret, owner)).ok)
+      || (!!ownerPin && PIN.test(secret) && (await checkPassword(secret, ownerPin)).ok)
+      || (PIN.test(secret) && (await Promise.all(managers.map((e) => checkPassword(secret, e.pin!)))).some((r) => r.ok));
+    if (!ok) throw new ErpError("Only the owner or a manager can end this turn");
+  }
+  localStorage.setItem(TILL_CASHIER, "null");
+  window.dispatchEvent(new Event("shopbook-cashier"));
+  commit((_s, c) => c.audit("TILL TURN ENDED", who.name));
+}
 
 export const confirmStep = (step: "receipt" | "move" | "sample") => saveSettings(step === "receipt" ? { receiptConfirmed: true } : step === "move" ? { moveConfirmed: true } : { sampleTried: true });

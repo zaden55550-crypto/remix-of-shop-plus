@@ -134,6 +134,18 @@ describe("sync on the final database", () => {
     // A shop stays able to record its sales after that refusal.
     await sync([sale("s2")]);
   });
+  it("lists the collections it accepts and checks a till cashier on a sale", async () => {
+    await ownerOn("growth");
+    const list = (await as<{ l: string[] }>(OWNER, "SELECT shopbook_sync_collections() l"))[0]!.l;
+    expect(list).toEqual(expect.arrayContaining(["laybys", "quotations", "prescriptions", "sales"]));
+    const withCashier = (id: string, cashierId: string) => ({ ...sale(id), after: { ...sale(id).after, cashierId } });
+    await expect(sync([withCashier("s1", "e1")])).rejects.toThrow(/Invalid cashier/);
+    const emp = (pin?: string) => ({ collection: "employees", id: "e1", before: null, after: { id: "e1", name: "Amina", active: true, ...(pin ? { pin } : {}) } });
+    await expect(sync([emp(), withCashier("s1", "e1")])).rejects.toThrow(/Invalid cashier/);
+    await sync([emp("pbkdf2$hash"), withCashier("s1", "e1")]);
+    await sync([withCashier("s2", "e1")]);
+    await sync([{ collection: "laybys", id: "l1", before: null, after: { id: "l1", at: 1 } }]);
+  });
   it("a retried operation is applied once, and a stale one from a device that was offline changes nothing", async () => {
     await ownerOn("growth");
     const move = { id: "m1", at: 1, type: "OPENING", productId: "p1", qty: 5, prev: 0, next: 5, user: "A" };

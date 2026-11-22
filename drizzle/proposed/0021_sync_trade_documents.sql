@@ -4,7 +4,18 @@
 -- as usual, so nothing is ever refused. After applying it, empty HELD_ON_DEVICE so they sync like every other record.
 -- What changes: apply_shopbook_operation_for from 0019 is repeated exactly, with only the three names added to `allowed`.
 -- The documents carry no money or stock of their own (those are payments and movements, already validated), so they need
--- no extra checks. Rollback: drizzle/proposed/rollback/0021_sync_trade_documents.down.sql (0019's function again).
+-- no extra checks.
+-- Also (2026-11-22): shopbook_sync_collections() lists the collections this server accepts. The app asks it before deciding
+-- what to hold on the device, so once this is applied lay-bys, quotations and prescriptions start syncing with no app change.
+-- And a new sale that names a till cashier (cashierId, Staff quick PIN) must name an active employee of that business who has a
+-- PIN, already on the server or arriving in the same operation.
+-- Rollback: drizzle/proposed/rollback/0021_sync_trade_documents.down.sql (0019's function again).
+
+CREATE OR REPLACE FUNCTION public.shopbook_sync_collections()
+RETURNS text[] LANGUAGE sql IMMUTABLE AS $$
+ SELECT ARRAY['products','categories','brands','units','attributes','locations','movements','transfers','audit','customers','sales','payments','returns','cash','employees','commissions','payrolls','payrollPayments','suppliers','purchases','purchaseReturns','expenses','expenseCategories','otherContacts','contactCategories','payrollDrafts','purchaseOrders','supplierInvoices','moneyAccounts','businesses','laybys','quotations','prescriptions']
+$$;
+GRANT EXECUTE ON FUNCTION public.shopbook_sync_collections() TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.apply_shopbook_operation_for(owner_id uuid, p_operation uuid, p_device uuid, p_business text, p_kind text, p_changes jsonb, p_seq jsonb)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -22,7 +33,7 @@ DECLARE
  seq_value jsonb;
  result jsonb;
  problem text;
- allowed text[] := ARRAY['products','categories','brands','units','attributes','locations','movements','transfers','audit','customers','sales','payments','returns','cash','employees','commissions','payrolls','payrollPayments','suppliers','purchases','purchaseReturns','expenses','expenseCategories','otherContacts','contactCategories','payrollDrafts','purchaseOrders','supplierInvoices','moneyAccounts','businesses','laybys','quotations','prescriptions'];
+ allowed text[] := public.shopbook_sync_collections();
 BEGIN
  IF owner_id IS NULL THEN RAISE EXCEPTION 'Sign-in required'; END IF;
  IF jsonb_typeof(p_changes) <> 'array' OR jsonb_typeof(p_seq) <> 'object' OR length(p_business) > 160 OR octet_length(p_changes::text) > 14000000 THEN RAISE EXCEPTION 'Invalid operation'; END IF;
@@ -59,6 +70,12 @@ BEGIN
        IF abs((SELECT coalesce(sum(value::numeric),0) FROM jsonb_each_text(next_record->'pay')) - (next_record->>'total')::numeric) > 0.01 THEN RAISE EXCEPTION 'Payment allocation does not equal total'; END IF;
        IF collection = 'sales' AND (next_record->'pay'->>'credit')::numeric > 0 AND coalesce(next_record->>'customerId','') = '' THEN RAISE EXCEPTION 'Credit requires a customer'; END IF;
        IF collection = 'purchases' AND (next_record->'pay'->>'credit')::numeric > 0 AND coalesce(next_record->>'supplierId','') = '' THEN RAISE EXCEPTION 'Credit requires a supplier'; END IF;
+       IF collection = 'sales' AND current_record = 'null'::jsonb AND coalesce(next_record->>'cashierId','') <> ''
+          AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(current_state->'employees','[]'::jsonb)) e
+                          WHERE e->>'id' = next_record->>'cashierId' AND coalesce((e->>'active')::boolean, false) AND coalesce(e->>'pin','') <> '')
+          AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(p_changes) c
+                          WHERE c->>'collection' = 'employees' AND c->'after'->>'id' = next_record->>'cashierId' AND coalesce((c->'after'->>'active')::boolean, false) AND coalesce(c->'after'->>'pin','') <> '')
+       THEN RAISE EXCEPTION 'Invalid cashier: not an active employee with a till PIN'; END IF;
      END IF;
    END IF;
    SELECT coalesce(jsonb_agg(value), '[]'::jsonb) INTO records FROM jsonb_array_elements(records) WHERE value->>'id' <> record_id;

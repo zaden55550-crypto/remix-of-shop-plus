@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { empty, load, type ErpState } from "@/lib/erp";
 import { applyOperation } from "@/lib/sync.functions";
-import { HELD_ON_DEVICE, businessId, createOperation, getOutbox, pendingOperations, persistErp, retryDelay, updateOperation } from "@/lib/outbox";
+import { TRADE_DOCS, businessId, noteServerCollections, serverTakesTradeDocs, createOperation, getOutbox, pendingOperations, persistErp, retryDelay, updateOperation } from "@/lib/outbox";
 import { getConnectivity, ACTIVE_CHECK_MS } from "@/lib/connectivity";
 import { canRecord, store } from "@/lib/shopbook";
 
@@ -54,6 +54,10 @@ export function startShopSync() {
       const bound = localStorage.getItem("shopbook.syncOwner");
       if (bound && bound !== owner) throw new Error("This device's records belong to another owner. Sign in with the original account.");
       localStorage.setItem("shopbook.syncOwner", owner);
+      // Ask the server which collections it accepts (proposed 0021 adds lay-bys, quotations and prescriptions). An older server has
+      // no such function, so they stay held on this device; nothing is sent that it would refuse.
+      const asked = await (supabase.rpc as unknown as (fn: string) => Promise<{ data: unknown; error: unknown }>)("shopbook_sync_collections");
+      noteServerCollections(asked.error ? null : asked.data);
       const validIdentity = () => !stopped && localStorage.getItem("shopbook.session") === "1" && businessId() === business && localStorage.getItem("shopbook.syncOwner") === owner;
       // Recover legacy existing records only once. Never use snapshot merging to overwrite a pending financial operation.
       if (!getOutbox().length && !localStorage.getItem("shopbook.syncInitialized")) {
@@ -98,9 +102,21 @@ export function startShopSync() {
       if (r.data) {
         // No unacknowledged changes: authoritative server projection is safe to adopt.
         const server = { ...empty(), ...(r.data.payload as unknown as ErpState) };
-        // Collections the server doesn't hold yet stay as this device has them (HELD_ON_DEVICE, outbox.ts).
-        const mine = load();
-        for (const key of HELD_ON_DEVICE) if (!Array.isArray((r.data.payload as Record<string, unknown>)?.[key])) (server as Record<string, unknown>)[key] = (mine as Record<string, unknown>)[key] ?? [];
+        // Lay-bys, quotations and prescriptions the server doesn't hold yet stay as this device has them. Once the server takes
+        // them, the ones only this device has are sent first (one operation, additions only), before the server copy is adopted.
+        const mine = load(), payload = r.data.payload as Record<string, unknown>;
+        if (serverTakesTradeDocs()) {
+          const before = empty(), after = empty();
+          for (const key of TRADE_DOCS) {
+            const theirs = Array.isArray(payload?.[key]) ? (payload[key] as { id: string }[]) : [];
+            const only = ((mine as unknown as Record<string, { id: string }[]>)[key] ?? []).filter((x) => !theirs.some((t) => t.id === x.id));
+            (before as unknown as Record<string, unknown>)[key] = theirs; (after as unknown as Record<string, unknown>)[key] = [...theirs, ...only];
+          }
+          after.seq = before.seq;
+          const backfill = createOperation(before, after);
+          if (backfill) { backfill.owner = owner; backfill.kind = "DEVICE DOCUMENTS"; persistErp(mine, [...getOutbox(), backfill]); return; }
+        }
+        for (const key of TRADE_DOCS) if (!Array.isArray(payload?.[key])) (server as Record<string, unknown>)[key] = (mine as Record<string, unknown>)[key] ?? [];
         for (const key of Object.keys(empty()) as (keyof ErpState)[]) if (Array.isArray(server[key])) (server[key] as { at?: number }[]).sort((a,b) => (b.at ?? 0) - (a.at ?? 0));
         persistErp(server);
         window.dispatchEvent(new Event("shopbook-erp-remote")); window.dispatchEvent(new Event("storage"));
