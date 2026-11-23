@@ -12,7 +12,8 @@ import { getTax } from "@/lib/prefs";
 import { readSettings, saveSettings } from "@/lib/settings-config";
 import { clearDemoData, isDemo, isEmptyShop, loadDemoData, resetDemoData } from "@/lib/demo";
 import { store } from "@/lib/shopbook";
-import { applyOB, obLabel, previewOB, suggestOB, type OBKind } from "@/lib/opening-import";
+import { applyOB, obLabel, previewOB, readSheets, suggestOB, type OBKind } from "@/lib/opening-import";
+import { etimsCsv, matchMpesa, mpesaFromSheets } from "@/lib/setup-extras";
 import {
   READY_INFO, READY_STEPS, confirmStep, financialYearStart, paymentLines, printedRef, readyProgress, readyStatus, saveHours, saveNumbering,
   savePayments, saveTax, setOpeningFloat, setStaffPin, skipStep, type ReadyStep,
@@ -97,8 +98,8 @@ function Text({ label, value, set, ph, mode }: { label: string; value: string; s
 function StepBody({ step, s, tr, run }: { step: ReadyStep; s: erp.ErpState; tr: Tr; run: (fn: () => unknown, then?: ReadyStep) => void }) {
   const cfg = readSettings();
   switch (step) {
-    case "payments": return <Payments tr={tr} run={run} />;
-    case "tax": return <Tax tr={tr} run={run} />;
+    case "payments": return <><Payments tr={tr} run={run} /><MpesaCheck s={s} tr={tr} /></>;
+    case "tax": return <><Tax tr={tr} run={run} /><EtimsExport s={s} tr={tr} /></>;
     case "stock": return <div className="ready-stack">
       <p className="settings-note">{tr("Upload your product list with the stock you have now, or add products one by one in Inventory › All Products.")}</p>
       <ImportCenter tr={tr} only="Products" />
@@ -294,5 +295,47 @@ function OpeningBalances({ s, tr, run }: { s: erp.ErpState; tr: Tr; run: (fn: ()
       <ShopButton variant="outline" onClick={() => setLines([...lines, blank("receivable")])}>{tr("Add a line")}</ShopButton>
       <ShopButton onClick={save}>{tr("Save")}</ShopButton>
     </div>
+  </div>;
+}
+
+/* Suggestion 8: check an M-Pesa statement against recorded sales. Read-only; automatic matching needs a Safaricom Daraja account. */
+function MpesaCheck({ s, tr }: { s: erp.ErpState; tr: Tr }) {
+  const [res, setRes] = useState<ReturnType<typeof matchMpesa> | null>(null);
+  const read = async (files: FileList | null) => {
+    try {
+      const lines = mpesaFromSheets(await readSheets(Array.from(files ?? [])));
+      if (!lines.length) { toast.error(tr("No money received was found. Download the statement from M-Pesa as CSV or Excel")); return; }
+      setRes(matchMpesa(s, lines));
+    } catch (e) { toast.error(tr(e instanceof Error ? e.message : "That file could not be read")); }
+  };
+  return <div className="ready-stack ready-extra">
+    <b>{tr("Check an M-Pesa statement")}</b>
+    <p className="settings-note">{tr("Upload your M-Pesa statement (CSV or Excel). Each payment is matched to a sale paid by M-Pesa for the same amount within 30 minutes. Nothing is changed.")}</p>
+    <label className="ready-file"><input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void read(e.target.files); e.target.value = ""; }} /></label>
+    {res && <div className="ready-mpesa">
+      <p><b>{res.matched.length}</b> {tr("payments match a sale")} · <b>{res.unmatched.length}</b> {tr("payments have no sale")} · <b>{res.salesWithoutMoney.length}</b> {tr("M-Pesa sales have no payment")}</p>
+      {res.unmatched.length > 0 && <ul>{res.unmatched.slice(0, 20).map((l) => <li key={l.receipt + l.at}>{l.receipt} · {new Date(l.at).toLocaleString("en-GB")} · {l.amount.toLocaleString("en-KE")} · {l.details}</li>)}</ul>}
+      {res.salesWithoutMoney.length > 0 && <ul>{res.salesWithoutMoney.slice(0, 20).map((x) => <li key={x.id}>{x.ref} · {new Date(x.at).toLocaleString("en-GB")} · {(x.pay.mpesa ?? 0).toLocaleString("en-KE")}</li>)}</ul>}
+    </div>}
+  </div>;
+}
+
+/* Suggestion 9: a month's sales laid out for a tax agent preparing eTIMS returns. Not KRA's own upload, which needs KRA's approval. */
+function EtimsExport({ s, tr }: { s: erp.ErpState; tr: Tr }) {
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+  const download = () => {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return;
+    const csv = etimsCsv(s, readSettings().taxPin, new Date(y, m - 1, 1).getTime(), new Date(y, m, 1).getTime() - 1);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = `zakrio-systems-sales-for-etims-${month}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
+  };
+  return <div className="ready-stack ready-extra">
+    <b>{tr("Sales for eTIMS")}</b>
+    <p className="settings-note">{tr("Download a month's sales, item by item, with your KRA PIN and VAT, for your tax agent. Sending invoices to KRA directly needs KRA's approval first.")}</p>
+    <div className="ready-actions"><input className="inventory-input" type="month" aria-label={tr("Month")} value={month} onChange={(e) => setMonth(e.target.value)} /><ShopButton onClick={download}>{tr("Download")}</ShopButton></div>
   </div>;
 }

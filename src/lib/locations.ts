@@ -41,7 +41,13 @@ export function suggestCode(type: LocationType, taken: readonly string[]) {
 }
 const nextCode = (rows: Location[], type: LocationType) => suggestCode(type, rows.map((l) => l.code));
 
-export type LocationInput = { id?: string | undefined; name: string; code?: string | undefined; type: LocationType; address?: string | undefined; phone?: string | undefined; managerId?: string | undefined; connected?: string[] | undefined;
+export type LocationInput = {
+  /** Per-location receipt details (owner, 2026-11-23): a heading line, opening hours and a tax PIN printed on this location's receipts
+   *  instead of the business's. Left out: the business's own. */
+  receiptHeader?: string | undefined; hours?: string | undefined; taxPin?: string | undefined;
+  /** A shop's usual warehouse: transfers and restocking start from it. Must be one of its connected warehouses. */
+  defaultWarehouse?: string | undefined;
+  id?: string | undefined; name: string; code?: string | undefined; type: LocationType; address?: string | undefined; phone?: string | undefined; managerId?: string | undefined; connected?: string[] | undefined;
   /** Leave out to keep the photos the location already has. */
   photos?: string[] | undefined;
   /** A shop's number of counters (tills). Leave out to keep it; stores and warehouses have none. */
@@ -87,8 +93,14 @@ export const saveLocation = (input: LocationInput) => commit((s, c) => {
   const phone = input.phone === undefined ? old?.phone : input.phone.trim() || undefined;
   const managerId = input.managerId === undefined ? old?.managerId : input.managerId || undefined;
   const counters = input.type === "shop" ? checkCounters(s, old, input.counters) : 1;
+  // Receipt details and a shop's usual warehouse: left out keeps the saved value, blank clears it.
+  const keep = (v: string | undefined, was: string | undefined, max: number) => (v === undefined ? was : v.trim().slice(0, max) || undefined);
+  const receiptHeader = keep(input.receiptHeader, old?.receiptHeader, 120), hours = keep(input.hours, old?.hours, 120);
+  const taxPin = keep(input.taxPin?.toUpperCase(), old?.taxPin, 20);
+  const defaultWarehouse = input.type !== "shop" ? undefined : input.defaultWarehouse === undefined ? old?.defaultWarehouse : input.defaultWarehouse || undefined;
+  if (defaultWarehouse && !connected.includes(defaultWarehouse)) throw new ErpError("The usual warehouse must be one this shop is connected to");
   const placeType = input.type !== "shop" ? undefined : input.placeType === undefined ? old?.placeType : input.placeType.trim().slice(0, 80) || undefined;
-  const record: Location = { id: old?.id ?? uid(), name, code, type: input.type, address, phone, managerId, ...(connected.length ? { connected } : {}), ...(photos.length ? { photos } : {}), ...(logo ? { logo } : {}), ...(counters > 1 ? { counters } : {}), ...(placeType ? { placeType } : {}), createdAt: old?.createdAt || Date.now() };
+  const record: Location = { id: old?.id ?? uid(), name, code, type: input.type, address, phone, managerId, ...(connected.length ? { connected } : {}), ...(photos.length ? { photos } : {}), ...(logo ? { logo } : {}), ...(counters > 1 ? { counters } : {}), ...(placeType ? { placeType } : {}), ...(receiptHeader ? { receiptHeader } : {}), ...(hours ? { hours } : {}), ...(taxPin ? { taxPin } : {}), ...(defaultWarehouse ? { defaultWarehouse } : {}), createdAt: old?.createdAt || Date.now() };
   if (old?.active === false) record.active = false;
   // Kept on every save, so editing another business's location never moves it into the first business.
   if (business !== MAIN_BUSINESS) record.businessId = business;

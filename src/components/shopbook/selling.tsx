@@ -159,13 +159,17 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
   // The shop that made the sale prints its own phone (Business Setup › Phone); without one, the business number.
   const shopPhone = s.locations.find((l) => l.id === (sale.locationId ?? MAIN_LOCATION))?.phone?.trim();
   const cfg = readSettings(), phone = shopPhone || cfg.phone || store.get()?.phone || "";
+  // A location's own receipt heading, tax PIN and hours (Business Setup › Edit) come before the business's.
+  const here = s.locations.find((l) => l.id === (sale.locationId ?? MAIN_LOCATION));
+  const taxPin = here?.taxPin || cfg.taxPin, hours = here?.hours || cfg.hours;
   return (
     <div className="print-area receipt-paper mx-auto w-full max-w-xs rounded-xl p-4 font-mono text-[12px] leading-5">
       <p className="text-center text-sm font-bold">Zakrio Systems</p>
       <p className="text-center font-bold uppercase">{shop}</p>
       {phone && <p className="text-center">{tr("Tel")}: {phone}</p>}
-      {cfg.taxPin && <p className="text-center">{tr("PIN")}: {cfg.taxPin}</p>}
-      {cfg.hours && <p className="text-center">{cfg.hours}</p>}
+      {here?.receiptHeader && <p className="text-center">{here.receiptHeader}</p>}
+      {taxPin && <p className="text-center">{tr("PIN")}: {taxPin}</p>}
+      {hours && <p className="text-center">{hours}</p>}
       <div className="mt-2 border-t border-dashed border-current pt-2">
         <p>{printedRef(sale.ref)} • {tr("Till")}: {sale.channel === "POS" ? String(sale.counter ?? 1).padStart(2, "0") : "—"}</p>
         <p>{tr("Cashier")}: {sale.cashier}</p>

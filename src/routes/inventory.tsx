@@ -2310,18 +2310,22 @@ function SupplierReturnsScreen({ s, tr }: Ctx) {
 function NewTransferScreen({ s, tr, shop }: Ctx) {
   const [settings] = useSettings();
   const locations = inventoryLocations(s, shop, settings.branches);
+  // Restocking starts from the shop's usual warehouse (Business Setup › Edit) when it has one: from that warehouse to this shop.
+  const here = listLocations(s).find((l) => l.id === erp.activeShop(s));
+  const usual = here?.defaultWarehouse ? listLocations(s).find((l) => l.id === here.defaultWarehouse)?.name : undefined;
+  const startFrom = usual && here ? usual : shop, startTo = usual && here ? here.name : "";
   const [pid, setPid] = useState("");
   const [qty, setQty] = useState("");
-  const [from, setFrom] = useState(shop);
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(startFrom);
+  const [to, setTo] = useState(startTo);
   const [notes, setNotes] = useState("");
 
   const resetForm = () => {
     setQty("");
     setNotes("");
     setPid("");
-    setFrom(shop);
-    setTo("");
+    setFrom(startFrom);
+    setTo(startTo);
   };
 
   const submit = () => {

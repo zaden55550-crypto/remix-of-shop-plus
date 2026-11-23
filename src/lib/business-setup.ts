@@ -31,7 +31,13 @@ export type SetupRow = { key: string; savedId?: string | undefined; slotNumber?:
   /** The location's address (optional); left out keeps the saved one. */
   address?: string | undefined;
   /** This shop's or warehouse's own phone (optional), printed on its receipts instead of the business number; left out keeps the saved one. */
-  phone?: string | undefined };
+  phone?: string | undefined;
+  /** Per-location receipt details (owner, 2026-11-23): a heading line, opening hours and a tax PIN printed on this location's receipts
+   *  instead of the business's. Left out: the business's own. */
+  receiptHeader?: string | undefined; hours?: string | undefined; taxPin?: string | undefined;
+  /** A shop's usual warehouse: transfers and restocking start from it. Must be one of its connected warehouses. */
+  defaultWarehouse?: string | undefined;
+};
 /** A person added here. They become an employee record on activation; their login is invited from People & Access. */
 export type SetupUser = { key: string; name: string; phone: string; email: string; role: string; locations: string[];
   /** Counters this person may use, per shop row key; a shop left out (or an empty list) means any counter. */
@@ -93,7 +99,7 @@ export function loginSummary(
 
 /** Locations that exist now become the first rows, in their saved order; archived ones stay out of the table. */
 export function rowsFromRecords(s: ErpState): SetupRow[] {
-  return listLocations(s).filter((l) => l.active !== false).map((l, index) => ({ key: l.id, savedId: l.id, slotNumber: index + 1, type: l.type, name: l.name, code: l.id === MAIN_LOCATION && l.code === "MAIN" ? "" : l.code, ...(l.connected?.length ? { connected: [...l.connected] } : {}), ...(l.counters && l.counters > 1 ? { counters: l.counters } : {}), ...(l.placeType ? { placeType: l.placeType } : {}), ...(l.address ? { address: l.address } : {}), ...(l.phone ? { phone: l.phone } : {}) }));
+  return listLocations(s).filter((l) => l.active !== false).map((l, index) => ({ key: l.id, savedId: l.id, slotNumber: index + 1, type: l.type, name: l.name, code: l.id === MAIN_LOCATION && l.code === "MAIN" ? "" : l.code, ...(l.connected?.length ? { connected: [...l.connected] } : {}), ...(l.counters && l.counters > 1 ? { counters: l.counters } : {}), ...(l.placeType ? { placeType: l.placeType } : {}), ...(l.address ? { address: l.address } : {}), ...(l.phone ? { phone: l.phone } : {}), ...(l.receiptHeader ? { receiptHeader: l.receiptHeader } : {}), ...(l.hours ? { hours: l.hours } : {}), ...(l.taxPin ? { taxPin: l.taxPin } : {}), ...(l.defaultWarehouse ? { defaultWarehouse: l.defaultWarehouse } : {}) }));
 }
 
 /** Rows grow or shrink to the chosen number. New rows are shops with the next free number; trailing rows are removed,
@@ -210,7 +216,7 @@ export function activateSetup(d: SetupDraft) {
     const taken = [...listLocations(erp.load()).map((l) => l.code), ...liveRows(d.rows).map((r) => r.code.trim()).filter(Boolean)];
     const live = liveRows(d.rows).sort((a, b) => (a.slotNumber ?? 0) - (b.slotNumber ?? 0)).map((r) => { if (r.code.trim()) return r; const code = suggestCode(r.type, taken); taken.push(code); return { ...r, code }; });
     for (const r of live) {
-      const saved = saveLocation({ id: r.savedId, name: r.name, code: r.code, type: r.type, photos: r.photos, logo: r.logo, ...(r.type === "shop" && r.counters !== undefined ? { counters: r.counters } : {}), ...(r.type === "shop" && r.placeType ? { placeType: r.placeType } : {}), ...(r.address !== undefined ? { address: r.address } : {}), ...(r.phone !== undefined ? { phone: r.phone.trim() || undefined } : {}) });
+      const saved = saveLocation({ id: r.savedId, name: r.name, code: r.code, type: r.type, photos: r.photos, logo: r.logo, ...(r.type === "shop" && r.counters !== undefined ? { counters: r.counters } : {}), ...(r.type === "shop" && r.placeType ? { placeType: r.placeType } : {}), ...(r.address !== undefined ? { address: r.address } : {}), ...(r.phone !== undefined ? { phone: r.phone.trim() || undefined } : {}), ...(r.receiptHeader !== undefined ? { receiptHeader: r.receiptHeader } : {}), ...(r.hours !== undefined ? { hours: r.hours } : {}), ...(r.taxPin !== undefined ? { taxPin: r.taxPin } : {}) });
       map[r.key] = saved.id;
     }
     // Connections need every warehouse saved first. They are shops' viewing rights only: no stock moves and no slot is used.
@@ -219,7 +225,10 @@ export function activateSetup(d: SetupDraft) {
       const want = (r.connected ?? []).map((k) => map[k] ?? k).filter((id) => listLocations(s).some((l) => l.id === id && isStorageLocation(l) && l.active !== false));
       const loc = listLocations(s).find((l) => l.id === map[r.key])!;
       const now = loc.connected ?? [];
-      if (want.length !== now.length || want.some((id) => !now.includes(id))) saveLocation({ id: loc.id, name: loc.name, code: loc.code, type: loc.type, address: loc.address, phone: loc.phone, managerId: loc.managerId, connected: want });
+      // The usual warehouse (suggestion 4) must be one of the shop's connections; otherwise it is cleared.
+      const usualRaw = r.defaultWarehouse ? map[r.defaultWarehouse] ?? r.defaultWarehouse : "";
+      const usual = usualRaw && want.includes(usualRaw) ? usualRaw : "";
+      if (want.length !== now.length || want.some((id) => !now.includes(id)) || usual !== (loc.defaultWarehouse ?? "")) saveLocation({ id: loc.id, name: loc.name, code: loc.code, type: loc.type, address: loc.address, phone: loc.phone, managerId: loc.managerId, connected: want, defaultWarehouse: usual });
     }
     for (const u of d.users) {
       const locationIds = u.locations.map((k) => map[k]).filter((x): x is string => !!x);

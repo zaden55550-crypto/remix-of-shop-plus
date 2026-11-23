@@ -159,6 +159,11 @@ function LinkResult({ issued, name, onClose, tr }: { issued: IssuedLink; name: s
       : <p className="settings-note" role="alert"><b>{tr("Not sent.")}</b> {tr(issued.delivery.error ?? "No provider is configured")}. {tr("Copy this link and give it to")} {name} {tr("yourself.")}</p>}
     <label className="inventory-field"><span>{tr("Link: works once")}</span><input className="inventory-input" readOnly value={issued.link} onFocus={(e) => e.target.select()} /></label>
     <p className="pw-note">{tr("Expires")} {when(issued.expiresAt)}. {tr("For safety this link is shown only now and isn't stored. If it is lost, generate a new one.")}</p>
+    {/* Suggestion 7: send the link by WhatsApp or SMS from this phone's own apps (no paid provider needed). */}
+    <div className="pw-share">
+      <a className="pw-btn is-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(`${tr("You're invited to join our business on Zakrio Systems. Open this link to set up your login (it works once):")} ${issued.link}`)}`} target="_blank" rel="noopener">{tr("Send by WhatsApp")}</a>
+      <a className="pw-btn is-sms" href={`sms:?&body=${encodeURIComponent(`${tr("You're invited to join our business on Zakrio Systems. Open this link to set up your login (it works once):")} ${issued.link}`)}`}>{tr("Send by SMS")}</a>
+    </div>
     <div className="pw-foot"><span /><span className="pw-foot-right"><button type="button" className="pw-btn" onClick={() => void copy(issued.link, tr)}>{tr("Copy invitation link")}</button><button type="button" className="pw-btn is-primary" onClick={onClose}>{tr("Done")}</button></span></div>
   </div></GlassPage>;
 }

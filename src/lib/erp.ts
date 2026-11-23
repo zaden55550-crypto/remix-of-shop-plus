@@ -61,7 +61,13 @@ export type Location = AtBusiness & { id: string; name: string; code: string; ty
   /** A shop's tills (Counter 1…N), within the plan's counter allowance (`counterLimit`, shopbook.ts). Left out: one counter. */
   counters?: number | undefined;
   /** Which of the business's types this shop is (Supermarket, Butchery…), chosen on Business Setup. Display only; left out: the main type. */
-  placeType?: string | undefined };
+  placeType?: string | undefined;
+  /** Per-location receipt details (owner, 2026-11-23): a heading line, opening hours and a tax PIN printed on this location's receipts
+   *  instead of the business's. Left out: the business's own. */
+  receiptHeader?: string | undefined; hours?: string | undefined; taxPin?: string | undefined;
+  /** A shop's usual warehouse: transfers and restocking start from it. Must be one of its connected warehouses. */
+  defaultWarehouse?: string | undefined;
+};
 /** The till a sale, payment, cash event or return happened at. Left out: counter 1, so a one-counter shop's records never change. */
 export type AtCounter = { counter?: number | undefined };
 /** One business the owner runs. The first has the fixed id `biz-main`, like the default units, so older records need no conversion.

@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Building2, Camera, ChevronDown, CircleCheck, Crown, FileText, ImagePlus, Info, MoreHorizontal, Paperclip, Pencil, Plus, Save, ShieldCheck, Store, Trash2, Upload, UserPlus, Users, Warehouse } from "lucide-react";
+import { History, Building2, Camera, ChevronDown, CircleCheck, Crown, FileText, ImagePlus, Info, MoreHorizontal, Paperclip, Pencil, Plus, Save, ShieldCheck, Store, Trash2, Upload, UserPlus, Users, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
@@ -22,6 +22,9 @@ import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
 import { applyCountryDefaults, type ReadyStep } from "@/lib/ready-setup";
+import { LOCATIONS_TEMPLATE, counterHardware, locationsFromSheets, saveCounterHardware, setupHistory, type CounterHardware } from "@/lib/setup-extras";
+import { readSheets } from "@/lib/opening-import";
+import { PrintPreview } from "@/components/shopbook/print";
 import { DOC_MAX_BYTES, DOC_MAX_COUNT, backupDocument, deleteDocument, formatSize, listCloudDocuments, openDocument, putDocument, removeDocumentCopy } from "@/lib/doc-store";
 import { rolePreview } from "@/lib/role-preview";
 import { currentFeatures, placeName, sellingPlaceName, type Features } from "@/lib/trade-features";
@@ -205,6 +208,27 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     if (live.length >= plan.locations) return;
     set({ rows: [...d.rows, { key: newKey(), slotNumber: slot, type, name: "", code: "", ...(placeType ? { placeType } : {}) }] });
   };
+  // Suggestion 3: many locations at once from a CSV or Excel sheet, into the free places of the plan. Nothing is saved until Activate.
+  const sheetInput = useRef<HTMLInputElement>(null);
+  const addFromSheet = async (files: FileList | null) => {
+    const list = Array.from(files ?? []);
+    if (!list.length) return;
+    try {
+      const { lines, skipped } = locationsFromSheets(await readSheets(list));
+      const free = plan.locations - live.length;
+      if (!lines.length) { toast.error(tr("No locations found. Use the columns Type, Name, Phone, Number, Address")); return; }
+      const occupied = new Set(live.map((x, i) => x.slotNumber ?? i + 1));
+      const added: SetupRow[] = [];
+      for (const l of lines.slice(0, Math.max(0, free))) {
+        let slot = 1; while (occupied.has(slot)) slot++; occupied.add(slot);
+        added.push({ key: newKey(), slotNumber: slot, type: l.type, name: l.name, code: l.code, ...(l.phone ? { phone: l.phone } : {}), ...(l.address ? { address: l.address } : {}), ...(l.counters ? { counters: l.counters } : {}) });
+      }
+      if (added.length) set({ rows: [...d.rows, ...added] });
+      const left = lines.length - added.length;
+      toast.success(`${added.length} ${tr(added.length === 1 ? "location added" : "locations added")}`, { description: [left > 0 ? `${left} ${tr("didn't fit your plan")}` : "", skipped ? `${skipped} ${tr("rows without a name were skipped")}` : ""].filter(Boolean).join(" · ") || undefined });
+    } catch (e) { toast.error(tr(e instanceof Error ? e.message : "That file could not be read")); }
+  };
+  const [historyOpen, setHistoryOpen] = useState(false);
   const addRow = (type: "shop" | "store") => {
     if (live.length >= plan.locations) return;
     const occupied = new Set(live.map((r, index) => r.slotNumber ?? index + 1));
@@ -342,7 +366,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   // New ones come from Add Shop / Add Warehouse; with none at all, the first empty slot shows so a type can be chosen.
   const filledSlots = tableSlots.filter((x) => x.r);
   const shownSlots = filledSlots.length ? filledSlots : tableSlots.slice(0, 1);
-  const panels = shownSlots.length <= 5 ? [shownSlots] : [shownSlots.slice(0, 5), [...shownSlots.slice(5), ...tableSlots.filter((x) => !x.r).slice(0, Math.max(0, 5 - shownSlots.slice(5).length))].slice(0, 5)];
+  // Two glass panels, Locations 1–5 and 6–10 (owner, 2026-11-23): every place the plan allows, real ones filled in, free ones ready to use.
+  const panels = [tableSlots.slice(0, 5), tableSlots.slice(5, 10)].filter((g) => g.length);
   const links = live.filter(isStorage).map((w) => ({ w, shops: live.filter((r) => r.type === "shop" && r.connected?.includes(w.key)) })).filter((x) => x.shops.length);
   const placeName = (k: string) => { const r = live.find((x) => x.key === k); return r ? r.name || r.code : ""; };
   const savedPlaceName = (id: string) => live.find((r) => r.savedId === id)?.name || records.find((l) => l.id === id)?.name || "";
@@ -429,6 +454,14 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       </div>
     </section>
     {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => { setReadyOpen(false); setReadyStart(undefined); }}><ReadyToSell s={s} start={readyStart} onClose={() => { setReadyOpen(false); setReadyStart(undefined); }} /></GlassPage>}
+    {historyOpen && <GlassPage label={tr("Setup history")} onClose={() => setHistoryOpen(false)}>
+      <div className="inventory-box dash-panel bsetup-docs-page">
+        <div className="feature-panel-head"><h3>{tr("Setup history")}</h3><ShopButton variant="outline" onClick={() => setHistoryOpen(false)}>{tr("Done")}</ShopButton></div>
+        <p className="settings-note">{tr("Locations, numbering, staff PINs, opening balances and other setup changes, newest first. Changes you haven't activated yet are not listed.")}</p>
+        {setupHistory(s).length ? <ul className="bsetup-docs-list">{setupHistory(s).map((a) => <li key={a.id} className="bsetup-history-row"><span><b>{tr(a.action)}</b><small>{a.detail}</small></span><span className="bsetup-history-when"><b>{a.user}</b><small>{new Date(a.at).toLocaleString("en-GB")}</small></span></li>)}</ul> : <p className="settings-note">{tr("Nothing yet. Changes appear here once you activate.")}</p>}
+        <a className="bsetup-template-link" href={`data:text/csv;charset=utf-8,${encodeURIComponent(LOCATIONS_TEMPLATE)}`} download="zakrio-systems-locations-template.csv">{tr("Download the locations sheet template")}</a>
+      </div>
+    </GlassPage>}
     {docsOpen && <GlassPage label={tr("Business Documents")} onClose={() => setDocsOpen(false)}>
       <div className="inventory-box dash-panel bsetup-docs-page">
         <div className="feature-panel-head"><h3>{tr("Business Documents")} · {d.businessDocuments?.length ?? 0}</h3><ShopButton variant="outline" onClick={() => setDocsOpen(false)}>{tr("Done")}</ShopButton></div>
@@ -445,7 +478,11 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       <header className="bsetup-strip">
         <button type="button" className="bsetup-import-other" title={tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")} onClick={() => { setReadyStart("move"); setReadyOpen(true); }}><Upload aria-hidden /> {tr("Import System")}</button>
         <span className="bsetup-strip-count">{counts.shops} {tr(counts.shops === 1 ? "shop" : "shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
-        {!full && <span className="bsetup-add">{NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus aria-hidden /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
+        <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
+        {!full && <span className="bsetup-add">
+          <button type="button" className="bsetup-add-btn is-sheet" title={tr("Add many shops and warehouses from a CSV or Excel sheet (Type, Name, Phone, Number, Address)")} onClick={() => sheetInput.current?.click()}><FileText aria-hidden /> {tr("From sheet")}</button>
+          {NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus aria-hidden /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
+        <button type="button" className="bsetup-history-btn" title={tr("Who changed what in setup")} onClick={() => setHistoryOpen(true)}><History aria-hidden /> {tr("History")}</button>
         <span className="bsetup-strip-summary" role="group" aria-label={tr("Plan Usage & Summary")}>
         <span className={cn("bsetup-strip-usage", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
           <span>{tr("Accounts")} <b>{logins.used}/{logins.total}</b></span><span>{tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span><span>{tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span><span>{tr("Sites")} <b>{live.length}/{plan.locations}</b></span><span><b>{Math.max(0, plan.locations - live.length)}</b> {tr("remaining")}</span>
@@ -850,6 +887,19 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
   const [name, setName] = useState(r.name), [code, setCode] = useState(r.code);
   const [counters, setCounters] = useState(String(r.counters ?? 1));
   const [address, setAddress] = useState(r.address ?? ""), [phone, setPhone] = useState(r.phone ?? "");
+  // This location's own receipt heading, hours and tax PIN (empty: the business's), and a shop's usual warehouse.
+  const [receiptHeader, setReceiptHeader] = useState(r.receiptHeader ?? ""), [hours, setHours] = useState(r.hours ?? ""), [taxPin, setTaxPin] = useState(r.taxPin ?? "");
+  const [usual, setUsual] = useState(r.defaultWarehouse ?? "");
+  /** Copies another location's settings into this one (counters, hours, receipt heading, tax PIN, connections, usual warehouse). */
+  const copyFrom = (key: string) => {
+    const o = rows.find((x) => x.key === key);
+    if (!o) return;
+    if (o.hours) setHours(o.hours);
+    if (o.receiptHeader) setReceiptHeader(o.receiptHeader);
+    if (o.taxPin) setTaxPin(o.taxPin);
+    if (r.type === "shop" && o.type === "shop") { if (o.counters && counterMax > 0) setCounters(String(Math.min(o.counters, counterMax))); setLinks(o.connected ?? []); setUsual(o.defaultWarehouse ?? ""); }
+    toast.success(`${tr("Copied from")} ${o.name || tr(placeOf(o))}`);
+  };
   const shops = rows.filter((x) => x.type === "shop" && x.key !== r.key), storage = rows.filter((x) => isStorage(x) && x.key !== r.key);
   const [links, setLinks] = useState<string[]>(() => (r.type === "shop" ? r.connected ?? [] : shops.filter((x) => x.connected?.includes(r.key)).map((x) => x.key)));
   // People added on this page who already work here, ticked on or off for this site only. Their other sites are left as they are.
@@ -877,7 +927,7 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
   const save = (extra?: SetupUser) => {
     const n = Number(counters);
     if (r.type === "shop" && counterMax > 0 && (!Number.isInteger(n) || n < 1 || n > counterMax)) { toast.error(counterMax === 1 ? tr("Your plan allows 1 counter. Upgrade your plan to add counters") : tr("Enter a number of counters from 1 to {x}", String(counterMax))); return; }
-    const me: SetupRow = { ...r, name, code: finalCode, address, phone: phone.trim() || undefined, ...(r.type === "shop" ? { connected: links, ...(counterMax > 0 ? { counters: n } : {}) } : {}) };
+    const me: SetupRow = { ...r, name, code: finalCode, address, phone: phone.trim() || undefined, receiptHeader, hours, taxPin: taxPin.trim().toUpperCase(), ...(r.type === "shop" ? { defaultWarehouse: usual && links.includes(usual) ? usual : undefined } : {}), ...(r.type === "shop" ? { connected: links, ...(counterMax > 0 ? { counters: n } : {}) } : {}) };
     // From a warehouse: add or remove it on each shop's list.
     const changed = r.type === "shop" ? [] : shops.map((x) => ({ ...x, connected: links.includes(x.key) ? [...new Set([...(x.connected ?? []), r.key])] : (x.connected ?? []).filter((k) => k !== r.key) }));
     const nextUsers = users.map((p) => { const on = here.includes(p.key), has = p.locations.includes(r.key); return on === has ? p : { ...p, locations: on ? [...p.locations, r.key] : p.locations.filter((k) => k !== r.key) }; });
@@ -920,9 +970,27 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
         <label className="bsetup-field bsetup-ed-number"><span>{tr("Number")}</span><input ref={codeRef} id={`bsetup-code-edit-${r.key}`} className="inventory-input" aria-invalid={!!codeProblem} value={code} placeholder={placeholder} onChange={(e) => setCode(e.target.value.toUpperCase())} /></label>
         {r.type === "shop" && counterMax > 0 && <label className="bsetup-field bsetup-ed-number" title={tr("Tills in this shop, each with its own cash drawer")}><span>{tr("Counters")} <small>(≤ {counterMax})</small></span><input className="inventory-input" type="number" inputMode="numeric" min={1} max={counterMax} step={1} value={counters} onChange={(e) => setCounters(e.target.value)} /></label>}
       </div>
+      {rows.some((x) => x.key !== r.key && x.name.trim()) && <label className="bsetup-field bsetup-ed-copy"><span>{tr("Copy settings from")}</span>
+        <select className="inventory-input" value="" onChange={(e) => copyFrom(e.target.value)}>
+          <option value="">{tr("Choose a location…")}</option>
+          {rows.filter((x) => x.key !== r.key && x.name.trim()).map((x) => <option key={x.key} value={x.key}>{x.name} · {tr(placeOf(x))}</option>)}
+        </select>
+      </label>}
+      <div className="bsetup-ed-receipt">
+        <label className="bsetup-field"><span>{tr("Receipt heading")} <small>({tr("Optional")})</small></span><input className="inventory-input" value={receiptHeader} maxLength={120} onChange={(e) => setReceiptHeader(e.target.value)} placeholder={tr("e.g. Westlands Branch")} /></label>
+        <label className="bsetup-field"><span>{tr("Opening hours")} <small>({tr("Optional")})</small></span><input className="inventory-input" value={hours} maxLength={120} onChange={(e) => setHours(e.target.value)} placeholder={tr("Mon–Sat 8am–8pm")} /></label>
+        <label className="bsetup-field"><span>{tr("Tax PIN")} <small>({tr("Optional")})</small></span><input className="inventory-input" value={taxPin} maxLength={20} onChange={(e) => setTaxPin(e.target.value.toUpperCase())} placeholder={tr("Empty: the business's")} /></label>
+      </div>
+      {r.type === "shop" && links.length > 0 && <label className="bsetup-field bsetup-ed-usual"><span>{tr("Usual warehouse")} <small>({tr("restocking starts here")})</small></span>
+        <select className="inventory-input" value={usual} onChange={(e) => setUsual(e.target.value)}>
+          <option value="">{tr("None")}</option>
+          {rows.filter((x) => links.includes(x.key)).map((x) => <option key={x.key} value={x.key}>{x.name || tr(placeOf(x))}</option>)}
+        </select>
+      </label>}
       <label className="bsetup-field bsetup-ed-phone"><span>{tr("Phone")} <small>({tr("Optional")})</small></span>
         <input className="inventory-input" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={tr("Printed on this location's receipts")} />
       </label>
+      {r.type === "shop" && r.savedId && <CounterHardwareRows tr={tr} shop={r.savedId} count={Math.max(1, Number(counters) || 1)} />}
       <div className="bsetup-ed-access" role="group" aria-label={tr("Users and access for this location")}>
         <button type="button" className="bsetup-co-btn is-users" onClick={onAssignUsers}><Users aria-hidden /> {tr("Assign Users")}</button>
         <button type="button" className="bsetup-co-btn is-users" onClick={onManageUsers}><Users aria-hidden /> {tr("Manage Users")}</button>
@@ -1075,3 +1143,31 @@ function ManageUsers({ tr, owner, site, siteName, people, users, others = [], pl
 
 /** The import center from Settings, limited to products or opening stock. Stock goes to the location chosen here. */
 
+/** Suggestion 5: each counter's receipt printer, barcode scanner and cash drawer, kept on this device, with a test print. A browser
+ *  can't open a drawer by itself: drawers wired to the receipt printer open through the printer's own "open drawer" setting. */
+function CounterHardwareRows({ tr, shop, count }: { tr: Tr; shop: string; count: number }) {
+  const [hw, setHw] = useState(() => Array.from({ length: count }, (_, i) => counterHardware(shop, i + 1)));
+  const [testing, setTesting] = useState<number | null>(null);
+  // The counter count can change while the window is open: rows follow it, each with its saved hardware.
+  const list = Array.from({ length: count }, (_, i) => hw[i] ?? counterHardware(shop, i + 1));
+  const change = (i: number, p: Partial<CounterHardware>) => { const next = list.map((h, j) => (j === i ? { ...h, ...p } : h)); setHw(next); saveCounterHardware(shop, i + 1, next[i]!); };
+  return <div className="bsetup-ed-hardware">
+    <span className="bsetup-ed-hardware-title">{tr("Counters & hardware")} <small>({tr("this device")})</small></span>
+    {list.map((h, i) => <div key={i} className="bsetup-ed-hardware-row">
+      <b>{tr("Counter")} {i + 1}</b>
+      <select className="inventory-input" aria-label={`${tr("Receipt printer")} · ${tr("Counter")} ${i + 1}`} value={h.printer} onChange={(e) => change(i, { printer: e.target.value as CounterHardware["printer"] })}>
+        <option value="none">{tr("No printer")}</option><option value="58mm">58 mm</option><option value="80mm">80 mm</option><option value="A4">A4</option>
+      </select>
+      <label className="feature-check"><input type="checkbox" checked={h.scanner} onChange={(e) => change(i, { scanner: e.target.checked })} /> {tr("Scanner")}</label>
+      <label className="feature-check"><input type="checkbox" checked={h.drawer} onChange={(e) => change(i, { drawer: e.target.checked })} /> {tr("Cash drawer")}</label>
+      <button type="button" className="bsetup-co-btn is-owner" disabled={h.printer === "none"} onClick={() => setTesting(i + 1)}>{tr("Test print")}</button>
+    </div>)}
+    {testing && <PrintPreview title={tr("Test print")} onClose={() => setTesting(null)}>
+      <div className="receipt-paper mx-auto p-4 font-mono text-[12px]" style={{ width: list[testing - 1]?.printer === "58mm" ? "48mm" : list[testing - 1]?.printer === "A4" ? "180mm" : "72mm" }}>
+        <p className="text-center font-bold">ZAKRIO SYSTEMS</p><p className="text-center">{tr("Test print")} · {tr("Counter")} {testing}</p>
+        <p className="text-center">{new Date().toLocaleString("en-GB")}</p><p className="text-center">--------------------------------</p>
+        <p className="text-center">{tr("If you can read this line, the printer works.")}</p>
+      </div>
+    </PrintPreview>}
+  </div>;
+}
