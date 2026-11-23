@@ -25825,3 +25825,35 @@ html.dark .bsetup {
 .print-area .label, .label { min-width: 0; overflow: hidden; }
 :root:root:root .print-area svg.label-bars, :root:root:root .label svg.label-bars { display: block !important; width: 100% !important; height: 38px !important; }
 @media print { :root:root:root svg.label-bars { display: block !important; } .label-sheet { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }
+
+/* ===== ONE PAGE (owner, 2026-11-23; src/lib/one-page.ts): Log In, Create Account, Plans and Setup never scroll ===== */
+/* The root zoom (1.08) made the body's 100% min-height taller than the screen on Setup; the page sizes itself instead. */
+:root:root body.on-setup { min-height: 0 !important; }
+html:has(body.on-setup) { overflow: hidden; }
+/* Smaller laptops: the green Activate already says what step 4 does, so its step chip goes. */
+@media (min-width: 1100px) and (max-width: 1599.98px) {
+  :root:root:root:root .bsetup .bsetup-steps > li:last-child { display: none !important; }
+  :root:root:root:root .bsetup .voice-guide { width: 30px; height: 30px; }
+}
+.turn-sideways { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 60px;
+  background: linear-gradient(160deg, #0f2a4f, #1e3a8a); color: #fff; text-align: center; }
+.turn-sideways svg { width: 180px; height: 180px; color: #34d399; animation: rotate-hint 2.4s ease-in-out infinite; }
+.turn-sideways b { font-size: 84px; line-height: 1.1; }
+.turn-sideways span { font-size: 52px; line-height: 1.35; opacity: 0.92; max-width: 1000px; }
+@media (max-width: 700px) { .turn-sideways svg { width: 72px; height: 72px; } .turn-sideways b { font-size: 30px; } .turn-sideways span { font-size: 19px; } }
+/* ===== END ONE PAGE ===== */
+/* Same on Log In, Create Account and Plans: the root zoom must not make the body taller than the screen. */
+:root:root body:has(.auth-split-page, .plans-page, .bsetup-page) { min-height: 0 !important; }
+html:has(.auth-split-page, .plans-page, .bsetup-page) { overflow: hidden; }
+/* Ready to sell on one page (owner, 2026-11-23): step names in a column on the left, the open step on the right. */
+@media (min-width: 700px) {
+  :root:root:root .ready-sell { width: min(86rem, 94vw) !important; }
+  :root:root:root .ready-sell .ready-count { display: none; }
+  :root:root:root .ready-sell .ready-steps { display: grid !important; grid-template-columns: minmax(15rem, 0.75fr) minmax(0, 1.7fr); grid-auto-rows: auto; column-gap: 14px; row-gap: 4px; align-items: start; }
+  :root:root:root .ready-sell .ready-step { display: contents !important; }
+  :root:root:root .ready-sell .ready-step-head { grid-column: 1; min-height: 0 !important; padding-block: 5px !important; border-radius: 10px; border: 1px solid rgb(190 215 255 / 0.25); }
+  :root:root:root .ready-sell .ready-step.is-open > .ready-step-head { border-color: #10b981; background: rgb(16 185 129 / 0.16); }
+  :root:root:root .ready-sell .ready-step-text small { display: none; }
+  :root:root:root .ready-sell .ready-step-chev { transform: rotate(-90deg); }
+  :root:root:root .ready-sell .ready-step-body { grid-column: 2; grid-row: 1 / span 12; align-self: stretch; margin: 0 !important; padding: 12px 14px !important; border-radius: 14px; border: 1px solid rgb(190 215 255 / 0.3); background: rgb(255 255 255 / 0.04); }
+}
