@@ -513,7 +513,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <span className={cn("bsetup-strip-usage", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
           <span>{tr("Accounts")} <b>{logins.used}/{logins.total}</b></span><span>{tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span><span>{tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span><span>{tr("Sites")} <b>{live.length}/{plan.locations}</b></span>{features.counters && <span>{tr("Counters")} <b>{countersUsed}/{plan.countersPerShop ? `${plan.counters} ${tr("each")}` : plan.counters}</b></span>}<span><b>{Math.max(0, plan.locations - live.length)}</b> {tr("remaining")}</span>
         </span>
-        <span className="bsetup-strip-plan"><Crown aria-hidden /> <b>{plan.name}</b> · {trial ? <>{tr("Free trial")} · </> : null}<b>${price.amount}{tr(price.period === "year" ? "/yr" : "/mo")}</b><button type="button" className="bsetup-info" aria-label={tr("How plan limits work")} title={tr("How plan limits work")} onClick={() => setInfo(true)}><Info /></button></span>
+        <span className="bsetup-strip-plan bsetup-plan-card"><Crown aria-hidden /><span className="bsetup-plan-card-name"><small>{trial ? tr("Free trial") : tr("Your plan")}</small><b>{plan.name}</b></span><b className="bsetup-plan-card-price">${price.amount}{tr(price.period === "year" ? "/yr" : "/mo")}</b><button type="button" className="bsetup-info" aria-label={tr("How plan limits work")} title={tr("How plan limits work")} onClick={() => setInfo(true)}><Info /></button></span>
         </span>
       </header>
       {/* Locations 1-5, and 6-10 beside them once there are more than five (the second panel also shows the plan's free places). */}
@@ -522,6 +522,11 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
           <div className="bsetup-panel-head" role="row"><b role="columnheader">{panels.length === 1 ? tr("Locations") : `${tr("Locations")} ${gi * 5 + 1}–${gi * 5 + group.length}`}</b>{features.counters && <span role="columnheader" className="is-counters">{tr("Counters")}</span>}<span role="columnheader" className="is-phone">{tr("Phone")}</span><span role="columnheader" className="is-code">{tr("No.")}</span></div>
           {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} placeholder={suggestedCode(r)} counterMax={counterMax(r)} showCounters={features.counters} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onEdit={() => setEditingRow({ key: r.key })} onRemove={() => removeRow(r)} />
             : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} showCounters={features.counters} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
+          {group.length < 5 && (gi === panels.length - 1) && <div className="bsetup-add-slot" style={{ gridRow: `span ${5 - group.length}` }}>
+            {full ? <span>{tr("All your plan's locations are in use")}</span> : <>
+              {NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-slot-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus aria-hidden /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}
+              <small>{Math.max(0, plan.locations - live.length)} {tr("remaining")}</small></>}
+          </div>}
         </div>)}
       </div>
       {problems.filter((p) => p.key && (p.field === "name" || p.field === "code" || p.field === "phone")).slice(0, 3).map((p) => <p key={p.key! + p.field} role="alert" className="bsetup-problem">{tr("Entry")} {live.find((r) => r.key === p.key)?.slotNumber ?? live.findIndex((r) => r.key === p.key) + 1}: {tr(p.message)}</p>)}
@@ -1019,20 +1024,12 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
       <label className="bsetup-field bsetup-ed-phone"><span>{tr("Phone")} <small>({tr("Optional")})</small></span>
         <input className="inventory-input" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={tr("Printed on this location's receipts")} />
       </label>
-      {r.type === "shop" && r.savedId && <CounterHardwareRows tr={tr} shop={r.savedId} count={Math.max(1, Number(counters) || 1)} />}
-      <div className="bsetup-ed-access" role="group" aria-label={tr("Users and access for this location")}>
-        <button type="button" className="bsetup-co-btn is-users" onClick={onAssignUsers}><Users aria-hidden /> {tr("Assign Users")}</button>
-        <button type="button" className="bsetup-co-btn is-users" onClick={onManageUsers}><Users aria-hidden /> {tr("Manage Users")}</button>
-        <button type="button" className="bsetup-co-btn is-access" onClick={onManageAccess}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
-      </div>
       <label className="bsetup-field bsetup-ed-address"><span>{tr("Address")} <small>({tr("Optional")})</small></span>
         <input className="inventory-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={tr("Street, building, town")} maxLength={160} />
       </label>
       {!code.trim() && !r.savedId && <p className="bsetup-note">{tr("No number typed. {x} is given on activation; type another to choose your own.", placeholder)}</p>}
       {codeProblem && <p role="alert" className="bsetup-problem">{tr(codeProblem)}</p>}
 
-      {choices.length > 0 && <SitePicks tr={tr} five rows={rows} list={choices} chosen={links} legend={tr(r.type === "shop" ? "Warehouses this shop can view" : "Shops that can view this stock")}
-        onToggle={(k, on) => setLinks(on ? [...links, k] : links.filter((x) => x !== k))} />}
       </div>
 
       <section className="bsetup-editor-sec bsetup-editor-col" aria-labelledby={`${titleId}-users`}>
@@ -1069,6 +1066,15 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
         {(typed || inv.locked) && <p className="bsetup-note">{tr("Send Invitation emails {x} now", u.email.trim() || "—")} · {tr("Business")}: {business || "—"}. {tr("Each person counts once, whatever sites they are assigned to.")}</p>}
         <InviteOutcome tr={tr} inv={inv} email={u.email.trim()} onConnect={() => { const x = checkUser(tr, u, places, current, takenEmails); if (x) onConnect(x); }} />
         {sentTo && <p role="status" className="bsetup-sent">{tr("Invitation sent")} · {sentTo} · {tr("Pending acceptance")}<small> · {tr("The email provider accepted the message; that doesn't yet mean it reached the inbox or was accepted.")}</small></p>}
+        {/* Round 14: links, counters & hardware and access buttons sit here so the window fits a laptop without scrolling. */}
+        {choices.length > 0 && <SitePicks tr={tr} five rows={rows} list={choices} chosen={links} legend={tr(r.type === "shop" ? "Warehouses this shop can view" : "Shops that can view this stock")}
+          onToggle={(k, on) => setLinks(on ? [...links, k] : links.filter((x) => x !== k))} />}
+        {r.type === "shop" && r.savedId && <CounterHardwareRows tr={tr} shop={r.savedId} count={Math.max(1, Number(counters) || 1)} />}
+        <div className="bsetup-ed-access" role="group" aria-label={tr("Users and access for this location")}>
+          <button type="button" className="bsetup-co-btn is-users" onClick={onAssignUsers}><Users aria-hidden /> {tr("Assign Users")}</button>
+          <button type="button" className="bsetup-co-btn is-users" onClick={onManageUsers}><Users aria-hidden /> {tr("Manage Users")}</button>
+          <button type="button" className="bsetup-co-btn is-access" onClick={onManageAccess}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
+        </div>
       </section>
       </div>
 
