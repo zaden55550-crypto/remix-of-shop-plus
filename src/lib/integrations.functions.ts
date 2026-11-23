@@ -6,6 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
+import { stkPush, stkQuery } from "@/lib/daraja";
 
 type Untyped = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>; from: (t: string) => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 const untyped = (c: unknown) => c as Untyped;
@@ -46,25 +47,10 @@ export const mpesaStkPush = createServerFn({ method: "POST" })
   .inputValidator((v) => z.object({ amount: z.number().positive().max(250000), phone: z.string().min(9).max(20), reference: z.string().min(1).max(12), origin: z.string().url() }).parse(v))
   .handler(async ({ data, context }) => {
     const owner = context.userId, cfg = await configOf(owner, "mpesa");
-    if (!cfg["consumerKey"] || !cfg["consumerSecret"] || !cfg["shortcode"] || !cfg["passkey"]) throw new Error("Fill in every M-Pesa field first");
-    const host = cfg["environment"] === "live" ? "https://api.safaricom.co.ke" : "https://sandbox.safaricom.co.ke";
-    const tok = await fetch(`${host}/oauth/v1/generate?grant_type=client_credentials`, { headers: { Authorization: `Basic ${btoa(`${cfg["consumerKey"]}:${cfg["consumerSecret"]}`)}` } });
-    if (!tok.ok) throw new Error("M-Pesa refused the Consumer Key or Secret");
-    const token = ((await tok.json()) as { access_token?: string }).access_token;
-    const d = new Date(), pad = (n: number) => String(n).padStart(2, "0");
-    const timestamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-    const till = cfg["type"] === "till", phone = intlPhone(data.phone);
-    const res = await fetch(`${host}/mpesa/stkpush/v1/processrequest`, { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({
-      BusinessShortCode: cfg["shortcode"], Password: btoa(`${cfg["shortcode"]}${cfg["passkey"]}${timestamp}`), Timestamp: timestamp,
-      TransactionType: till ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline", Amount: Math.round(data.amount), PartyA: phone,
-      PartyB: till ? (cfg["till"] || cfg["shortcode"]) : cfg["shortcode"], PhoneNumber: phone,
-      CallBackURL: `${data.origin.replace(/\/$/, "")}/api/mpesa-callback?o=${owner}`, AccountReference: data.reference, TransactionDesc: data.reference,
-    }) });
-    const body = (await res.json().catch(() => ({}))) as { CheckoutRequestID?: string; MerchantRequestID?: string; ResponseCode?: string; errorMessage?: string; CustomerMessage?: string };
-    if (!res.ok || body.ResponseCode !== "0" || !body.CheckoutRequestID) throw new Error(body.errorMessage || "M-Pesa didn't accept the request");
-    const ins = await (await admin()).from("mpesa_payments").insert({ owner_id: owner, checkout_request_id: body.CheckoutRequestID, merchant_request_id: body.MerchantRequestID, amount: data.amount, phone, reference: data.reference });
+    const r = await stkPush(cfg, { amount: data.amount, phone: data.phone, reference: data.reference, callbackUrl: `${data.origin.replace(/\/$/, "")}/api/mpesa-callback?o=${owner}` });
+    const ins = await (await admin()).from("mpesa_payments").insert({ owner_id: owner, checkout_request_id: r.checkoutRequestId, merchant_request_id: r.merchantRequestId, amount: data.amount, phone: r.phone, reference: data.reference });
     if (ins.error) throw new Error(notReady(ins.error.message));
-    return { checkoutRequestId: body.CheckoutRequestID, message: body.CustomerMessage ?? "" };
+    return { checkoutRequestId: r.checkoutRequestId, message: r.message };
   });
 
 export const mpesaPaymentStatus = createServerFn({ method: "POST" })
@@ -73,7 +59,15 @@ export const mpesaPaymentStatus = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const r = await untyped(context.supabase).from("mpesa_payments").select("status, receipt, result_desc, amount").eq("checkout_request_id", data.checkoutRequestId).maybeSingle();
     if (r.error) throw new Error(notReady(r.error.message));
-    return (r.data ?? { status: "pending" }) as { status: "pending" | "paid" | "failed"; receipt?: string; result_desc?: string; amount?: number };
+    const row = (r.data ?? { status: "pending" }) as { status: "pending" | "paid" | "failed"; receipt?: string; result_desc?: string; amount?: number };
+    // "Paid" is never taken from the callback alone: Safaricom is asked directly before a sale is shown as paid.
+    if (row.status === "pending" || row.status === "paid") {
+      const q = await stkQuery(await configOf(context.userId, "mpesa"), data.checkoutRequestId).catch(() => ({ status: "pending" as const, desc: "" }));
+      if (q.status === "failed") return { ...row, status: "failed" as const, result_desc: q.desc };
+      if (q.status === "pending") return { ...row, status: "pending" as const };
+      return { ...row, status: "paid" as const };
+    }
+    return row;
   });
 
 /* ---------- WhatsApp Business / SMS: send a message from the business's own account ---------- */

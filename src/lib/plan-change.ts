@@ -12,6 +12,7 @@ export async function buyPlan(
   planId: PlanId,
   billing: "monthly" | "yearly",
   pay = takePayment,
+  opts: { phone?: string | undefined; onStep?: ((step: "sent" | "waiting") => void) | undefined } = {},
 ): Promise<PlanChange> {
   const account = store.get();
   const plan = PLANS.find((p) => p.id === planId);
@@ -19,11 +20,8 @@ export async function buyPlan(
   if (account.staff) return { ok: false, error: "Only the owner can change the plan." };
   if (account.plan === planId) return { ok: false, error: "This is already your plan." };
 
-  const payment = await pay({
-    planId,
-    billing,
-    amountUsd: billing === "yearly" ? Math.round(plan.yearlyUsd) : plan.monthlyUsd,
-  });
+  const request = { planId, billing, amountUsd: billing === "yearly" ? Math.round(plan.yearlyUsd) : plan.monthlyUsd, ...(opts.phone ? { phone: opts.phone } : {}) };
+  const payment = opts.onStep ? await pay(request, opts.onStep) : await pay(request);
   if (!payment.ok) return payment;
 
   store.update({ plan: planId, billing, trialChoice: undefined });

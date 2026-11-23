@@ -173,7 +173,7 @@ function RootComponent() {
       const expired = event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session);
       if (!expired || account?.authMigration?.status !== "complete" || !store.signedIn()) return;
       expireMigratedOwnerSession();
-      if (!["/", "/signup", "/auth/recovery", "/auth/verify", "/auth/return", "/terms", "/privacy"].includes(pathname) && !pathname.startsWith("/shop/")) void router.navigate({ to: "/", replace: true });
+      if (!["/", "/signup", "/auth/recovery", "/auth/verify", "/auth/return", "/terms", "/privacy", "/welcome"].includes(pathname) && !pathname.startsWith("/shop/")) void router.navigate({ to: "/", replace: true });
     });
     return () => auth.data.subscription.unsubscribe();
   }, [pathname, router]);

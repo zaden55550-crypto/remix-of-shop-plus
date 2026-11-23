@@ -70,3 +70,20 @@ describe("proposed 0023: each business's own connections and the online shop lin
     await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0023_business_integrations.down.sql"), "utf8"));
   }, 60_000);
 });
+
+describe("proposed 0024: plan payments", () => {
+  it("lets an owner read only their own plan payments and never write them", async () => {
+    const db = new PGlite();
+    await db.exec(BASE);
+    for (const f of JOURNAL) await db.exec(journalFile(f));
+    await db.exec(readFileSync(resolve("drizzle/proposed/0024_plan_payments.sql"), "utf8"));
+    const a = "00000000-0000-4000-8000-00000000000a", b = "00000000-0000-4000-8000-00000000000b";
+    const as = async (user: string, sql: string) => { await db.exec(`RESET ROLE; SELECT set_config('test.uid', '${user}', false); SET ROLE authenticated`); try { return (await db.query(sql)).rows; } finally { await db.exec("RESET ROLE"); } };
+    await db.exec(`INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id) VALUES ('${a}', 'growth', 'monthly', 2838, '254722000000', 'ws_CO_1'), ('${b}', 'basic', 'monthly', 1419, '254711000000', 'ws_CO_2')`);
+    expect(await as(a, "SELECT checkout_request_id FROM plan_payments")).toEqual([{ checkout_request_id: "ws_CO_1" }]);
+    await expect(as(a, "UPDATE plan_payments SET status = 'paid'")).rejects.toThrow();
+    await expect(as(a, `INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id) VALUES ('${a}', 'business', 'monthly', 1, '2547', 'x')`)).rejects.toThrow();
+    await expect(db.exec(`INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id) VALUES ('${a}', 'gold', 'monthly', 5, '2547', 'y')`)).rejects.toThrow();
+    await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0024_plan_payments.down.sql"), "utf8"));
+  }, 60_000);
+});

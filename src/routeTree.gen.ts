@@ -33,9 +33,11 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SummaryRouteImport } from './routes/summary'
 import { Route as SupportInboxRouteImport } from './routes/support-inbox'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as ApiBusinessAssistantRouteImport } from './routes/api/business-assistant'
 import { Route as ApiHelpChatRouteImport } from './routes/api/help-chat'
 import { Route as ApiMpesaCallbackRouteImport } from './routes/api/mpesa-callback'
+import { Route as ApiPlanPaymentCallbackRouteImport } from './routes/api/plan-payment-callback'
 import { Route as ApiReorderRouteImport } from './routes/api/reorder'
 import { Route as AuthRecoveryRouteImport } from './routes/auth.recovery'
 import { Route as AuthReturnRouteImport } from './routes/auth.return'
@@ -162,6 +164,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBusinessAssistantRoute = ApiBusinessAssistantRouteImport.update({
   id: '/api/business-assistant',
   path: '/api/business-assistant',
@@ -175,6 +182,11 @@ const ApiHelpChatRoute = ApiHelpChatRouteImport.update({
 const ApiMpesaCallbackRoute = ApiMpesaCallbackRouteImport.update({
   id: '/api/mpesa-callback',
   path: '/api/mpesa-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPlanPaymentCallbackRoute = ApiPlanPaymentCallbackRouteImport.update({
+  id: '/api/plan-payment-callback',
+  path: '/api/plan-payment-callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiReorderRoute = ApiReorderRouteImport.update({
@@ -228,9 +240,11 @@ export interface FileRoutesByFullPath {
   '/summary': typeof SummaryRoute
   '/support-inbox': typeof SupportInboxRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/mpesa-callback': typeof ApiMpesaCallbackRoute
+  '/api/plan-payment-callback': typeof ApiPlanPaymentCallbackRoute
   '/api/reorder': typeof ApiReorderRoute
   '/auth/recovery': typeof AuthRecoveryRoute
   '/auth/return': typeof AuthReturnRoute
@@ -262,9 +276,11 @@ export interface FileRoutesByTo {
   '/summary': typeof SummaryRoute
   '/support-inbox': typeof SupportInboxRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/mpesa-callback': typeof ApiMpesaCallbackRoute
+  '/api/plan-payment-callback': typeof ApiPlanPaymentCallbackRoute
   '/api/reorder': typeof ApiReorderRoute
   '/auth/recovery': typeof AuthRecoveryRoute
   '/auth/return': typeof AuthReturnRoute
@@ -297,9 +313,11 @@ export interface FileRoutesById {
   '/summary': typeof SummaryRoute
   '/support-inbox': typeof SupportInboxRoute
   '/terms': typeof TermsRoute
+  '/welcome': typeof WelcomeRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
   '/api/mpesa-callback': typeof ApiMpesaCallbackRoute
+  '/api/plan-payment-callback': typeof ApiPlanPaymentCallbackRoute
   '/api/reorder': typeof ApiReorderRoute
   '/auth/recovery': typeof AuthRecoveryRoute
   '/auth/return': typeof AuthReturnRoute
@@ -333,9 +351,11 @@ export interface FileRouteTypes {
     | '/summary'
     | '/support-inbox'
     | '/terms'
+    | '/welcome'
     | '/api/business-assistant'
     | '/api/help-chat'
     | '/api/mpesa-callback'
+    | '/api/plan-payment-callback'
     | '/api/reorder'
     | '/auth/recovery'
     | '/auth/return'
@@ -367,9 +387,11 @@ export interface FileRouteTypes {
     | '/summary'
     | '/support-inbox'
     | '/terms'
+    | '/welcome'
     | '/api/business-assistant'
     | '/api/help-chat'
     | '/api/mpesa-callback'
+    | '/api/plan-payment-callback'
     | '/api/reorder'
     | '/auth/recovery'
     | '/auth/return'
@@ -401,9 +423,11 @@ export interface FileRouteTypes {
     | '/summary'
     | '/support-inbox'
     | '/terms'
+    | '/welcome'
     | '/api/business-assistant'
     | '/api/help-chat'
     | '/api/mpesa-callback'
+    | '/api/plan-payment-callback'
     | '/api/reorder'
     | '/auth/recovery'
     | '/auth/return'
@@ -436,9 +460,11 @@ export interface RootRouteChildren {
   SummaryRoute: typeof SummaryRoute
   SupportInboxRoute: typeof SupportInboxRoute
   TermsRoute: typeof TermsRoute
+  WelcomeRoute: typeof WelcomeRoute
   ApiBusinessAssistantRoute: typeof ApiBusinessAssistantRoute
   ApiHelpChatRoute: typeof ApiHelpChatRoute
   ApiMpesaCallbackRoute: typeof ApiMpesaCallbackRoute
+  ApiPlanPaymentCallbackRoute: typeof ApiPlanPaymentCallbackRoute
   ApiReorderRoute: typeof ApiReorderRoute
   AuthRecoveryRoute: typeof AuthRecoveryRoute
   AuthReturnRoute: typeof AuthReturnRoute
@@ -616,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/business-assistant': {
       id: '/api/business-assistant'
       path: '/api/business-assistant'
@@ -635,6 +668,13 @@ declare module '@tanstack/react-router' {
       path: '/api/mpesa-callback'
       fullPath: '/api/mpesa-callback'
       preLoaderRoute: typeof ApiMpesaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/plan-payment-callback': {
+      id: '/api/plan-payment-callback'
+      path: '/api/plan-payment-callback'
+      fullPath: '/api/plan-payment-callback'
+      preLoaderRoute: typeof ApiPlanPaymentCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/reorder': {
@@ -700,9 +740,11 @@ const rootRouteChildren: RootRouteChildren = {
   SummaryRoute: SummaryRoute,
   SupportInboxRoute: SupportInboxRoute,
   TermsRoute: TermsRoute,
+  WelcomeRoute: WelcomeRoute,
   ApiBusinessAssistantRoute: ApiBusinessAssistantRoute,
   ApiHelpChatRoute: ApiHelpChatRoute,
   ApiMpesaCallbackRoute: ApiMpesaCallbackRoute,
+  ApiPlanPaymentCallbackRoute: ApiPlanPaymentCallbackRoute,
   ApiReorderRoute: ApiReorderRoute,
   AuthRecoveryRoute: AuthRecoveryRoute,
   AuthReturnRoute: AuthReturnRoute,

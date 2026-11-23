@@ -99,6 +99,14 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
   // Pop-ups are drawn outside the page, so a body class lets them read at Setup's large size too.
   useEffect(() => { document.body.classList.add("on-setup"); return () => document.body.classList.remove("on-setup"); }, []);
+  const [importMenu, setImportMenu] = useState(false);
+  useEffect(() => {
+    if (!importMenu) return;
+    const out = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.(".bsetup-import-wrap")) setImportMenu(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setImportMenu(false); };
+    window.addEventListener("pointerdown", out); window.addEventListener("keydown", esc);
+    return () => { window.removeEventListener("pointerdown", out); window.removeEventListener("keydown", esc); };
+  }, [importMenu]);
   const [readyOpen, setReadyOpen] = useState(false), [readyStart, setReadyStart] = useState<ReadyStep | undefined>(undefined);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
@@ -469,7 +477,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
           <button type="button" className="bsetup-co-btn is-access" title={tr("Set role templates and individual employee permissions, review invitations, reset access and suspend or reactivate logins. Business Setup and Settings use the same employee and permission records.")} onClick={() => openAccess()}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
         </div>
       </div>
-      {selectedIndustry === "trade" && <div className="bsetup-feature-row"><span>{tr("Business Features")}</span><FeatureChecks className="bsetup-feature-checks" value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} /></div>}
+      {selectedIndustry === "trade" && <div className="bsetup-feature-row"><span>{tr("Business Features")}</span><FeatureChecks className="bsetup-feature-checks" types={chosenTypes} value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} /></div>}
       <div className="bsetup-save-row">
         <ShopButton variant="outline" className="bsetup-later" disabled={activating} onClick={saveLater}><Save /> {tr("Save")}</ShopButton>
       </div>
@@ -497,13 +505,19 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
     <section className="bsetup-card bsetup-entries" aria-label={tr("Shops & Warehouses")}>
       <header className="bsetup-strip">
-        <button type="button" className="bsetup-import-other" title={tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")} onClick={() => setMoveIn({})}><Upload aria-hidden /> {tr("Import System")}</button>
+        {/* One Import menu (owner, 2026-11-23): another system, locations from a sheet, and setup history. */}
+        <span className="bsetup-import-wrap">
+          <button type="button" className="bsetup-import-other" aria-haspopup="menu" aria-expanded={importMenu} onClick={() => setImportMenu(!importMenu)}><Upload aria-hidden /> {tr("Import")} <ChevronDown aria-hidden /></button>
+          {importMenu && <span className="bsetup-import-menu" role="menu">
+            <button type="button" role="menuitem" onClick={() => { setImportMenu(false); setMoveIn({}); }}><Upload aria-hidden /><span><b>{tr("From another system")}</b><small>{tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")}</small></span></button>
+            {!full && <button type="button" role="menuitem" onClick={() => { setImportMenu(false); sheetInput.current?.click(); }}><FileText aria-hidden /><span><b>{tr("Locations from a sheet")}</b><small>{tr("Add many shops and warehouses from a CSV or Excel sheet (Type, Name, Phone, Number, Address)")}</small></span></button>}
+            <button type="button" role="menuitem" onClick={() => { setImportMenu(false); setHistoryOpen(true); }}><History aria-hidden /><span><b>{tr("History")}</b><small>{tr("Who changed what in setup")}</small></span></button>
+          </span>}
+        </span>
         <span className="bsetup-strip-count">{counts.shops} {tr(counts.shops === 1 ? "shop" : "shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
         {!full && <span className="bsetup-add">
-          <button type="button" className="bsetup-add-btn is-sheet" title={tr("Add many shops and warehouses from a CSV or Excel sheet (Type, Name, Phone, Number, Address)")} onClick={() => sheetInput.current?.click()}><FileText aria-hidden /> {tr("From sheet")}</button>
           {NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus aria-hidden /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
-        <button type="button" className="bsetup-history-btn" title={tr("Who changed what in setup")} onClick={() => setHistoryOpen(true)}><History aria-hidden /> {tr("History")}</button>
         <span className="bsetup-strip-summary" role="group" aria-label={tr("Plan Usage & Summary")}>
         <span className={cn("bsetup-strip-usage", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
           <span>{tr("Accounts")} <b>{logins.used}/{logins.total}</b></span><span>{tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span><span>{tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span><span>{tr("Sites")} <b>{live.length}/{plan.locations}</b></span>{features.counters && <span>{tr("Counters")} <b>{countersUsed}/{plan.countersPerShop ? `${plan.counters} ${tr("each")}` : plan.counters}</b></span>}<span><b>{Math.max(0, plan.locations - live.length)}</b> {tr("remaining")}</span>

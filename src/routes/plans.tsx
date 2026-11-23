@@ -16,7 +16,7 @@ import { Wordmark } from "@/components/shopbook/ui";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { SaleTour, Testimonials } from "@/components/shopbook/try-and-tour";
 import { SUPPORT } from "@/lib/i18n";
-import { PAYMENT_TEST_MODE } from "@/lib/payment";
+import { PAYMENT_TEST_MODE, realPayment } from "@/lib/payment";
 import { buyPlan } from "@/lib/plan-change";
 import { PLANS, READ_ONLY_MESSAGE, appsLostOn, planAllowanceLines, planCounterLine, planEmployeeRule, store, trialDaysLeft, type PlanId } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,10 @@ function Plans() {
   const { tr, dir } = useLanguage();
 
   const [tour, setTour] = useState(false);
+  // Real M-Pesa plan payments (payment.ts): whether the server has Zakrio Systems' M-Pesa keys, and the shilling prices.
+  const [real, setReal] = useState<{ ready: boolean; prices: Record<string, number> }>({ ready: false, prices: {} });
+  const [payPhone, setPayPhone] = useState(""), [payStep, setPayStep] = useState<"sent" | "waiting" | null>(null);
+  useEffect(() => { void realPayment().then(setReal); setPayPhone(store.get()?.phone ?? ""); }, []);
   const [yearly, setYearly] = useState(false);
   // Nothing is selected until the customer chooses; a choice made earlier comes back after the first paint.
   const [chosenPlanId, setChosenPlanId] = useState<PlanId | null>(null);
@@ -95,9 +99,9 @@ function Plans() {
   };
 
   const confirmPlan = async () => {
-    setBuying(true);
-    const result = await buyPlan(plan.id, yearly ? "yearly" : "monthly");
-    setBuying(false);
+    setBuying(true); setPayStep(null);
+    const result = await buyPlan(plan.id, yearly ? "yearly" : "monthly", undefined, { phone: payPhone, onStep: setPayStep });
+    setBuying(false); setPayStep(null);
     if (!result.ok) {
       toast.error(tr(result.error));
       return;
@@ -258,6 +262,16 @@ function Plans() {
           <div className="mt-4 space-y-3 text-center">
             {acct?.plan === plan.id ? (
               <p className="text-sm font-bold text-foreground">{tr("This is already your plan.")}</p>
+            ) : real.ready ? (
+              <>
+                <p className="text-sm font-bold text-foreground">{tr("Pay by M-Pesa")} · KSh {(real.prices[`${plan.id}:${yearly ? "yearly" : "monthly"}`] ?? 0).toLocaleString("en-KE")}</p>
+                <input className="inventory-input w-full text-center" inputMode="tel" value={payPhone} onChange={(e) => setPayPhone(e.target.value)} placeholder={tr("M-Pesa number that will pay")} aria-label={tr("M-Pesa number that will pay")} disabled={buying} />
+                <ShopButton className="h-auto min-h-11 px-3 py-2 text-sm" disabled={buying || payPhone.replace(/D/g, "").length < 9} onClick={confirmPlan}>
+                  {tr(buying ? "Waiting for M-Pesa…" : "Send M-Pesa prompt")}
+                </ShopButton>
+                {payStep && <p className="text-xs font-bold text-emerald-500" role="status">{tr("Check your phone and enter your M-Pesa PIN. This page updates by itself.")}</p>}
+                <p className="text-[11px] text-muted-foreground">{tr("Your plan opens as soon as Safaricom confirms the payment.")}</p>
+              </>
             ) : PAYMENT_TEST_MODE ? (
               <>
                 <p className="plans-test-mode">{tr("Test mode: payment is accepted automatically. No money is taken.")}</p>

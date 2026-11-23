@@ -74,6 +74,15 @@ export function defaultFeatures(types: readonly string[]): Features {
 export const BUILT_IN: readonly FeatureId[] = ["weight", "vat", "expiry", "layby", "quotations", "barcodes"];
 /** The only switches shown on Business Setup's line; every other switch is under "All features". */
 export const PINNED: readonly FeatureId[] = ["counters", "prescriptions", "priceLevels", "serials", "gas", "breakdown"];
+/** The pinned switches that fit these business types (owner, 2026-11-23): Counters and Wholesale prices suit any shop; the others show
+ *  only for the types that use them (Prescriptions for a pharmacy, Gas cylinders for a gas dealer…) or when already switched on.
+ *  General Trade (no type ticked) shows them all, since it can be any shop. */
+export function relevantFeatures(types: readonly string[], value: Partial<Features>): FeatureId[] {
+  const real = types.filter((t) => t && t !== "General Trade");
+  if (!real.length) return [...PINNED];
+  const start = defaultFeatures(real);
+  return PINNED.filter((id) => id === "counters" || id === "priceLevels" || start[id] || value[id]);
+}
 /** The short names the Setup ticks use (two rows of three). */
 export const SHORT_NAME: Partial<Record<FeatureId, string>> = { counters: "Counters", prescriptions: "Prescriptions", priceLevels: "Wholesale prices", serials: "Serial / IMEI", gas: "Gas cylinders", breakdown: "Breakdown" };
 export const isBuiltIn = (id: string) => (BUILT_IN as readonly string[]).includes(id);

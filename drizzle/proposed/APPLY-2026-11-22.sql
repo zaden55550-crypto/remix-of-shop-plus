@@ -1,6 +1,6 @@
 -- ZAKRIO SYSTEMS go-live bundle, 2026-11-22. Paste into Lovable (Cloud > SQL, or ask Lovable to run it as one migration).
 -- Runs after the journal migrations 0000-0010 that are already live. One transaction: if any line fails, nothing changes.
--- Contains: 0010_fix_sync_validation, 0011_dynamic_user_allowance, 0012_enforce_synced_location_limit, 0013_staff_recording, 0015_money_accounts, 0016_flat_login_allowance, 0019_sync_businesses, 0020_member_business_access, 0021_sync_trade_documents, 0022_business_documents_storage, 0023_business_integrations.
+-- Contains: 0010_fix_sync_validation, 0011_dynamic_user_allowance, 0012_enforce_synced_location_limit, 0013_staff_recording, 0015_money_accounts, 0016_flat_login_allowance, 0019_sync_businesses, 0020_member_business_access, 0021_sync_trade_documents, 0022_business_documents_storage, 0023_business_integrations, 0024_plan_payments.
 -- Left out on purpose: 0014_trial_read_only (waits until real payments are checked on the server) and 0018_unified_owner_identity
 -- (separate approval; sign-in linking already works without it). Rehearsed by src/test/bundle-rehearsal.test.ts.
 -- Undo: run the matching files in drizzle/proposed/rollback newest first (the ROLLBACK list in src/test/migration-chain.ts), skipping
@@ -1313,5 +1313,32 @@ $$;
 REVOKE ALL ON FUNCTION public.set_public_shop(text, text, text, boolean) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.set_public_shop(text, text, text, boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.public_shop_catalog(text) TO anon, authenticated;
+
+-- ===== 0024_plan_payments =====
+-- PROPOSED 0024 (owner approval needed; independent of the others): real plan payments by M-Pesa to Zakrio Systems' own Paybill or
+-- Till (src/lib/plan-payment.functions.ts). One row per payment prompt. The amount is set by the server from the plan, and the status
+-- changes only after Safaricom itself confirms the payment (STK query), so browsers can read their own rows but never write them.
+-- Rollback: drizzle/proposed/rollback/0024_plan_payments.down.sql.
+
+CREATE TABLE public.plan_payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id uuid NOT NULL,
+  plan_id text NOT NULL CHECK (plan_id IN ('basic', 'growth', 'business')),
+  billing text NOT NULL CHECK (billing IN ('monthly', 'yearly')),
+  amount_kes numeric NOT NULL CHECK (amount_kes > 0),
+  phone text NOT NULL,
+  checkout_request_id text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed')),
+  receipt text,
+  result_desc text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX plan_payments_owner_idx ON public.plan_payments (owner_id, created_at DESC);
+ALTER TABLE public.plan_payments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Owners read their plan payments" ON public.plan_payments FOR SELECT TO authenticated USING (owner_id = auth.uid());
+REVOKE ALL ON public.plan_payments FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.plan_payments TO authenticated;
+GRANT ALL ON public.plan_payments TO service_role;
 
 COMMIT;

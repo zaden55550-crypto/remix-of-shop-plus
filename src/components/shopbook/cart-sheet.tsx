@@ -14,6 +14,7 @@ import { useFeature } from "@/lib/use-features";
 import { WHOLESALE_AUTO, applyPriceLevels, chooseWholesale, isWholesaleLine, moreForWholesale, wholesaleOf } from "@/lib/price-levels";
 import { SerialChooser, missingSerials } from "@/components/shopbook/serial-chooser";
 import { CartDocActions, RxForm } from "@/components/shopbook/trade-docs";
+import { MpesaPrompt } from "@/components/shopbook/mpesa-prompt";
 import { checkRx, rxProducts, sellWithPrescription, type RxDetails } from "@/lib/prescriptions";
 
 export function useCartDraft(channel: string) {
@@ -190,6 +191,7 @@ export function CartCheckout({ s, cart, money, tr, channel, setLine, remove, cle
       })}
       {vr > 0 && <div className="pur-totals mt-1"><span>{tr("Subtotal")}</span><b>{money(subtotal)}</b><span>{tr("VAT")} ({vr}%)</span><b>{money(vat)}</b></div>}
       <div className="mt-2"><PayPicker value={pay} onChange={setPay} total={total} money={money} tr={tr} creditNote={customerId ? undefined : "Credit needs a registered customer"} /></div>
+      {pay.mode === "mpesa" && <MpesaPrompt total={total} phone={customer?.phone} money={money} tr={tr} />}
       {rxNeeded.length > 0 && <RxForm products={rxNeeded} value={rx} onChange={setRx} />}
       <ShopButton className="inventory-save mt-2 w-full" disabled={!cart.length || invalid || !!needSerials || (rxNeeded.length > 0 && !!checkRx(rx))} onClick={review}>{tr("Complete Sale")} • {money(total)}</ShopButton>
       <CartDocActions s={s} cart={cart} customerId={customerId} money={money} layby={laybyOn} quotes={quotesOn} onSaved={clear} />

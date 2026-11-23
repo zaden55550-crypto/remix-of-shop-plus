@@ -4,7 +4,7 @@
 // keep their own phone design. A device can opt out with localStorage "shopbook.phoneLayout" = "1".
 export const LAPTOP_WIDTH = 1280;
 const DEVICE = "width=device-width, initial-scale=1, viewport-fit=cover";
-const OWN_PHONE_DESIGN = ["/", "/signup", "/terms", "/privacy"];
+const OWN_PHONE_DESIGN = ["/", "/signup", "/terms", "/privacy", "/welcome"];
 
 /** Pages that keep their own phone layout instead of the shrunk laptop one. */
 export function keepsPhoneDesign(pathname: string) {
@@ -21,6 +21,8 @@ function deviceWidth() {
 export function laptopViewWanted(pathname: string) {
   if (typeof window === "undefined" || keepsPhoneDesign(pathname)) return false;
   try { if (localStorage.getItem("shopbook.phoneLayout") === "1") return false; } catch { /* default: laptop view */ }
+  // Selling on a phone held upright (owner, 2026-11-23): POS keeps its own large phone layout so a cashier can read and tap it.
+  if (pathname.startsWith("/pos") && Math.min(window.screen.width, window.screen.height) < 600 && deviceWidth() < 600) return false;
   return deviceWidth() < 1100;
 }
 
