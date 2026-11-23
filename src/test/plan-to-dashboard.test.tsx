@@ -81,7 +81,7 @@ describe.each(PLANS.map((p) => [p.name, p] as const))("first run on %s", (name, 
     await page("setup");
     const summary = await screen.findByRole("group", { name: "Plan Usage & Summary" });
     expect(summary.textContent).toContain(plan.name);
-    expect(summary.textContent).toContain(`$${plan.monthlyUsd} / month`);
+    expect(summary.textContent).toContain(`${plan.monthlyUsd}/mo`);
     expect(summary.textContent).toContain("Free trial");
     const firstShopUsers = loginAllowance({ plan: plan.id }, { shops: 1, stores: 0, warehouses: 0 }, 0).total;
     expect(summary.textContent).toContain(`1/${firstShopUsers}`);
