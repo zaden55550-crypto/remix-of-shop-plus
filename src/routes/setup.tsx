@@ -374,7 +374,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const filledSlots = tableSlots.filter((x) => x.r);
   const shownSlots = filledSlots.length ? filledSlots : tableSlots.slice(0, 1);
   // Two glass panels, Locations 1–5 and 6–10 (owner, 2026-11-23): every place the plan allows, real ones filled in, free ones ready to use.
-  const panels = [tableSlots.slice(0, 5), tableSlots.slice(5, 10)].filter((g) => g.length);
+  // Only real locations (owner, 2026-11-23): one shop fills the page alone; more than five split into two columns. No empty rows.
+  const panels = shownSlots.length <= 5 ? [shownSlots] : [shownSlots.slice(0, 5), shownSlots.slice(5, 10)];
+  // Counters are shared out from the plan's total (Business 20): how many are given to shops so far.
+  const countersUsed = live.filter((x) => x.type === "shop").reduce((n, x) => n + Math.max(1, x.counters ?? 1), 0);
   const links = live.filter(isStorage).map((w) => ({ w, shops: live.filter((r) => r.type === "shop" && r.connected?.includes(w.key)) })).filter((x) => x.shops.length);
   const placeName = (k: string) => { const r = live.find((x) => x.key === k); return r ? r.name || r.code : ""; };
   const savedPlaceName = (id: string) => live.find((r) => r.savedId === id)?.name || records.find((l) => l.id === id)?.name || "";
@@ -502,7 +505,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <button type="button" className="bsetup-history-btn" title={tr("Who changed what in setup")} onClick={() => setHistoryOpen(true)}><History aria-hidden /> {tr("History")}</button>
         <span className="bsetup-strip-summary" role="group" aria-label={tr("Plan Usage & Summary")}>
         <span className={cn("bsetup-strip-usage", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
-          <span>{tr("Accounts")} <b>{logins.used}/{logins.total}</b></span><span>{tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span><span>{tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span><span>{tr("Sites")} <b>{live.length}/{plan.locations}</b></span><span><b>{Math.max(0, plan.locations - live.length)}</b> {tr("remaining")}</span>
+          <span>{tr("Accounts")} <b>{logins.used}/{logins.total}</b></span><span>{tr("Managers")} <b>{logins.usedManagers}/{logins.managers}</b></span><span>{tr("Staff")} <b>{logins.usedStaff}/{logins.staff}</b></span><span>{tr("Sites")} <b>{live.length}/{plan.locations}</b></span>{features.counters && <span>{tr("Counters")} <b>{countersUsed}/{plan.countersPerShop ? `${plan.counters} ${tr("each")}` : plan.counters}</b></span>}<span><b>{Math.max(0, plan.locations - live.length)}</b> {tr("remaining")}</span>
         </span>
         <span className="bsetup-strip-plan"><Crown aria-hidden /> <b>{plan.name}</b> · {trial ? <>{tr("Free trial")} · </> : null}<b>${price.amount}{tr(price.period === "year" ? "/yr" : "/mo")}</b><button type="button" className="bsetup-info" aria-label={tr("How plan limits work")} title={tr("How plan limits work")} onClick={() => setInfo(true)}><Info /></button></span>
         </span>
@@ -510,7 +513,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       {/* Locations 1-5, and 6-10 beside them once there are more than five (the second panel also shows the plan's free places). */}
       <div className={cn("bsetup-tables", panels.length > 1 && "is-two")}>
       {panels.map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Locations")} ${gi * 5 + 1}-${gi * 5 + 5}`}>
-          <div className="bsetup-panel-head" role="row"><b role="columnheader">{tr("Locations")} {gi * 5 + 1}–{gi * 5 + 5}</b>{features.counters && <span role="columnheader" className="is-counters">{tr("Counters")}</span>}<span role="columnheader" className="is-phone">{tr("Phone")}</span><span role="columnheader" className="is-code">{tr("No.")}</span></div>
+          <div className="bsetup-panel-head" role="row"><b role="columnheader">{panels.length === 1 ? tr("Locations") : `${tr("Locations")} ${gi * 5 + 1}–${gi * 5 + group.length}`}</b>{features.counters && <span role="columnheader" className="is-counters">{tr("Counters")}</span>}<span role="columnheader" className="is-phone">{tr("Phone")}</span><span role="columnheader" className="is-code">{tr("No.")}</span></div>
           {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} placeholder={suggestedCode(r)} counterMax={counterMax(r)} showCounters={features.counters} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onEdit={() => setEditingRow({ key: r.key })} onRemove={() => removeRow(r)} />
             : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} showCounters={features.counters} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
         </div>)}
