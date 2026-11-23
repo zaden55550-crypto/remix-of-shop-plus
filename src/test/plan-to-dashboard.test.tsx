@@ -102,7 +102,8 @@ describe.each(PLANS.map((p) => [p.name, p] as const))("first run on %s", (name, 
     cleanup();
 
     render(<SetupChecklist />);
-    expect(screen.getByText("1/7 done")).toBeTruthy();
+    // Nine steps since 2026-11-23 (Bring your data from another system, Finish Ready to sell).
+    expect(screen.getByText("1/9 done")).toBeTruthy();
   });
 
   it("states the plan's location-based maximum", () => {

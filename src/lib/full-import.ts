@@ -3,6 +3,7 @@
 // (importKeys, duplicate checks, opening-balance separation) stays in one place.
 // The whole run is all-or-nothing: if any stage fails, shop data and history are restored.
 import { load, runErpTransaction } from "@/lib/erp";
+import { rememberImport } from "@/lib/move-in";
 import { applyImport, detectType, FIELDS, previewRows, suggestMapping, type ImportType } from "@/lib/import-center";
 import { applyOB, looksLikeOpening, OB_FIELDS, previewOB, saveBatch, suggestOB, type DateFmt, type ImportBatch, type OBIssue, type OBMapping, type Sheet } from "@/lib/opening-import";
 import { applyTX, looksLikeTransactions, previewTX, suggestTX, TX_FIELDS, type TXMapping, type TXOptions } from "@/lib/transaction-import";
@@ -110,7 +111,7 @@ export function previewFull(plans: Plan[], o: FullOptions): StageResult[] {
 
 /** All-or-nothing import. Records one combined batch in Import History. */
 export function importFull(plans: Plan[], o: FullOptions): { results: StageResult[]; batch: ImportBatch } {
-  const snap = snapshot(), go = usable(plans);
+  const snap = snapshot(), go = usable(plans), before = load();
   let results: StageResult[];
   try { results = runErpTransaction(() => runAll(go, o, true)); }
   catch (e) { restore(snap); throw e; }
@@ -119,6 +120,8 @@ export function importFull(plans: Plan[], o: FullOptions): { results: StageResul
   const sum = (f: "created" | "updated" | "skipped" | "rejected") => results.reduce((a, r) => a + r[f], 0);
   const batch: ImportBatch = { id: `IMP-${Date.now().toString().slice(-6)}`, at: Date.now(), user: "Admin", files: [...new Set(go.map((p) => p.sheet.file))], categories: ["Full Business Import", ...results.map((r) => r.cat)], status: sum("rejected") ? "Completed with Errors" : "Completed", created: sum("created"), updated: sum("updated"), skipped: sum("skipped"), rejected: sum("rejected"), reconciliation: results.map((r) => `${r.cat}: ${r.created} new, ${r.updated} updated, ${r.skipped} skipped, ${r.rejected} rejected`), errors: results.flatMap((r) => r.issues) } as ImportBatch;
   saveBatch(batch);
+  // Kept for 24 hours so this import can be taken back (move-in.ts).
+  rememberImport(before, load(), batch.id);
   return { results, batch };
 }
 

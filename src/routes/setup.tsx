@@ -21,6 +21,7 @@ import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, isIndustryFamilyId, type
 import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
+import { MoveInPanel } from "@/components/shopbook/move-in-panel";
 import { applyCountryDefaults, type ReadyStep } from "@/lib/ready-setup";
 import { LOCATIONS_TEMPLATE, counterHardware, locationsFromSheets, saveCounterHardware, setupHistory, type CounterHardware } from "@/lib/setup-extras";
 import { readSheets } from "@/lib/opening-import";
@@ -378,7 +379,16 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const takenEmails = (except?: string) => [acct.email ?? "", ...existingPeople.map((e) => e.email ?? ""), ...d.users.filter((x) => x.key !== except).map((x) => x.email)].map((e) => e.trim().toLowerCase()).filter(Boolean);
   const putUser = (u: SetupUser) => set({ users: d.users.some((x) => x.key === u.key) ? d.users.map((x) => (x.key === u.key ? u : x)) : [...d.users, u] });
 
-  return <div className="bsetup">
+  // One drop zone: files dragged anywhere on Business Setup open "Bring your business over" with them already read.
+  const [moveIn, setMoveIn] = useState<{ files?: File[] | undefined } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes("Files");
+  return <div className="bsetup"
+    onDragOver={(e) => { if (!hasFiles(e) || moveIn) return; e.preventDefault(); setDragging(true); }}
+    onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
+    onDrop={(e) => { if (!hasFiles(e) || moveIn) return; e.preventDefault(); setDragging(false); const list = [...e.dataTransfer.files]; if (list.length) setMoveIn({ files: list }); }}>
+    {dragging && <div className="bsetup-dropping" onDragLeave={() => setDragging(false)}><Upload aria-hidden /><b>{tr("Drop to bring your business over")}</b><small>{tr("Excel, CSV or zip from Odoo, QuickBooks, Zoho, Loyverse, Sage or any spreadsheet")}</small></div>}
+    {moveIn && <GlassPage label={tr("Bring your business over")} onClose={() => setMoveIn(null)}><MoveInPanel tr={tr} files={moveIn.files} onClose={() => setMoveIn(null)} /></GlassPage>}
     <header className="bsetup-head">
       {/* Left: the business's own logo from Create Account (or the Zakrio mark), the title, and the country and currency given at
           sign-up. Middle: where this page sits in getting started. Right: what Activate does, then Activate. */}
@@ -476,7 +486,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
     <section className="bsetup-card bsetup-entries" aria-label={tr("Shops & Warehouses")}>
       <header className="bsetup-strip">
-        <button type="button" className="bsetup-import-other" title={tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")} onClick={() => { setReadyStart("move"); setReadyOpen(true); }}><Upload aria-hidden /> {tr("Import System")}</button>
+        <button type="button" className="bsetup-import-other" title={tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")} onClick={() => setMoveIn({})}><Upload aria-hidden /> {tr("Import System")}</button>
         <span className="bsetup-strip-count">{counts.shops} {tr(counts.shops === 1 ? "shop" : "shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
         {!full && <span className="bsetup-add">

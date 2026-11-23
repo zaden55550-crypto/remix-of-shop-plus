@@ -1,5 +1,7 @@
 // The Dashboard's setup list for a new owner. Each step reads real records where they exist; payment methods and other
 // settings have no record that says they were set up, so those count as done once opened. Only that and hiding the list stay on this device.
+import { batches } from "@/lib/opening-import";
+import { READY_STEPS, readyProgress, readyStatus } from "@/lib/ready-setup";
 import { MAIN_LOCATION } from "@/lib/locations";
 import type { ErpState } from "@/lib/erp";
 import type { ViewSearch } from "@/lib/deep-link";
@@ -36,6 +38,21 @@ export function setupSteps(s: ErpState, seen: readonly string[]): SetupStep[] {
       to: "/setup",
       search: {},
       done: s.locations.some((l) => l.id === MAIN_LOCATION),
+    },
+    {
+      // Moving from another system (owner, 2026-11-23): done once any import has been confirmed on this device.
+      id: "import",
+      label: "Bring your data from another system",
+      to: "/setup",
+      search: {},
+      done: batches().some((b) => b.status !== "Failed"),
+    },
+    {
+      id: "ready",
+      label: "Finish Ready to sell",
+      to: "/setup",
+      search: {},
+      done: readyProgress(readyStatus(s)) === READY_STEPS.length,
     },
     {
       id: "products",

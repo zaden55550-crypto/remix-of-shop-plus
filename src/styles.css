@@ -25194,3 +25194,31 @@ html.dark .bsetup {
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup [role="dialog"] :is(.pm-form, .pw-page) input.inventory-input:not([type="checkbox"]):not([type="radio"]) { width: min(38rem, 100%) !important; }
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */
 .bsetup-docs-page .settings-note { font-size: 15px; }
+
+/* ===== BRING YOUR BUSINESS OVER (owner, 2026-11-23; move-in-panel.tsx, move-in.ts): one drop zone on Business Setup and one window ===== */
+.bsetup { position: relative; }
+.bsetup-dropping { position: fixed; inset: 12px; z-index: 80; display: grid; place-content: center; justify-items: center; gap: 10px; border: 3px dashed #fb923c; border-radius: 22px;
+  background: rgb(8 20 60 / 0.82); color: #fff; text-align: center; pointer-events: none; }
+.bsetup-dropping svg { width: 64px; height: 64px; color: #fb923c; }
+.bsetup-dropping b { font-size: 32px; }
+.bsetup-dropping small { font-size: 18px; opacity: 0.85; }
+.movein-page { width: min(72rem, 94vw); display: flex; flex-direction: column; gap: 14px; }
+.movein-drop { display: grid; justify-items: center; gap: 8px; padding: 34px 20px; border: 3px dashed #fb923c; border-radius: 18px; background: rgb(251 146 60 / 0.1); color: inherit; text-align: center; cursor: pointer; }
+.movein-drop:hover { background: rgb(251 146 60 / 0.18); }
+.movein-drop svg { width: 48px; height: 48px; color: #fb923c; }
+.movein-drop b { font-size: 22px; }
+.movein-drop small { font-size: 16px; opacity: 0.85; }
+.movein-help { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 700; }
+.movein-help button { padding: 6px 14px; border-radius: 999px; border: 1px solid rgb(190 215 255 / 0.4); font-weight: 700; }
+.movein-help button.is-on { background: #fb923c; border-color: #fb923c; color: #fff; }
+.movein-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid rgb(190 215 255 / 0.3); }
+.movein-undo { display: flex; align-items: center; gap: 10px; }
+.movein-undo small { opacity: 0.85; }
+.movein-team { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.movein-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 10px; color: #fff; font-weight: 800; }
+.movein-btn svg { width: 18px; height: 18px; }
+.movein-btn.is-whatsapp { background: #16a34a; }
+.movein-btn.is-mail { background: #2563eb; }
+.import-found { display: grid; gap: 4px; padding: 10px 14px; border: 1px solid rgb(52 211 153 / 0.5); border-radius: 12px; background: rgb(16 185 129 / 0.12); }
+.import-found .import-warn { color: #fbbf24; font-weight: 700; }
+/* ===== END BRING YOUR BUSINESS OVER ===== */

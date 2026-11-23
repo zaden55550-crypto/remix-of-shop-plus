@@ -7,12 +7,16 @@ import { FULL_ORDER, fieldsFor, fullTemplate, importFull, pastedSheet, templateN
 import { issuesCsv, readSheets, type DateFmt, type ImportBatch } from "@/lib/opening-import";
 
 import { download, openFile } from "@/lib/download";
+import { cleanSheets, detectSource, expandZips, type CleanReport } from "@/lib/move-in";
 type Stage = "upload" | "map" | "preview" | "done";
 const STEPS = ["Upload", "Detect", "Map", "Validate", "Preview", "Confirm Import", "Reconcile"];
 
 /** Full Business Import: Upload → Detect → Map → Validate → Preview → Confirm Import → Reconcile. */
-export function FullImport({ tr }: { tr: (x: string) => string }) {
+export function FullImport({ tr, files }: { tr: (x: string) => string; files?: File[] | undefined }) {
   const ref = useRef<HTMLInputElement>(null);
+  // Where the files came from and what clean-up did, shown above the preview (move-in.ts).
+  const [source, setSource] = useState<string | undefined>(undefined);
+  const [cleaned, setCleaned] = useState<CleanReport | null>(null);
   const [stage, setStage] = useState<Stage>("upload");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [fmt, setFmt] = useState<DateFmt>("auto");
@@ -27,14 +31,18 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   const [paste, setPaste] = useState<string | null>(null);
   useEffect(() => { setTpl(null); void fullTemplate((tplCat || undefined) as never).then(setTpl).catch(() => setTpl(null)); }, [tplCat]);
   const opts: FullOptions = { dateFmt: fmt, stock, existing };
+  useEffect(() => { if (files?.length) void read(files); }, [files]); // eslint-disable-line react-hooks/exhaustive-deps
   const step = stage === "upload" ? 0 : stage === "map" ? 2 : stage === "preview" ? 4 : 6;
   const reset = () => { setStage("upload"); setPlans([]); setResults([]); setBatch(null); };
   const blocked = plans.filter((p) => p.cat !== "Skip" && missing(p).length);
   const active = plans.filter((p) => p.cat !== "Skip");
 
-  const read = async (list: FileList | "paste") => {
+  const read = async (list: FileList | File[] | "paste") => {
     try {
-      const sheets = list === "paste" ? [pastedSheet(paste ?? "")] : await readSheets([...list]), next = planSheets(sheets);
+      // Zip exports are opened, then every row is tidied (duplicates merged, phones in one format) before anything is planned.
+      const raw = list === "paste" ? [pastedSheet(paste ?? "")] : await readSheets(await expandZips([...list]));
+      const { sheets, report } = cleanSheets(raw), next = planSheets(sheets);
+      setSource(detectSource(sheets)); setCleaned(report);
       setPaste(null);
       // Products listed with their current stock already count it, so past sales should not reduce it again.
       const nextStock: FullOptions["stock"] = next.some((p) => (p.cat === "Products" && p.map["qty"]) || p.cat === "Opening Stock") ? "record" : "update";
@@ -73,11 +81,16 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
   const totals = (f: "created" | "updated" | "skipped" | "rejected") => results.reduce((a, r) => a + r[f], 0);
 
   return <div className="relative grid gap-2">
+    {stage !== "upload" && (source || (cleaned && (cleaned.merged || cleaned.phones || cleaned.missingPrices))) ? <div className="import-found" role="status">
+      {source && <p><b>{tr("This looks like an export from")} {source}.</b> {tr("Its columns were matched for you.")}</p>}
+      {cleaned && (cleaned.merged > 0 || cleaned.phones > 0) && <p>{tr("Cleaned up before saving")}: {cleaned.merged > 0 && <>{cleaned.merged} {tr("duplicate products merged")} </>}{cleaned.phones > 0 && <>· {cleaned.phones} {tr("phone numbers written as +254")}</>}</p>}
+      {cleaned && cleaned.missingPrices > 0 && <p className="import-warn">{cleaned.missingPrices} {tr("products have no selling price; add it after the import")}</p>}
+    </div> : null}
     {stage !== "upload" && <ShopButton variant="bare" className="inventory-icon-button absolute right-0 top-0" aria-label={tr("Close import and return")} onClick={reset}><X className="h-4 w-4" /></ShopButton>}
     <ol className="flex flex-wrap gap-1 text-[10px]">{STEPS.map((x, i) => <li key={x} className={`rounded px-1.5 py-0.5 ${i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}. {tr(x)}</li>)}</ol>
     {stage === "upload" && <>
       <p className="import-note">{tr("Upload one Excel workbook with many sheets, or several files together. Each sheet is detected automatically: products, stock, prices, customers, suppliers, contacts, employees, opening balances (Cash, M-Pesa, Bank, credit), sales, purchases with payments, returns, expenses, stock adjustments, stock transfers, float movements and payroll history. Accounting, float and commission totals are calculated from these records.")}</p>
-      <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
+      <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls,.zip" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
       <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose workbook or files")}</ShopButton>
       <ShopButton variant="outline" className="inventory-save" onClick={() => setPaste(paste === null ? "" : null)}><ClipboardPaste className="h-4 w-4" />{tr("Paste from Excel or Google Sheets")}</ShopButton>
       {paste !== null && <div className="relative grid gap-1"><ShopButton variant="bare" className="inventory-icon-button absolute right-1 top-1" aria-label={tr("Close")} onClick={() => setPaste(null)}><X className="h-4 w-4" /></ShopButton><textarea className="inventory-input min-h-32 pr-8 font-mono text-[11px]" placeholder={tr("Copy cells including the header row, then paste here")} value={paste} onChange={(e) => setPaste(e.target.value)} /><ShopButton className="inventory-save" disabled={!paste.trim()} onClick={() => void read("paste")}>{tr("Read pasted data")}</ShopButton></div>}

@@ -43,7 +43,8 @@ describe("Dashboard view", () => {
     expect(v.charts.moneyIn).toBe(1000 + 300 + 200);
     expect(v.charts.moneyOut).toBe(200);
     // Working balance is real money only.
-    expect(v.working).toEqual({ cash: 300, mpesa: 600, bank: 400, total: 1300 });
+    // The working balance also lists each payment account (custom methods, 2026-11); the totals are what matter here.
+    expect(v.working).toMatchObject({ cash: 300, mpesa: 600, bank: 400, total: 1300 });
     // Debt totals and their counts describe the same contacts.
     expect(v.receivables).toEqual({ amount: 100, count: 1 });
     expect(v.payables).toEqual({ amount: 300, count: 1 });

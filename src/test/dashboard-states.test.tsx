@@ -64,16 +64,17 @@ describe("Dashboard states", () => {
   it("an employee waiting for their first copy sees loading, not zero activity", async () => {
     account({ staff: { memberId: "m", fullName: "Sam", role: "cashier", permissions: [], businesses: [], locations: [] } });
     render(<Dashboard />);
-    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Loading records…"));
+    // Other status messages (connection, sync) can be on the page too.
+    await waitFor(() => expect(screen.getAllByRole("status").some((x) => x.textContent === "Loading records…")).toBe(true));
   });
 
-  it("a chart that fails to draw says so and the rest of the page stays", async () => {
+  // The trend charts left the Dashboard (owner, 2026-11); a broken chart library must still not stop the page.
+  it("a chart library that fails doesn't stop the page", async () => {
     account();
     localStorage.setItem("shopbook.erp", "{}");
     chart.fail = true;
     render(<Dashboard />);
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toContain("could not be drawn"));
-    expect(screen.getByText("No sales recorded yet")).toBeTruthy();
+    await waitFor(() => expect(screen.getByText("No sales recorded yet")).toBeTruthy());
   });
 
   it("keeps receivables apart from the working balance, labelled", async () => {
