@@ -18,7 +18,7 @@ import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import { NEW_LOCATION_TYPES, TYPE_LABEL, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
-import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, businessTypesForFamily, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
+import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
 import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
@@ -51,15 +51,10 @@ const TYPE_ICON = { shop: Store, store: Building2, warehouse: Warehouse } as con
  *  "Supermarket"); stores and older warehouses are both "Warehouse". Set by SetupScreen on each render, read by its rows. */
 let shopWord = "Shop";
 let shopTypes: string[] = [];
-/** A row's own place name: a shop is the type chosen for it (Supermarket, Butchery…, while that type is still ticked), else the main type. */
-/** Every Trade shop type (owner, 2026-11-23): any location can be changed to any of them, ticked on the business or not. */
-const ALL_SHOP_TYPES = businessTypesForFamily("trade").map((t) => t.name).filter((n) => n !== GENERAL_TRADE);
-const placeTypeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.placeType && (shopTypes.includes(x.placeType) || ALL_SHOP_TYPES.includes(x.placeType)) ? x.placeType : shopTypes[0]);
-/** The row's type list: the business's own types first, then every other shop type, then Warehouse. */
-const shopChoices = () => {
-  const own = [...new Set(shopTypes.length ? shopTypes : [""])];
-  return { own: own.map((t) => ({ value: `shop:${t}`, label: placeName(t) })), other: ALL_SHOP_TYPES.filter((t) => !own.includes(t)).map((t) => ({ value: `shop:${t}`, label: t })) };
-};
+/** A row's shop type is one of the types chosen in Business Type (owner, 2026-11-23); anything else shows as the main type. */
+const placeTypeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.placeType && shopTypes.includes(x.placeType) ? x.placeType : shopTypes[0]);
+/** The row's type list: only the types chosen in Business Type (Shop when none), then Warehouse. More types: tick them in Business Type. */
+const shopChoices = () => ({ own: [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) })), other: [] as { value: string; label: string }[] });
 const placeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.type === "shop" ? placeName(placeTypeOf(x)) : TYPE_LABEL[x.type]);
 const isStorage = (r: SetupRow) => r.type !== "shop";
 

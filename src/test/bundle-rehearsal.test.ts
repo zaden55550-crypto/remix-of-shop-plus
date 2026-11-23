@@ -87,3 +87,24 @@ describe("proposed 0024: plan payments", () => {
     await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0024_plan_payments.down.sql"), "utf8"));
   }, 60_000);
 });
+
+describe("APPLY-2026-11-23-additions: bringing an earlier run up to date", () => {
+  it("adds the new providers and plan payments over the earlier 0023, and can run twice", async () => {
+    const db = new PGlite();
+    await db.exec(BASE);
+    for (const f of JOURNAL) await db.exec(journalFile(f));
+    // What an owner who ran the 2026-11-22 bundle before 2026-11-23 has: 0023 with four kinds only.
+    await db.exec(readFileSync(resolve("src/test/fixtures-0023-before-providers.sql"), "utf8"));
+    const a = "00000000-0000-4000-8000-00000000000a";
+    const as = async (sql: string) => { await db.exec(`RESET ROLE; SELECT set_config('test.uid', '${a}', false); SET ROLE authenticated`); try { return (await db.query(sql)).rows; } finally { await db.exec("RESET ROLE"); } };
+    await expect(as(`SELECT save_business_integration('airtel', '{"clientId":"x"}'::jsonb, true, true)`)).rejects.toThrow(/Unknown connection/);
+    const add = readFileSync(resolve("drizzle/proposed/APPLY-2026-11-23-additions.sql"), "utf8");
+    await db.exec(add);
+    await db.exec(add);
+    await as(`SELECT save_business_integration('airtel', '{"clientId":"x"}'::jsonb, true, true)`);
+    await as(`SELECT save_business_integration('evc', '{"merchantUid":"m"}'::jsonb, true, true)`);
+    expect((await as("SELECT kind FROM business_integration_status() ORDER BY kind")).map((r) => (r as { kind: string }).kind)).toEqual(["airtel", "evc"]);
+    await db.exec(`INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id) VALUES ('${a}', 'growth', 'monthly', 2838, '254722000000', 'ws_CO_9')`);
+    expect(await as("SELECT checkout_request_id FROM plan_payments")).toEqual([{ checkout_request_id: "ws_CO_9" }]);
+  }, 60_000);
+});
