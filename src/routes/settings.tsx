@@ -1,4 +1,5 @@
 import { clean } from "@/lib/format";
+import { ConnectionsPanel } from "@/components/shopbook/connections-panel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PasskeysPanel } from "@/components/shopbook/passkeys-panel";
 import { viewSearch } from "@/lib/deep-link";
@@ -49,7 +50,7 @@ const SUB: Record<Category, string[]> = {
   General: ["Language & Currency", "Date & Time", "Number Format", "Interface Size", "Text Size", "Search & Printing", "System Preferences", "Autosave & Backup", "Import & Data", "Sample Data", "Reconciliation", "Manage Modules", "Export Data", "Export & Restore", "Delete & Reset"],
   "AI Setup": ["ShopBot", "Business Questions", "Business Summaries", "Trend Analysis", "Guided Instructions", "Recommendations", "AI Actions", "AI Gateway"],
   "People & Access": PEOPLE_SECTIONS,
-  Finance: ["Accounts", "Payment Methods", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
+  Finance: ["Accounts", "Payment Methods", "Connections", "Costing", "Transfers", "Financial Periods", "Receivables", "Payables"],
   "Products & Operations": ["Product Settings", "Categories", "Brands", "Units", "Pricing", "Buying", "Selling", "Costing", "Barcodes", "Low Stock", "Stock Behavior", "Transfers", "Custom Fields"],
   Appearance: ["Interface Size", "Text Size", "Icon Size", "Spacing"],
   "Tax & Compliance": ["VAT", "Tax Settings", "eTIMS", "Receipts", "Documents", "Audit Trail"],
@@ -212,6 +213,7 @@ function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveC
   if (name === "AI Gateway") return <Status label="Lovable AI Gateway" state={cfg.aiOn ? "Connected" : "Disabled"} />;
   if (PEOPLE_SECTIONS.includes(name)) return <PeoplePanel name={name} tr={tr} history={<Audit rows={state.audit} tr={tr} />} />;
   if (name === "Payment Methods") return <PaymentMethodsManager tr={tr} />;
+  if (name === "Connections") return <ConnectionsPanel />;
   if (name === "Accounts") return <Links nav={nav} links={[["Float", "/float"], ["Accounting", "/accounting"]]} tr={tr} />; if (["Transfers", "Receivables", "Payables", "Financial Periods", "Costing"].includes(name)) return <Links nav={nav} links={[[name === "Transfers" ? "Float" : name === "Costing" ? "Accounting" : "Reports", name === "Transfers" ? "/float" : name === "Costing" ? "/accounting" : "/reports"]]} tr={tr} />;
   if (name === "Manage Modules") return <ManageModules tr={tr} />; if (name === "Export Data") return <ExportData tr={tr} shopName={acct.shopName} />; if (name === "Categories" || name === "Brands") return <NamedManager kind={name === "Brands" ? "brands" : "categories"} tr={tr} />;
   if (["Units", "Pricing", "Buying", "Selling", "Barcodes", "Stock Behavior", "Custom Fields", "Product Settings"].includes(name)) return <Links nav={nav} links={[["Open Inventory", "/inventory"]]} tr={tr} />; if (name === "Low Stock") return <L label="Default low-stock level"><input className="inventory-input" type="number" min={0} value={cfg.lowStock} onChange={(e) => saveCfg({ lowStock: Math.max(0, +e.target.value) })} /></L>;

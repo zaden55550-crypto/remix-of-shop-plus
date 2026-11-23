@@ -35,10 +35,12 @@ import { Route as SupportInboxRouteImport } from './routes/support-inbox'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiBusinessAssistantRouteImport } from './routes/api/business-assistant'
 import { Route as ApiHelpChatRouteImport } from './routes/api/help-chat'
+import { Route as ApiMpesaCallbackRouteImport } from './routes/api/mpesa-callback'
 import { Route as ApiReorderRouteImport } from './routes/api/reorder'
 import { Route as AuthRecoveryRouteImport } from './routes/auth.recovery'
 import { Route as AuthReturnRouteImport } from './routes/auth.return'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
+import { Route as ShopSlugRouteImport } from './routes/shop.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -170,6 +172,11 @@ const ApiHelpChatRoute = ApiHelpChatRouteImport.update({
   path: '/api/help-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMpesaCallbackRoute = ApiMpesaCallbackRouteImport.update({
+  id: '/api/mpesa-callback',
+  path: '/api/mpesa-callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiReorderRoute = ApiReorderRouteImport.update({
   id: '/api/reorder',
   path: '/api/reorder',
@@ -188,6 +195,11 @@ const AuthReturnRoute = AuthReturnRouteImport.update({
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/auth/verify',
   path: '/auth/verify',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShopSlugRoute = ShopSlugRouteImport.update({
+  id: '/shop/$slug',
+  path: '/shop/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -218,10 +230,12 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
+  '/api/mpesa-callback': typeof ApiMpesaCallbackRoute
   '/api/reorder': typeof ApiReorderRoute
   '/auth/recovery': typeof AuthRecoveryRoute
   '/auth/return': typeof AuthReturnRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/shop/$slug': typeof ShopSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -250,10 +264,12 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
+  '/api/mpesa-callback': typeof ApiMpesaCallbackRoute
   '/api/reorder': typeof ApiReorderRoute
   '/auth/recovery': typeof AuthRecoveryRoute
   '/auth/return': typeof AuthReturnRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/shop/$slug': typeof ShopSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -283,10 +299,12 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/business-assistant': typeof ApiBusinessAssistantRoute
   '/api/help-chat': typeof ApiHelpChatRoute
+  '/api/mpesa-callback': typeof ApiMpesaCallbackRoute
   '/api/reorder': typeof ApiReorderRoute
   '/auth/recovery': typeof AuthRecoveryRoute
   '/auth/return': typeof AuthReturnRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/shop/$slug': typeof ShopSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -317,10 +335,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/business-assistant'
     | '/api/help-chat'
+    | '/api/mpesa-callback'
     | '/api/reorder'
     | '/auth/recovery'
     | '/auth/return'
     | '/auth/verify'
+    | '/shop/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -349,10 +369,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/business-assistant'
     | '/api/help-chat'
+    | '/api/mpesa-callback'
     | '/api/reorder'
     | '/auth/recovery'
     | '/auth/return'
     | '/auth/verify'
+    | '/shop/$slug'
   id:
     | '__root__'
     | '/'
@@ -381,10 +403,12 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/business-assistant'
     | '/api/help-chat'
+    | '/api/mpesa-callback'
     | '/api/reorder'
     | '/auth/recovery'
     | '/auth/return'
     | '/auth/verify'
+    | '/shop/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -414,10 +438,12 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiBusinessAssistantRoute: typeof ApiBusinessAssistantRoute
   ApiHelpChatRoute: typeof ApiHelpChatRoute
+  ApiMpesaCallbackRoute: typeof ApiMpesaCallbackRoute
   ApiReorderRoute: typeof ApiReorderRoute
   AuthRecoveryRoute: typeof AuthRecoveryRoute
   AuthReturnRoute: typeof AuthReturnRoute
   AuthVerifyRoute: typeof AuthVerifyRoute
+  ShopSlugRoute: typeof ShopSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -604,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHelpChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mpesa-callback': {
+      id: '/api/mpesa-callback'
+      path: '/api/mpesa-callback'
+      fullPath: '/api/mpesa-callback'
+      preLoaderRoute: typeof ApiMpesaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/reorder': {
       id: '/api/reorder'
       path: '/api/reorder'
@@ -630,6 +663,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/verify'
       fullPath: '/auth/verify'
       preLoaderRoute: typeof AuthVerifyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shop/$slug': {
+      id: '/shop/$slug'
+      path: '/shop/$slug'
+      fullPath: '/shop/$slug'
+      preLoaderRoute: typeof ShopSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -662,10 +702,12 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiBusinessAssistantRoute: ApiBusinessAssistantRoute,
   ApiHelpChatRoute: ApiHelpChatRoute,
+  ApiMpesaCallbackRoute: ApiMpesaCallbackRoute,
   ApiReorderRoute: ApiReorderRoute,
   AuthRecoveryRoute: AuthRecoveryRoute,
   AuthReturnRoute: AuthReturnRoute,
   AuthVerifyRoute: AuthVerifyRoute,
+  ShopSlugRoute: ShopSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

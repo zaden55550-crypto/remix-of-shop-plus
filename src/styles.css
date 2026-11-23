@@ -25283,6 +25283,24 @@ html.dark .bsetup {
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { justify-content: flex-start !important; }
 @media (min-width: 1100px) and (max-height: 819.98px) { :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table .bsetup-entry.bsetup-entry { height: 62px !important; } }
 @media (max-width: 767.98px) { :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table .bsetup-entry.bsetup-entry { height: auto !important; } }
+/* Round 13: five-step Setup. Simple shows name, phone, industry, type, More and Add User; More adds documents, features and the
+   other company buttons back. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple :is(.bsetup-documents, .bsetup-feature-row) { display: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple .bsetup-company-actions > .bsetup-co-btn:not(.is-add) { display: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple > .bsetup-save-row { grid-row: 1 !important; align-self: end !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-more-toggle { align-self: end; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 54px; padding: 0 18px; border-radius: 12px;
+  border: 1px solid rgb(190 215 255 / 0.5); background: rgb(255 255 255 / 0.08); color: var(--bs-text); font-size: 18px; font-weight: 800; white-space: nowrap; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-more-toggle svg { width: 20px; height: 20px; transition: transform .2s; }
+@media (min-width: 1600px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple > .bsetup-profile-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.9fr) minmax(0, 0.8fr) minmax(0, 1.1fr) auto auto !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-more > .bsetup-profile-grid { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.7fr) minmax(0, 0.62fr) minmax(0, 0.9fr) auto minmax(0, 0.8fr) auto !important; }
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple { grid-template-columns: minmax(0, 1fr) auto !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple > .bsetup-profile-grid { grid-column: 1 !important; grid-row: 1 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple > .bsetup-save-row { grid-column: 2 !important; grid-row: 1 !important; align-self: end !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple > .bsetup-save-row > .bsetup-later { height: 54px !important; min-height: 54px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple .bsetup-company-actions { align-self: end; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile.is-simple .bsetup-co-btn.is-add { height: 54px; }
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */
 .bsetup-docs-page .settings-note { font-size: 15px; }
 
@@ -25332,3 +25350,70 @@ html.dark .bsetup {
 .dash-summary-btn.is-wa { background: #16a34a; }
 .dash-summary-btn.is-sms { background: #2563eb; }
 /* ===== END FIRST SALE & DAILY SUMMARY ===== */
+
+/* ===== FIRST-TIME HINTS (owner, 2026-11-23; first-time-hint.tsx) ===== */
+.first-hint { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 70; display: flex; align-items: center; gap: 12px; width: min(44rem, calc(100vw - 32px));
+  padding: 12px 14px; border-radius: 14px; background: #ffffff; color: #0f2a4f; box-shadow: 0 12px 34px rgb(5 15 45 / 0.35); border-left: 6px solid #f59e0b; }
+.first-hint p { flex: 1 1 auto; margin: 0; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.first-hint-icon { width: 26px; height: 26px; color: #f59e0b; flex: 0 0 auto; }
+.first-hint-ok { padding: 8px 14px; border-radius: 10px; background: #2563eb; color: #fff; font-weight: 800; white-space: nowrap; }
+.first-hint-x { padding: 4px; color: #0f2a4f; }
+.first-hint-x svg { width: 18px; height: 18px; }
+/* Shop tools screens (shop-tools-panels.tsx). */
+.tools-panel { display: flex; flex-direction: column; gap: 12px; width: min(60rem, 94vw); }
+.tools-panel h3 { font-size: 22px; font-weight: 800; display: flex; gap: 10px; align-items: baseline; }
+.tools-panel h3 small { font-size: 16px; opacity: 0.8; font-weight: 600; }
+.tools-panel h4 { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; font-weight: 800; }
+.tools-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.tools-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.tools-list > li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgb(190 215 255 / 0.3); background: rgb(255 255 255 / 0.04); }
+.tools-list > li > span { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.tools-list > li > span small { opacity: 0.8; }
+.tools-list > li.is-discount, .tools-list > li.is-below-cost { border-color: rgb(251 191 36 / 0.6); }
+.tools-list > li.is-short, .tools-list > li.is-return { border-color: rgb(248 113 113 / 0.6); }
+.tools-amount { white-space: nowrap; }
+.tools-btn { display: inline-flex; align-items: center; padding: 7px 12px; border-radius: 10px; color: #fff; font-weight: 800; font-size: 14px; white-space: nowrap; }
+.tools-btn.is-wa { background: #16a34a; }
+.tools-btn.is-sms { background: #2563eb; }
+.tools-small { width: 6.5rem; }
+.tools-ok { color: #34d399; }
+.tools-diff { color: #fbbf24; }
+.tools-group { display: flex; flex-direction: column; gap: 6px; }
+/* ===== END FIRST-TIME HINTS ===== */
+
+/* ===== CONNECTIONS, PHOTO ADD & ONLINE SHOP (owner, 2026-11-23) ===== */
+.connections { display: flex; flex-direction: column; gap: 14px; }
+.connection { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--lg-border, rgb(190 215 255 / 0.35)); background: var(--card); }
+.connection > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.connection > header h4 { font-size: 18px; font-weight: 800; }
+.connection > header span { font-size: 13px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+.connection > header .is-on { background: rgb(16 185 129 / 0.18); color: rgb(5 150 105); }
+.connection > header .is-off { background: rgb(148 163 184 / 0.18); color: inherit; opacity: 0.8; }
+.connection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 10px; }
+.connection-terms { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.4; }
+.connection-terms a { text-decoration: underline; }
+.connection-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.connection-actions .inventory-input { width: 12rem; }
+.connection-actions .connection-amount { width: 6rem; }
+.connection-link { word-break: break-all; font-weight: 700; text-decoration: underline; }
+.settings-note.is-warn { color: rgb(217 119 6); font-weight: 700; }
+.tools-photo { display: inline-flex; align-items: center; gap: 8px; width: fit-content; padding: 10px 16px; border-radius: 12px; cursor: pointer; font-weight: 800; background: var(--tint, rgb(37 99 235)); color: #fff; }
+.tools-photo.is-busy { opacity: 0.6; cursor: progress; }
+.tools-photo svg { width: 20px; height: 20px; }
+.tools-table { width: 100%; border-collapse: collapse; }
+.tools-table th { text-align: left; font-size: 14px; padding: 4px 6px; opacity: 0.8; }
+.tools-table td { padding: 3px 6px; }
+.tools-table td:first-child { width: 2rem; }
+.pshop { min-height: 100dvh; max-width: 42rem; margin: 0 auto; padding: 20px 16px 96px; display: flex; flex-direction: column; gap: 12px; background: #fff; color: #0f172a; font-family: system-ui, sans-serif; }
+.pshop h1 { font-size: 26px; font-weight: 800; }
+.pshop-search { height: 46px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 0 14px; font-size: 16px; background: #fff; color: #0f172a; }
+.pshop-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+.pshop-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 2px; border-bottom: 1px solid #e2e8f0; }
+.pshop-list li > span:first-child { display: flex; flex-direction: column; }
+.pshop-list li small { color: #475569; font-size: 14px; }
+.pshop-list li.is-out { opacity: 0.55; }
+.pshop-qty { display: inline-flex; align-items: center; gap: 10px; }
+.pshop-qty button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; font-size: 20px; font-weight: 800; color: #0f172a; }
+.pshop-order { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(40rem, calc(100% - 32px)); text-align: center; padding: 14px; border-radius: 14px; background: #25d366; color: #fff; font-weight: 800; font-size: 17px; }
+.pshop-foot { text-align: center; color: #94a3b8; font-size: 13px; }
+/* ===== END CONNECTIONS, PHOTO ADD & ONLINE SHOP ===== */

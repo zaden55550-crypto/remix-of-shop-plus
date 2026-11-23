@@ -265,7 +265,7 @@ export function checkMethod(full: Pick<ErpState, "moneyAccounts">, m: Method, al
   if (!moneyMethods(s).includes(m)) throw new ErpError(known(s, m) ? `${methodName(m, s)} is no longer in use` : "Unknown payment method");
 }
 /** `wholesale`: a wholesale customer, who gets each product's wholesale price whatever the quantity (Wholesale & retail prices). */
-export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number; wholesale?: boolean | undefined };
+export type Customer = ContactDetails & AtShop & AtBusiness & { id: string; name: string; phone?: string | undefined; balance: number; createdAt: number; wholesale?: boolean | undefined; /** Loyalty points already used (shop-tools.ts). */ pointsUsed?: number | undefined };
 /** `unit`: the product's unit when sold (kg, pcs…), so receipts can say "1.25 kg × 700/kg". Older sales have none. */
 /** `wholesale`: the line was charged the product's wholesale price (Wholesale & retail prices), so receipts can mark it. */
 export type SaleItem = { productId: string; name: string; qty: number; price: number; cost: number; returned: number; unit?: string | undefined; wholesale?: true | undefined;

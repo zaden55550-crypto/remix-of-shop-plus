@@ -15,6 +15,7 @@ import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import { useFeature } from "@/lib/use-features";
 import { LaybysPage, QuotationsPage } from "@/components/shopbook/trade-docs";
+import { AlertsPanel, CreditBook, LoyaltyPanel } from "@/components/shopbook/shop-tools-panels";
 import { weighedUnit } from "@/lib/weight-display";
 
 export const Route = createFileRoute("/sales")({
@@ -40,6 +41,9 @@ const MENUS = {
   Returns: ["All Returns", "New Return"],
   "Lay-bys": [],
   Quotations: [],
+  "Credit book": [],
+  Loyalty: [],
+  Alerts: [],
   Reports: [],
 } as const;
 type Menu = keyof typeof MENUS;
@@ -76,6 +80,9 @@ function Sales() {
           {menu === "Returns" && (sub === "New Return" ? <NewReturn {...ctx} /> : <ReturnsList {...ctx} />)}
           {menu === "Reports" && <SalesReport {...ctx} period={per} />}
           {menu === "Lay-bys" && <LaybysPage s={s} money={ctx.money} />}
+          {menu === "Credit book" && <CreditBook s={s} money={ctx.money} />}
+          {menu === "Loyalty" && <LoyaltyPanel s={s} money={ctx.money} />}
+          {menu === "Alerts" && <AlertsPanel s={s} money={ctx.money} />}
           {menu === "Quotations" && <QuotationsPage s={s} money={ctx.money} shop={acct.shopName} phone={acct.phone} />}
         </>}
       {view?.k === "detail" && <GlassPage label={tr("Sale details")} onClose={() => setView(null)}><SaleDetail {...ctx} id={view.id} /></GlassPage>}

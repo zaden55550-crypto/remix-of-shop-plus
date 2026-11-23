@@ -1,4 +1,5 @@
 import { methodName, moneyMethods, payAmount, type ErpState, type Method } from "@/lib/erp";
+import { theftAlerts } from "@/lib/shop-tools";
 import { expirySummary } from "@/lib/batches";
 import { balanceOf, floatBalances, purchaseTotals, shownAccounts, totalMoney } from "@/lib/finance";
 import { profitAndLoss } from "@/lib/accounting";
@@ -102,6 +103,7 @@ export const ALERT_GO = {
   payables: { to: "/purchases", search: { menu: "Suppliers & Payments", sub: "Suppliers" } },
   cashUp: { to: "/pos", search: { menu: "Cash", sub: "Cash Up" } },
   settings: { to: "/settings", search: {} },
+  theft: { to: "/sales", search: { menu: "Alerts" } },
 } satisfies Record<string, { to: string; search: ViewSearch }>;
 
 export type BusinessAlert = { id: string; title: string; tone: "bad" | "warn"; go: (typeof ALERT_GO)[keyof typeof ALERT_GO] };
@@ -123,5 +125,8 @@ export function businessAlerts(s: ErpState, o: { cur: string; tr: (t: string) =>
   if (p.payables > 0) items.push({ id: "payables", title: `${cur} ${cardFigure(p.payables)} ${tr("unpaid supplier purchases")}`, tone: "bad", go: ALERT_GO.payables });
   if (p.cashUpPending) items.push({ id: "cashup", title: tr("POS cash-up is pending"), tone: "warn", go: ALERT_GO.cashUp });
   if (syncIssue) items.push({ id: "sync", title: `${tr("Sync")}: ${syncIssue}`, tone: "bad", go: ALERT_GO.settings });
+  // Theft alerts (shop-tools.ts): big discounts, below-cost sales, returns and short cash-ups from the last 7 days.
+  const theft = theftAlerts(s as ErpState, { money: (n) => `${cur} ${Math.round(n).toLocaleString("en-KE")}`, tr }).length;
+  if (theft > 0) items.push({ id: "theft", title: `${theft} ${tr(theft === 1 ? "thing to check in Alerts" : "things to check in Alerts")}`, tone: "warn", go: ALERT_GO.theft });
   return items;
 }

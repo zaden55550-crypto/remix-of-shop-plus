@@ -48,3 +48,25 @@ describe("proposed 0022: online copies of business documents", () => {
     await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0022_business_documents_storage.down.sql"), "utf8"));
   }, 60_000);
 });
+
+describe("proposed 0023: each business's own connections and the online shop link", () => {
+  it("keeps keys away from the browser, lists what is set, and publishes only a product list", async () => {
+    const db = new PGlite();
+    await db.exec(BASE);
+    for (const f of JOURNAL) await db.exec(journalFile(f));
+    await db.exec(readFileSync(resolve("drizzle/proposed/0023_business_integrations.sql"), "utf8"));
+    const a = "00000000-0000-4000-8000-00000000000a";
+    const as = async (user: string, sql: string, role = "authenticated") => { await db.exec(`RESET ROLE; SELECT set_config('test.uid', '${user}', false); SET ROLE ${role}`); try { return (await db.query(sql)).rows; } finally { await db.exec("RESET ROLE"); } };
+    await expect(as(a, `SELECT save_business_integration('mpesa', '{"shortcode":"174379","passkey":"secret"}'::jsonb, true, false)`)).rejects.toThrow(/Accept the terms/);
+    await as(a, `SELECT save_business_integration('mpesa', '{"shortcode":"174379","passkey":"secret"}'::jsonb, true, true)`);
+    await as(a, `SELECT save_business_integration('mpesa', '{"shortcode":"600000","passkey":""}'::jsonb, true, true)`);
+    expect(await as(a, "SELECT kind, fields FROM business_integration_status()")).toEqual([{ kind: "mpesa", fields: ["passkey", "shortcode"] }]);
+    await expect(as(a, "SELECT config FROM business_integrations")).rejects.toThrow();
+    expect((await db.query<{ c: { passkey: string; shortcode: string } }>("SELECT config c FROM business_integrations")).rows[0]!.c).toEqual({ passkey: "secret", shortcode: "600000" });
+    await db.exec(`INSERT INTO shopbook_shop_sync (user_id, payload) VALUES ('${a}', '{"products":[{"id":"p1","name":"Sugar","sell":180,"qty":4,"buy":150,"createdAt":1},{"id":"p2","name":"Old","sell":1,"qty":0,"buy":1,"archived":true,"createdAt":1}],"movements":[{"id":"m1","at":1,"type":"OPENING","productId":"p1","qty":4,"prev":0,"next":4,"user":"A"}]}')`);
+    await as(a, "SELECT set_public_shop('kifaru-shop', 'Kifaru Shop', '254722000000', true)");
+    const page = (await as("", "SELECT public_shop_catalog('Kifaru-Shop') p", "anon"))[0] as { p: { title: string; products: unknown[] } };
+    expect(page.p).toEqual({ title: "Kifaru Shop", whatsapp: "254722000000", products: [{ name: "Sugar", price: 180, unit: null, inStock: true }] });
+    await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0023_business_integrations.down.sql"), "utf8"));
+  }, 60_000);
+});

@@ -3,6 +3,7 @@ import { useFeature } from "@/lib/use-features";
 import { WholesaleFields, readWholesale, wholesaleDraft } from "@/components/shopbook/wholesale-fields";
 import { GasCylinders } from "@/components/shopbook/gas-cylinders";
 import { BreakdownPage, PrescriptionsPage } from "@/components/shopbook/trade-docs";
+import { ReorderPanel, ShopPrices, StockCount, VoiceAdd } from "@/components/shopbook/shop-tools-panels";
 import { ExpiryList } from "@/components/shopbook/expiry-list";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
@@ -103,7 +104,7 @@ export const Route = createFileRoute("/inventory")({
 /** 4-Menu Architecture matching specification */
 const MENUS = {
   overview: [],
-  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry", "Gas Cylinders", "Breakdown", "Prescriptions"],
+  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry", "Gas Cylinders", "Breakdown", "Prescriptions", "Stock Count", "Reorder", "Shop Prices", "Quick Add"],
   "returns & transfers": ["Customer Returns", "Supplier Returns", "New Transfer", "Transfer History", "Warehouse Stock"],
   configuration: ["Product Setup", "Stock Setup"],
 } as const;
@@ -417,6 +418,12 @@ function Inventory() {
       {menu === "products & stock" && sub === "Adjustments" && (
         <GlassPage label={tr("Stock Adjustment — Physical Count Correction")} onClose={() => go("products & stock", "All Products")}>
           <AdjustmentsScreen {...ctx} />
+        </GlassPage>
+      )}
+
+      {menu === "products & stock" && (sub === "Stock Count" || sub === "Reorder" || sub === "Shop Prices" || sub === "Quick Add") && (
+        <GlassPage label={tr(sub)} onClose={() => go("products & stock", "All Products")}>
+          {sub === "Stock Count" ? <StockCount s={s} /> : sub === "Reorder" ? <ReorderPanel s={s} /> : sub === "Shop Prices" ? <ShopPrices s={s} money={money} /> : <VoiceAdd />}
         </GlassPage>
       )}
 

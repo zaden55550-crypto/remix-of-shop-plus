@@ -1,4 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
+import { AutoSummary } from "@/components/shopbook/auto-summary";
 import {
   Outlet,
   Link,
@@ -167,7 +169,7 @@ function RootComponent() {
       const expired = event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session);
       if (!expired || account?.authMigration?.status !== "complete" || !store.signedIn()) return;
       expireMigratedOwnerSession();
-      if (!["/", "/signup", "/auth/recovery", "/auth/verify", "/auth/return", "/terms", "/privacy"].includes(pathname)) void router.navigate({ to: "/", replace: true });
+      if (!["/", "/signup", "/auth/recovery", "/auth/verify", "/auth/return", "/terms", "/privacy"].includes(pathname) && !pathname.startsWith("/shop/")) void router.navigate({ to: "/", replace: true });
     });
     return () => auth.data.subscription.unsubscribe();
   }, [pathname, router]);
@@ -176,6 +178,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <StaffGate />
       <AppAccessGate />
+      <FirstTimeHint />
+      <AutoSummary />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       {/* ERP workspace: plain pass-through until ShopBot docks on the right, then it holds the remaining width. */}
       <div className="shopbot-workspace"><div className="shopbot-workspace-scroll">
