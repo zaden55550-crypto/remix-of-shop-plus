@@ -4,7 +4,7 @@
 // keep their own phone design. A device can opt out with localStorage "shopbook.phoneLayout" = "1".
 export const LAPTOP_WIDTH = 1280;
 const DEVICE = "width=device-width, initial-scale=1, viewport-fit=cover";
-const OWN_PHONE_DESIGN = ["/", "/signup", "/terms", "/privacy", "/welcome"];
+const OWN_PHONE_DESIGN = ["/", "/signup", "/terms", "/privacy", "/welcome", "/plans"];
 
 /** Pages that keep their own phone layout instead of the shrunk laptop one. */
 export function keepsPhoneDesign(pathname: string) {

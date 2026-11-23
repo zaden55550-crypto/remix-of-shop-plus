@@ -25916,3 +25916,40 @@ body.on-setup .movein-page { width: min(78rem, calc(88vw / 1.15)) !important; }
 .idle-warn { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 120; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
   padding: 12px 16px; border-radius: 14px; background: #fff; color: #0f2a4f; border-left: 6px solid #f59e0b; box-shadow: 0 14px 40px rgb(5 15 45 / 0.45); font-size: 16px; max-width: calc(100vw - 24px); }
 .idle-warn button { padding: 8px 16px; border-radius: 10px; background: #059669; color: #fff; font-weight: 800; }
+
+/* Plans: always three cards side by side, on every screen (owner, 2026-11-23). */
+:root:root:root:root .plans-page > .plans-card-grid, :root:root:root:root .plans-card-grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; grid-auto-rows: 1fr !important; }
+:root:root:root:root .plans-card-grid > * { grid-column: auto !important; grid-row: auto !important; min-width: 0 !important; }
+@media (max-width: 760px) {
+  :root:root:root:root .plans-card-grid { gap: 6px !important; }
+  :root:root:root:root .plans-card-grid > div { padding: 8px 5px !important; }
+  :root:root:root:root .plans-card-grid h3 { font-size: 17px !important; }
+  :root:root:root:root .plans-card-grid p, :root:root:root:root .plans-card-grid li { font-size: 11px !important; line-height: 1.25 !important; overflow-wrap: anywhere; }
+  :root:root:root:root .plans-card-grid button { font-size: 12px !important; padding-inline: 4px !important; white-space: normal !important; }
+}
+/* Plans text wraps instead of being cut, and feature lists are never clipped (the one-page fit shrinks the page instead). */
+:root:root:root:root .plans-page :is(li, li span, p, h3, header span) { white-space: normal !important; overflow-wrap: anywhere; text-overflow: clip !important; }
+:root:root:root:root .plans-card-grid ul, :root:root:root:root .plans-card-grid > div > div.flex-1 { overflow: visible !important; flex: 1 0 auto !important; min-height: auto !important; }
+:root:root:root:root .plans-card-grid > div { overflow: visible !important; height: auto !important; }
+:root:root:root:root .plans-page header { flex-wrap: wrap !important; row-gap: 4px; }
+@media (max-width: 760px) {
+  :root:root:root:root .plans-page header > div:first-child > span { display: none !important; }
+  :root:root:root:root .plans-card-grid li { gap: 3px !important; align-items: flex-start !important; }
+  :root:root:root:root .plans-card-grid li svg { width: 10px !important; height: 10px !important; margin-top: 2px; flex: 0 0 auto; }
+  :root:root:root:root .plans-tour-btn { font-size: 11px !important; padding: 4px 8px !important; }
+}
+:root:root:root:root .plans-page > .plans-card-grid { flex: 1 0 auto !important; min-height: auto !important; height: auto !important; grid-auto-rows: auto !important; }
+:root:root:root:root .plans-card-grid > div { min-height: 0 !important; max-height: none !important; }
+:root:root:root:root .plans-card-grid > div > div:last-child { margin-top: auto; }
+:root:root:root:root .plans-card-grid ul > *, :root:root:root:root .plans-card-grid > div > div.flex-1 > * { flex-shrink: 0 !important; }
+:root:root:root:root .plans-card-grid ul { height: auto !important; justify-content: flex-start !important; gap: clamp(2px, 0.6vh, 8px) !important; }
+:root:root:root:root .plans-card-grid > div > div.flex-1 { justify-content: flex-start !important; }
+/* Log In / Create Account: text wraps inside its card on every screen instead of running past the edge. */
+:root:root:root:root .auth-split-page :is(.auth-card-note, .login-staff-note, .login-help-note, .signup-benefit-text p, .signup-benefit-text h3, .auth-card-greeting) { white-space: normal !important; overflow-wrap: anywhere; text-overflow: clip !important; max-width: 100%; }
+:root:root:root:root .auth-split-page .auth-card-welcome { padding-inline: 16px !important; box-sizing: border-box; }
+:root:root:root:root .auth-split-page .auth-card-note { text-align: center; }
+:root:root:root:root .auth-split-page .signup-benefit { min-width: 0 !important; }
+:root:root:root:root .auth-split-page .signup-benefit-text { min-width: 0 !important; }
+@media (max-width: 1099.98px) {
+  :root:root:root:root .auth-split-page .social-row button, :root:root:root:root .auth-split-page [class*="social"] button { min-width: 0 !important; padding-inline: 6px !important; font-size: 14px !important; }
+}
