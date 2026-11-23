@@ -132,3 +132,36 @@ describe("proposed 0025: referrals", () => {
     await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0025_referrals.down.sql"), "utf8"));
   }, 60_000);
 });
+
+describe("WIPE-2026-11-23-fresh-start: a brand new system", () => {
+  it("empties every data table, the documents bucket and every online account, and keeps the reference lists", async () => {
+    const db = new PGlite();
+    await db.exec(BASE);
+    for (const f of JOURNAL) await db.exec(journalFile(f));
+    await db.exec(`CREATE SCHEMA storage; CREATE TABLE storage.buckets (id text PRIMARY KEY, name text, public boolean);
+      CREATE TABLE storage.objects (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), bucket_id text, name text);
+      CREATE FUNCTION storage.foldername(name text) RETURNS text[] LANGUAGE sql IMMUTABLE AS $$ SELECT (string_to_array(name, '/'))[1:array_length(string_to_array(name, '/'), 1) - 1] $$;
+      CREATE TABLE auth.users (id uuid PRIMARY KEY, email text);`);
+    await db.exec(readFileSync(resolve("drizzle/proposed/APPLY-2026-11-22.sql"), "utf8"));
+    const a = "00000000-0000-4000-8000-00000000000a";
+    await db.exec(`INSERT INTO auth.users VALUES ('${a}', 'owner@example.com');
+      INSERT INTO public.shopbook_shop_sync (user_id, payload) VALUES ('${a}', '{}');
+      INSERT INTO public.user_roles (user_id, role) VALUES ('${a}', 'support');
+      INSERT INTO public.public_shops (owner_id, slug, title) VALUES ('${a}', 'test-shop', 'Test');
+      INSERT INTO public.plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id) VALUES ('${a}', 'basic', 'monthly', 1, '2547', 'ws_1');
+      INSERT INTO storage.objects (bucket_id, name) VALUES ('business-documents', '${a}/kra.pdf'), ('other-bucket', 'keep.png');`);
+    const keepBefore = await db.query<{ n: number }>("SELECT (SELECT count(*) FROM subscription_plans) + (SELECT count(*) FROM permissions) + (SELECT count(*) FROM role_permissions) + (SELECT count(*) FROM business_type_catalogue) AS n");
+    expect(Number(keepBefore.rows[0]!.n)).toBeGreaterThan(0);
+    await db.exec(readFileSync(resolve("drizzle/proposed/WIPE-2026-11-23-fresh-start.sql"), "utf8"));
+    const tables = (await db.query<{ t: string }>("SELECT tablename t FROM pg_tables WHERE schemaname = 'public'")).rows.map((r) => r.t);
+    const keep = ["subscription_plans", "permissions", "role_permissions", "business_type_catalogue"];
+    for (const t of tables) {
+      const n = Number((await db.query<{ n: number }>(`SELECT count(*) n FROM public."${t}"`)).rows[0]!.n);
+      if (keep.includes(t)) expect(n, t).toBeGreaterThan(0); else expect(n, t).toBe(0);
+    }
+    expect((await db.query("SELECT * FROM auth.users")).rows).toEqual([]);
+    expect((await db.query("SELECT name FROM storage.objects")).rows).toEqual([{ name: "keep.png" }]);
+    // The append-only audit lock is switched back on.
+    expect((await db.query<{ e: string }>("SELECT DISTINCT tgenabled e FROM pg_trigger WHERE tgrelid = 'public.audit_logs'::regclass AND NOT tgisinternal")).rows).toEqual([{ e: "O" }]);
+  }, 60_000);
+});

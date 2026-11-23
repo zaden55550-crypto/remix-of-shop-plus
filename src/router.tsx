@@ -1,3 +1,5 @@
+// Fresh start: runs before anything reads device storage (src/lib/fresh-start.ts).
+import "@/lib/fresh-start";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";

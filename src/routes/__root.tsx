@@ -1,3 +1,5 @@
+// Fresh start: runs before anything reads device storage (src/lib/fresh-start.ts).
+import "@/lib/fresh-start";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
 import { AutoSummary } from "@/components/shopbook/auto-summary";
