@@ -21,7 +21,7 @@ afterEach(cleanup);
 
 describe("a location's own phone", () => {
   it("is saved at Activate and loads back into its row", () => {
-    activateSetup(draft([row("a", "Westlands", "SHOP-001", { phone: " 0712 345 678 " }), row("b", "CBD", "SHOP-002")]));
+    activateSetup(draft([row("a", "Westlands", "S001", { phone: " 0712 345 678 " }), row("b", "CBD", "S002")]));
     const saved = listLocations(erp.load());
     expect(saved.find((l) => l.name === "Westlands")?.phone).toBe("0712 345 678");
     expect(saved.find((l) => l.name === "CBD")?.phone).toBeUndefined();
@@ -29,7 +29,7 @@ describe("a location's own phone", () => {
   });
 
   it("must look like a phone number when one is typed", () => {
-    const problems = (phone: string) => validate(draft([row("a", "Westlands", "SHOP-001", { phone })]), 5, 5, 0, [], []).filter((p) => p.field === "phone");
+    const problems = (phone: string) => validate(draft([row("a", "Westlands", "S001", { phone })]), 5, 5, 0, [], []).filter((p) => p.field === "phone");
     expect(problems("0712 345 678")).toEqual([]);
     expect(problems("+254 712 345 678")).toEqual([]);
     expect(problems("")).toEqual([]);

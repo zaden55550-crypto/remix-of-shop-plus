@@ -45,12 +45,13 @@ export async function expandZips(files: File[]): Promise<File[]> {
 /* ---------- Clean-up before saving ---------- */
 export type CleanReport = { merged: number; phones: number; missingPrices: number };
 const has = (cols: string[], names: string[]) => cols.find((c) => names.includes(key(c)));
-/** A Kenyan mobile or landline written as +254…, whatever way it was typed (07…, 7…, 254…, with spaces). Others are left as typed. */
+/** A Kenyan mobile or landline written the local way, 07… or 01… (owner, 2026-11-23), whatever way it was typed (+254…, 254…, 7…,
+ *  with spaces). Others are left as typed. */
 export function tidyPhone(v: string): string {
   const d = v.replace(/[\s\-().]/g, "");
-  if (/^\+?254[17]\d{8}$/.test(d)) return `+${d.replace(/^\+/, "")}`;
-  if (/^0[17]\d{8}$/.test(d)) return `+254${d.slice(1)}`;
-  if (/^[17]\d{8}$/.test(d)) return `+254${d}`;
+  if (/^\+?254[17]\d{8}$/.test(d)) return `0${d.replace(/^\+?254/, "")}`;
+  if (/^0[17]\d{8}$/.test(d)) return d;
+  if (/^[17]\d{8}$/.test(d)) return `0${d}`;
   return v.trim();
 }
 /** Merges product rows that share a code, barcode or name (stock added up, the last non-empty value kept for the rest), writes phone

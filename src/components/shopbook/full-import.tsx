@@ -83,7 +83,7 @@ export function FullImport({ tr, files }: { tr: (x: string) => string; files?: F
   return <div className="relative grid gap-2">
     {stage !== "upload" && (source || (cleaned && (cleaned.merged || cleaned.phones || cleaned.missingPrices))) ? <div className="import-found" role="status">
       {source && <p><b>{tr("This looks like an export from")} {source}.</b> {tr("Its columns were matched for you.")}</p>}
-      {cleaned && (cleaned.merged > 0 || cleaned.phones > 0) && <p>{tr("Cleaned up before saving")}: {cleaned.merged > 0 && <>{cleaned.merged} {tr("duplicate products merged")} </>}{cleaned.phones > 0 && <>· {cleaned.phones} {tr("phone numbers written as +254")}</>}</p>}
+      {cleaned && (cleaned.merged > 0 || cleaned.phones > 0) && <p>{tr("Cleaned up before saving")}: {cleaned.merged > 0 && <>{cleaned.merged} {tr("duplicate products merged")} </>}{cleaned.phones > 0 && <>· {cleaned.phones} {tr("phone numbers written the local way (07…)")}</>}</p>}
       {cleaned && cleaned.missingPrices > 0 && <p className="import-warn">{cleaned.missingPrices} {tr("products have no selling price; add it after the import")}</p>}
     </div> : null}
     {stage !== "upload" && <ShopButton variant="bare" className="inventory-icon-button absolute right-0 top-0" aria-label={tr("Close import and return")} onClick={reset}><X className="h-4 w-4" /></ShopButton>}

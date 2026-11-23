@@ -33,11 +33,12 @@ export function locationUsage(s: ErpState) {
 }
 
 const needOwner = () => { if (!isAdmin()) throw new ErpError("Only the owner can manage locations"); };
-const PREFIX: Record<LocationType, string> = { shop: "SHOP", store: "STORE", warehouse: "WH" };
-/** The next free number for a type, such as SHOP-002 or WH-001, among the codes already taken. */
+// Short numbers (owner, 2026-11-23): S001 for a shop, W001 for a warehouse, so the number column stays narrow. Saved numbers never change.
+const PREFIX: Record<LocationType, string> = { shop: "S", store: "W", warehouse: "WH" };
+/** The next free number for a type, such as S002 or W001, among the codes already taken. */
 export function suggestCode(type: LocationType, taken: readonly string[]) {
   const used = new Set(taken.map(key));
-  for (let n = 1; ; n++) { const code = `${PREFIX[type]}-${String(n).padStart(3, "0")}`; if (!used.has(key(code))) return code; }
+  for (let n = 1; ; n++) { const code = `${PREFIX[type]}${String(n).padStart(3, "0")}`; if (!used.has(key(code))) return code; }
 }
 const nextCode = (rows: Location[], type: LocationType) => suggestCode(type, rows.map((l) => l.code));
 

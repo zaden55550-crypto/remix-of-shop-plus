@@ -2,7 +2,8 @@
 // with a progress bar where each step can be done or skipped. Payment details, tax, opening stock, opening cash per till,
 // receipt, document numbering, business hours and financial year, staff quick PINs, sample data and moving from another
 // system. Business details are business settings (settings-config.ts); records go through the ERP engine (commit).
-import { commit, ErpError, MAIN_LOCATION, activeShop, shopCounters, type ErpState } from "@/lib/erp";
+import { addMoneyAccount } from "@/lib/finance";
+import { commit, ErpError, load, paymentMethods, runErpTransaction, MAIN_LOCATION, activeShop, shopCounters, type ErpState } from "@/lib/erp";
 import { hashPassword, checkPassword } from "@/lib/device-password";
 import { getTax, setTax } from "@/lib/prefs";
 import { countryDefaults } from "@/lib/country-defaults";
@@ -11,11 +12,35 @@ import { store } from "@/lib/shopbook";
 import { isManagerRole } from "@/lib/staff-access";
 import { TILL_CASHIER, tillCashier, tillLimited } from "@/lib/till-cashier";
 
-export type PaymentDetails = { tillNumber?: string; paybill?: string; paybillAccount?: string; bankName?: string; bankAccount?: string };
+export type PaymentDetails = { tillNumber?: string; paybill?: string; paybillAccount?: string; bankName?: string; bankAccount?: string; accounts?: PayAccount[] };
+/** One way customers can pay this business, in any country (owner, 2026-11-23): EVC Plus, Tigo Pesa, MTN MoMo, a bank, a Till… */
+export type PayAccount = { name: string; number: string; extra?: string | undefined };
+export const MAX_PAY_ACCOUNTS = 10;
+/** Common ways to pay, by country, offered as quick choices. */
+export const PAY_SUGGESTIONS: Record<string, string[]> = {
+  KEN: ["M-Pesa Till", "M-Pesa Paybill", "Airtel Money", "Bank"],
+  SOM: ["EVC Plus", "Zaad", "Sahal", "E-Dahab", "Bank"],
+  TZA: ["M-Pesa", "Tigo Pesa", "Airtel Money", "HaloPesa", "Bank"],
+  UGA: ["MTN MoMo", "Airtel Money", "Bank"],
+  RWA: ["MTN MoMo", "Airtel Money", "Bank"],
+  ETH: ["telebirr", "CBE Birr", "Bank"],
+  SSD: ["m-Gurush", "Bank"],
+  NGA: ["Bank transfer", "OPay", "Moniepoint"],
+  GHA: ["MTN MoMo", "Telecel Cash", "Bank"],
+};
+/** The business's payment accounts: the list, or (for an older setup) the Till, Paybill and bank fields it saved. */
+export function payAccounts(p: PaymentDetails = readSettings().payment ?? {}): PayAccount[] {
+  if (p.accounts?.length) return p.accounts;
+  return [
+    ...(p.tillNumber ? [{ name: "M-Pesa Till", number: p.tillNumber }] : []),
+    ...(p.paybill ? [{ name: "M-Pesa Paybill", number: p.paybill, ...(p.paybillAccount ? { extra: p.paybillAccount } : {}) }] : []),
+    ...(p.bankAccount ? [{ name: p.bankName || "Bank", number: p.bankAccount }] : []),
+  ];
+}
 export const READY_STEPS = ["payments", "tax", "stock", "cash", "balances", "receipt", "numbering", "hours", "pins", "sample", "move"] as const;
 export type ReadyStep = (typeof READY_STEPS)[number];
 export const READY_INFO: Record<ReadyStep, { title: string; hint: string }> = {
-  payments: { title: "Payment details", hint: "M-Pesa Till or Paybill and bank, printed on receipts and quotations" },
+  payments: { title: "Payment details", hint: "Up to 10 ways to pay (mobile money, Till, Paybill, bank) with their numbers, for any country" },
   tax: { title: "Tax", hint: "VAT-registered or not, the VAT rate and your KRA PIN" },
   stock: { title: "Opening stock", hint: "Bring in your products and the stock you have now" },
   cash: { title: "Opening cash", hint: "The money in each till's drawer before the first sale" },
@@ -32,7 +57,7 @@ export const READY_INFO: Record<ReadyStep, { title: string; hint: string }> = {
 export function readyStatus(s: Pick<ErpState, "products" | "cash" | "employees" | "seq" | "locations" | "payments">): Record<ReadyStep, "done" | "skipped" | "todo"> {
   const cfg = readSettings(), skipped = new Set(cfg.readySkipped ?? []), pay = cfg.payment ?? {};
   const done: Record<ReadyStep, boolean> = {
-    payments: !!(pay.tillNumber || pay.paybill || pay.bankAccount),
+    payments: payAccounts(pay).length > 0,
     tax: !!cfg.taxConfirmed,
     stock: s.products.some((p) => !p.archived),
     cash: s.cash.some((e) => e.type === "OPENING"),
@@ -57,15 +82,41 @@ export function skipStep(step: ReadyStep, skip = true) {
 const digits = (v: string) => v.replace(/\s+/g, "");
 export function savePayments(p: PaymentDetails) {
   const clean: PaymentDetails = {};
-  for (const [k, v] of Object.entries(p) as [keyof PaymentDetails, string | undefined][]) if (v?.trim()) clean[k] = v.trim();
+  for (const [k, v] of Object.entries(p) as [Exclude<keyof PaymentDetails, "accounts">, string | undefined][]) if (typeof v === "string" && v.trim()) clean[k] = v.trim();
   if (clean.tillNumber && !/^\d{5,8}$/.test(digits(clean.tillNumber))) throw new ErpError("A Till number has 5 to 8 digits");
   if (clean.paybill && !/^\d{5,7}$/.test(digits(clean.paybill))) throw new ErpError("A Paybill number has 5 to 7 digits");
   if (clean.paybillAccount && !clean.paybill) throw new ErpError("Enter the Paybill number for that account");
   saveSettings({ payment: clean });
 }
+/** Saves up to ten ways to pay (name + account number, and an account/reference for a Paybill). Each new name also becomes a
+ *  payment method at the till, unless the business already has one by that name (M-Pesa, Cash and Bank stay as they are). */
+export function savePayAccounts(list: PayAccount[]) {
+  const clean = list.map((a) => ({ name: a.name.trim(), number: a.number.trim(), ...(a.extra?.trim() ? { extra: a.extra.trim() } : {}) })).filter((a) => a.name || a.number);
+  if (clean.length > MAX_PAY_ACCOUNTS) throw new ErpError("Up to 10 ways to pay");
+  for (const a of clean) {
+    if (!a.name) throw new ErpError("Give each way to pay a name");
+    if (!a.number) throw new ErpError(`Enter the number for ${a.name}`);
+    if (a.name.length > 40 || a.number.length > 40) throw new ErpError("Keep names and numbers under 40 characters");
+  }
+  const keyOf = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (new Set(clean.map((a) => keyOf(a.name))).size !== clean.length) throw new ErpError("Each way to pay needs its own name");
+  runErpTransaction(() => {
+    const s = load();
+    const have = new Set(paymentMethods(s).map((m) => keyOf(m.name)));
+    for (const a of clean) {
+      const k = keyOf(a.name);
+      // M-Pesa Till and Paybill are the built-in M-Pesa method; "Bank" is the built-in Bank.
+      if (have.has(k) || /^mpesa(till|paybill)?$/.test(k) || k === "bank" || k === "cash") continue;
+      addMoneyAccount(a.name, /bank/i.test(a.name) ? "bank" : "mobile");
+      have.add(k);
+    }
+  });
+  saveSettings({ payment: { accounts: clean } });
+}
 /** The payment lines printed under a receipt or quotation. */
 export function paymentLines(tr: (x: string) => string): string[] {
   const p = readSettings().payment ?? {};
+  if (p.accounts?.length) return p.accounts.map((a) => `${a.name}: ${a.number}${a.extra ? ` · ${tr("Account")}: ${a.extra}` : ""}`);
   return [
     ...(p.tillNumber ? [`M-Pesa ${tr("Till")}: ${p.tillNumber}`] : []),
     ...(p.paybill ? [`M-Pesa ${tr("Paybill")}: ${p.paybill}${p.paybillAccount ? ` · ${tr("Account")}: ${p.paybillAccount}` : ""}`] : []),

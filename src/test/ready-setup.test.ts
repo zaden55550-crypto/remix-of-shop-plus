@@ -158,3 +158,17 @@ describe("setup suggestions", () => {
     expect(erp.load().payments.filter((p) => p.kind === "OPENING")).toHaveLength(1);
   });
 });
+
+describe("ways to pay in any country", () => {
+  it("saves up to ten, turns new names into payment methods and prints them", async () => {
+    const { savePayAccounts, paymentLines, payAccounts } = await import("@/lib/ready-setup");
+    savePayAccounts([{ name: "EVC Plus", number: "615000000" }, { name: "M-Pesa Till", number: "123456" }, { name: "Salaam Bank", number: "00123", extra: "Kifaru Ltd" }]);
+    const names = erp.paymentMethods(erp.load()).map((m) => m.name);
+    expect(names).toEqual(expect.arrayContaining(["EVC Plus", "Salaam Bank"]));
+    expect(names.filter((n) => /m-pesa till/i.test(n))).toEqual([]);
+    expect(paymentLines((x) => x)).toEqual(["EVC Plus: 615000000", "M-Pesa Till: 123456", "Salaam Bank: 00123 · Account: Kifaru Ltd"]);
+    expect(payAccounts()).toHaveLength(3);
+    expect(() => savePayAccounts(Array.from({ length: 11 }, (_, i) => ({ name: `W${i}`, number: "1" })))).toThrow(/Up to 10/);
+    expect(() => savePayAccounts([{ name: "EVC Plus", number: "" }])).toThrow(/number for EVC Plus/);
+  });
+});

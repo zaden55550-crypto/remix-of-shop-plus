@@ -84,3 +84,16 @@ export function phoneToSave(value: string): string {
   const number = code === "+39" ? local : local.replace(/^0(?=\d)/, "");
   return `${code} ${number}`;
 }
+
+/** A number written the way people in that country dial it at home (owner, 2026-11-23): "+254 722 569460" → "0722569460" when the
+ *  business is in Kenya. Numbers from other countries, and ones without a code, are left as they are. Display and editing only. */
+export function localPhone(value: string | undefined, countryCode: string | undefined): string {
+  const v = (value ?? "").trim();
+  const dial = countryCode ? dialCodeFor(countryCode) : "";
+  if (!v || !dial) return v;
+  const compact = v.replace(/[\s\-()]/g, "");
+  const code = dial.replace(/\s/g, "");
+  if (!compact.startsWith(code)) return v;
+  const rest = compact.slice(code.length);
+  return code === "+39" ? rest : `0${rest.replace(/^0/, "")}`;
+}

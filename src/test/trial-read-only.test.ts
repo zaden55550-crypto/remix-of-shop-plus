@@ -169,7 +169,7 @@ const endTrial = (account: string) => db.query("UPDATE owner_subscriptions SET t
 async function trialBusiness(n: number) {
   const user = uuid(n);
   const c = (await as<{ c: { account: string; business: string } }>(user, "SELECT connect_owner($1, 'Owner', $2, $1, 'KES') c", [`Shop ${n}`, `legacy-${n}`]))[0]!.c;
-  const shop = (await as<{ id: string }>(user, "SELECT sync_location($1, 'loc-main', 'Main', 'SHOP-001', 'shop', true) id", [c.business]))[0]!.id;
+  const shop = (await as<{ id: string }>(user, "SELECT sync_location($1, 'loc-main', 'Main', 'S001', 'shop', true) id", [c.business]))[0]!.id;
   const login = (await as<{ member_id: string; token: string }>(user, "SELECT member_id, token FROM create_login($1, 'emp', 'Amina', $4, NULL, NULL, 'shopkeeper', $2::uuid[], $3::uuid[])", [c.account, [c.business], [shop], `0712${String(100000 + n)}`]))[0]!;
   const staff = uuid(n + 50);
   await as(null, "SELECT finish_invitation($1, $2)", [login.token, staff], "service_role");

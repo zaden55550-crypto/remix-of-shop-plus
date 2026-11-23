@@ -16,8 +16,8 @@ describe("moving in", () => {
     expect(detectSource([sheet(["Item Name", "SKU", "Stock On Hand", "Selling Price"], [])])).toBe("Zoho Inventory / Books");
     expect(detectSource([sheet(["Product", "Price", "Qty"], [])])).toBeUndefined();
   });
-  it("writes Kenyan phone numbers one way", () => {
-    expect(["0712 345 678", "712345678", "254712345678", "+254 712 345 678", "0110123456"].map(tidyPhone)).toEqual(["+254712345678", "+254712345678", "+254712345678", "+254712345678", "+254110123456"]);
+  it("writes Kenyan phone numbers the local way (07…, 01…)", () => {
+    expect(["0712 345 678", "712345678", "254712345678", "+254 712 345 678", "+254110123456"].map(tidyPhone)).toEqual(["0712345678", "0712345678", "0712345678", "0712345678", "0110123456"]);
     expect(tidyPhone("+1 555 0100")).toBe("+1 555 0100");
   });
   it("merges duplicate products, adds up their stock and counts missing prices", () => {
@@ -49,5 +49,15 @@ describe("moving in", () => {
     erp.addCustomer("Baraka", "0722000000");
     expect(undoState()?.ok).toBe(false);
     expect(() => undoLastImport()).toThrow(/Other records were saved/);
+  });
+});
+
+describe("local phone numbers", () => {
+  it("shows a number the way it is dialled at home", async () => {
+    const { localPhone } = await import("@/lib/dial-codes");
+    expect(localPhone("+254 722 569460", "KEN")).toBe("0722569460");
+    expect(localPhone("+254722569460", "KEN")).toBe("0722569460");
+    expect(localPhone("0722569460", "KEN")).toBe("0722569460");
+    expect(localPhone("+256 772 000000", "KEN")).toBe("+256 772 000000");
   });
 });

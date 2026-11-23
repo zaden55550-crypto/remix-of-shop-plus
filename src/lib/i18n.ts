@@ -7,7 +7,7 @@ export const NATIVE: Record<Lang, string> = {
 };
 
 // Support phone supplied by the shop owner; email awaits confirmation.
-export const SUPPORT = { email: "support@shopbook.app", whatsapp: "254722288012", phone: "0722288012" };
+export const SUPPORT = { email: "info@dataquillsolutions.com", whatsapp: "254722288012", phone: "0722288012" };
 
 const KEYS = [
   "trialRemaining", "usingPlan", "daysLeft", "profileBusiness", "language", "currency", "help", "back",

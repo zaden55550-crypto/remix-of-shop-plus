@@ -22,7 +22,7 @@ export const TYPE_LABEL: Record<LocationType, string> = { shop: "Shop", store: "
 /** A row on the page. `savedId` marks a location that already exists; `archive` asks to archive it on activation.
  *  `connected` (shops only) lists the keys of the warehouse rows whose stock the shop may view: no extra location is used.
  *  `photos` and `logo` are data URLs, left out to keep a saved location's as they are. `code` is optional: left empty, the
- *  next free number (SHOP-001, WH-001…) is given on activation. The row's identity is `key` (a saved location's id), never its position. */
+ *  next free number (S001, W001…) is given on activation. The row's identity is `key` (a saved location's id), never its position. */
 export type SetupRow = { key: string; savedId?: string | undefined; slotNumber?: number | undefined; type: LocationType; name: string; code: string; archive?: boolean | undefined; connected?: string[] | undefined; photos?: string[] | undefined; logo?: string | undefined;
   /** A shop's counters (tills); left out keeps the saved number. */
   counters?: number | undefined;

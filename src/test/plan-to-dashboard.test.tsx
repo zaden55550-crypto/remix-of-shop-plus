@@ -96,7 +96,7 @@ describe.each(PLANS.map((p) => [p.name, p] as const))("first run on %s", (name, 
     fireEvent.click(screen.getByRole("button", { name: /^Activate/ }));
     fireEvent.click(within(await screen.findByRole("dialog", { name: "Ready to activate?" })).getByRole("button", { name: /Activate now/ }));
     expect(navigate).toHaveBeenLastCalledWith({ to: "/apps" });
-    expect(erp.load().locations.find((l) => l.id === MAIN_LOCATION)).toMatchObject({ name: "Amina Traders", code: "SHOP-001", type: "shop" });
+    expect(erp.load().locations.find((l) => l.id === MAIN_LOCATION)).toMatchObject({ name: "Amina Traders", code: "S001", type: "shop" });
     expect(store.get()).toMatchObject({ businessTypes: ["Retail Shop"] });
     expect(store.get()?.setupPending).toBeUndefined();
     cleanup();

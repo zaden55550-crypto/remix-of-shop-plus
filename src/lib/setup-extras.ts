@@ -36,7 +36,7 @@ export function locationsFromSheets(sheets: Sheet[]): { lines: LocationLine[]; s
   }
   return { lines, skipped };
 }
-export const LOCATIONS_TEMPLATE = "Type,Name,Phone,Number,Address,Counters\nShop,Westlands Branch,0712345678,SHOP-002,Westlands Mall,2\nWarehouse,Industrial Area Store,0722000000,WH-001,Enterprise Road,\n";
+export const LOCATIONS_TEMPLATE = "Type,Name,Phone,Number,Address,Counters\nShop,Westlands Branch,0712345678,S002,Westlands Mall,2\nWarehouse,Industrial Area Store,0722000000,W001,Enterprise Road,\n";
 
 /* ---------- 5. Hardware for each counter (this device) ---------- */
 export type CounterHardware = { printer: "none" | "58mm" | "80mm" | "A4"; scanner: boolean; drawer: boolean };

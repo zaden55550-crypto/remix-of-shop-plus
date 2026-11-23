@@ -10,6 +10,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
 import { SearchableCountryPicker, SearchableCurrencyPicker, ZakrioMark } from "@/components/shopbook/ui";
 import { findByCountry, findByCurrency } from "@/lib/world-data";
+import { localPhone } from "@/lib/dial-codes";
 import { readSettings } from "@/lib/settings-config";
 import { ImportCenter } from "@/components/shopbook/import-center";
 import { PEOPLE_SECTIONS, PeoplePanel } from "@/components/shopbook/people-access";
@@ -88,7 +89,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     const rows = rowsFromRecords(erp.load());
     // Every type already saved on the account comes back ticked, not only the main one.
     const extraBusinessTypes = businessTypesOf(acct).filter((t) => t !== businessType);
-    return { businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: acct.phone ?? "", phone2: acct.phone2 ?? "", phone3: acct.phone3 ?? "", taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
+    return { businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: localPhone(acct.phone, acct.country), phone2: localPhone(acct.phone2, acct.country), phone3: localPhone(acct.phone3, acct.country), taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
   });
   const [problems, setProblems] = useState<SetupProblem[]>([]);
   const [access, setAccess] = useState<string | null>(null);
@@ -503,7 +504,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       {/* Locations 1-5, and 6-10 beside them once there are more than five (the second panel also shows the plan's free places). */}
       <div className={cn("bsetup-tables", panels.length > 1 && "is-two")}>
       {panels.map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Locations")} ${gi * 5 + 1}-${gi * 5 + 5}`}>
-          <div className="bsetup-panel-head" role="row"><b role="columnheader">{tr("Locations")} {gi * 5 + 1}–{gi * 5 + 5}</b>{features.counters && <span role="columnheader">{tr("Counters")}</span>}</div>
+          <div className="bsetup-panel-head" role="row"><b role="columnheader">{tr("Locations")} {gi * 5 + 1}–{gi * 5 + 5}</b>{features.counters && <span role="columnheader" className="is-counters">{tr("Counters")}</span>}<span role="columnheader" className="is-phone">{tr("Phone")}</span><span role="columnheader" className="is-code">{tr("No.")}</span></div>
           {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} placeholder={suggestedCode(r)} counterMax={counterMax(r)} showCounters={features.counters} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onEdit={() => setEditingRow({ key: r.key })} onRemove={() => removeRow(r)} />
             : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} showCounters={features.counters} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
         </div>)}

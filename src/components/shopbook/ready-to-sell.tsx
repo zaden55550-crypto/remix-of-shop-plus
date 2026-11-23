@@ -15,7 +15,7 @@ import { store } from "@/lib/shopbook";
 import { applyOB, obLabel, previewOB, readSheets, suggestOB, type OBKind } from "@/lib/opening-import";
 import { etimsCsv, matchMpesa, mpesaFromSheets } from "@/lib/setup-extras";
 import {
-  READY_INFO, READY_STEPS, confirmStep, financialYearStart, paymentLines, printedRef, readyProgress, readyStatus, saveHours, saveNumbering,
+  MAX_PAY_ACCOUNTS, PAY_SUGGESTIONS, payAccounts, savePayAccounts, type PayAccount, READY_INFO, READY_STEPS, confirmStep, financialYearStart, paymentLines, printedRef, readyProgress, readyStatus, saveHours, saveNumbering,
   savePayments, saveTax, setOpeningFloat, setStaffPin, skipStep, type ReadyStep,
 } from "@/lib/ready-setup";
 import { cn } from "@/lib/utils";
@@ -116,18 +116,27 @@ function StepBody({ step, s, tr, run }: { step: ReadyStep; s: erp.ErpState; tr: 
 }
 
 function Payments({ tr, run }: { tr: Tr; run: (fn: () => unknown, then?: ReadyStep) => void }) {
-  const [p, setP] = useState(() => ({ tillNumber: "", paybill: "", paybillAccount: "", bankName: "", bankAccount: "", ...readSettings().payment }));
-  const set = (k: keyof typeof p) => (v: string) => setP({ ...p, [k]: v });
+  // Any country's ways to pay (owner, 2026-11-23): up to ten rows of name + number, e.g. EVC Plus 61xxxxxxx, Tigo Pesa, a bank.
+  const country = store.get()?.country ?? "KEN";
+  const [rows, setRows] = useState<PayAccount[]>(() => { const saved = payAccounts(); return saved.length ? saved : [{ name: "", number: "" }]; });
+  const set = (i: number, p: Partial<PayAccount>) => setRows(rows.map((r, j) => (j === i ? { ...r, ...p } : r)));
+  const add = (name = "") => { if (rows.length >= MAX_PAY_ACCOUNTS) return; const empty = rows.findIndex((r) => !r.name && !r.number); if (empty >= 0 && name) set(empty, { name }); else setRows([...rows, { name, number: "" }]); };
+  const quick = (PAY_SUGGESTIONS[country] ?? ["Mobile money", "Bank"]).filter((n) => !rows.some((r) => r.name.toLowerCase() === n.toLowerCase()));
   return <div className="ready-stack">
-    <div className="ready-grid">
-      <Text label={tr("M-Pesa Till number")} value={p.tillNumber} set={set("tillNumber")} mode="numeric" ph="123456" />
-      <Text label={tr("M-Pesa Paybill")} value={p.paybill} set={set("paybill")} mode="numeric" ph="400200" />
-      <Text label={tr("Paybill account number")} value={p.paybillAccount} set={set("paybillAccount")} ph={tr("Optional")} />
-      <Text label={tr("Bank name")} value={p.bankName} set={set("bankName")} ph={tr("Optional")} />
-      <Text label={tr("Bank account number")} value={p.bankAccount} set={set("bankAccount")} ph={tr("Optional")} />
+    <p className="settings-note">{tr("How customers pay you: mobile money, Till, Paybill or bank, with the number. Each one becomes a payment method at the till and prints on receipts and quotations. Up to 10.")}</p>
+    {quick.length > 0 && <div className="ready-choice">{quick.map((n) => <button key={n} type="button" onClick={() => add(n)}>+ {tr(n)}</button>)}</div>}
+    <ul className="ready-pay-rows">
+      {rows.map((r, i) => <li key={i}>
+        <input className="inventory-input" aria-label={tr("Name")} placeholder={tr("e.g. EVC Plus, Tigo Pesa, KCB Bank")} value={r.name} onChange={(e) => set(i, { name: e.target.value })} />
+        <input className="inventory-input" aria-label={tr("Number")} placeholder={tr("Number (Till, phone or account)")} value={r.number} onChange={(e) => set(i, { number: e.target.value })} />
+        <input className="inventory-input" aria-label={tr("Account or reference (optional)")} placeholder={tr("Account or reference (optional)")} value={r.extra ?? ""} onChange={(e) => set(i, { extra: e.target.value })} />
+        <button type="button" className="ready-pay-remove" aria-label={`${tr("Remove")} ${r.name}`} onClick={() => setRows(rows.length > 1 ? rows.filter((_, j) => j !== i) : [{ name: "", number: "" }])}>×</button>
+      </li>)}
+    </ul>
+    <div className="ready-actions">
+      <ShopButton variant="outline" disabled={rows.length >= MAX_PAY_ACCOUNTS} onClick={() => add()}>{tr("Add a way to pay")}</ShopButton>
+      <ShopButton onClick={() => run(() => savePayAccounts(rows), "payments")}>{tr("Save")}</ShopButton>
     </div>
-    <p className="settings-note">{tr("Printed at the bottom of every receipt and quotation so customers know where to pay.")}</p>
-    <ShopButton onClick={() => run(() => savePayments(p), "payments")}>{tr("Save")}</ShopButton>
   </div>;
 }
 
