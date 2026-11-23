@@ -1,4 +1,5 @@
 import { clean } from "@/lib/format";
+import { waLink } from "@/lib/whatsapp";
 import { paymentLines, printedRef } from "@/lib/ready-setup";
 import { GlassPage } from "@/components/shopbook/glass-page";
 // Shared selling UI: Sales → New Sale and POS → Sell use the same components and the same engine.
@@ -216,7 +217,8 @@ export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live
       <div className="mt-3 grid grid-cols-5 gap-1.5">
         <A label={tr("Print")} icon={<Printer className="h-4 w-4" />} onClick={() => setPrint("print")} />
         <A label="PDF" icon={<FileText className="h-4 w-4" />} onClick={() => setPrint("pdf")} />
-        <A label="WhatsApp" icon={<MessageCircle className="h-4 w-4" />} onClick={() => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); }} />
+        {/* WhatsApp receipt (owner, 2026-11-23): opens WhatsApp to the customer's number with the receipt; no customer: choose the chat. */}
+        <A label="WhatsApp" icon={<MessageCircle className="h-4 w-4" />} onClick={() => { const c = sale.customerId ? s.customers.find((x) => x.id === sale.customerId) : undefined; window.open(waLink(text(), c?.phone, store.get()?.country), "_blank", "noopener"); }} />
         <A label={tr("Email")} icon={<Mail className="h-4 w-4" />} onClick={() => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); }} />
         <A label={tr("Share")} icon={<Share2 className="h-4 w-4" />} onClick={share} />
       </div>

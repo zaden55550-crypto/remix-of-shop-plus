@@ -23,6 +23,8 @@ import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
 import { MoveInPanel } from "@/components/shopbook/move-in-panel";
+import { FirstSale } from "@/components/shopbook/first-sale";
+import { moneyFor } from "@/components/shopbook/selling";
 import { applyCountryDefaults, type ReadyStep } from "@/lib/ready-setup";
 import { LOCATIONS_TEMPLATE, counterHardware, locationsFromSheets, saveCounterHardware, setupHistory, type CounterHardware } from "@/lib/setup-extras";
 import { readSheets } from "@/lib/opening-import";
@@ -338,6 +340,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     if (activating || !check()) return;
     setConfirmActivate(true);
   };
+  const [firstSale, setFirstSale] = useState(false);
   const activateNow = () => {
     if (activating) return;
     setConfirmActivate(false);
@@ -345,8 +348,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     try {
       activateSetup(d);
       applyCountryDefaults(place.country || acct.country);
-      toast.success(tr("Your business is set up"), { description: tr("Next steps are on your Dashboard: add products, make a test sale and invite your staff.") });
-      onDone();
+      toast.success(tr("Your business is set up"));
+      // A brand-new business goes through its first sale (add one product, sell one); one that already sells goes straight on.
+      const now = erp.load();
+      if (!now.products.some((p) => !p.archived) && !now.sales.length) setFirstSale(true); else onDone();
     } catch (e) { toast.error(tr(e instanceof Error ? e.message : "Setup could not be saved")); setActivating(false); }
   };
 
@@ -389,6 +394,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
     onDrop={(e) => { if (!hasFiles(e) || moveIn) return; e.preventDefault(); setDragging(false); const list = [...e.dataTransfer.files]; if (list.length) setMoveIn({ files: list }); }}>
     {dragging && <div className="bsetup-dropping" onDragLeave={() => setDragging(false)}><Upload aria-hidden /><b>{tr("Drop to bring your business over")}</b><small>{tr("Excel, CSV or zip from Odoo, QuickBooks, Zoho, Loyverse, Sage or any spreadsheet")}</small></div>}
+    {firstSale && <GlassPage label={tr("Your first sale")} onClose={onDone}><FirstSale tr={tr} money={moneyFor(acct.currency || "KSh")} onFinish={onDone} /></GlassPage>}
     {moveIn && <GlassPage label={tr("Bring your business over")} onClose={() => setMoveIn(null)}><MoveInPanel tr={tr} files={moveIn.files} onClose={() => setMoveIn(null)} /></GlassPage>}
     <header className="bsetup-head">
       {/* Left: the business's own logo from Create Account (or the Zakrio mark), the title, and the country and currency given at
@@ -535,6 +541,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       placeholder={suggestedCode(editing)} logo={savedLogo(editing)} users={d.users} people={peopleAt(editing)}
       canManager={plan.managerRoles} business={d.businessName.trim() || acct.shopName || ""} full={loginFull} takenEmails={takenEmails()} counterMax={counterMax(editing)}
       onLogo={() => setViewingLogo(editing.key)} onSend={(u, st, current) => sendInvite(u, st, current)} onConnect={(u) => void connectServer(u)}
+      canImport={!!editing.savedId} onImport={() => { const at = editing; setEditingRow(null); setImporting({ kind: "Products", at: at.savedId }); }}
+      canRemove={editing.savedId !== MAIN_LOCATION && live.length > 1} onRemove={() => { const at = editing; setEditingRow(null); removeRow(at); }}
       onAssignUsers={() => { const at = editing; setEditingRow(null); if (at.savedId) openAccess("Location Assignments", at.savedId); else setManaging(at.key); }}
       onManageUsers={() => { const at = editing; setEditingRow(null); setManaging(at.key); }}
       onManageAccess={() => { const at = editing; setEditingRow(null); if (at.savedId) openAccess("Location Assignments", at.savedId); else setManaging(at.key); }}
@@ -676,9 +684,7 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, pl
     {countersOn && <span className="bsetup-cell-counters" role="cell">{hasCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-none" aria-label={tr("No counters")}>–</span>}</span>}
     <span className="bsetup-cell-phone" role="cell">{r ? <input id={`bsetup-phone-${r.key}`} type="tel" inputMode="tel" autoComplete="off" className="inventory-input bsetup-loc-phone" aria-label={`${tr("Phone")} · ${title} (${tr("Optional")})`} aria-invalid={!!phoneProblem} title={phoneProblem ? tr(phoneProblem) : tr("This location's phone, printed on its receipts. Empty: the business number.")} value={r.phone ?? ""} placeholder={tr("Phone")} onChange={(e) => onPhone?.(e.target.value)} /> : <span className="bsetup-ghost">{tr("Phone")}</span>}</span>
     <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-ghost">{tr("Number")}</span>}</span>
-    <span className="bsetup-cell-upload" role="cell"><button type="button" className="bsetup-row-btn is-import" disabled={!r || !canImport} aria-label={`${tr("Import Data")} · ${title}`} title={r && canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}>{tr("Import Data")}</button></span>
-    <span className="bsetup-cell-edit" role="cell"><button type="button" className="bsetup-row-btn is-edit" disabled={!r} aria-label={`${tr("Edit")} · ${title}`} title={tr("Logo, details, counters, stock visibility, users and access for this location")} onClick={onEdit}>{tr("Edit")}</button></span>
-    <span className="bsetup-cell-delete" role="cell"><button type="button" className="bsetup-row-btn is-delete" disabled={!r || !canRemove} aria-label={`${tr("Delete")} · ${title}`} title={r && !canRemove ? tr("The first location stays. Rename it or change its type.") : `${tr("Delete")} · ${title}`} onClick={onRemove}>{tr("Delete")}</button></span>
+    <span className="bsetup-cell-edit" role="cell"><button type="button" className="bsetup-row-btn is-edit" disabled={!r} aria-label={`${tr("Edit")} · ${title}`} title={tr("Logo, details, counters, users, access, import and delete for this location")} onClick={onEdit}>{tr("Edit")}</button></span>
   </div>;
 }
 void LegacyEntryRow;
@@ -885,8 +891,9 @@ function InviteOutcome({ tr, inv, email, onConnect }: { tr: Tr; inv: Invite; ema
  *  - Save without sending keeps the location's changes and adds the typed person to the setup, with no email.
  *  - Send Invitation saves the chosen sites, creates the login and emails it (as Add User does); the fields then clear for the next person.
  *  Stock viewing and a person's sites are separate choices. Location photos are not edited here, and saved ones are kept as they are. */
-function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users, people, canManager, business, full, takenEmails, counterMax, onLogo, onSend, onConnect, onClose, onSave, onAssignUsers, onManageUsers, onManageAccess }: {
+function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users, people, canManager, business, full, takenEmails, counterMax, onLogo, onSend, onConnect, onClose, onSave, onAssignUsers, onManageUsers, onManageAccess, canImport, onImport, canRemove, onRemove }: {
   onAssignUsers: () => void; onManageUsers: () => void; onManageAccess: () => void;
+  canImport: boolean; onImport: () => void; canRemove: boolean; onRemove: () => void;
   tr: Tr; r: SetupRow; rows: SetupRow[]; focus?: "name" | "code" | undefined; codeProblem?: string | undefined; placeholder: string; logo?: string | undefined;
   /** The most counters this shop may have, or 0 when the Counters feature is off. */
   counterMax: number;
@@ -1056,6 +1063,11 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
 
       <footer className="bsetup-editor-foot">
         <button type="button" className="bsetup-act is-stop" disabled={busy} onClick={onClose}>{tr("Cancel")}</button>
+        {/* One button per location row (owner, 2026-11-23): Import Data and Delete live here. */}
+        <span className="bsetup-editor-more">
+          <button type="button" className="bsetup-row-btn is-import" disabled={busy || !canImport} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}>{tr("Import Data")}</button>
+          <button type="button" className="bsetup-row-btn is-delete" disabled={busy || !canRemove} title={canRemove ? tr("Delete") : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}>{tr("Delete")}</button>
+        </span>
         <button type="button" className="bsetup-act is-go" disabled={busy} onClick={saveWithoutSending}>{tr("Save without sending")}</button>
       </footer>
     </div>

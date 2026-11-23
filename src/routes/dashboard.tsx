@@ -30,7 +30,9 @@ import {
   Wallet,
   X,
   type LucideIcon,
+  MessageCircle, MessageSquare,
 } from "lucide-react";
+import { dailySummary, smsLink, waLink } from "@/lib/whatsapp";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
 import { ReceiptSheet, moneyFor, useAccount } from "@/components/shopbook/selling";
 import { useShopErp } from "@/components/shopbook/product-search";
@@ -187,6 +189,7 @@ export default function Dashboard() {
 
   // An employee's device gets its records from the server: until the first copy arrives, empty is not the same as zero.
   const staff = store.get()?.staff;
+  const summaryText = () => dailySummary(erpState, { business: account?.shopName ?? "", money, tr });
   const loading = !!staff && localStorage.getItem(ERP_KEY) === null;
   const periodName = per.period === "Custom" ? `${dayLabel(dateWindow.from)} – ${dayLabel(dateWindow.to)}` : tr(per.period ?? "All time");
   const chartFailed = tr("This chart could not be drawn. Your records are not affected.");
@@ -418,7 +421,11 @@ export default function Dashboard() {
 
         {/* 11–13. RECENT SALES · PURCHASES · CASH MOVES */}
         <div className="dash-recent">
-          <Panel title={tr("Recent Sales")} icon={ReceiptText} extra={<Link to={GO.sales.to} search={GO.sales.search} className="dash-link">{tr("View All")} <ArrowRight /></Link>}>
+          <Panel title={tr("Recent Sales")} icon={ReceiptText} extra={<span className="dash-summary-send">
+            {/* Today's summary to the owner (owner, 2026-11-23): sales, payments, cash in the drawer, low stock, by WhatsApp or SMS. */}
+            {!staff && <><a className="dash-summary-btn is-wa" href={waLink(summaryText(), account?.phone, account?.country)} target="_blank" rel="noopener" title={tr("Send today's summary to your WhatsApp")} aria-label={tr("Send today's summary to your WhatsApp")}><MessageCircle /></a>
+            <a className="dash-summary-btn is-sms" href={smsLink(summaryText(), account?.phone)} title={tr("Send today's summary by SMS")} aria-label={tr("Send today's summary by SMS")}><MessageSquare /></a></>}
+            <Link to={GO.sales.to} search={GO.sales.search} className="dash-link">{tr("View All")} <ArrowRight /></Link></span>}>
             <div className="dash-rows">
               {s.sales.slice(0, 4).map((sale) => (
                 <button key={sale.id} type="button" className="dash-row" onClick={() => setViewSale(sale)}>
