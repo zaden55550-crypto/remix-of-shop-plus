@@ -24,15 +24,14 @@ export function IndustrySelect({ id, value, onChange, keep, className, allowEmpt
 /** The feature switches (trade-features.ts) as one compact row of ticks, used under the type on Business Setup and in Settings. */
 export function FeatureChecks({ value, onChange, className, types }: { value: Features; onChange: (patch: Partial<Features>) => void; className?: string; types?: readonly string[] }) {
   const { tr } = useLanguage();
-  const [all, setAll] = useState(false);
+  // Every feature always shows (owner, 2026-11-23), the ones that fit the business type first, so the owner chooses freely.
   const fit = types ? relevantFeatures(types, value) : [...PINNED];
-  const shown = all ? [...PINNED] : fit, hidden = PINNED.length - fit.length;
+  const shown = [...fit, ...PINNED.filter((f) => !fit.includes(f))];
   return <div className={cn("feature-checks", className)} role="group" aria-label={tr("Features for this business")}>
     {shown.map((f) => <label key={f} className={cn("feature-check", value[f] && "is-on")} title={tr(FEATURE_INFO[f].hint)}>
       <input type="checkbox" checked={value[f]} onChange={(e) => onChange({ [f]: e.target.checked })} />
       <span>{tr(SHORT_NAME[f] ?? FEATURE_INFO[f].name)}</span>
     </label>)}
-    {hidden > 0 && <button type="button" className="feature-more" onClick={() => setAll(!all)}>{all ? tr("Fewer") : `+ ${hidden} ${tr("more")}`}</button>}
   </div>;
 }
 

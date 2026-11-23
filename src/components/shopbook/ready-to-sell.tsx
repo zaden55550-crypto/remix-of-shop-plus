@@ -5,7 +5,7 @@ import { CircleCheck, ChevronDown, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { ImportCenter } from "@/components/shopbook/import-center";
-import { FullImport } from "@/components/shopbook/full-import";
+import { SmartImport } from "@/components/shopbook/smart-import";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import { getTax } from "@/lib/prefs";
@@ -257,15 +257,9 @@ function Sample({ tr, run }: { tr: Tr; run: (fn: () => unknown, then?: ReadyStep
 }
 
 function Move({ tr, run }: { tr: Tr; run: (fn: () => unknown, then?: ReadyStep) => void }) {
-  const [system, setSystem] = useState(MOVE_GUIDES[0]!.system);
-  const guide = MOVE_GUIDES.find((g) => g.system === system)!;
+  // The same Smart Import as Business Setup (smart-import.tsx): where from, drop files, automatic check, one Import button.
   return <div className="ready-stack">
-    <p className="settings-note">{tr("1. Export from your old system. 2. Upload the file below: columns are matched by name, and you see a preview before anything is saved. 3. Continue your receipt numbers under Document numbering.")}</p>
-    <div className="ready-choice" role="radiogroup" aria-label={tr("Coming from")}>
-      {MOVE_GUIDES.map((g) => <button key={g.system} type="button" role="radio" aria-checked={system === g.system} className={cn(system === g.system && "is-on")} onClick={() => setSystem(g.system)}>{tr(g.system)}</button>)}
-    </div>
-    <ol className="ready-guide">{guide.steps.map((x) => <li key={x}>{x}</li>)}</ol>
-    <FullImport tr={tr} />
+    <SmartImport tr={tr} />
     <ShopButton variant="outline" onClick={() => run(() => confirmStep("move"), "move")}>{tr("I've brought everything over")}</ShopButton>
   </div>;
 }

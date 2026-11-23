@@ -5,6 +5,7 @@ import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
 import { AutoSummary } from "@/components/shopbook/auto-summary";
 import { RotateHint, SampleShopBar } from "@/components/shopbook/try-and-tour";
 import { OnePageFit } from "@/components/shopbook/one-page-fit";
+import { IdleLogout } from "@/components/shopbook/idle-logout";
 import { applyLaptopView } from "@/lib/laptop-view";
 import {
   Outlet,
@@ -194,6 +195,7 @@ function RootComponent() {
       <SampleShopBar />
       <RotateHint />
       <OnePageFit />
+      <IdleLogout />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       {/* ERP workspace: plain pass-through until ShopBot docks on the right, then it holds the remaining width. */}
       <div className="shopbot-workspace"><div className="shopbot-workspace-scroll">

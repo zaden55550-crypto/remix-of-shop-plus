@@ -1,7 +1,7 @@
 // Ways to win a new owner over (owner, 2026-11-23): Try a sample shop (Log In), the sample-shop bar while inside it, English /
 // Kiswahili on the first screen, a 30-second sale tour (Plans) and real customer words (shown only once some exist).
 import { useEffect, useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+
 import { CheckCircle2, Printer, RotateCw, ShoppingCart, Smartphone, Store, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/use-language";
@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
 /** Log In: open the sample shop without signing up. */
 export function SampleShopButton() {
   const { tr } = useLanguage();
-  const nav = useNavigate();
   const open = () => {
-    try { startSampleShop(); nav({ to: "/dashboard" }); }
+    // A full reload so nothing of the device's own business (such as its online sign-in) stays in memory during the sample.
+    try { startSampleShop(); window.location.assign("/dashboard"); }
     catch (e) { toast.error(tr(e instanceof Error ? e.message : "The sample shop can't open here")); }
   };
   return <button type="button" className="sample-shop-btn" onClick={open} title={tr(sampleBlocked() ?? "A full sample shop with products and sales. Nothing you do there is real.")}>
@@ -26,7 +26,6 @@ export function SampleShopButton() {
 /** Shown on every page while inside the sample shop. */
 export function SampleShopBar() {
   const { tr } = useLanguage();
-  const nav = useNavigate();
   const [on, setOn] = useState(false);
   useEffect(() => {
     const f = () => setOn(inSampleShop() && store.signedIn());
@@ -34,7 +33,7 @@ export function SampleShopBar() {
     return () => { window.removeEventListener("shopbook-session", f); window.removeEventListener("storage", f); };
   }, []);
   if (!on) return null;
-  const leave = (to: "/" | "/signup") => { leaveSampleShop(); setOn(false); nav({ to, replace: true }); };
+  const leave = (to: "/" | "/signup") => { leaveSampleShop(); setOn(false); window.location.replace(to); };
   return <div className="sample-bar" role="status" data-short={tr("Sample shop")}>
     <Store aria-hidden /><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>

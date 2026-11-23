@@ -180,3 +180,17 @@ export function pastedSheet(text: string): Sheet {
   const rows = lines.slice(1).map((l) => { const v = l.split(sep); return Object.fromEntries(columns.map((c, i) => [c, (v[i] ?? "").trim()])); });
   return { file: "Pasted data", sheet: "Pasted", columns, rows } as Sheet;
 }
+
+/** Smart Import's one check (owner, 2026-11-23): runs the real preview and, if rows fail, tries the other date formats and keeps the
+ *  reading with the fewest problems, so the owner never has to choose a date format. Nothing is saved. */
+export function analyzeFull(plans: Plan[], o: FullOptions): { results: StageResult[]; dateFmt: FullOptions["dateFmt"] } {
+  const bad = (r: StageResult[]) => r.reduce((a, x) => a + x.rejected + (x.error ? 1000 : 0), 0);
+  let best = previewFull(plans, o), dateFmt = o.dateFmt;
+  if (bad(best)) for (const f of (["auto", "DMY", "MDY", "YMD"] as const).filter((f) => f !== o.dateFmt)) {
+    const r = previewFull(plans, { ...o, dateFmt: f });
+    if (bad(r) < bad(best)) { best = r; dateFmt = f; }
+  }
+  return { results: best, dateFmt };
+}
+/** Whether sheets that list products with their stock (or opening stock) are present: then past sales must not reduce stock again. */
+export const stockAlreadyCounted = (plans: Plan[]) => plans.some((p) => (p.cat === "Products" && p.map["qty"]) || p.cat === "Opening Stock");

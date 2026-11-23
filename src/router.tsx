@@ -1,5 +1,7 @@
 // Fresh start: runs before anything reads device storage (src/lib/fresh-start.ts).
 import "@/lib/fresh-start";
+// A sample shop left open when the browser closed puts the real business back first (sample-shop.ts).
+import "@/lib/sample-shop";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";

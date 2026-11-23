@@ -35,6 +35,7 @@ import { createLocalBackup, decryptBackup, encryptBackup } from "@/lib/local-bac
 import { translateCurrent } from "@/lib/interface-translations";
 import { applyUiSize, setTax, setTextSize, setUiSize, TEXT_SIZES, UI_MAX, UI_MIN, UI_STEP, usePrefs, type TextSize } from "@/lib/prefs";
 import { applySettings, useSettings, type SettingsConfig } from "@/lib/settings-config";
+import { IdleSetting } from "@/components/shopbook/idle-logout";
 import { RESET_GROUPS, resetData } from "@/lib/reset-data";
 
 export const Route = createFileRoute("/settings")({ head: () => ({ meta: [
@@ -55,7 +56,7 @@ const SUB: Record<Category, string[]> = {
   Appearance: ["Interface Size", "Text Size", "Icon Size", "Spacing"],
   "Tax & Compliance": ["VAT", "Tax Settings", "eTIMS", "Receipts", "Documents", "Audit Trail"],
   "Notifications & Communication": ["Notifications", "WhatsApp", "SMS", "Email", "Customer Communication", "Supplier Communication", "Payment Reminders", "Low Stock Alerts", "Report Notifications"],
-  "Security & Activity": ["Password", "Login Security", "Active Sessions", "Audit Log", "Device Activity", "Security Events", "Account Recovery"],
+  "Security & Activity": ["Password", "Login Security", "Auto sign-out", "Active Sessions", "Audit Log", "Device Activity", "Security Events", "Account Recovery"],
   Integrations: ["M-Pesa", "WhatsApp", "SMS", "Email", "eTIMS", "AI Gateway", "Printers", "Backup / Sync"],
   Subscription: ["Current Plan", "Trial", "Billing", "Usage", "Upgrade", "Payment History", "Plan Features"],
 };
@@ -221,7 +222,7 @@ function Panel({ name, acct, state, tr, language, setLanguage, prefs, cfg, saveC
   if (name === "VAT" || name === "Tax Settings") return <><label className="settings-toggle"><span>{tr("Charge VAT on sales")}</span><input type="checkbox" checked={prefs.tax.on} onChange={(e) => setTax({ ...prefs.tax, on: e.target.checked })} /></label><L label="VAT rate (%)"><input className="inventory-input" type="number" min={0} max={100} value={prefs.tax.rate} onChange={(e) => setTax({ ...prefs.tax, rate: Math.min(100, Math.max(0, +e.target.value)) })} /></L></>; if (name === "Audit Trail" || name === "Audit Log") return <Audit rows={state.audit} tr={tr} />;
   if (["eTIMS", "WhatsApp", "SMS", "Email", "M-Pesa", "Printers"].includes(name)) return <Status label={name} state="Not Connected" />; if (name === "Backup / Sync") return <Status label="Cloud backup" state="Configuration Required" />;
   if (name === "Notifications") return toggle("notifications", "Notifications"); if (name === "Low Stock Alerts") return toggle("lowStockAlerts", "Low Stock Alerts"); if (["Customer Communication", "Supplier Communication", "Payment Reminders", "Report Notifications"].includes(name)) return <Status label={name} state="Not Connected" />;
-  if (name === "Password") return <p className="settings-note">{tr("Passwords are never shown. Use Forgot Password on the login page for reset guidance.")}</p>; if (name === "Login Security") return <PasskeysPanel />; if (["Active Sessions", "Device Activity", "Security Events", "Account Recovery"].includes(name)) return <p className="settings-note">{tr("This device uses the current local shop session. Multi-device staff sessions are not available yet.")}</p>;
+  if (name === "Password") return <p className="settings-note">{tr("Passwords are never shown. Use Forgot Password on the login page for reset guidance.")}</p>; if (name === "Login Security") return <PasskeysPanel />; if (name === "Auto sign-out") return <IdleSetting />; if (["Active Sessions", "Device Activity", "Security Events", "Account Recovery"].includes(name)) return <p className="settings-note">{tr("This device uses the current local shop session. Multi-device staff sessions are not available yet.")}</p>;
   if (name === "Current Plan" || name === "Trial") return <p className="settings-note">{tr("Current plan")}: <b>{acct.plan ?? "—"}</b></p>; if (name === "Plan Features") return <div>{APPS.map((a) => <div className="settings-inline" key={a.id}><span>{tr(a.name)}</span><b>{tr(canOpen(acct, a.tier) ? "Included" : "Upgrade Required")}</b></div>)}</div>; if (["Billing", "Usage", "Upgrade", "Payment History"].includes(name)) return <ShopButton className="inventory-save" onClick={() => nav({ to: "/plans" })}>{tr("Manage Subscription")}</ShopButton>;
   if (name === "Receipts") return <>{text("hours", "Business Hours")}<L label="Receipt footer"><textarea className="inventory-input" rows={2} maxLength={160} placeholder={tr("e.g. Goods once sold are not returnable. Thank you!")} value={cfg.receiptFooter} onChange={(e) => saveCfg({ receiptFooter: e.target.value })} /></L><p className="settings-note">{tr("Printed at the bottom of every receipt, with your phone, hours and Tax PIN.")}</p>{toggle("liveReceipt", "Live receipt printing animation")}</>; if (name === "Documents") return <p className="settings-note">{tr("Receipts and documents use the shared white print preview.")}</p>;
   return <p className="settings-note">{tr("This setting is not connected yet.")}</p>;

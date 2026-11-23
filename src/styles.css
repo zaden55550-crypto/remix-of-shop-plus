@@ -25857,3 +25857,62 @@ html:has(.auth-split-page, .plans-page, .bsetup-page) { overflow: hidden; }
   :root:root:root .ready-sell .ready-step-chev { transform: rotate(-90deg); }
   :root:root:root .ready-sell .ready-step-body { grid-column: 2; grid-row: 1 / span 12; align-self: stretch; margin: 0 !important; padding: 12px 14px !important; border-radius: 14px; border: 1px solid rgb(190 215 255 / 0.3); background: rgb(255 255 255 / 0.04); }
 }
+
+/* ===== SMART IMPORT (owner, 2026-11-23; smart-import.tsx) ===== */
+.smart-import { display: flex; flex-direction: column; gap: 12px; width: min(76rem, 92vw); }
+.smart-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; list-style: none; margin: 0; padding: 0; }
+.smart-steps li { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: 12px; border: 1px solid rgb(190 215 255 / 0.3); font-weight: 800; font-size: 15px; opacity: 0.6; }
+.smart-steps li span { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 999px; border: 1px solid currentColor; font-size: 12px; }
+.smart-steps li svg { width: 20px; height: 20px; color: #10b981; }
+.smart-steps li.is-now { opacity: 1; border-color: #10b981; background: rgb(16 185 129 / 0.16); }
+.smart-steps li.is-done { opacity: 0.9; }
+.smart-pick { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+.smart-pick h4, .smart-card h4 { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+.smart-systems { display: flex; flex-wrap: wrap; gap: 6px; }
+.smart-systems button { padding: 8px 14px; border-radius: 999px; border: 1px solid rgb(190 215 255 / 0.45); font-weight: 800; color: inherit; }
+.smart-systems button.is-on { background: #059669; border-color: #059669; color: #fff; }
+.smart-what { margin: 10px 0 4px; font-size: 15px; }
+.smart-guide { margin: 0 0 6px; padding-inline-start: 20px; font-size: 14.5px; line-height: 1.45; display: grid; gap: 4px; }
+.smart-drop { width: 100%; min-height: 200px; }
+.smart-busy { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 50px 20px; text-align: center; }
+.smart-busy svg { width: 48px; height: 48px; color: #10b981; }
+.smart-busy b { font-size: 22px; }
+.smart-head { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 16px; margin: 0; }
+.smart-head svg { width: 22px; height: 22px; color: #10b981; }
+.smart-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.smart-card { padding: 12px 14px; border-radius: 14px; border: 1px solid rgb(190 215 255 / 0.3); background: rgb(255 255 255 / 0.04); font-size: 15px; display: flex; flex-direction: column; gap: 6px; }
+.smart-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.smart-card.is-found li { display: flex; justify-content: space-between; gap: 8px; }
+.smart-card.is-found h4 svg, .smart-card.is-ok h4 svg { color: #10b981; }
+.smart-card.is-fixed h4 svg { color: #60a5fa; }
+.smart-card.is-warn { border-color: rgb(245 158 11 / 0.6); }
+.smart-card.is-warn h4 svg { color: #f59e0b; }
+.smart-card .is-bad { color: #f87171; font-weight: 700; }
+.smart-examples { font-size: 13px; opacity: 0.85; margin: 0; }
+.smart-issues { font-size: 13.5px; opacity: 0.9; }
+.smart-unknown { display: grid; gap: 4px; }
+.smart-existing { display: grid; gap: 4px; margin-top: 6px; font-size: 14px; }
+.smart-link { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 0; color: #60a5fa; font-weight: 800; text-decoration: underline; cursor: pointer; }
+.smart-link svg { width: 16px; height: 16px; }
+.smart-actions { display: flex; align-items: center; gap: 12px; justify-content: flex-end; flex-wrap: wrap; }
+.smart-actions .smart-go { min-width: 16rem; background: linear-gradient(180deg, #10b981, #059669) !important; color: #fff !important; font-size: 18px; font-weight: 800; }
+.smart-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 24px; text-align: center; }
+.smart-done > svg { width: 56px; height: 56px; color: #10b981; }
+.smart-done b { font-size: 22px; }
+@media (max-width: 900px) { .smart-pick, .smart-cols { grid-template-columns: 1fr; } .smart-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* ===== END SMART IMPORT ===== */
+.smart-import { width: 100% !important; min-width: 0; }
+.movein-page { width: min(78rem, 88vw) !important; }
+body.on-setup .movein-page { width: min(78rem, calc(88vw / 1.15)) !important; }
+.smart-pick > section, .smart-cols > section { min-width: 0; }
+.smart-guide li, .smart-what { overflow-wrap: anywhere; }
+.smart-actions > button, .smart-actions .shop-button { width: auto !important; flex: 0 0 auto; }
+.smart-actions .smart-go { flex: 0 1 22rem; }
+.smart-unknown select, .smart-existing select { width: 100%; min-width: 0; }
+:root:root .smart-import :is(p, li, span, small, b, h4) { white-space: normal !important; overflow-wrap: anywhere; text-overflow: clip !important; overflow: visible; }
+:root:root .smart-import .smart-drop b, :root:root .smart-import .smart-drop small { display: block; max-width: 100%; text-align: center; }
+:root:root:root:root body .smart-actions .smart-go { background: linear-gradient(180deg, #10b981, #059669) !important; border-color: rgb(167 243 208 / 0.45) !important; }
+/* Sign-out warning (idle-logout.tsx): solid and bright in both themes, above everything. */
+.idle-warn { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 120; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center;
+  padding: 12px 16px; border-radius: 14px; background: #fff; color: #0f2a4f; border-left: 6px solid #f59e0b; box-shadow: 0 14px 40px rgb(5 15 45 / 0.45); font-size: 16px; max-width: calc(100vw - 24px); }
+.idle-warn button { padding: 8px 16px; border-radius: 10px; background: #059669; color: #fff; font-weight: 800; }

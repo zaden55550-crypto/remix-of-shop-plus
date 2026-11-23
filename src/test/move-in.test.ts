@@ -24,7 +24,14 @@ describe("moving in", () => {
     const { sheets, report } = cleanSheets([sheet(["Name", "SKU", "Price", "Qty"], [
       { Name: "Sugar", SKU: "SUG", Price: "180", Qty: "10" }, { Name: "Sugar 1kg", SKU: "sug", Price: "", Qty: "5" }, { Name: "Soap", SKU: "", Price: "", Qty: "2" }])]);
     expect(sheets[0]!.rows).toEqual([{ Name: "Sugar 1kg", SKU: "sug", Price: "180", Qty: "15" }, { Name: "Soap", SKU: "", Price: "", Qty: "2" }]);
-    expect(report).toEqual({ merged: 1, phones: 0, missingPrices: 1 });
+    expect(report).toMatchObject({ merged: 1, phones: 0, missingPrices: 1, examples: ["Sugar 1kg"] });
+  });
+  it("removes duplicate customers, repeated rows and empty rows, and names them", () => {
+    const { sheets, report } = cleanSheets([sheet(["Name", "Phone", "Email"], [
+      { Name: "Mama Njeri", Phone: "+254 722 111222", Email: "n@x.com" }, { Name: "Mama Njeri", Phone: "0722111222", Email: "" },
+      { Name: "John", Phone: "0711222333", Email: "" }, { Name: "John", Phone: "0711222333", Email: "" }, { Name: "", Phone: "", Email: "" }])]);
+    expect(sheets[0]!.rows.map((r) => r["Name"])).toEqual(["Mama Njeri", "John"]);
+    expect(report).toMatchObject({ contacts: 1, repeated: 1, empty: 1, examples: ["Mama Njeri"] });
   });
   it("undoes the last import while nothing else was saved, reversing its stock", () => {
     const old = erp.addProduct({ name: "Old", buy: 1, sell: 2, qty: 3, unit: "pcs" });

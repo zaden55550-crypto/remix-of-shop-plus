@@ -43,7 +43,7 @@ export async function expandZips(files: File[]): Promise<File[]> {
 }
 
 /* ---------- Clean-up before saving ---------- */
-export type CleanReport = { merged: number; phones: number; missingPrices: number };
+export type CleanReport = { merged: number; phones: number; missingPrices: number; contacts: number; repeated: number; empty: number; examples: string[] };
 const has = (cols: string[], names: string[]) => cols.find((c) => names.includes(key(c)));
 /** A Kenyan mobile or landline written the local way, 07… or 01… (owner, 2026-11-23), whatever way it was typed (+254…, 254…, 7…,
  *  with spaces). Others are left as typed. */
@@ -57,8 +57,19 @@ export function tidyPhone(v: string): string {
 /** Merges product rows that share a code, barcode or name (stock added up, the last non-empty value kept for the rest), writes phone
  *  numbers in one format, and counts products without a selling price. The sheets themselves are not changed. */
 export function cleanSheets(sheets: Sheet[]): { sheets: Sheet[]; report: CleanReport } {
-  const report: CleanReport = { merged: 0, phones: 0, missingPrices: 0 };
-  const out = sheets.map((sh) => {
+  const report: CleanReport = { merged: 0, phones: 0, missingPrices: 0, contacts: 0, repeated: 0, empty: 0, examples: [] };
+  const example = (x: string) => { if (x && report.examples.length < 12 && !report.examples.includes(x)) report.examples.push(x); };
+  const out = sheets.map((sh0) => {
+    // Empty rows and rows repeated exactly (the same export pasted twice) go first, in every sheet.
+    const seenRow = new Set<string>(), kept: Record<string, unknown>[] = [];
+    for (const r of sh0.rows) {
+      const vals = sh0.columns.map((col) => norm(r[col]));
+      if (vals.every((v) => !v)) { report.empty++; continue; }
+      const sig = vals.join("");
+      if (seenRow.has(sig)) { report.repeated++; continue; }
+      seenRow.add(sig); kept.push(r);
+    }
+    const sh = { ...sh0, rows: kept };
     const c = sh.columns;
     const phoneCols = c.filter((x) => /phone|mobile|tel/i.test(x));
     let rows = sh.rows.map((r) => {
@@ -72,6 +83,22 @@ export function cleanSheets(sheets: Sheet[]): { sheets: Sheet[]; report: CleanRe
     const qty = has(c, ["qty", "quantity", "quantityonhand", "qtyonhand", "stockonhand", "stock", "instock", "openingstock", "onhand"]);
     const price = has(c, ["sell", "sellingprice", "salesprice", "price", "salespricerate", "retailprice", "unitprice", "listprice"]);
     const productLike = !!name && !!(price || qty || code || bar) && !c.some((x) => /customer|supplier|vendor|invoice|receipt/i.test(x));
+    // Customers, suppliers and other contacts: the same person twice (same phone, else email, else name) is kept once.
+    const contactName = has(c, ["name", "customername", "suppliername", "vendorname", "contactname", "displayname", "customerdisplayname", "fullname", "company"]);
+    const contactLike = !productLike && !!contactName && !c.some((x) => /qty|quantity|amount|total|invoice|receipt|date/i.test(x));
+    if (contactLike) {
+      const phoneCol = phoneCols[0], email = has(c, ["email", "emailaddress", "mail"]);
+      const seen = new Map<string, Record<string, unknown>>(), keep: Record<string, unknown>[] = [];
+      for (const r of rows) {
+        const id = (phoneCol && key(r[phoneCol])) || (email && key(r[email])) || key(r[contactName]);
+        if (!id) { keep.push(r); continue; }
+        const first = seen.get(id);
+        if (!first) { seen.set(id, r); keep.push(r); continue; }
+        report.contacts++; example(norm(r[contactName]));
+        for (const col of c) if (!norm(first[col]) && norm(r[col])) first[col] = r[col];
+      }
+      return { ...sh, rows: keep };
+    }
     if (!productLike) return { ...sh, rows };
     const seen = new Map<string, Record<string, unknown>>();
     const merged: Record<string, unknown>[] = [];
@@ -80,7 +107,7 @@ export function cleanSheets(sheets: Sheet[]): { sheets: Sheet[]; report: CleanRe
       if (!id) { merged.push(r); continue; }
       const first = seen.get(id);
       if (!first) { seen.set(id, r); merged.push(r); continue; }
-      report.merged++;
+      report.merged++; example(norm(r[name!]));
       for (const col of c) {
         if (col === qty) { const a = Number(norm(first[col]).replace(/,/g, "")) || 0, b = Number(norm(r[col]).replace(/,/g, "")) || 0; first[col] = String(Math.round((a + b) * 1000) / 1000); }
         else if (norm(r[col])) first[col] = r[col];

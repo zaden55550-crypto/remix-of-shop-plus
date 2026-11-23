@@ -1,6 +1,6 @@
 // The public one-page website (owner, 2026-11-23): what Zakrio Systems does, the plans, Try a sample shop, and how to reach us.
 // Share /welcome on WhatsApp status, Facebook or TikTok. It reads the real plans (PLANS) and the real support contacts (SUPPORT).
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, Boxes, CloudOff, MessageCircle, Receipt, Smartphone, Store, Users } from "lucide-react";
 import { toast } from "sonner";
 import { BrandRing } from "@/components/shopbook/ui";
@@ -28,8 +28,7 @@ const FEATURES = [
 
 function Welcome() {
   const { tr } = useLanguage();
-  const nav = useNavigate();
-  const sample = () => { try { startSampleShop(); nav({ to: "/dashboard" }); } catch (e) { toast.error(tr(e instanceof Error ? e.message : "The sample shop can't open here")); } };
+  const sample = () => { try { startSampleShop(); window.location.assign("/dashboard"); } catch (e) { toast.error(tr(e instanceof Error ? e.message : "The sample shop can't open here")); } };
   return <main className="welcome">
     <header className="welcome-top">
       <b className="welcome-brand">ZAKRIO SYSTEMS</b>
