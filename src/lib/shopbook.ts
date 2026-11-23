@@ -155,7 +155,8 @@ export const PLANS: {
 const RANK: Record<Tier, number> = { basic: 1, growth: 2, business: 3 };
 
 /** A business document's details. New files are kept in the device's document store (doc-store.ts); older ones carry a dataUrl. */
-export type BusinessDocument = { id: string; name: string; mime: string; size: number; dataUrl?: string | undefined };
+export type BusinessDocument = { id: string; name: string; mime: string; size: number; dataUrl?: string | undefined;
+  /** An online copy is kept (proposed 0022), so the owner's other devices can open it. */ cloud?: boolean | undefined };
 
 export type Account = {
   shopName: string;

@@ -34,7 +34,8 @@ const totalZoom = () => {
 /** The default whole-interface zoom on wide screens (Interface Size 100%, Text Size Large). */
 const ACCOUNT_MIN_ZOOM = TEXT_FACTOR.large.wide, ACCOUNT_MIN_WIDTH = 768;
 /** True while the Log In or Create Account page is on screen (its rendered page, not the URL, so other screens are never affected). */
-const onAccountPage = () => typeof document !== "undefined" && !!document.querySelector(".auth-split-page");
+// Log In, Create Account and Business Setup never shrink below the default size, whatever the Interface Size.
+const onAccountPage = () => typeof document !== "undefined" && !!document.querySelector(".auth-split-page, .bsetup-page");
 /** Smooth width-based scale for app screens. Phones (≤600px): 360px≈0.94, 430px=1, 600px≈1.06.
  *  Tablets and laptops grow more so text is easy to read: 768px=1.15, 1024px=1.25, 1280px=1.32, 1920px+=1.48. No steps. */
 export const fluidScale = (w: number): number => { const pts: [number, number][] = [[360, 0.94], [430, 1], [PHONE_MAX, 1.0604], [768, 1.15], [1024, 1.25], [1280, 1.32], [1920, 1.48]]; if (w <= pts[0]![0]) return pts[0]![1]; for (let i = 1; i < pts.length; i++) { const [a, fa] = pts[i - 1]!, [b, fb] = pts[i]!; if (w <= b) return +(fa + ((w - a) / (b - a)) * (fb - fa)).toFixed(4); } return pts[pts.length - 1]![1]; };

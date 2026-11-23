@@ -22,7 +22,7 @@ import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
 import { applyCountryDefaults, type ReadyStep } from "@/lib/ready-setup";
-import { DOC_MAX_BYTES, DOC_MAX_COUNT, deleteDocument, formatSize, openDocument, putDocument } from "@/lib/doc-store";
+import { DOC_MAX_BYTES, DOC_MAX_COUNT, backupDocument, deleteDocument, formatSize, listCloudDocuments, openDocument, putDocument, removeDocumentCopy } from "@/lib/doc-store";
 import { rolePreview } from "@/lib/role-preview";
 import { currentFeatures, placeName, sellingPlaceName, type Features } from "@/lib/trade-features";
 import { listLocations, MAIN_LOCATION, saveLocation } from "@/lib/locations";
@@ -90,6 +90,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [access, setAccess] = useState<string | null>(null);
   const [confirmActivate, setConfirmActivate] = useState(false);
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
+  // Pop-ups are drawn outside the page, so a body class lets them read at Setup's large size too.
+  useEffect(() => { document.body.classList.add("on-setup"); return () => document.body.classList.remove("on-setup"); }, []);
   const [readyOpen, setReadyOpen] = useState(false), [readyStart, setReadyStart] = useState<ReadyStep | undefined>(undefined);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
@@ -158,10 +160,24 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         documents.push({ id, name: file.name, mime: file.type || "application/octet-stream", size: file.size });
       }
       set({ businessDocuments: [...current, ...documents] });
+      void backupDocuments([...current, ...documents]);
       toast.success(`${documents.length} ${tr(documents.length === 1 ? "document uploaded" : "documents uploaded")}`);
     } catch { toast.error(tr("This device could not read that document")); }
   };
-  const removeBusinessDocument = (id: string) => { set({ businessDocuments: (d.businessDocuments ?? []).filter((x) => x.id !== id) }); void deleteDocument(id).catch(() => {}); };
+  const removeBusinessDocument = (id: string) => { set({ businessDocuments: (d.businessDocuments ?? []).filter((x) => x.id !== id) }); void deleteDocument(id).catch(() => {}); const doc = (d.businessDocuments ?? []).find((x) => x.id === id); if (doc) void removeDocumentCopy(doc); };
+  // Online copies (proposed 0022): documents without one are uploaded when the owner is signed in; the rest stay on this device.
+  const backupDocuments = async (docs: BusinessDocument[]) => {
+    const missing = docs.filter((x) => !x.cloud);
+    if (!missing.length) return;
+    const done = new Set<string>();
+    for (const doc of missing) if (await backupDocument(doc)) done.add(doc.id);
+    if (done.size) setD((cur) => ({ ...cur, businessDocuments: (cur.businessDocuments ?? []).map((x) => (done.has(x.id) ? { ...x, cloud: true } : x)) }));
+  };
+  useEffect(() => {
+    void backupDocuments(d.businessDocuments ?? []);
+    // Documents added on the owner's other devices join this list; their files download when opened.
+    void listCloudDocuments().then((online) => { if (online.length) setD((cur) => { const have = new Set((cur.businessDocuments ?? []).map((x) => x.id)); const add = online.filter((x) => !have.has(x.id)); return add.length ? { ...cur, businessDocuments: [...(cur.businessDocuments ?? []), ...add] } : cur; }); });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [docsOpen, setDocsOpen] = useState(false);
   // Country and currency come from Create Account and can be corrected here (the same pickers); saved on the account at once.
   const [place, setPlace] = useState({ country: acct.country ?? "", currency: acct.currency ?? "" });
@@ -429,8 +445,9 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       <div className={cn("bsetup-tables", shownSlots.length > 5 && "is-two")}>
       {[shownSlots.slice(0, 5), shownSlots.slice(5)].filter((g) => g.length).map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Shops & Warehouses")} ${group[0]!.n}-${group[group.length - 1]!.n}`}>
           <div className={cn("bsetup-entry bsetup-entry-head", gi > 0 && "is-second", features.counters && "has-counters")} role="row">
-            <span role="columnheader" className="bsetup-rownum-head">#</span><span role="columnheader">{tr("Shop / Warehouse")}</span><span role="columnheader">{tr("Location Name")}</span><span role="columnheader">{tr("Phone")}</span><span role="columnheader">{tr("Location Number")}</span><span role="columnheader">{tr("Logo")}</span>
+            <span role="columnheader" className="bsetup-rownum-head">#</span><span role="columnheader">{tr("Shop / Warehouse")}</span><span role="columnheader">{tr("Location Name")}</span><span role="columnheader">{tr("Phone")}</span><span role="columnheader">{tr("Location Number")}</span>
             {features.counters && <span role="columnheader">{tr("Counters")}</span>}
+            <span role="columnheader">{tr("Logo")}</span>
             <span role="columnheader">{tr("Upload")}</span><span role="columnheader">{tr("Edit")}</span><span role="columnheader">{tr("Actions")}</span><span role="columnheader">{tr("Delete")}</span>
           </div>
           {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} logo={savedLogo(r)} placeholder={suggestedCode(r)} counterMax={counterMax(r)} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onViewLogo={() => setViewingLogo(r.key)} onEdit={() => setEditingRow({ key: r.key })} onManageUsers={() => setManaging(r.key)} onManageAccess={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onAssignUsers={() => r.savedId ? openAccess("Location Assignments", r.savedId) : setManaging(r.key)} onRemove={() => removeRow(r)} />
@@ -614,19 +631,19 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, lo
     <span className="bsetup-cell-name" role="cell">{r ? <input id={`bsetup-name-${r.key}`} className="inventory-input bsetup-name-input" required aria-label={`${tr(`${label} Name`)} ${n}`} aria-invalid={!!nameProblem} title={nameProblem ? tr(nameProblem) : r.name || undefined} value={r.name} placeholder={r.type === "shop" ? `${tr(label)} · ${tr("Name")}` : tr("Warehouse name")} onChange={(e) => onName?.(e.target.value)} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-phone" role="cell">{r ? <input id={`bsetup-phone-${r.key}`} type="tel" inputMode="tel" autoComplete="off" className="inventory-input bsetup-loc-phone" aria-label={`${tr("Phone")} · ${title} (${tr("Optional")})`} aria-invalid={!!phoneProblem} title={phoneProblem ? tr(phoneProblem) : tr("This location's phone, printed on its receipts. Empty: the business number.")} value={r.phone ?? ""} placeholder={tr("Optional")} onChange={(e) => onPhone?.(e.target.value)} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-cell-logo" role="cell">{r ? <button type="button" className={cn("bsetup-logo", logo && "has-logo")} aria-label={`${tr(logo ? "Change logo" : "Add logo")} · ${title}`} title={tr(logo ? "Change logo" : "Add logo")} onClick={onViewLogo}>{logo ? <img src={logo} alt="" /> : <ImagePlus aria-hidden />}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     {counterMax > 0 && <span className="bsetup-cell-counters" role="cell">{showCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-empty" aria-hidden />}</span>}
-    <span className="bsetup-cell-upload" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Upload products")} · ${title}`} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} disabled={!canImport} onClick={onImport}><Upload aria-hidden /><span>{tr("Upload")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-cell-edit" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Edit")} · ${title}`} title={tr("Edit Location")} onClick={onEdit}><Pencil aria-hidden /><span>{tr("Edit")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-logo" role="cell">{r ? <button type="button" className={cn("bsetup-logo", logo && "has-logo")} aria-label={`${tr(logo ? "Change logo" : "Add logo")} · ${title}`} title={tr(logo ? "Change logo" : "Add logo")} onClick={onViewLogo}>{logo ? <img src={logo} alt="" /> : <ImagePlus aria-hidden />}</button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-upload" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Upload products")} · ${title}`} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} disabled={!canImport} onClick={onImport}><Upload aria-hidden /></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-edit" role="cell">{r ? <button type="button" className="bsetup-glass-btn" aria-label={`${tr("Edit")} · ${title}`} title={tr("Edit Location")} onClick={onEdit}><Pencil aria-hidden /></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
     <span className="bsetup-cell-actions" role="cell">{r ? <details className="bsetup-more-menu bsetup-actions-menu">
-      <summary className="bsetup-glass-btn" aria-label={`${tr("Actions")} · ${title}`}><MoreHorizontal aria-hidden /><span>{tr("Actions")}</span><ChevronDown aria-hidden /></summary>
+      <summary className="bsetup-glass-btn" aria-label={`${tr("Actions")} · ${title}`} title={tr("Assign Users, Manage Users, Manage Access")}><MoreHorizontal aria-hidden /></summary>
       <div className="bsetup-more-pop" role="menu">
         <button type="button" role="menuitem" onClick={onAssignUsers}><Users aria-hidden /> {tr("Assign Users")}</button>
         <button type="button" role="menuitem" onClick={onManageUsers}><Users aria-hidden /> {tr("Manage Users")}</button>
         <button type="button" role="menuitem" onClick={onManageAccess}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
       </div>
     </details> : <span className="bsetup-empty-cell" aria-hidden />}</span>
-    <span className="bsetup-cell-delete" role="cell">{r ? <button type="button" className="bsetup-glass-btn is-danger" disabled={!canRemove} aria-label={`${tr("Delete")} · ${title}`} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}><Trash2 aria-hidden /><span>{tr("Delete")}</span></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
+    <span className="bsetup-cell-delete" role="cell">{r ? <button type="button" className="bsetup-glass-btn is-danger" disabled={!canRemove} aria-label={`${tr("Delete")} · ${title}`} title={canRemove ? `${tr("Delete")} · ${title}` : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}><Trash2 aria-hidden /></button> : <span className="bsetup-empty-cell" aria-hidden />}</span>
   </div>;
 }
 void LegacyEntryRow;

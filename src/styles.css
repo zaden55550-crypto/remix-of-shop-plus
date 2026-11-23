@@ -24824,5 +24824,133 @@ html.dark .bsetup {
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-entries-tools { flex-wrap: wrap; justify-self: stretch !important; }
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-add { justify-self: stretch !important; display: grid; grid-template-columns: 1fr 1fr; }
 }
+/* ----- Round 5 (owner, 2026-11-23): bigger and bolder again; rows are # · Shop / Warehouse · Name · Phone · Number · Counters ·
+   then icon buttons Logo, Upload, Edit, ⋯ and Delete; five row places per column share the card's height so it is filled; Import from
+   another system is orange; pop-ups opened from Setup read at the same size. The page never shrinks below the default size
+   (prefs.ts onAccountPage). ----- */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-head-meta, .bsetup-saved, .bsetup-steps > li, .bsetup-ready) { font-size: 17px !important; padding: 7px 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-id > .bsetup-title { font-size: 30px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-head-actions > .bsetup-ready-sell { font-size: 17px !important; min-height: 48px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-review { min-height: 48px !important; font-size: 21px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-profile .bsetup-field > span, .bsetup-feature-row > span) { font-size: 19px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile :is(.inventory-input, .type-picker-button, select, .bsetup-doc-upload, .bsetup-more-phones, .bsetup-doc-count) { height: 54px !important; min-height: 54px !important; font-size: 20px !important; font-weight: 700 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-checks .feature-check { min-height: 52px !important; font-size: 19px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-feature-checks .feature-check input { width: 24px !important; height: 24px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-profile > .bsetup-save-row > .bsetup-later { font-size: 23px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > h2 { font-size: 27px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > h2 small { font-size: 19px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-add-btn { min-height: 50px !important; font-size: 19px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-slot-usage { font-size: 18px !important; }
+/* Import from another system: orange. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-other { height: 50px !important; font-size: 18px !important; border-color: #fdba74 !important; background: linear-gradient(180deg, #fb923c, #ea580c) !important; color: #ffffff !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 6px 16px rgb(234 88 12 / 0.4) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-other:hover { background: linear-gradient(180deg, #f97316, #c2410c) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-plan-line { font-size: 21px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-plan-sub { font-size: 18px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-footer-actions > * { min-height: 50px !important; height: 50px !important; font-size: 18px !important; }
+
+/* Rows: big fields, then square icon buttons. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table .bsetup-entry {
+  --c-type: 160px; --c-count: 76px; --sq: 56px;
+  grid-template-columns: 34px var(--c-type) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr) var(--sq) var(--sq) var(--sq) var(--sq) var(--sq) !important;
+  gap: 10px !important; min-height: 0 !important; font-size: 20px !important;
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 34px var(--c-type) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 0.9fr) var(--c-count) var(--sq) var(--sq) var(--sq) var(--sq) var(--sq) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 56px !important; min-height: 56px !important; font-size: 20px !important; font-weight: 700 !important; padding: 0 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry .bsetup-type { font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-rownum { font-size: 21px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-counter { width: var(--c-count) !important; height: 56px !important; min-height: 56px !important; font-size: 20px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-cell-logo .bsetup-logo { width: var(--sq) !important; height: var(--sq) !important; min-width: var(--sq) !important; border-radius: 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-cell-logo .bsetup-logo svg { width: 26px !important; height: 26px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-glass-btn { width: var(--sq) !important; height: var(--sq) !important; padding: 0 !important; border-radius: 12px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-glass-btn svg { width: 26px !important; height: 26px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-glass-btn > :is(span, svg + svg) { display: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables :is(.bsetup-cell-logo, .bsetup-cell-upload, .bsetup-cell-edit, .bsetup-cell-actions, .bsetup-cell-delete) { justify-content: center !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-actions-menu { width: auto; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry-head { min-height: 50px !important; font-size: 17px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry-head > [role="columnheader"]:nth-child(n+6) { text-align: center; font-size: 15.5px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop > button { font-size: 18px !important; padding: 12px 14px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-actions-menu > .bsetup-more-pop { min-width: 250px; }
+
+/* Five row places per column share the card's height, so the list fills the page (one-page view from 820px tall). */
+@media (min-width: 1100px) and (min-height: 820px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries > .bsetup-tables { height: 100%; min-height: 0; align-content: stretch !important; overflow-y: auto; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { display: grid !important; grid-template-rows: auto repeat(5, minmax(64px, 1fr)) !important; align-content: stretch !important; height: 100% !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table > .bsetup-entry:not(.bsetup-entry-head) { height: 100% !important; align-content: center; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table + .bsetup-table { grid-template-rows: 0 repeat(5, minmax(64px, 1fr)) !important; }
+}
+@container (min-width: 1400px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two > .bsetup-table + .bsetup-table { grid-template-rows: auto repeat(5, minmax(64px, 1fr)) !important; }
+  /* Two columns: a little narrower so name, phone and number keep their room. */
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table .bsetup-entry { --c-type: 118px; --c-count: 64px; --sq: 46px; gap: 7px !important; font-size: 18px !important;
+    grid-template-columns: 26px var(--c-type) minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.9fr) var(--sq) var(--sq) var(--sq) var(--sq) var(--sq) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 26px var(--c-type) minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.9fr) var(--c-count) var(--sq) var(--sq) var(--sq) var(--sq) var(--sq) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 50px !important; min-height: 50px !important; font-size: 18px !important; padding: 0 8px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two :is(.bsetup-counter, .bsetup-cell-logo .bsetup-logo, .bsetup-glass-btn) { height: var(--sq) !important; min-height: var(--sq) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-glass-btn svg, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-cell-logo .bsetup-logo svg { width: 22px !important; height: 22px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry-head { font-size: 15px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry-head > [role="columnheader"]:nth-child(n+6) { font-size: 13px; }
+}
+@container (max-width: 1399px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-table .bsetup-entry { --c-type: 140px; --sq: 50px; gap: 8px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry-head > [role="columnheader"]:nth-child(n+6) { font-size: 14px; }
+}
+
+/* Pop-ups opened from Setup (Ready to sell, editors, users, documents, logo, type list) read at the same large size. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) { font-size: 18px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) :is(h2, h3) { font-size: 24px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) :is(label > span, .inventory-field > span, .bsetup-field > span, legend) { font-size: 17px !important; font-weight: 800 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) :is(.inventory-input, input:not([type="checkbox"]):not([type="radio"]), select, textarea) { min-height: 50px !important; font-size: 18px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) button { font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) :is(p, li, small, .settings-note) { font-size: 16.5px; line-height: 1.45; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) input[type="checkbox"] { width: 22px; height: 22px; }
+/* Round 5 fixes: rows stretch to fill the list, the ⋯ icon shows in two columns, five rows per column fit, the plan footer is one line. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-glass-btn > svg:first-child { display: inline-block !important; }
+@media (min-width: 1100px) and (min-height: 820px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries > .bsetup-tables { height: auto !important; grid-auto-rows: minmax(0, 1fr) !important; grid-template-rows: minmax(0, 1fr) !important; overflow-y: auto; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { height: auto !important; align-self: stretch !important; grid-template-rows: auto repeat(5, minmax(54px, 1fr)) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables:not(.is-two) > .bsetup-table + .bsetup-table { display: none !important; }
+}
+@container (min-width: 1400px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table .bsetup-entry { --c-type: 104px; --c-count: 58px; --sq: 44px; gap: 6px !important;
+    grid-template-columns: 24px var(--c-type) minmax(0, 1.4fr) minmax(0, 0.85fr) minmax(0, 0.95fr) var(--sq) var(--sq) var(--sq) var(--sq) var(--sq) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-table.has-counters .bsetup-entry { grid-template-columns: 24px var(--c-type) minmax(0, 1.4fr) minmax(0, 0.85fr) minmax(0, 0.95fr) var(--c-count) var(--sq) var(--sq) var(--sq) var(--sq) var(--sq) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 46px !important; min-height: 46px !important; font-size: 17px !important; padding: 0 6px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables.is-two .bsetup-entry-head { min-height: 42px !important; }
+}
+/* The plan footer on one line: plan and price, then the counts, then the four company-wide buttons. */
+@media (min-width: 1100px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-footer { padding: 8px 14px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-footer-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-footer-summary > p { margin: 0 !important; }
+}
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup { gap: 8px !important; }
+/* Phones keep their own location card: type, name, phone and number on their own lines, then counters, logo, upload and edit, then ⋯ and
+   delete; buttons fill their cell. The Add buttons share one line. */
+@media (max-width: 767.98px) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup :is(.bsetup-table, .bsetup-table.has-counters) .bsetup-entry.bsetup-entry {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    grid-template-areas: "num type type type" "name name name name" "phone phone code code" "counters logo upload edit" "acts acts delete delete" !important;
+    gap: 8px !important; height: auto !important; font-size: 17px !important;
+  }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-counters { grid-area: counters; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-logo { grid-area: logo; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-upload { grid-area: upload; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-edit { grid-area: edit; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-actions { grid-area: acts; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entry > .bsetup-cell-delete { grid-area: delete; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-entry :is(.bsetup-type, .bsetup-name-input, .bsetup-loc-phone, .bsetup-code) { height: 50px !important; min-height: 50px !important; font-size: 18px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables :is(.bsetup-glass-btn, .bsetup-counter, .bsetup-cell-logo .bsetup-logo) { width: 100% !important; height: 50px !important; min-height: 50px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables .bsetup-actions-menu { width: 100% !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { display: block !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-entries-head > .bsetup-add { grid-template-columns: 1fr 1fr; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-add-btn { font-size: 16px !important; padding: 0 10px !important; white-space: nowrap; }
+}
+/* Ready to sell opened from Setup: its intro reads at the same size and Done keeps its own width. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup .ready-head p { font-size: 17px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup .ready-head h3 { font-size: 26px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup .ready-head > button { width: auto !important; flex: 0 0 auto; padding: 0 22px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup .ready-step-text b { font-size: 19px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup .ready-step-text small { font-size: 16px; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root body.on-setup :is(.glass-overlay, .glass-scrim) :is(.inventory-input, input:not([type="checkbox"]):not([type="radio"]), select, textarea) { padding-inline: 12px !important; }
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */
 .bsetup-docs-page .settings-note { font-size: 15px; }
