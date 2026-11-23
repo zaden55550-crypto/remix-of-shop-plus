@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
 import { AutoSummary } from "@/components/shopbook/auto-summary";
-import { SampleShopBar } from "@/components/shopbook/try-and-tour";
+import { RotateHint, SampleShopBar } from "@/components/shopbook/try-and-tour";
+import { applyLaptopView } from "@/lib/laptop-view";
 import {
   Outlet,
   Link,
@@ -153,6 +154,8 @@ function RootComponent() {
   // The account pages have a size floor (prefs.ts), so the zoom is worked out again whenever the page changes.
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   useEffect(() => { applyUiSize(); }, [pathname]);
+  // Phones and iPads show the laptop layout, shrunk to the screen (laptop-view.ts); re-checked when the device turns.
+  useEffect(() => { const f = () => { applyLaptopView(pathname); applyUiSize(); }; f(); window.addEventListener("orientationchange", f); window.screen.orientation?.addEventListener?.("change", f); return () => { window.removeEventListener("orientationchange", f); window.screen.orientation?.removeEventListener?.("change", f); }; }, [pathname]);
   useEffect(() => startCloudBackup(), []);
   useEffect(() => startConnectivity(), []);
   useEffect(() => startAutoSnapshots(), []);
@@ -182,6 +185,7 @@ function RootComponent() {
       <FirstTimeHint />
       <AutoSummary />
       <SampleShopBar />
+      <RotateHint />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       {/* ERP workspace: plain pass-through until ShopBot docks on the right, then it holds the remaining width. */}
       <div className="shopbot-workspace"><div className="shopbot-workspace-scroll">

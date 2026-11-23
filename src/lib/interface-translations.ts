@@ -2,6 +2,7 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Turn your phone sideways for a bigger view|Geuza simu yako ilale upande ili uone vikubwa zaidi|Tournez votre téléphone à l'horizontale pour un affichage plus grand|أدر هاتفك أفقيًا لعرض أكبر|Gira el teléfono de lado para verlo más grande|Vire o celular de lado para ver maior|Drehen Sie Ihr Telefon quer für eine größere Ansicht|Gira il telefono di lato per una vista più grande|将手机横过来查看更大的画面|बड़े दृश्य के लिए फ़ोन को आड़ा घुमाएँ|Taleefankaaga u jiifi dhinac si aad wax uga weyn u aragto
 Try a sample shop|Jaribu duka la mfano|Essayer une boutique exemple|جرّب متجرًا تجريبيًا|Prueba una tienda de ejemplo|Experimente uma loja de exemplo|Beispielshop ausprobieren|Prova un negozio di esempio|试用示例店铺|एक नमूना दुकान आज़माएँ|Isku day dukaan tusaale ah
 No sign-up · tap around every app|Bila kujisajili · gusa kila programu|Sans inscription · explorez chaque appli|بلا تسجيل · تصفح كل التطبيقات|Sin registro · prueba cada app|Sem cadastro · explore cada app|Ohne Anmeldung · jede App ausprobieren|Senza registrazione · esplora ogni app|无需注册 · 随意体验每个应用|बिना साइन-अप · हर ऐप देखें|Is-diiwaangelin la'aan · tijaabi app kasta
 Sample shop|Duka la mfano|Boutique exemple|متجر تجريبي|Tienda de ejemplo|Loja de exemplo|Beispielshop|Negozio di esempio|示例店铺|नमूना दुकान|Dukaan tusaale ah

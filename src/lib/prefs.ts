@@ -25,6 +25,8 @@ export const getTextSize = (): TextSize => { const v = typeof window === "undefi
 export const setTextSize = (t: TextSize) => { localStorage.setItem(TEXT, t); applyUiSize(); window.dispatchEvent(new Event(EVT)); };
 /** Whole-interface zoom = Interface Size ? Text Size. */
 const totalZoom = () => {
+  // Laptop view on a phone or iPad (laptop-view.ts): the browser already shrinks the laptop-width page to the screen.
+  if (typeof document !== "undefined" && document.documentElement.classList.contains("laptop-view")) return 1;
   const f = TEXT_FACTOR[getTextSize()], z = getUiSize() * (window.innerWidth <= PHONE_MAX ? f.phone : f.wide);
   // Log In and Create Account (from 768px wide) never draw smaller than the default size: a small Interface Size chosen inside the
   // app would otherwise shrink the account card and its text (at 60% the card was ~585px wide with ~10px text). Larger sizes still

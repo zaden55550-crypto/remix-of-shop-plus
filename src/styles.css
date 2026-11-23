@@ -25456,6 +25456,12 @@ html.dark .bsetup {
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-add-slot small { display: none; }
   :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-add-slot-btn { height: 34px; font-size: 14px; padding: 0 10px; }
 }
+/* Round 16 (owner, 2026-11-23): laptop view on iPads and phones held upright. The page is taller than a laptop's, so location rows
+   keep a laptop row height and the Add tile (or the panel) takes the extra height instead of stretching each row. */
+@media (min-width: 1100px) and (orientation: portrait) {
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-tables > .bsetup-table { grid-template-rows: auto repeat(5, minmax(42px, 84px)) minmax(0, 1fr) !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-add-slot { grid-row-end: -1 !important; }
+}
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */
 .bsetup-docs-page .settings-note { font-size: 15px; }
 
@@ -25660,3 +25666,12 @@ html.dark .bsetup {
   .bsetup .bsetup-ready-sell { white-space: nowrap; }
 }
 /* ===== END PHONE CHECK ===== */
+
+/* Laptop view on a phone held upright (laptop-view.ts): the page is 1280px wide, so this tip is drawn large to read normally. */
+.rotate-hint { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 90; display: flex; flex-direction: column; align-items: center; gap: 24px;
+  width: min(90%, 1000px); padding: 48px 40px; border-radius: 40px; background: #ffffff; color: #0f2a4f; text-align: center; box-shadow: 0 30px 80px rgb(5 15 45 / 0.5); }
+.rotate-hint svg { width: 120px; height: 120px; color: #2563eb; animation: rotate-hint 2.4s ease-in-out infinite; }
+.rotate-hint span { font-size: 56px; font-weight: 800; line-height: 1.2; }
+.rotate-hint button { padding: 20px 56px; border-radius: 24px; background: #2563eb; color: #fff; font-size: 48px; font-weight: 800; }
+@keyframes rotate-hint { 0%, 30% { transform: rotate(0); } 60%, 100% { transform: rotate(90deg); } }
+@media (prefers-reduced-motion: reduce) { .rotate-hint svg { animation: none; } }
