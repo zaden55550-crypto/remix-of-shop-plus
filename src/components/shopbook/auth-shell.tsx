@@ -5,6 +5,7 @@ import { TopBar } from "@/components/shopbook/ui";
 import { BrandRing } from "@/components/shopbook/ui";
 import { AuthBenefits } from "@/components/shopbook/auth-card";
 import { useLanguage } from "@/hooks/use-language";
+import { LangQuick, Testimonials } from "@/components/shopbook/try-and-tour";
 import { cn } from "@/lib/utils";
 
 export type AuthMode = "login" | "signup";
@@ -115,6 +116,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
   return (
     <main dir={dir} className={cn("app-screen signup-page auth-split-page", `auth-${mode}`)}>
       <div className="signup-topbar">
+        <LangQuick />
         <TopBar />
       </div>
 
@@ -153,6 +155,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
         </Link>
       </div>
       <AuthBenefits />
+      <Testimonials />
     </main>
   );
 }

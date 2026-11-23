@@ -39,7 +39,7 @@ export function startShopSync() {
   let stopped = false, busy = false;
   const work = async () => {
     if (stopped || busy || document.visibilityState !== "visible") return;
-    if (store.get()?.staff) { publish({ phase: "local", at: 0, pending: 0 }); return; }
+    if (store.get()?.staff || store.get()?.demo) { publish({ phase: "local", at: 0, pending: 0 }); return; }
     const pending = pendingOperations().length;
     if (!navigator.onLine || getConnectivity().backend !== "up") { publish({ phase: "offline", at: state.at, pending }); return; }
     if (localStorage.getItem("shopbook.session") !== "1") { publish({ phase: "local", at: 0, pending }); return; }

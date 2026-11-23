@@ -7,7 +7,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { store } from "@/lib/shopbook";
 
 export const HINTS: Record<string, string> = {
-  setup: "Five steps: your business name and phone, its type, your shops and warehouses, your staff, then Activate. More shows the rest.",
+  setup: "Fill in your business name, phone and type, add your shops and warehouses and your staff, then tap Activate.",
   apps: "Every part of your business is an app. Start with POS to sell, Inventory for stock, and Dashboard to see your day.",
   dashboard: "Your day at a glance: sales, money, what needs attention. The bell lists anything to check.",
   pos: "Tap a product to add it to the cart, or scan its barcode. Tap the cart to take payment.",

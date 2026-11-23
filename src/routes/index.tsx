@@ -12,6 +12,7 @@ import { PLANS, store, type Account, type PlanId } from "@/lib/shopbook";
 import { resumeEmployeeSession, signInEmployee, takeSignOutNotice } from "@/lib/staff-session";
 import { authenticatedContext, authMessage, currentIdentity, registerEmailIdentity, signInEmail } from "@/lib/auth-service";
 import { createOwnerFromIdentity, linkBusinessOnline } from "@/lib/owner-link";
+import { SampleShopButton } from "@/components/shopbook/try-and-tour";
 import { supabase } from "@/integrations/supabase/client";
 
 const INVALID_LOGIN_MESSAGE = "Incorrect business name, email, or password.";
@@ -360,6 +361,8 @@ function Login() {
 
               {/* Google, Apple and Email on one line. */}
               <SocialButtons passkey />
+              {/* Try before signing up (owner, 2026-11-23): a full sample shop, only on a device without a business. */}
+              <SampleShopButton />
               {/* New staff often arrive here before they have a password: the invitation link is where they set it. */}
               <p className="login-staff-note">{tr("New staff? Open the invitation link your employer sent you to set your password.")}</p>
               <p className="login-help-note">{tr("Need help?")} <a href={`https://wa.me/${SUPPORT.whatsapp}`} target="_blank" rel="noreferrer">{tr("WhatsApp support")}</a></p>

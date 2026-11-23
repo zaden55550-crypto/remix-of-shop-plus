@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   ChevronLeft,
+  PlayCircle,
   Store,
   X,
 } from "lucide-react";
@@ -12,6 +13,8 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { DownloadRecords, GlassNotice, PlanLoss } from "@/components/shopbook/plan-loss";
 import { Wordmark } from "@/components/shopbook/ui";
+import { GlassPage } from "@/components/shopbook/glass-page";
+import { SaleTour, Testimonials } from "@/components/shopbook/try-and-tour";
 import { SUPPORT } from "@/lib/i18n";
 import { PAYMENT_TEST_MODE } from "@/lib/payment";
 import { buyPlan } from "@/lib/plan-change";
@@ -38,6 +41,7 @@ function Plans() {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
 
+  const [tour, setTour] = useState(false);
   const [yearly, setYearly] = useState(false);
   // Nothing is selected until the customer chooses; a choice made earlier comes back after the first paint.
   const [chosenPlanId, setChosenPlanId] = useState<PlanId | null>(null);
@@ -302,6 +306,8 @@ function Plans() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {/* A 30-second sale, POS to M-Pesa to receipt (owner, 2026-11-23). */}
+          <button type="button" className="plans-tour-btn" onClick={() => setTour(true)}><PlayCircle aria-hidden /> {tr("See a sale in 30 seconds")}</button>
           <button
             type="button"
             onClick={handleRestorePurchases}
@@ -320,6 +326,8 @@ function Plans() {
           </button>
         </div>
       </header>
+
+      {tour && <GlassPage label={tr("See a sale in 30 seconds")} onClose={() => setTour(false)}><SaleTour /><Testimonials /></GlassPage>}
 
       {/* 2. BILLING CYCLE TOGGLE IN SOLID EMERALD GREEN */}
       <div className="flex justify-center shrink-0 my-0.5 sm:my-1">

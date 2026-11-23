@@ -16,7 +16,7 @@ export function startCloudBackup() {
   const schedule = (ms = 1200) => { if (timer) clearTimeout(timer); timer = setTimeout(sync, ms); };
   const sync = async () => {
     if (stopped || document.visibilityState !== "visible") return;
-    if (localStorage.getItem("shopbook.session") !== "1" || JSON.parse(localStorage.getItem("shopbook.account") || "null")?.staff) { publish({ phase: "local", at: 0 }); return; }
+    if (localStorage.getItem("shopbook.session") !== "1" || JSON.parse(localStorage.getItem("shopbook.account") || "null")?.staff || JSON.parse(localStorage.getItem("shopbook.account") || "null")?.demo) { publish({ phase: "local", at: 0 }); return; }
     if (!navigator.onLine) { publish({ phase: "offline", at: state.at }); return; }
     if (busy) { schedule(); return; }
     busy = true;

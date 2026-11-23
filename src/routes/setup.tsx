@@ -99,9 +99,6 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
   // Pop-ups are drawn outside the page, so a body class lets them read at Setup's large size too.
   useEffect(() => { document.body.classList.add("on-setup"); return () => document.body.classList.remove("on-setup"); }, []);
-  const [showMore, setShowMore] = useState(false);
-  useEffect(() => { try { setShowMore(localStorage.getItem("shopbook.setupMore") === "1"); } catch { /* default: simple */ } }, []);
-  const toggleMore = (on: boolean) => { setShowMore(on); try { localStorage.setItem("shopbook.setupMore", on ? "1" : "0"); } catch { /* this session only */ } };
   const [readyOpen, setReadyOpen] = useState(false), [readyStart, setReadyStart] = useState<ReadyStep | undefined>(undefined);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
@@ -432,9 +429,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       </div>
     </header>
 
-    {/* Five steps (owner, 2026-11-23): name & phone · type · locations · staff · Activate. Documents, features and the other company
-        buttons wait behind More (remembered on this device). */}
-    <section className={cn("bsetup-toprow bsetup-profile", showMore ? "is-more" : "is-simple")} aria-label={tr("Business details")}>
+    {/* Always fully open (owner, 2026-11-23): documents, features and every company button show; there is no Less/More. */}
+    <section className="bsetup-toprow bsetup-profile is-more" aria-label={tr("Business details")}>
       <div className="bsetup-profile-grid">
         <label className="bsetup-field bsetup-name"><span>{tr("Business Name")} <i aria-hidden>*</i></span>
           <input id="bsetup-business-name" className="inventory-input" required value={d.businessName} aria-invalid={!!problem(undefined, "businessName")} onChange={(e) => set({ businessName: e.target.value })} placeholder={tr("Enter business name")} />
@@ -459,7 +455,6 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
             onChange={(types) => set({ businessType: types[0] ?? "", otherType: "", extraBusinessTypes: types.slice(1) })} />
           {selectedIndustryConfig?.implementationStatus === "configuration-only" && <small className="bsetup-note">{tr("This records your industry and business type; its specialized operating modules are not available yet.")}</small>}
         </div>
-        <button type="button" className="bsetup-more-toggle" aria-expanded={showMore} onClick={() => toggleMore(!showMore)}>{tr(showMore ? "Less" : "More")} <ChevronDown aria-hidden className={cn(showMore && "rotate-180")} /></button>
         <div className="bsetup-field bsetup-documents"><span>{tr("Business Documents")} <small>({tr("Optional")})</small></span>
           <input ref={businessFiles} hidden type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx" onChange={(e) => { void pickBusinessDocuments(e.target.files); e.target.value = ""; }} />
           <div className="bsetup-doc-row">
@@ -698,9 +693,9 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, pl
     {countersOn && <span className="bsetup-cell-counters" role="cell">{hasCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-none" aria-label={tr("No counters")}>–</span>}</span>}
     <span className="bsetup-cell-phone" role="cell">{r ? <input id={`bsetup-phone-${r.key}`} type="tel" inputMode="tel" autoComplete="off" className="inventory-input bsetup-loc-phone" aria-label={`${tr("Phone")} · ${title} (${tr("Optional")})`} aria-invalid={!!phoneProblem} title={phoneProblem ? tr(phoneProblem) : tr("This location's phone, printed on its receipts. Empty: the business number.")} value={r.phone ?? ""} placeholder={tr("Phone")} onChange={(e) => onPhone?.(e.target.value)} /> : <span className="bsetup-ghost">{tr("Phone")}</span>}</span>
     <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-ghost">{tr("Number")}</span>}</span>
-    <span className="bsetup-cell-upload" role="cell"><button type="button" className="bsetup-row-btn is-import" disabled={!r || !canImport} aria-label={`${tr("Import Data")} · ${title}`} title={r && canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}>{tr("Import Data")}</button></span>
-    <span className="bsetup-cell-edit" role="cell"><button type="button" className="bsetup-row-btn is-edit" disabled={!r} aria-label={`${tr("Edit")} · ${title}`} title={tr("Logo, details, counters, stock visibility, users and access for this location")} onClick={onEdit}>{tr("Edit")}</button></span>
-    <span className="bsetup-cell-delete" role="cell"><button type="button" className="bsetup-row-btn is-delete" disabled={!r || !canRemove} aria-label={`${tr("Delete")} · ${title}`} title={r && !canRemove ? tr("The first location stays. Rename it or change its type.") : `${tr("Delete")} · ${title}`} onClick={onRemove}>{tr("Delete")}</button></span>
+    <span className="bsetup-cell-upload" role="cell"><button type="button" className="bsetup-row-btn is-import" disabled={!r || !canImport} aria-label={`${tr("Import Data")} · ${title}`} title={r && canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}><Upload aria-hidden className="bsetup-row-btn-icon" /><span className="bsetup-row-btn-text">{tr("Import Data")}</span></button></span>
+    <span className="bsetup-cell-edit" role="cell"><button type="button" className="bsetup-row-btn is-edit" disabled={!r} aria-label={`${tr("Edit")} · ${title}`} title={tr("Logo, details, counters, stock visibility, users and access for this location")} onClick={onEdit}><Pencil aria-hidden className="bsetup-row-btn-icon" /><span className="bsetup-row-btn-text">{tr("Edit")}</span></button></span>
+    <span className="bsetup-cell-delete" role="cell"><button type="button" className="bsetup-row-btn is-delete" disabled={!r || !canRemove} aria-label={`${tr("Delete")} · ${title}`} title={r && !canRemove ? tr("The first location stays. Rename it or change its type.") : `${tr("Delete")} · ${title}`} onClick={onRemove}><Trash2 aria-hidden className="bsetup-row-btn-icon" /><span className="bsetup-row-btn-text">{tr("Delete")}</span></button></span>
   </div>;
 }
 void LegacyEntryRow;

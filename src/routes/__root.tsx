@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
 import { AutoSummary } from "@/components/shopbook/auto-summary";
+import { SampleShopBar } from "@/components/shopbook/try-and-tour";
 import {
   Outlet,
   Link,
@@ -180,6 +181,7 @@ function RootComponent() {
       <AppAccessGate />
       <FirstTimeHint />
       <AutoSummary />
+      <SampleShopBar />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       {/* ERP workspace: plain pass-through until ShopBot docks on the right, then it holds the remaining width. */}
       <div className="shopbot-workspace"><div className="shopbot-workspace-scroll">
