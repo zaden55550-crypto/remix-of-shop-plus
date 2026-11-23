@@ -74,6 +74,7 @@ import { activeAttributes, countLabel, unitNames } from "@/lib/catalog";
 import { useSettings } from "@/lib/settings-config";
 import { connectedShops, isActiveLocation, listLocations, storageStock, type StorageStock } from "@/lib/locations";
 import { ListScreen, type Col } from "@/components/shopbook/purchase-ui";
+import { BarcodeLabels } from "@/components/shopbook/daily-tools";
 import {
   InventorySearch,
   InventoryField,
@@ -104,7 +105,7 @@ export const Route = createFileRoute("/inventory")({
 /** 4-Menu Architecture matching specification */
 const MENUS = {
   overview: [],
-  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry", "Gas Cylinders", "Breakdown", "Prescriptions", "Stock Count", "Reorder", "Shop Prices", "Quick Add"],
+  "products & stock": ["All Products", "Add Product", "Stock In", "Stock Out", "Stock History", "Adjustments", "Expiry", "Gas Cylinders", "Breakdown", "Prescriptions", "Stock Count", "Reorder", "Shop Prices", "Quick Add", "Labels"],
   "returns & transfers": ["Customer Returns", "Supplier Returns", "New Transfer", "Transfer History", "Warehouse Stock"],
   configuration: ["Product Setup", "Stock Setup"],
 } as const;
@@ -421,9 +422,9 @@ function Inventory() {
         </GlassPage>
       )}
 
-      {menu === "products & stock" && (sub === "Stock Count" || sub === "Reorder" || sub === "Shop Prices" || sub === "Quick Add") && (
+      {menu === "products & stock" && (sub === "Stock Count" || sub === "Reorder" || sub === "Shop Prices" || sub === "Quick Add" || sub === "Labels") && (
         <GlassPage label={tr(sub)} onClose={() => go("products & stock", "All Products")}>
-          {sub === "Stock Count" ? <StockCount s={s} /> : sub === "Reorder" ? <ReorderPanel s={s} /> : sub === "Shop Prices" ? <ShopPrices s={s} money={money} /> : <VoiceAdd />}
+          {sub === "Stock Count" ? <StockCount s={s} /> : sub === "Reorder" ? <ReorderPanel s={s} /> : sub === "Shop Prices" ? <ShopPrices s={s} money={money} /> : sub === "Labels" ? <BarcodeLabels s={s} money={money} /> : <VoiceAdd />}
         </GlassPage>
       )}
 

@@ -25786,3 +25786,42 @@ html.dark .bsetup {
 .connection-tile b { font-size: 14px; }
 .connection-tile .connection-chip { font-size: 11px; }
 .connection-terms input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 3px; }
+
+/* ===== DAILY TOOLS (owner, 2026-11-23; daily-tools.tsx) ===== */
+.close-day { display: flex; flex-direction: column; gap: 10px; max-width: 40rem; }
+.close-day h3 { font-size: 22px; font-weight: 800; }
+.close-day-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.close-day-grid p { display: flex; justify-content: space-between; gap: 8px; margin: 0; padding: 8px 12px; border-radius: 10px; border: 1px solid rgb(190 215 255 / 0.3); background: var(--card); }
+.close-day-grid p.is-key { border-color: #10b981; background: rgb(16 185 129 / 0.12); }
+.close-day-diff { font-weight: 800; margin: 0; }
+.close-day-diff.is-ok { color: #059669; }
+.close-day-diff.is-bad { color: #dc2626; }
+.close-day-text { white-space: pre-wrap; font-family: inherit; font-size: 15px; padding: 12px; border-radius: 12px; background: var(--card); border: 1px solid rgb(190 215 255 / 0.3); }
+.close-day-send { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.label-pick { max-height: 46vh; overflow-y: auto; }
+.label-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; color: #000; }
+.label { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; border: 1px dashed #94a3b8; break-inside: avoid; text-align: center; }
+.label b { font-size: 12px; line-height: 1.2; }
+.label span { font-size: 14px; font-weight: 800; }
+.label small { font-size: 10px; letter-spacing: 0.08em; }
+.label-bars { width: 100%; height: 38px; }
+.receipt-qr { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 8px; }
+.receipt-qr img { width: 96px; height: 96px; image-rendering: pixelated; }
+.receipt-qr small { font-size: 11px; }
+.voice-guide { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; border: 1px solid rgb(190 215 255 / 0.45); background: rgb(255 255 255 / 0.1); color: inherit; flex: 0 0 auto; }
+.voice-guide svg { width: 19px; height: 19px; }
+.voice-guide.is-on { background: #059669; border-color: #059669; color: #fff; }
+.plans-tour-btn.is-gift { background: #f59e0b; color: #0f2a4f; }
+.referral { width: min(40rem, 92vw); display: flex; flex-direction: column; gap: 10px; }
+.referral h3 { display: flex; align-items: center; gap: 8px; font-size: 22px; font-weight: 800; }
+.referral h3 svg { color: #f59e0b; }
+.referral-code { display: flex; align-items: center; gap: 12px; margin: 0; }
+.referral-code b { font-size: 30px; letter-spacing: 0.18em; padding: 4px 14px; border-radius: 12px; background: #fde68a; color: #0f2a4f; }
+.referral-link { word-break: break-all; font-weight: 700; margin: 0; }
+.referral-count { margin: 0; }
+@media print { .label-sheet { grid-template-columns: repeat(3, 1fr); } }
+/* ===== END DAILY TOOLS ===== */
+.print-area .label-sheet, .label-sheet { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.print-area .label, .label { min-width: 0; overflow: hidden; }
+:root:root:root .print-area svg.label-bars, :root:root:root .label svg.label-bars { display: block !important; width: 100% !important; height: 38px !important; }
+@media print { :root:root:root svg.label-bars { display: block !important; } .label-sheet { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; } }

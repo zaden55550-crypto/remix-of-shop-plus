@@ -106,5 +106,29 @@ describe("APPLY-2026-11-23-additions: bringing an earlier run up to date", () =>
     expect((await as("SELECT kind FROM business_integration_status() ORDER BY kind")).map((r) => (r as { kind: string }).kind)).toEqual(["airtel", "evc"]);
     await db.exec(`INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id) VALUES ('${a}', 'growth', 'monthly', 2838, '254722000000', 'ws_CO_9')`);
     expect(await as("SELECT checkout_request_id FROM plan_payments")).toEqual([{ checkout_request_id: "ws_CO_9" }]);
+    expect(((await as("SELECT my_referral_code() r"))[0] as { r: { code: string } }).r.code).toMatch(/^[A-Z0-9]{6}$/);
+  }, 60_000);
+});
+
+describe("proposed 0025: referrals", () => {
+  it("gives each owner one code, records a referral once, and never lets an owner refer themselves", async () => {
+    const db = new PGlite();
+    await db.exec(BASE);
+    for (const f of JOURNAL) await db.exec(journalFile(f));
+    await db.exec(readFileSync(resolve("drizzle/proposed/0024_plan_payments.sql"), "utf8"));
+    await db.exec(readFileSync(resolve("drizzle/proposed/0025_referrals.sql"), "utf8"));
+    const a = "00000000-0000-4000-8000-00000000000a", b = "00000000-0000-4000-8000-00000000000b", c = "00000000-0000-4000-8000-00000000000c";
+    const as = async (user: string, sql: string) => { await db.exec(`RESET ROLE; SELECT set_config('test.uid', '${user}', false); SET ROLE authenticated`); try { return (await db.query(sql)).rows; } finally { await db.exec("RESET ROLE"); } };
+    const mine = (await as(a, "SELECT my_referral_code() r"))[0] as { r: { code: string; joined: number; paid: number } };
+    expect(mine.r.code).toMatch(/^[A-Z0-9]{6}$/);
+    expect(((await as(a, "SELECT my_referral_code() r"))[0] as { r: { code: string } }).r.code).toBe(mine.r.code);
+    expect(((await as(a, `SELECT record_referral('${mine.r.code}') ok`))[0] as { ok: boolean }).ok).toBe(false);
+    expect(((await as(b, `SELECT record_referral('${mine.r.code.toLowerCase()}') ok`))[0] as { ok: boolean }).ok).toBe(true);
+    await as(b, `SELECT record_referral('${mine.r.code}')`);
+    await as(c, `SELECT record_referral('${mine.r.code}')`);
+    await db.exec(`INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id, status) VALUES ('${b}', 'basic', 'monthly', 1419, '2547', 'ws_1', 'paid')`);
+    expect(((await as(a, "SELECT my_referral_code() r"))[0] as { r: { joined: number; paid: number } }).r).toMatchObject({ joined: 2, paid: 1 });
+    await expect(as(a, "SELECT * FROM referrals")).rejects.toThrow();
+    await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0025_referrals.down.sql"), "utf8"));
   }, 60_000);
 });

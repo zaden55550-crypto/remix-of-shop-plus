@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   PlayCircle,
+  Gift,
   Store,
   X,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { DownloadRecords, GlassNotice, PlanLoss } from "@/components/shopbook/pl
 import { Wordmark } from "@/components/shopbook/ui";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { SaleTour, Testimonials } from "@/components/shopbook/try-and-tour";
+import { ReferralCard } from "@/components/shopbook/daily-tools";
 import { SUPPORT } from "@/lib/i18n";
 import { PAYMENT_TEST_MODE, realPayment } from "@/lib/payment";
 import { buyPlan } from "@/lib/plan-change";
@@ -41,7 +43,7 @@ function Plans() {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
 
-  const [tour, setTour] = useState(false);
+  const [tour, setTour] = useState(false), [invite, setInvite] = useState(false);
   // Real M-Pesa plan payments (payment.ts): whether the server has Zakrio Systems' M-Pesa keys, and the shilling prices.
   const [real, setReal] = useState<{ ready: boolean; prices: Record<string, number> }>({ ready: false, prices: {} });
   const [payPhone, setPayPhone] = useState(""), [payStep, setPayStep] = useState<"sent" | "waiting" | null>(null);
@@ -321,6 +323,7 @@ function Plans() {
 
         <div className="flex items-center gap-2 shrink-0">
           {/* A 30-second sale, POS to M-Pesa to receipt (owner, 2026-11-23). */}
+          <button type="button" className="plans-tour-btn is-gift" onClick={() => setInvite(true)}><Gift aria-hidden /> {tr("Free month")}</button>
           <button type="button" className="plans-tour-btn" onClick={() => setTour(true)}><PlayCircle aria-hidden /> {tr("See a sale in 30 seconds")}</button>
           <button
             type="button"
@@ -341,6 +344,7 @@ function Plans() {
         </div>
       </header>
 
+      {invite && <GlassPage label={tr("Invite a shop, get a free month")} onClose={() => setInvite(false)}><ReferralCard /></GlassPage>}
       {tour && <GlassPage label={tr("See a sale in 30 seconds")} onClose={() => setTour(false)}><SaleTour /><Testimonials /></GlassPage>}
 
       {/* 2. BILLING CYCLE TOGGLE IN SOLID EMERALD GREEN */}

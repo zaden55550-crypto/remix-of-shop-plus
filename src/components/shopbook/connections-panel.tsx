@@ -9,6 +9,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { AutoSummaryForm } from "@/components/shopbook/auto-summary";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { supabase } from "@/integrations/supabase/client";
+import { saveSettings } from "@/lib/settings-config";
 import { store } from "@/lib/shopbook";
 import { waNumber } from "@/lib/whatsapp";
 import { integrationStatus, mpesaPaymentStatus, mpesaStkPush, saveIntegration, sendMessage, type IntegrationKind } from "@/lib/integrations.functions";
@@ -126,7 +127,7 @@ function OnlineShopForm() {
   const [v, setV] = useState({ slug: "", title: "", whatsapp: "", enabled: true }), [busy, setBusy] = useState(false), [saved, setSaved] = useState(false);
   useEffect(() => {
     void (supabase.from as unknown as (t: string) => { select: (c: string) => { maybeSingle: () => Promise<{ data: { slug: string; title: string; whatsapp: string | null; enabled: boolean } | null }> } })("public_shops")
-      .select("slug, title, whatsapp, enabled").maybeSingle().then((r) => { if (r.data) { setV({ slug: r.data.slug, title: r.data.title, whatsapp: r.data.whatsapp ?? "", enabled: r.data.enabled }); setSaved(true); } }, () => undefined);
+      .select("slug, title, whatsapp, enabled").maybeSingle().then((r) => { if (r.data) { setV({ slug: r.data.slug, title: r.data.title, whatsapp: r.data.whatsapp ?? "", enabled: r.data.enabled }); setSaved(true); saveSettings({ shopLink: r.data.enabled ? r.data.slug : undefined }); } }, () => undefined);
   }, []);
   const save = async () => {
     const slug = v.slug.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
@@ -136,7 +137,7 @@ function OnlineShopForm() {
     const r = await (supabase.rpc as unknown as (fn: string, a: object) => Promise<{ error: { message: string } | null }>)("set_public_shop", { p_slug: slug, p_title: v.title.trim(), p_whatsapp: v.whatsapp ? waNumber(v.whatsapp, store.get()?.country) : "", p_enabled: v.enabled });
     setBusy(false);
     if (r.error) { toast.error(tr(/does not exist|schema cache/i.test(r.error.message) ? "Connections aren't switched on in the server yet (migration 0023)" : r.error.message)); return; }
-    setV({ ...v, slug }); setSaved(true); toast.success(tr("Saved"));
+    setV({ ...v, slug }); setSaved(true); saveSettings({ shopLink: v.enabled ? slug : undefined }); toast.success(tr("Saved"));
   };
   const url = typeof window === "undefined" ? "" : `${window.location.origin}/shop/${v.slug}`;
   return <section className="connection">

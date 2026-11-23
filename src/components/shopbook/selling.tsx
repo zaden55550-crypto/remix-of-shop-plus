@@ -32,6 +32,7 @@ import { qtyTimesPrice, weighedUnit } from "@/lib/weight-display";
 import { MAIN_LOCATION } from "@/lib/locations";
 import { readSettings } from "@/lib/settings-config";
 import * as erp from "@/lib/erp";
+import { ReceiptQr } from "@/components/shopbook/daily-tools";
 import { forOpenBusiness } from "@/lib/businesses";
 
 export type Tr = (t: string) => string;
@@ -195,6 +196,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
       {paymentLines(tr).map((l) => <p key={l} className="text-center">{l}</p>)}
       <p className="mt-3 text-center">{tr("Thank you!")}</p>
       {cfg.receiptFooter.trim() && <p className="mt-1 whitespace-pre-line text-center">{cfg.receiptFooter.trim()}</p>}
+      <ReceiptQr tr={tr} />
     </div>
   );
 }

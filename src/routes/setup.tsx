@@ -38,6 +38,7 @@ import { friendly } from "@/lib/people-cloud";
 import { readProductImage } from "@/lib/product-export";
 import { ROLES, isManagerRole, roleLabel } from "@/lib/staff-access";
 import { businessTypesOf, canOpen, planAllowanceLines, planCounterLine, planEmployeeRule, planPrice, store, type Account, type BusinessDocument } from "@/lib/shopbook";
+import { VoiceGuide } from "@/components/shopbook/daily-tools";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/setup")({
@@ -419,6 +420,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </button>
         <input ref={logoFile} hidden type="file" accept="image/*" onChange={(e) => { pickHeadLogo(e.target.files?.[0]); e.target.value = ""; }} />
         <h1 className="bsetup-title">{tr("Business Setup")}</h1>
+        <VoiceGuide />
         <span className="bsetup-head-sub">
         <button type="button" className="bsetup-head-meta bsetup-place-btn" title={tr("Change country and currency")} onClick={() => setPlaceOpen(true)}>{[countryName, currencyShown].filter(Boolean).join(" · ") || tr("Country & currency")} <Pencil aria-hidden /></button>
         {savedText && <span className="bsetup-saved" role="status">{savedText}</span>}

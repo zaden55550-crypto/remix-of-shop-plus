@@ -34,6 +34,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { store } from "@/lib/shopbook";
+import { captureReferral, sendReferral } from "@/components/shopbook/daily-tools";
 import { expireMigratedOwnerSession } from "@/lib/auth-service";
 
 function NotFoundComponent() {
@@ -167,7 +168,10 @@ function RootComponent() {
   useEffect(() => startDomTranslate(), []);
   const isAuthRoute = pathname === "/" || pathname === "/signup";
   useEffect(() => {
+    // Invite a shop, get a free month: a code from /signup?ref= is recorded once the new owner is signed in online.
+    captureReferral(); void sendReferral().catch(() => undefined);
     const auth = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) void sendReferral().catch(() => undefined);
       const account = store.get();
       if (account?.staff) return; // StaffGate/session monitor performs server access checks and queue-safe cleanup.
       const expired = event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session);

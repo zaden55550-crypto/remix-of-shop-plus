@@ -23,6 +23,7 @@ import { addScannedSerial } from "@/components/shopbook/serial-chooser";
 import { GasPad } from "@/components/shopbook/gas-pad";
 import { useFeature } from "@/lib/use-features";
 import { CashierSwitch, CounterPicker, counterName } from "@/components/shopbook/counter-picker";
+import { CloseDay } from "@/components/shopbook/daily-tools";
 import * as erp from "@/lib/erp";
 
 export const Route = createFileRoute("/pos")({
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/pos")({
 const MENUS = {
   Sell: [],
   Transactions: ["Today's Sales", "Completed", "Cancelled", "Returns", "Transaction Details"],
-  Cash: ["Opening Cash", "Cash In", "Cash Out", "Cash Up", "Cash History"],
+  Cash: ["Opening Cash", "Cash In", "Cash Out", "Cash Up", "Close Day", "Cash History"],
   Reports: ["Daily Sales", "Sales by Product", "Payment Methods", "Cash Summary", "Cashier Performance", "Sales by Counter", "Best Selling Products"],
 } as const;
 type Menu = keyof typeof MENUS;
@@ -167,6 +168,8 @@ function Cash({ s, money, tr, shop, view }: Ctx & { view: string }) {
   const [amt, setAmt] = useState(""); const [note, setNote] = useState("");
   const [print, setPrint] = useState<erp.CashEvent | null>(null);
   const cs = erp.cashSession(s);
+  // Close the day (owner, 2026-11-23): today's sales and money for this counter, count the drawer, close, send the summary.
+  if (view === "Close Day") return <CloseDay s={s} money={money} tr={tr} />;
   const submit = () => {
     if (view === "Cash Up") { const before = erp.cashSession(s); const r = run(() => erp.cashUp(+amt), tr("Cash-up saved")); if (r !== undefined) { setPrint({ id: "x", at: Date.now(), type: "CASH UP", amount: +amt, counted: +amt, expected: before.expected, note, user: "" }); setAmt(""); setNote(""); } return; }
     const type = view === "Opening Cash" ? "OPENING" : view === "Cash In" ? "CASH IN" : "CASH OUT";
