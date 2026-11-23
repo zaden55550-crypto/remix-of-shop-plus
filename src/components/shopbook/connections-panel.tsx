@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { AutoSummaryForm } from "@/components/shopbook/auto-summary";
+import { GlassPage } from "@/components/shopbook/glass-page";
 import { supabase } from "@/integrations/supabase/client";
 import { store } from "@/lib/shopbook";
 import { waNumber } from "@/lib/whatsapp";
@@ -23,21 +24,57 @@ const FORMS: Record<IntegrationKind, { title: string; about: string; fields: Fie
     { key: "phoneNumberId", label: "Phone number ID" }, { key: "accessToken", label: "Access token", secret: true }] },
   sms: { title: "SMS (Africa's Talking)", about: "Your own Africa's Talking account. Receipts, reminders and the daily summary by SMS.", fields: [
     { key: "username", label: "Username (\"sandbox\" for testing)" }, { key: "apiKey", label: "API key", secret: true }, { key: "senderId", label: "Sender ID (optional)" }] },
+  airtel: { title: "Airtel Money", about: "Your own Airtel Money business API (Collections) from developers.airtel.africa. The details are saved now; till prompts for Airtel switch on once they are tested with your account.", fields: [
+    { key: "environment", label: "Environment", options: [["sandbox", "Sandbox (testing)"], ["live", "Live"]] },
+    { key: "country", label: "Country code (e.g. KE, UG, TZ, RW, ZM)" }, { key: "currency", label: "Currency (e.g. KES, UGX)" },
+    { key: "clientId", label: "Client ID" }, { key: "clientSecret", label: "Client secret", secret: true }] },
+  mtn: { title: "MTN MoMo", about: "Your own MTN Mobile Money API (Collections) from momodeveloper.mtn.com. The details are saved now; till prompts for MTN switch on once they are tested with your account.", fields: [
+    { key: "environment", label: "Environment", options: [["sandbox", "Sandbox (testing)"], ["live", "Live"]] },
+    { key: "targetEnvironment", label: "Target environment (e.g. mtnuganda)" }, { key: "currency", label: "Currency (e.g. UGX, GHS)" },
+    { key: "subscriptionKey", label: "Subscription key", secret: true }, { key: "apiUser", label: "API user" }, { key: "apiKey", label: "API key", secret: true }] },
+  orange: { title: "Orange Money", about: "Your own Orange Money merchant API from developer.orange.com. The details are saved now; till prompts for Orange switch on once they are tested with your account.", fields: [
+    { key: "country", label: "Country code (e.g. CI, SN, CM)" }, { key: "merchantKey", label: "Merchant key", secret: true },
+    { key: "clientId", label: "Client ID" }, { key: "clientSecret", label: "Client secret", secret: true }] },
+  evc: { title: "EVC Plus (WaafiPay)", about: "Your own Hormuud WaafiPay merchant account for EVC Plus, Zaad and Sahal. The details are saved now; till prompts for EVC Plus switch on once they are tested with your account.", fields: [
+    { key: "environment", label: "Environment", options: [["sandbox", "Sandbox (testing)"], ["live", "Live"]] },
+    { key: "merchantUid", label: "Merchant UID" }, { key: "apiUserId", label: "API user ID" }, { key: "apiKey", label: "API key", secret: true }] },
+  otherpay: { title: "Other payment provider", about: "Any other mobile money, bank or card provider (Tigo Pesa, Halopesa, Wave, Equity, Paystack…). Save its details here; till prompts switch on once that provider's API is added for you.", fields: [
+    { key: "provider", label: "Provider name" }, { key: "baseUrl", label: "API address (URL)" }, { key: "account", label: "Merchant / account number" },
+    { key: "apiKey", label: "API key", secret: true }, { key: "apiSecret", label: "API secret", secret: true }] },
   etims: { title: "KRA eTIMS", about: "Your eTIMS details are kept ready. Sales start going to KRA once Zakrio Systems is approved by KRA as an eTIMS integrator.", fields: [
     { key: "kraPin", label: "KRA PIN" }, { key: "branchId", label: "Branch ID" }, { key: "deviceSerial", label: "Device serial number" }] },
 };
 
+const GROUPS: { title: string; items: (IntegrationKind | "summary" | "shop")[] }[] = [
+  { title: "Payments", items: ["mpesa", "airtel", "mtn", "orange", "evc", "otherpay"] },
+  { title: "Messages", items: ["whatsapp", "sms", "summary"] },
+  { title: "Tax & online shop", items: ["etims", "shop"] },
+];
+const EXTRA = { summary: "Daily summary at closing time", shop: "Online shop link" } as const;
+
+/** One page of tiles (owner, 2026-11-23): each connection is a tile with its state; tapping it opens its form in a window. */
 export function ConnectionsPanel() {
   const { tr } = useLanguage();
   const [status, setStatus] = useState<{ ready: boolean; error: string | null; items: { kind: string; enabled: boolean; fields: string[] }[] } | null>(null);
+  const [open, setOpen] = useState<IntegrationKind | "summary" | "shop" | null>(null);
   const load = () => { void integrationStatus().then(setStatus).catch((e: unknown) => setStatus({ ready: false, error: e instanceof Error ? e.message : "Sign in online first", items: [] })); };
   useEffect(load, []);
+  const state = (k: string) => { const it = status?.items.find((x) => x.kind === k); return it ? (it.enabled ? "on" : "paused") : "off"; };
+  const title = (k: IntegrationKind | "summary" | "shop") => (k === "summary" || k === "shop" ? EXTRA[k] : FORMS[k].title);
   return <div className="connections">
     <p className="settings-note">{tr("Connect your own accounts. Your keys are kept on the server and never shown again; leave a box empty to keep what is saved.")}</p>
-    {status && !status.ready && <p className="settings-note is-warn" role="alert">{tr(status.error ?? "Not available yet")}</p>}
-    {(Object.keys(FORMS) as IntegrationKind[]).map((k) => <ConnectionForm key={k} kind={k} saved={status?.items.find((i) => i.kind === k)} onSaved={load} />)}
-    <AutoSummaryForm />
-    <OnlineShopForm />
+    {status && !status.ready && <p className="settings-note is-warn" role="alert">{tr(/authori[sz]|sign.?in|jwt|session/i.test(status.error ?? "") ? "Sign in online with your business email to connect your accounts." : status.error ?? "Not available yet")}</p>}
+    <div className="connection-groups">
+      {GROUPS.map((g) => <section key={g.title} className="connection-group"><h4>{tr(g.title)}</h4>
+        <div className="connection-tiles">{g.items.map((k) => { const st = k === "summary" || k === "shop" ? null : state(k);
+          return <button key={k} type="button" className={`connection-tile${st === "on" ? " is-on" : ""}`} onClick={() => setOpen(k)}>
+            <b>{tr(title(k))}</b>{st && <span className={`connection-chip is-${st}`}>{tr(st === "on" ? "Connected" : st === "paused" ? "Paused" : "Not connected")}</span>}
+          </button>; })}</div>
+      </section>)}
+    </div>
+    {open && <GlassPage label={tr(title(open))} onClose={() => setOpen(null)}>
+      <div className="connection-window">{open === "summary" ? <AutoSummaryForm /> : open === "shop" ? <OnlineShopForm /> : <ConnectionForm kind={open} saved={status?.items.find((x) => x.kind === open)} onSaved={load} />}</div>
+    </GlassPage>}
   </div>;
 }
 
@@ -75,7 +112,7 @@ function ConnectionForm({ kind, saved, onSaved }: { kind: IntegrationKind; saved
     <label className="connection-terms"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> <span>{tr("I accept the")} <Link to="/terms" target="_blank">{tr("Terms & Conditions")}</Link> {tr("and")} <Link to="/privacy" target="_blank">{tr("Privacy Policy")}</Link>{tr(", and understand that the provider charges for payments and messages and Zakrio Systems may add a service fee.")}</span></label>
     <div className="connection-actions">
       <ShopButton disabled={busy} onClick={() => void save()}>{tr("Save")}</ShopButton>
-      {saved && kind !== "etims" && <><input className="inventory-input" inputMode="tel" placeholder={tr("Phone to test")} value={test.phone} onChange={(e) => setTest({ ...test, phone: e.target.value })} />
+      {saved && (kind === "mpesa" || kind === "whatsapp" || kind === "sms") && <><input className="inventory-input" inputMode="tel" placeholder={tr("Phone to test")} value={test.phone} onChange={(e) => setTest({ ...test, phone: e.target.value })} />
         {kind === "mpesa" && <input className="inventory-input connection-amount" inputMode="numeric" value={test.amount} onChange={(e) => setTest({ ...test, amount: e.target.value })} aria-label={tr("Amount")} />}
         <ShopButton variant="outline" disabled={!test.phone} onClick={() => void tryIt()}>{tr(kind === "mpesa" ? "Send a test prompt" : "Send a test message")}</ShopButton>
         {checking && <ShopButton variant="outline" onClick={() => void check()}>{tr("Check payment")}</ShopButton>}</>}

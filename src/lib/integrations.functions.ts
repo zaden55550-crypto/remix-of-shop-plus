@@ -13,7 +13,7 @@ const untyped = (c: unknown) => c as Untyped;
 const admin = async () => untyped((await import("@/integrations/supabase/client.server")).supabaseAdmin);
 const notReady = (m: string) => (/does not exist|schema cache|business_integration/i.test(m) ? "Connections aren't switched on in the server yet (migration 0023)" : m);
 
-export const KINDS = ["mpesa", "whatsapp", "sms", "etims"] as const;
+export const KINDS = ["mpesa", "airtel", "mtn", "orange", "evc", "otherpay", "whatsapp", "sms", "etims"] as const;
 export type IntegrationKind = (typeof KINDS)[number];
 
 export const saveIntegration = createServerFn({ method: "POST" })

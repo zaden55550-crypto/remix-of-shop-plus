@@ -1216,7 +1216,7 @@ CREATE POLICY "Owners remove their business documents" ON storage.objects FOR DE
 
 CREATE TABLE public.business_integrations (
   owner_id uuid NOT NULL,
-  kind text NOT NULL CHECK (kind IN ('mpesa', 'whatsapp', 'sms', 'etims')),
+  kind text NOT NULL CHECK (kind IN ('mpesa', 'airtel', 'mtn', 'orange', 'evc', 'otherpay', 'whatsapp', 'sms', 'etims')),
   config jsonb NOT NULL DEFAULT '{}'::jsonb,
   enabled boolean NOT NULL DEFAULT true,
   accepted_terms_at timestamptz NOT NULL,
@@ -1232,7 +1232,7 @@ RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE me uuid := auth.uid();
 BEGIN
   IF me IS NULL THEN RAISE EXCEPTION 'Sign-in required'; END IF;
-  IF p_kind NOT IN ('mpesa', 'whatsapp', 'sms', 'etims') THEN RAISE EXCEPTION 'Unknown connection'; END IF;
+  IF p_kind NOT IN ('mpesa', 'airtel', 'mtn', 'orange', 'evc', 'otherpay', 'whatsapp', 'sms', 'etims') THEN RAISE EXCEPTION 'Unknown connection'; END IF;
   IF NOT coalesce(p_accept, false) THEN RAISE EXCEPTION 'Accept the terms first'; END IF;
   IF jsonb_typeof(p_config) <> 'object' OR octet_length(p_config::text) > 8000 THEN RAISE EXCEPTION 'Invalid details'; END IF;
   INSERT INTO public.business_integrations (owner_id, kind, config, enabled, accepted_terms_at, updated_at)

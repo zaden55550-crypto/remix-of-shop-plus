@@ -18,7 +18,7 @@ import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
 import { NEW_LOCATION_TYPES, TYPE_LABEL, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
-import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
+import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, businessTypesForFamily, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
 import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
@@ -52,7 +52,14 @@ const TYPE_ICON = { shop: Store, store: Building2, warehouse: Warehouse } as con
 let shopWord = "Shop";
 let shopTypes: string[] = [];
 /** A row's own place name: a shop is the type chosen for it (Supermarket, Butchery…, while that type is still ticked), else the main type. */
-const placeTypeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.placeType && shopTypes.includes(x.placeType) ? x.placeType : shopTypes[0]);
+/** Every Trade shop type (owner, 2026-11-23): any location can be changed to any of them, ticked on the business or not. */
+const ALL_SHOP_TYPES = businessTypesForFamily("trade").map((t) => t.name).filter((n) => n !== GENERAL_TRADE);
+const placeTypeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.placeType && (shopTypes.includes(x.placeType) || ALL_SHOP_TYPES.includes(x.placeType)) ? x.placeType : shopTypes[0]);
+/** The row's type list: the business's own types first, then every other shop type, then Warehouse. */
+const shopChoices = () => {
+  const own = [...new Set(shopTypes.length ? shopTypes : [""])];
+  return { own: own.map((t) => ({ value: `shop:${t}`, label: placeName(t) })), other: ALL_SHOP_TYPES.filter((t) => !own.includes(t)).map((t) => ({ value: `shop:${t}`, label: t })) };
+};
 const placeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.type === "shop" ? placeName(placeTypeOf(x)) : TYPE_LABEL[x.type]);
 const isStorage = (r: SetupRow) => r.type !== "shop";
 
@@ -262,10 +269,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     setConfirmDraft(r);
   };
   const removeDraft = (r: SetupRow) => set({ rows: withoutKey(d.rows.filter((x) => x.key !== r.key), r.key), users: d.users.map((u) => ({ ...u, locations: u.locations.filter((k) => k !== r.key) })) });
-  const changeType = (r: SetupRow, type: erp.LocationType) => {
+  const changeType = (r: SetupRow, type: erp.LocationType, placeType?: string) => {
     // The number stays exactly as it is (a saved SHOP-001 is never renumbered); an empty one's placeholder follows the new type by itself.
     // A shop's connections are to warehouses, so a change of type clears the ones that no longer make sense.
-    const rows = d.rows.map((x) => (x.key === r.key ? { ...x, type, connected: type === "shop" ? x.connected : undefined } : type === "shop" && x.connected?.includes(r.key) ? { ...x, connected: x.connected.filter((k) => k !== r.key) } : x));
+    const rows = d.rows.map((x) => (x.key === r.key ? { ...x, type, placeType: type === "shop" ? (placeType ?? x.placeType) : undefined, connected: type === "shop" ? x.connected : undefined } : type === "shop" && x.connected?.includes(r.key) ? { ...x, connected: x.connected.filter((k) => k !== r.key) } : x));
     set({ rows, users: d.users.map((u) => ({ ...u, locations: u.locations.filter((k) => k !== r.key || fitsRole(u.role, type)) })) });
   };
   /** The most counters a shop row may have: the plan's per-shop number, or what is left of its total. Always shown on Setup. */
@@ -529,7 +536,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       <div className={cn("bsetup-tables", panels.length > 1 && "is-two")}>
       {panels.map((group, gi) => <div key={gi} className={cn("bsetup-table", features.counters && "has-counters")} role="table" aria-label={`${tr("Locations")} ${gi * 5 + 1}-${gi * 5 + 5}`}>
           <div className="bsetup-panel-head" role="row"><b role="columnheader">{panels.length === 1 ? tr("Locations") : `${tr("Locations")} ${gi * 5 + 1}–${gi * 5 + group.length}`}</b>{features.counters && <span role="columnheader" className="is-counters">{tr("Counters")}</span>}<span role="columnheader" className="is-phone">{tr("Phone")}</span><span role="columnheader" className="is-code">{tr("No.")}</span></div>
-          {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} placeholder={suggestedCode(r)} counterMax={counterMax(r)} showCounters={features.counters} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => setRow(r.key, { placeType: type || undefined })} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onEdit={() => setEditingRow({ key: r.key })} onRemove={() => removeRow(r)} />
+          {group.map(({ n, r }) => r ? <LocationEntryRow key={r.key} r={r} n={n} tr={tr} nameProblem={problem(r.key, "name")} codeProblem={problem(r.key, "code")} phoneProblem={problem(r.key, "phone")} placeholder={suggestedCode(r)} counterMax={counterMax(r)} showCounters={features.counters} onCounters={(value) => setRow(r.key, { counters: value })} canImport={!!r.savedId} onImport={() => setImporting({ kind: "Products", at: r.savedId })} canRemove={r.savedId !== MAIN_LOCATION && live.length > 1} selected={editingRow?.key === r.key} onType={(type) => changeType(r, type)} onPlace={(type) => (r.type === "shop" ? setRow(r.key, { placeType: type || undefined }) : changeType(r, "shop", type || undefined))} onName={(name) => setRow(r.key, { name })} onPhone={(phone) => setRow(r.key, { phone })} onCode={(code) => setRow(r.key, { code })} onEdit={() => setEditingRow({ key: r.key })} onRemove={() => removeRow(r)} />
             : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} showCounters={features.counters} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
           {group.length < 5 && (gi === panels.length - 1) && <div className="bsetup-add-slot" style={{ gridRow: `span ${5 - group.length}` }}>
             {full ? <span>{tr("All your plan's locations are in use")}</span> : <>
@@ -644,13 +651,13 @@ function LegacyEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, onPh
   const counters = r.counters ?? 1, showCounters = r.type === "shop" && counterMax > 0;
   const label = placeOf(r), title = r.name || `${tr(label)} ${n}`;
   // One choice per ticked business type (each a shop), then Warehouse; an older warehouse keeps its own entry.
-  const choices = [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) }));
+  const { own: choices, other: otherChoices } = shopChoices();
   const value = r.type === "shop" ? `shop:${placeTypeOf(r) ?? ""}` : r.type;
   return <div className={cn("bsetup-entry", `is-${r.type}`, selected && "is-selected", (nameProblem || codeProblem || phoneProblem) && "has-problem")} role="row">
     {/* Where the row sits on the page (1-5 left, 6-10 middle). It is not the location's number and is never saved. */}
     <span className="bsetup-rownum" role="cell" aria-label={`${tr("Row")} ${n}`}>{n}</span>
     <select className="inventory-input bsetup-type" role="cell" aria-label={`${tr("Type")} · ${title}`} title={tr(label)} value={value} onChange={(e) => { const v = e.target.value; if (v.startsWith("shop:")) onPlace(v.slice(5)); else onType(v as erp.LocationType); }}>
-      {choices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}
+      {choices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}{otherChoices.length > 0 && <optgroup label={tr("Other shop types")}>{otherChoices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}</optgroup>}
       <option value="store">{tr("Warehouse")}</option>
       {r.type === "warehouse" && <option value="warehouse">{`${tr("Warehouse")} (${tr("older")})`}</option>}
     </select>
@@ -690,7 +697,7 @@ type LocationEntryProps = {
 function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, placeholder, counterMax = 0, showCounters: countersOn = false, canImport = false, canRemove = false, selected = false, onType, onPlace, onName, onPhone, onCode, onCounters, onImport, onEdit, onRemove }: LocationEntryProps) {
   const label = r ? placeOf(r) : shopWord;
   const title = r ? r.name || `${tr(label)} ${n}` : `${tr("Location")} ${n}`;
-  const choices = [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) }));
+  const { own: choices, other: otherChoices } = shopChoices();
   const value = r ? r.type === "shop" ? `shop:${placeTypeOf(r) ?? ""}` : r.type : "";
   const hasCounters = !!r && r.type === "shop" && counterMax > 0;
   const counters = r?.counters ?? 1;
@@ -699,7 +706,7 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, pl
     <span className="bsetup-rownum" role="cell" aria-label={`${tr("Row")} ${n}`}>{n}</span>
     <select className="inventory-input bsetup-type" role="cell" aria-label={`${tr("Type")} · ${title}`} title={r ? tr(label) : tr("Choose Shop or Warehouse")} value={value} onChange={(e) => pickType(e.target.value)}>
       {!r && <option value="">{tr("Type")}</option>}
-      {choices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}
+      {choices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}{otherChoices.length > 0 && <optgroup label={tr("Other shop types")}>{otherChoices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}</optgroup>}
       <option value="store">{tr("Warehouse")}</option>
       {r?.type === "warehouse" && <option value="warehouse">{`${tr("Warehouse")} (${tr("older")})`}</option>}
     </select>

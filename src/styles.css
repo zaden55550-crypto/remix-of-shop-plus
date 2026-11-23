@@ -25762,3 +25762,27 @@ html.dark .bsetup {
 }
 @media (max-width: 480px) { .welcome-features { grid-template-columns: 1fr; } .welcome-btn { width: 100%; } }
 /* ===== END WELCOME ===== */
+
+/* Connections as one page of tiles (connections-panel.tsx, owner 2026-11-23). */
+.connection-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.connection-group h4 { font-size: 17px; font-weight: 800; margin-bottom: 8px; }
+.connection-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.connection-group:first-child .connection-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.connection-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-height: 76px; padding: 12px; border-radius: 14px; text-align: start;
+  border: 1px solid var(--lg-border, rgb(190 215 255 / 0.35)); background: var(--card); color: inherit; cursor: pointer; }
+.connection-tile:hover { border-color: #10b981; }
+.connection-tile.is-on { border-color: #10b981; background: rgb(16 185 129 / 0.12); }
+.connection-tile b { font-size: 15.5px; font-weight: 800; line-height: 1.2; }
+.connection-chip { font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: 999px; }
+.connection-chip.is-on { background: rgb(16 185 129 / 0.2); color: #059669; }
+.connection-chip.is-paused { background: rgb(245 158 11 / 0.2); color: #b45309; }
+.connection-chip.is-off { background: rgb(148 163 184 / 0.2); }
+.connection-window { width: min(56rem, 92vw); display: flex; flex-direction: column; gap: 12px; }
+.connection-window .connection { border: 0; background: transparent; padding: 0; }
+@media (max-width: 900px) { .connection-groups { grid-template-columns: 1fr; } }
+.connection-groups { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr); }
+.connection-group:first-child .connection-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.connection-tile { min-height: 58px; padding: 8px 10px; gap: 4px; }
+.connection-tile b { font-size: 14px; }
+.connection-tile .connection-chip { font-size: 11px; }
+.connection-terms input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 3px; }
