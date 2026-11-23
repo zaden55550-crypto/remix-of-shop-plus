@@ -36,25 +36,30 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
     try {
       const sheets = list === "paste" ? [pastedSheet(paste ?? "")] : await readSheets([...list]), next = planSheets(sheets);
       setPaste(null);
-      setPlans(next); setStage("map");
       // Products listed with their current stock already count it, so past sales should not reduce it again.
-      setStock(next.some((p) => (p.cat === "Products" && p.map["qty"]) || p.cat === "Opening Stock") ? "record" : "update");
+      const nextStock: FullOptions["stock"] = next.some((p) => (p.cat === "Products" && p.map["qty"]) || p.cat === "Opening Stock") ? "record" : "update";
+      setPlans(next); setStock(nextStock);
       toast.success(`${sheets.length} ${tr("worksheets detected")}`);
+      // Fewer clicks (owner, 2026-11-23): when every sheet was recognised with all its needed columns, skip the matching step and
+      // show the preview straight away. "Back to mapping" is still there to change anything.
+      const ready = next.filter((p) => p.cat !== "Skip");
+      if (ready.length && ready.every((p) => !missing(p).length)) validate(next, { ...opts, stock: nextStock });
+      else setStage("map");
     } catch (e) { toast.error(e instanceof Error ? e.message : tr("Files could not be read")); }
     if (ref.current) ref.current.value = "";
   };
   const update = (id: string, patch: Partial<Plan>) => setPlans(plans.map((p) => p.id === id ? { ...p, ...patch } : p));
-  const validate = () => {
+  const validate = (list: Plan[] = plans, o: FullOptions = opts) => {
     setBusy(true);
     try {
       // Auto-correct: if rows are rejected, try other date formats and keep the reading with the fewest errors.
       const bad = (r: StageResult[]) => r.reduce((a, x) => a + x.rejected + (x.error ? 1000 : 0), 0);
-      let best = previewFull(plans, opts), bestFmt = fmt;
-      if (bad(best)) for (const f of (["auto", "DMY", "MDY", "YMD"] as DateFmt[]).filter((f) => f !== fmt)) {
-        const r = previewFull(plans, { ...opts, dateFmt: f });
+      let best = previewFull(list, o), bestFmt = o.dateFmt;
+      if (bad(best)) for (const f of (["auto", "DMY", "MDY", "YMD"] as DateFmt[]).filter((f) => f !== o.dateFmt)) {
+        const r = previewFull(list, { ...o, dateFmt: f });
         if (bad(r) < bad(best)) { best = r; bestFmt = f; }
       }
-      if (bestFmt !== fmt) { setFmt(bestFmt); toast.success(`${tr("Errors corrected automatically")}: ${tr("date format")} ${bestFmt === "auto" ? tr("Detect automatically") : bestFmt}`); }
+      if (bestFmt !== o.dateFmt) { setFmt(bestFmt); toast.success(`${tr("Errors corrected automatically")}: ${tr("date format")} ${bestFmt === "auto" ? tr("Detect automatically") : bestFmt}`); }
       setResults(best); setStage("preview");
     } catch (e) { toast.error(e instanceof Error ? e.message : tr("Validation failed")); } finally { setBusy(false); }
   };
@@ -92,7 +97,7 @@ export function FullImport({ tr }: { tr: (x: string) => string }) {
       <label className="inventory-field"><span>{tr("Records already in the shop")}</span><select className="inventory-input" value={existing} onChange={(e) => setExisting(e.target.value as "skip" | "update")}><option value="skip">{tr("Skip them")}</option><option value="update">{tr("Update their details and prices")}</option></select></label>
       <p className="import-note">{tr("Opening Stock and Product Prices sheets always update matching products; repeating the same file sets the same values, never adds stock twice.")}</p>
       <ShopButton variant="outline" className="inventory-save" onClick={reset}>{tr("Cancel")}</ShopButton>
-      <ShopButton className="inventory-save" disabled={!active.length || blocked.length > 0 || busy} onClick={validate}>{busy ? tr("Processing…") : tr("Validate & preview")}</ShopButton>
+      <ShopButton className="inventory-save" disabled={!active.length || blocked.length > 0 || busy} onClick={() => validate()}>{busy ? tr("Processing…") : tr("Validate & preview")}</ShopButton>
     </>}
     {(stage === "preview" || stage === "done") && <>
       {stage === "done" && batch && <div className="import-done"><FileSpreadsheet className="h-8 w-8 text-primary" /><b>{tr(batch.status)}</b><span>{batch.id}</span></div>}
