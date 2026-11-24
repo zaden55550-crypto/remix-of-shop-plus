@@ -17,7 +17,7 @@ import { hashPassword } from "@/lib/device-password";
 import { passwordProblem, passwordStrength } from "@/lib/password-strength";
 import { store } from "@/lib/shopbook";
 import { detectUserCountry } from "@/lib/world-data";
-import { cleanDialCode, dialCodeFor, phoneToSave } from "@/lib/dial-codes";
+import { cleanDialCode, dialCodeFor, kenyaPhoneHint, phoneToSave } from "@/lib/dial-codes";
 import { authMessage, authenticatedContext, currentIdentity, registerEmailIdentity } from "@/lib/auth-service";
 import { supabase } from "@/integrations/supabase/client";
 import { linkBusinessOnline } from "@/lib/owner-link";
@@ -109,6 +109,9 @@ function Signup() {
   }, []);
 
   const [agree, setAgree] = useState(false);
+  // Came through an invite link (/signup?ref=CODE, kept by captureReferral): say so, so the new owner knows it counted. Read after mount.
+  const [invitedBy, setInvitedBy] = useState("");
+  useEffect(() => { try { const ref = new URLSearchParams(window.location.search).get("ref") || localStorage.getItem("shopbook.ref") || ""; if (/^[A-Za-z0-9]{6}$/.test(ref)) setInvitedBy(ref.toUpperCase()); } catch { /* no badge */ } }, []);
   // Signed in with Google or Apple (or a verified email) but no business yet: finish here with that account. The email is the
   // account's, no password is needed (they log in with the same Google/Apple button), and Create Account links the business.
   const [online, setOnline] = useState<{ email: string; provider: string } | null>(null);
@@ -426,11 +429,11 @@ function Signup() {
                 }}
               />
             </div>
-            {err.phone && (
+            {err.phone ? (
               <p role="alert" className="signup-error">
                 {err.phone}
               </p>
-            )}
+            ) : kenyaPhoneHint(f.dial, f.phone) && <p role="status" className="signup-hint">{tr(kenyaPhoneHint(f.dial, f.phone))}</p>}
           </div>
 
           {online ? <p className="grid-passwords signup-online-note" role="status">{tr("Signed in as {x}. Add your business details to finish; you'll log in with the same button next time.", online.email)}</p> :
@@ -481,6 +484,7 @@ function Signup() {
               ])}
             </span>
           </label>
+          {invitedBy && <span className="signup-invited" role="status" title={tr("You were invited with this code")}>✓ {tr("Invited")} · {invitedBy}</span>}
 
           {err.agree && (
             <p role="alert" className="signup-error">

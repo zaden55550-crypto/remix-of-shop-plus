@@ -97,3 +97,16 @@ export function localPhone(value: string | undefined, countryCode: string | unde
   const rest = compact.slice(code.length);
   return code === "+39" ? rest : `0${rest.replace(/^0/, "")}`;
 }
+
+/** A gentle check while typing a Kenyan number (owner, 2026-11-24): mobile numbers are 07… or 01… (9 digits after +254). Advice only;
+ *  the form's own check still decides. Other countries get no hint. */
+export function kenyaPhoneHint(dial: string, phone: string): string {
+  const raw = phone.replace(/\D/g, "");
+  const kenya = dial.replace(/\s/g, "") === "+254" || phone.trim().startsWith("+254");
+  if (!kenya || raw.length < 2) return "";
+  const local = raw.replace(/^254/, "").replace(/^0/, "");
+  if (!/^[71]/.test(local)) return "Kenyan mobile numbers start with 07 or 01";
+  if (local.length > 9) return "That's too many digits for a Kenyan number";
+  return "";
+}
+

@@ -1,6 +1,9 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Building2, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, MapPin, Store, UserRound, X } from "lucide-react";
+import { Bell, Building2, ChevronDown, ChevronUp, ChevronRight, HelpCircle, LayoutGrid, Lock, LogOut, MapPin, Store, TrendingUp, UserRound, X } from "lucide-react";
+import { useShopErp } from "@/components/shopbook/product-search";
+import { moneyFor } from "@/components/shopbook/selling";
+import { appBadges, appsGlance, noteAppOpened, recentApps } from "@/lib/apps-glance";
 import { ManageShops } from "@/components/shopbook/manage-shops";
 import { toast } from "sonner";
 import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
@@ -21,6 +24,9 @@ import { type TKey } from "@/lib/i18n";
 import { signOutUnified } from "@/lib/auth-service";
 import { forOpenBusiness } from "@/components/shopbook/selling";
 import { subscribe } from "@/lib/erp";
+
+/** What each app's badge counts (Apps page). */
+const BADGE_LABEL: Record<string, string> = { inventory: "products low or out of stock", sales: "sales not fully paid", purchases: "orders to receive" };
 
 export const Route = createFileRoute("/apps")({
   head: () => ({
@@ -88,6 +94,12 @@ function Apps() {
   const [locked, setLocked] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [panel, setPanel] = useState<null | "profile" | "manageApps" | "shops">(null);
+  // Today at a glance, waiting-item badges and recently used apps (owner, 2026-11-24), from the shown shop's records.
+  const shopState = useShopErp();
+  const glance = appsGlance(shopState);
+  const badges = appBadges(glance);
+  const [recent, setRecent] = useState<string[]>([]);
+  useEffect(() => { setRecent(recentApps()); }, []);
   const [chat, setChat] = useState(false);
 
   useEffect(() => {
@@ -167,7 +179,7 @@ function Apps() {
       <ShopButton
         variant="bare"
         key={app.id}
-        onClick={() => (ok && ROUTES[app.id] ? nav({ to: ROUTES[app.id]! }) : openApp(ok, appName(app.id)))}
+        onClick={() => { if (ok && ROUTES[app.id]) { noteAppOpened(app.id); nav({ to: ROUTES[app.id]! }); } else openApp(ok, appName(app.id)); }}
         className="apps-tile min-w-0 flex-col items-center cursor-pointer"
         style={{ "--tone": TILE_TONE[app.id] ?? "#3b82f6" } as React.CSSProperties}
       >
@@ -184,6 +196,8 @@ function Apps() {
               <Lock className="h-3 w-3" />
             </span>
           )}
+          {ok && (badges[app.id] ?? 0) > 0 && <span className="apps-badge" aria-label={`${badges[app.id]} ${tr(BADGE_LABEL[app.id] ?? "waiting")}`} title={`${badges[app.id]} ${tr(BADGE_LABEL[app.id] ?? "waiting")}`}>{badges[app.id]! > 99 ? "99+" : badges[app.id]}</span>}
+          {recent.includes(app.id) && <span className="apps-recent-dot" title={tr("Recently used")} aria-label={tr("Recently used")} />}
         </span>
         <span className="apps-label w-full text-center font-black leading-tight tracking-wide text-foreground">
           {appName(app.id)}
@@ -314,6 +328,15 @@ function Apps() {
       {acct.plan === "trial" && !acct.staff && (
         <TrialBanner days={days} className="apps-glass-banner mt-2" />
       )}
+
+      {/* Today at a glance: tap for the Dashboard. */}
+      <button type="button" className="apps-glance" onClick={() => { noteAppOpened("dashboard"); nav({ to: "/dashboard" }); }} aria-label={tr("Today at a glance. Open the Dashboard")}>
+        <TrendingUp aria-hidden className="apps-glance-icon" />
+        <span><small>{tr("Today")}</small><b>{moneyFor(acct.currency || "KSh")(glance.salesToday)}</b></span>
+        <span><small>{tr("Sales")}</small><b>{glance.salesCount}</b></span>
+        <span className={glance.low ? "is-warn" : undefined}><small>{tr("Low stock")}</small><b>{glance.low}</b></span>
+        <ChevronRight aria-hidden className="apps-glance-go" />
+      </button>
 
       {/* Launcher fills the remaining height; icons size from it so every app fits on one screen */}
       <div

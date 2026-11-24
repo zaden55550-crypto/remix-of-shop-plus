@@ -257,6 +257,23 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     } catch (e) { toast.error(tr(e instanceof Error ? e.message : "That file could not be read")); }
   };
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** Duplicate (owner, 2026-11-24): a new location of the same kind with this one's settings (shop type, counters within the plan,
+   *  phone, hours, tax PIN, receipt heading, warehouse links); name, number, logo and photos start empty. Nothing is saved until Activate. */
+  const duplicateRow = (src: SetupRow) => {
+    if (live.length >= plan.locations) { toast.error(tr("All your plan's locations are in use")); return; }
+    const occupied = new Set(live.map((r, index) => r.slotNumber ?? index + 1));
+    let slot = 1;
+    while (occupied.has(slot)) slot++;
+    const left = Math.max(1, plan.counters - countersUsed);
+    const copy: SetupRow = { key: newKey(), slotNumber: slot, type: src.type, name: "", code: "",
+      ...(src.placeType ? { placeType: src.placeType } : {}), ...(src.type === "shop" ? { counters: Math.min(Math.max(1, src.counters ?? 1), left) } : {}),
+      ...(src.phone ? { phone: src.phone } : {}), ...(src.hours ? { hours: src.hours } : {}), ...(src.taxPin ? { taxPin: src.taxPin } : {}),
+      ...(src.receiptHeader ? { receiptHeader: src.receiptHeader } : {}), ...(src.connected?.length ? { connected: [...src.connected] } : {}),
+      ...(src.defaultWarehouse ? { defaultWarehouse: src.defaultWarehouse } : {}) };
+    set({ rows: [...d.rows, copy] });
+    toast.success(tr("Copied. Give the new location its name."));
+    window.setTimeout(() => document.getElementById(`bsetup-name-${copy.key}`)?.focus(), 50);
+  };
   const addRow = (type: "shop" | "store") => {
     if (live.length >= plan.locations) return;
     const occupied = new Set(live.map((r, index) => r.slotNumber ?? index + 1));
@@ -388,6 +405,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const price = planPrice(plan, acct.plan === plan.id ? acct.billing : "monthly");
   const trial = acct.plan === "trial";
   const stores = counts.warehouses + counts.stores;
+  const shopRows = live.filter((r) => r.type === "shop");
+  const namedShops = shopRows.filter((r) => !!realName(r)).length, unfinishedShops = shopRows.length - namedShops;
   const full = live.length >= plan.locations;
   const bySlot = new Map(live.map((r, index) => [r.slotNumber ?? index + 1, r]));
   const tableSlots = Array.from({ length: Math.max(plan.locations, live.length) }, (_, index) => ({ n: index + 1, r: bySlot.get(index + 1) }));
@@ -451,6 +470,10 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </ul>}
         <ReadyButton s={s} onOpen={() => setReadyOpen(true)} />
         <ShopButton className="bsetup-review" disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
+      </div>
+      {/* Setup progress (owner, 2026-11-24) from the same ready checks as Activate. */}
+      <div className="bsetup-progress" role="progressbar" aria-label={tr("Setup progress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((readyCount / ready.length) * 100)} title={tr("Setup {x}% done", String(Math.round((readyCount / ready.length) * 100)))}>
+        <span style={{ width: `${Math.round((readyCount / ready.length) * 100)}%` }} />
       </div>
     </header>
 
@@ -544,7 +567,9 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
             <button type="button" className="bsetup-feat-done" onClick={() => setPop(null)}>{tr("Done")}</button>
           </span>}
         </span>}
-        <span className="bsetup-strip-count">{counts.shops} {tr(counts.shops === 1 ? "shop" : "shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
+        {/* Named and unfinished shops apart (owner, 2026-11-24): a shop row with a blank name (or only the placeholder text) is unfinished.
+            Display only; Sites and remaining still count every location row. */}
+        <span className="bsetup-strip-count" role="status">{namedShops} {tr(namedShops === 1 ? "named shop" : "named shops")} · {unfinishedShops} {tr(unfinishedShops === 1 ? "unfinished shop" : "unfinished shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
         {/* Only when the panel has no Add tile of its own (5 or 10 locations shown), so the two never repeat each other. */}
         {!full && shownSlots.length % 5 === 0 && <span className="bsetup-add">
@@ -598,6 +623,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       onLogo={() => setViewingLogo(editing.key)} onSend={(u, st, current) => sendInvite(u, st, current)} onConnect={(u) => void connectServer(u)}
       canImport={!!editing.savedId} onImport={() => { const at = editing; setEditingRow(null); setImporting({ kind: "Products", at: at.savedId }); }}
       canRemove={editing.savedId !== MAIN_LOCATION && live.length > 1} onRemove={() => { const at = editing; setEditingRow(null); removeRow(at); }}
+      canDuplicate={live.length < plan.locations} onDuplicate={() => { const at = editing; setEditingRow(null); duplicateRow(at); }}
       onAssignUsers={() => { const at = editing; setEditingRow(null); if (at.savedId) openAccess("Location Assignments", at.savedId); else setManaging(at.key); }}
       onManageUsers={() => { const at = editing; setEditingRow(null); setManaging(at.key); }}
       onManageAccess={() => { const at = editing; setEditingRow(null); if (at.savedId) openAccess("Location Assignments", at.savedId); else setManaging(at.key); }}
@@ -735,7 +761,7 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, pl
       <option value="store">{tr("Warehouse")}</option>
       {r?.type === "warehouse" && <option value="warehouse">{`${tr("Warehouse")} (${tr("older")})`}</option>}
     </select>
-    <span className="bsetup-cell-name" role="cell">{r ? <input id={`bsetup-name-${r.key}`} className="inventory-input bsetup-name-input" required aria-label={`${tr(`${label} Name`)} ${n}`} aria-invalid={!!nameProblem} title={nameProblem ? tr(nameProblem) : r.name || undefined} value={r.name} placeholder={tr("Location name")} onChange={(e) => onName?.(e.target.value)} /> : <span className="bsetup-ghost">{tr("Location name")}</span>}</span>
+    <span className="bsetup-cell-name" role="cell">{r ? <input id={`bsetup-name-${r.key}`} className="inventory-input bsetup-name-input" required aria-label={`${tr(`${label} Name`)} ${n}`} aria-invalid={!!nameProblem} title={nameProblem ? tr(nameProblem) : r.name || undefined} value={r.name} placeholder={tr(r.type === "shop" ? "e.g. Kariakor Branch" : "e.g. Industrial Area Warehouse")} onChange={(e) => onName?.(e.target.value)} /> : <span className="bsetup-ghost">{tr("Location name")}</span>}</span>
     {countersOn && <span className="bsetup-cell-counters" role="cell">{hasCounters ? <select className="bsetup-counter" aria-label={`${tr("Counters")} · ${title}`} title={`${tr("Counters")} (≤ ${counterMax})`} value={counters} onChange={(e) => onCounters?.(Number(e.target.value))}>{Array.from({ length: Math.max(counterMax, counters) }, (_, i) => i + 1).map((x) => <option key={x} value={x} disabled={x > counterMax}>{x}</option>)}</select> : <span className="bsetup-counter is-none" aria-label={tr("No counters")}>–</span>}</span>}
     <span className="bsetup-cell-phone" role="cell">{r ? <input id={`bsetup-phone-${r.key}`} type="tel" inputMode="tel" autoComplete="off" className="inventory-input bsetup-loc-phone" aria-label={`${tr("Phone")} · ${title} (${tr("Optional")})`} aria-invalid={!!phoneProblem} title={phoneProblem ? tr(phoneProblem) : tr("This location's phone, printed on its receipts. Empty: the business number.")} value={r.phone ?? ""} placeholder={tr("Phone")} onChange={(e) => onPhone?.(e.target.value)} /> : <span className="bsetup-ghost">{tr("Phone")}</span>}</span>
     <span className="bsetup-cell-code" role="cell">{r ? <input id={`bsetup-code-${r.key}`} className="inventory-input bsetup-code" aria-label={`${tr(`${label} No.`)} ${n} (${tr("Optional")})`} aria-invalid={!!codeProblem} title={codeProblem ? tr(codeProblem) : r.code || `${placeholder ?? ""} · ${tr("given on activation if left empty")}`} value={r.code} placeholder={placeholder} onChange={(e) => onCode?.(e.target.value.toUpperCase())} /> : <span className="bsetup-ghost">{tr("Number")}</span>}</span>
@@ -948,9 +974,9 @@ function InviteOutcome({ tr, inv, email, onConnect }: { tr: Tr; inv: Invite; ema
  *  - Save without sending keeps the location's changes and adds the typed person to the setup, with no email.
  *  - Send Invitation saves the chosen sites, creates the login and emails it (as Add User does); the fields then clear for the next person.
  *  Stock viewing and a person's sites are separate choices. Location photos are not edited here, and saved ones are kept as they are. */
-function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users, people, canManager, business, full, takenEmails, counterMax, onLogo, onSend, onConnect, onClose, onSave, onAssignUsers, onManageUsers, onManageAccess, canImport, onImport, canRemove, onRemove }: {
+function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users, people, canManager, business, full, takenEmails, counterMax, onLogo, onSend, onConnect, onClose, onSave, onAssignUsers, onManageUsers, onManageAccess, canImport, onImport, canRemove, onRemove, canDuplicate = false, onDuplicate }: {
   onAssignUsers: () => void; onManageUsers: () => void; onManageAccess: () => void;
-  canImport: boolean; onImport: () => void; canRemove: boolean; onRemove: () => void;
+  canImport: boolean; onImport: () => void; canRemove: boolean; onRemove: () => void; canDuplicate?: boolean; onDuplicate?: () => void;
   tr: Tr; r: SetupRow; rows: SetupRow[]; focus?: "name" | "code" | undefined; codeProblem?: string | undefined; placeholder: string; logo?: string | undefined;
   /** The most counters this shop may have, or 0 when the Counters feature is off. */
   counterMax: number;
@@ -1124,6 +1150,7 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
         {/* One button per location row (owner, 2026-11-23): Import Data and Delete live here. */}
         <span className="bsetup-editor-more">
           <button type="button" className="bsetup-row-btn is-import" disabled={busy || !canImport} title={canImport ? tr("Upload products for this location") : tr("Upload products here after Activate")} onClick={onImport}>{tr("Import Data")}</button>
+          <button type="button" className="bsetup-row-btn is-duplicate" disabled={busy || !canDuplicate} title={canDuplicate ? tr("A new location with these settings") : tr("All your plan's locations are in use")} onClick={onDuplicate}>{tr("Duplicate")}</button>
           <button type="button" className="bsetup-row-btn is-delete" disabled={busy || !canRemove} title={canRemove ? tr("Delete") : tr("The first location stays. Rename it or change its type.")} onClick={onRemove}>{tr("Delete")}</button>
         </span>
         <button type="button" className="bsetup-act is-go" disabled={busy} onClick={saveWithoutSending}>{tr("Save without sending")}</button>

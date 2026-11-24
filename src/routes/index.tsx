@@ -15,6 +15,12 @@ import { createOwnerFromIdentity, linkBusinessOnline } from "@/lib/owner-link";
 import { SampleShopButton } from "@/components/shopbook/try-and-tour";
 import { supabase } from "@/integrations/supabase/client";
 
+/** Log In fills in the last business email or name that logged in on this device (owner, 2026-11-24), only with Remember me ticked;
+ *  unticked clears it. A hint for typing, never a password and never a sign-in by itself. */
+const LAST_LOGIN_ID = "shopbook.lastLoginId";
+const lastLoginId = () => { try { return localStorage.getItem(LAST_LOGIN_ID) ?? ""; } catch { return ""; } };
+const keepLoginId = (value: string, keep: boolean) => { try { if (keep && value.trim()) localStorage.setItem(LAST_LOGIN_ID, value.trim()); else localStorage.removeItem(LAST_LOGIN_ID); } catch { /* a hint only */ } };
+
 const INVALID_LOGIN_MESSAGE = "Incorrect business name, email, or password.";
 const isInvalidLoginError = (error: unknown) => error instanceof Error && /invalid (?:login )?credentials|incorrect (?:email|password)|email or password is incorrect|this login has no access|not connected to an owner or employee/i.test(error.message);
 
@@ -81,6 +87,8 @@ function Login() {
   const nav = useNavigate();
   const { tr, dir, language } = useLanguage();
   const [id, setId] = useState("");
+  // The last business email or name that logged in here (Remember me ticked) is filled in, read after mount so hydration matches.
+  useEffect(() => { const last = lastLoginId(); if (last) setId((v) => v || last); }, []);
   const [pw, setPw] = useState("");
   const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -216,7 +224,7 @@ function Login() {
         finally { setBusy(false); }
       }
       rememberSignIn("email");
-      store.signIn(remember);
+      store.signIn(remember); keepLoginId(id, remember);
       nav({ to: !account.plan ? "/plans" : account.setupPending ? "/setup" : "/apps" });
       return;
     }
@@ -227,6 +235,7 @@ function Login() {
       let employeeError: unknown;
       try {
         await signInEmployee(id, pw);
+        keepLoginId(id, remember);
         nav({ to: "/apps" });
         return;
       } catch (error) {
@@ -244,6 +253,7 @@ function Login() {
       const context = await authenticatedContext();
       if (context.kind === "member") {
         await resumeEmployeeSession();
+        keepLoginId(id, remember);
         nav({ to: "/apps" });
         return;
       }
@@ -266,7 +276,7 @@ function Login() {
           throw new Error("This device holds another business that isn't linked online. Log in with that business's email and password, or use another device.");
         }
         await linkSignedInOwner(local);
-        store.signIn(remember);
+        store.signIn(remember); keepLoginId(id, remember);
         nav({ to: local.plan ? (local.setupPending ? "/setup" : "/apps") : "/plans" });
         return;
       }
@@ -282,7 +292,7 @@ function Login() {
         authMigration: { status: "complete", centralUserId: identity.userId, centralAccountId: context.accountId, ...(business ? { centralBusinessId: business.id } : {}), updatedAt: Date.now() },
       };
       store.save({ ...ownerAccount, authMigration: { status: "complete", centralUserId: identity.userId, centralAccountId: context.accountId, ...(business ? { centralBusinessId: business.id } : {}), updatedAt: Date.now() }, centralContext: { accountId: context.accountId, businesses: context.businesses, locations: context.locations, subscription: context.subscription, syncBusiness: context.syncBusiness, syncedAt: Date.now() } });
-      store.signIn(remember);
+      store.signIn(remember); keepLoginId(id, remember);
       nav({ to: ownerAccount.plan ? (ownerAccount.setupPending ? "/setup" : "/apps") : "/plans" });
     } catch (error) {
       // A business name works only where the business was created, so a wrong one (no "@") also says how to log in elsewhere.

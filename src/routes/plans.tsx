@@ -68,6 +68,7 @@ function Plans() {
   const [paying, setPaying] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [showingLimits, setShowingLimits] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [buying, setBuying] = useState(false);
   // Read after the first paint, like the saved choice. A paid customer has no trial to go back to.
   const [paidPlan, setPaidPlan] = useState<PlanId | null>(null);
@@ -440,14 +441,19 @@ function Plans() {
                 </span>
               )}
               {/* TOP BADGES */}
-              {p.recommended && (
+              {paidPlan === p.id && (
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-40">
+                  <span className="plans-yours px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider whitespace-nowrap">{tr("Your plan")}</span>
+                </div>
+              )}
+              {p.recommended && paidPlan !== p.id && (
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
                   <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-blue-600 text-white shadow-md shadow-blue-600/40 border border-blue-400/40 whitespace-nowrap">
                     {tr("RECOMMENDED")}
                   </span>
                 </div>
               )}
-              {p.best && (
+              {p.best && paidPlan !== p.id && (
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
                   <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-black shadow-md shadow-amber-500/40 border border-amber-300 whitespace-nowrap">
                     {tr("BEST")}
@@ -491,6 +497,8 @@ function Plans() {
                   </span>
                 </div>
 
+                {/* Yearly: the saving in money, in the chosen currency (owner, 2026-11-24). */}
+                {yearly && <p className="plans-saving">{tr("Save {x} a year", convertUsdToCurrency(Math.max(0, p.monthlyUsd * 12 - Math.round(p.yearlyUsd)), cur).formatted)}</p>}
                 {/* CAPACITY PILL IN BOLD */}
                 <div className="plan-allowance mt-1 rounded-lg px-1.5 py-0.5 bg-muted/60 text-muted-foreground border border-border/50">
                   {planAllowanceLines(p).map((line) => <div key={line}>{tr(line)}</div>)}
@@ -554,7 +562,9 @@ function Plans() {
         {!paidPlan && <p className="plans-terms">
           {tr("No payment details needed. Billing never starts automatically. After your 30-day trial ends, you can still view and export your existing records. Subscribe to add new transactions.")}
           <button type="button" onClick={() => setShowingLimits(true)}>{tr("How limits work")}</button>
+          <button type="button" onClick={() => setComparing(true)}>{tr("Compare plans")}</button>
         </p>}
+        {paidPlan && <p className="plans-terms"><button type="button" onClick={() => setComparing(true)}>{tr("Compare plans")}</button></p>}
         <button
           type="button"
           disabled={!!paidPlan}
@@ -580,6 +590,7 @@ function Plans() {
       )}
       {trialDialog}
       {limitsDialog}
+      {comparing && <GlassPage label={tr("Compare plans")} onClose={() => setComparing(false)}><ComparePlans cur={cur} yearly={yearly} paidPlan={paidPlan} onClose={() => setComparing(false)} /></GlassPage>}
     </main>
   );
 }
@@ -621,4 +632,25 @@ function CurrencyChooser({ value, onPick }: { value: string; onPick: (code: stri
       </span>
     </span>}
   </span>;
+}
+
+/** Every plan's features side by side with ticks (owner, 2026-11-24). Each plan includes the ones before it, so a feature listed under
+ *  Growth is ticked for Growth and Business. Limits and prices come from PLANS, never typed in. */
+function ComparePlans({ cur, yearly, paidPlan, onClose }: { cur: string; yearly: boolean; paidPlan: PlanId | null; onClose: () => void }) {
+  const { tr } = useLanguage();
+  const rows = PLANS.flatMap((p, i) => p.features.map((f) => ({ f, from: i })));
+  return <div className="inventory-box dash-panel plans-compare plans-type">
+    <div className="feature-panel-head"><h3>{tr("Compare plans")}</h3><button type="button" className="compare-shops-done" onClick={onClose}>{tr("Done")}</button></div>
+    <div className="plans-compare-scroll" data-own-scroll>
+      <table>
+        <thead><tr><th />{PLANS.map((p) => <th key={p.id} className={cn(paidPlan === p.id && "is-yours")}>{p.name}<small>{convertUsdToCurrency(yearly ? Math.round(p.yearlyUsd) : p.monthlyUsd, cur).formatted}/{yearly ? tr("yr") : tr("mo")}</small></th>)}</tr></thead>
+        <tbody>
+          <tr className="is-limit"><th>{tr("Locations")}</th>{PLANS.map((p) => <td key={p.id}>{p.locations}</td>)}</tr>
+          <tr className="is-limit"><th>{tr("Users")}</th>{PLANS.map((p) => <td key={p.id}>{p.maxUsers}</td>)}</tr>
+          <tr className="is-limit"><th>{tr("Counters")}</th>{PLANS.map((p) => <td key={p.id}>{p.counters}</td>)}</tr>
+          {rows.map(({ f, from }) => <tr key={f}><th>{tr(f)}</th>{PLANS.map((p, i) => <td key={p.id}>{i >= from ? <Check aria-label={tr("Included")} className="plans-compare-yes" /> : <span aria-label={tr("Not included")} className="plans-compare-no">—</span>}</td>)}</tr>)}
+        </tbody>
+      </table>
+    </div>
+  </div>;
 }
