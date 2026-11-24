@@ -1,5 +1,6 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowRight,
   Building2,
@@ -22,8 +23,12 @@ import { PAYMENT_TEST_MODE, realPayment } from "@/lib/payment";
 import { buyPlan } from "@/lib/plan-change";
 import { PLANS, READ_ONLY_MESSAGE, appsLostOn, planAllowanceLines, planCounterLine, planEmployeeRule, store, trialDaysLeft, type PlanId } from "@/lib/shopbook";
 import { cn } from "@/lib/utils";
-import { convertUsdToCurrency } from "@/lib/world-data";
+import { USD_RATES, convertUsdToCurrency } from "@/lib/world-data";
 import { useLanguage } from "@/hooks/use-language";
+
+const PLAN_CURRENCY = "shopbook.planCurrency";
+/** The currencies prices can be shown in: every one with a rate, aliases (KSH, SOM, USH, TSH) left out. */
+const PLAN_CURRENCIES = Object.keys(USD_RATES).filter((c) => !["KSH", "SOM", "USH", "TSH"].includes(c));
 
 export const Route = createFileRoute("/plans")({
   head: () => ({
@@ -49,6 +54,11 @@ function Plans() {
   const [payPhone, setPayPhone] = useState(""), [payStep, setPayStep] = useState<"sent" | "waiting" | null>(null);
   useEffect(() => { void realPayment().then(setReal); setPayPhone(store.get()?.phone ?? ""); }, []);
   const [yearly, setYearly] = useState(false);
+  // Prices in the currency the visitor picks (owner, 2026-11-24): US dollars unless changed; remembered on this device. Other
+  // currencies are approximate conversions for reading only; payment stays as the payment step states.
+  const [cur, setCur] = useState("USD");
+  useEffect(() => { try { const c = localStorage.getItem(PLAN_CURRENCY); if (c && USD_RATES[c]) setCur(c); } catch { /* USD */ } }, []);
+  const pickCurrency = (c: string) => { setCur(c); try { localStorage.setItem(PLAN_CURRENCY, c); } catch { /* this visit only */ } };
   // Nothing is selected until the customer chooses; a choice made earlier comes back after the first paint.
   const [chosenPlanId, setChosenPlanId] = useState<PlanId | null>(null);
   const [askedToSelect, setAskedToSelect] = useState(false);
@@ -62,8 +72,10 @@ function Plans() {
 
   const acct = store.get();
   const plan = PLANS.find((p) => p.id === chosenPlanId) || PLANS[1]!;
-  // Always USD, rounded to nearest whole dollar for yearly
-  const currentPrice = convertUsdToCurrency(yearly ? Math.round(plan.yearlyUsd) : plan.monthlyUsd, "USD");
+  // The payment step always states the US dollar price (what is charged), with the chosen currency beside it.
+  const usd = yearly ? Math.round(plan.yearlyUsd) : plan.monthlyUsd;
+  const currentPrice = convertUsdToCurrency(usd, "USD");
+  const currentLocal = cur === "USD" ? null : convertUsdToCurrency(usd, cur);
 
   useEffect(() => {
     const saved = store.get();
@@ -73,7 +85,7 @@ function Plans() {
 
   useEffect(() => {
     if (!askedToSelect) return;
-    const timer = setTimeout(() => setAskedToSelect(false), 6000);
+    const timer = setTimeout(() => setAskedToSelect(false), 4000);
     return () => clearTimeout(timer);
   }, [askedToSelect]);
 
@@ -238,6 +250,7 @@ function Plans() {
                     · {yearly ? tr("Yearly") : tr("Monthly")} ·
                   </span>
                   <span className="text-xs font-black text-foreground ml-1">{currentPrice.formatted}</span>
+                  {currentLocal && <span className="text-[11px] font-bold text-muted-foreground ml-1">(≈ {currentLocal.formatted})</span>}
                 </div>
                 <div className="text-[10px] font-bold text-muted-foreground">
                   {[...planAllowanceLines(plan), planCounterLine(plan)].map((line) => tr(line)).join(" · ")}
@@ -348,7 +361,7 @@ function Plans() {
       {tour && <GlassPage label={tr("See a sale in 30 seconds")} onClose={() => setTour(false)}><SaleTour /><Testimonials /></GlassPage>}
 
       {/* 2. BILLING CYCLE TOGGLE IN SOLID EMERALD GREEN */}
-      <div className="flex justify-center shrink-0 my-0.5 sm:my-1">
+      <div className="plans-billing-row flex justify-center items-center gap-2 shrink-0 my-0.5 sm:my-1">
         <div className="inline-flex items-center gap-1 p-0.5 rounded-full bg-muted/60 border border-border/80 shadow-inner w-full max-w-xs sm:max-w-sm justify-between">
           <button
             type="button"
@@ -385,14 +398,20 @@ function Plans() {
             </span>
           </button>
         </div>
+        <label className="plans-currency" title={tr("Show prices in")}>
+          <span>{tr("Currency")}</span>
+          <select value={cur} onChange={(e) => pickCurrency(e.target.value)} aria-label={tr("Show prices in")}>
+            {PLAN_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
       </div>
 
       {/* 3. THREE PLANS CARDS GRID (ELEVATED 3D HOVER, BOLDER BORDERS, STRICT 3-COLUMN) */}
       <div className={cn("plans-card-grid grid grid-cols-3 gap-1.5 md:gap-3 flex-1 min-h-0 items-stretch my-1", askedToSelect && "plans-nudge")}>
         {PLANS.map((p) => {
           const tColor = tone[p.id];
-          // Always USD, rounded to nearest whole dollar for yearly
-          const priceObj = convertUsdToCurrency(yearly ? Math.round(p.yearlyUsd) : p.monthlyUsd, "USD");
+          // US dollars unless another currency is picked; yearly is rounded to the whole dollar first.
+          const priceObj = convertUsdToCurrency(yearly ? Math.round(p.yearlyUsd) : p.monthlyUsd, cur);
           const isPlus = p.id === "growth";
           const isSelected = chosenPlanId === p.id;
 
@@ -531,11 +550,7 @@ function Plans() {
 
       {/* 4. BOTTOM TRIAL CTA IN SOLID EMERALD GREEN */}
       <div className="relative shrink-0 pt-1">
-        {askedToSelect && (
-          <p className="plans-select-first" role="alert">
-            {tr("Select one of these plans first, then start your 30-day free trial.")}
-          </p>
-        )}
+        {cur !== "USD" && <p className="plans-terms plans-approx">{tr("Prices in {x} are approximate. You are charged the US dollar price, or its amount in KSh when paying by M-Pesa.", cur)}</p>}
         {!paidPlan && <p className="plans-terms">
           {tr("No payment details needed. Billing never starts automatically. After your 30-day trial ends, you can still view and export your existing records. Subscribe to add new transactions.")}
           <button type="button" onClick={() => setShowingLimits(true)}>{tr("How limits work")}</button>
@@ -556,6 +571,13 @@ function Plans() {
           )}
         </button>
       </div>
+      {/* Shown in the middle of the screen (owner, 2026-11-24): at the bottom it hid behind the trial button on phones. */}
+      {askedToSelect && typeof document !== "undefined" && createPortal(
+        <div className="plans-select-first plans-type" role="alert" onClick={() => setAskedToSelect(false)}>
+          <b>{tr("Choose a plan first")}</b>
+          <span>{tr("Select one of these plans first, then start your 30-day free trial.")}</span>
+        </div>, document.body,
+      )}
       {trialDialog}
       {limitsDialog}
     </main>

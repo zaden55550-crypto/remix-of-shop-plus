@@ -960,6 +960,10 @@ export function Wordmark({ className }: { className?: string }) {
 
 /** How this device signed in last (Google, Apple or email), so Log In can point to it. Display only. */
 const LAST_SIGN_IN = "shopbook.lastSignIn";
+/** Passkey shows on Log In only once one has been added (owner, 2026-11-24): most owners have never heard of passkeys. */
+const PASSKEY_HERE = "shopbook.passkeyHere";
+export const devicePasskey = () => { try { return localStorage.getItem(PASSKEY_HERE) === "1"; } catch { return false; } };
+export const markDevicePasskey = (on: boolean) => { try { if (on) localStorage.setItem(PASSKEY_HERE, "1"); else localStorage.removeItem(PASSKEY_HERE); } catch { /* a hint only */ } };
 export const rememberSignIn = (how: "google" | "apple" | "email" | "passkey") => { try { localStorage.setItem(LAST_SIGN_IN, how); } catch { /* a hint only */ } };
 const lastSignIn = () => { try { return localStorage.getItem(LAST_SIGN_IN); } catch { return null; } };
 
@@ -979,10 +983,10 @@ export function SocialButtons({ passkey = false }: { passkey?: boolean } = {}) {
   useEffect(() => { setLast(lastSignIn()); }, []);
   const { tr } = useLanguage();
   const [signingWith, setSigningWith] = useState<"google" | "apple" | "passkey" | null>(null);
-  // Passkey is always on Log In. Until the server has passkeys switched on (Lovable Cloud doesn't offer them yet), tapping it says
-  // "coming soon"; once switched on, the same button signs in. Asked after mount, so server rendering never differs.
-  const canPasskey = passkey;
+  // Passkey shows only when the server has passkeys switched on and one was added in Settings (or last used) on this device.
+  // Asked after mount, so server rendering never differs.
   const [passkeyOn, setPasskeyOn] = useState(false);
+  const canPasskey = passkey && passkeyOn && (devicePasskey() || last === "passkey");
   useEffect(() => {
     let live = true;
     if (passkey) void passkeysEnabled().then((on) => { if (live) setPasskeyOn(on); });

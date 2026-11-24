@@ -244,12 +244,12 @@ function Signup() {
           } else {
             centralStatus = "manual_reconciliation";
             identityNotice =
-              "The central identity could not be matched safely. Local records are preserved and manual reconciliation is required.";
+              "The online account could not be linked safely. Your business is kept on this device; contact Support.";
           }
         } catch {
           centralStatus = "pending";
           identityNotice =
-            "Verify this central identity, then finish account setup from the migration screen. Local account data remains available.";
+            "Your business is saved on this device. Confirm your email, then log in with it to turn on online sign-in.";
         }
       } else verifyEmail = true; // A clear page explains the verification email (/auth/verify) instead of a short toast.
       }
@@ -259,8 +259,14 @@ function Signup() {
         toast.error(tr(message));
         return;
       }
+      // A password the server refuses as common or leaked (owner's screenshot, 2026-11-24): ask for another one before anything is
+      // saved, instead of creating a device-only business with a confusing message.
+      if (/weak|easy to guess|pwned|leaked|compromised|common password/i.test(message)) {
+        toast.error(tr("This password is too common and easy to guess. Choose a different one."));
+        return;
+      }
       centralStatus = "not_started";
-      identityNotice = `Central identity could not be created yet: ${message}. The local account was kept; you can migrate it later.`;
+      identityNotice = "Your business is saved on this device. Online sign-in could not be set up yet, so it works on this device only for now.";
     }
 
     try {

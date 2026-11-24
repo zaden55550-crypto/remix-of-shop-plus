@@ -95,8 +95,7 @@ describe.each(PLANS.map((p) => [p.name, p] as const))("first run on %s", (name, 
     if (welcome) fireEvent.click(within(welcome).getByRole("button", { name: "Let's start" }));
     fireEvent.click(screen.getByRole("button", { name: /^Activate/ }));
     fireEvent.click(within(await screen.findByRole("dialog", { name: "Ready to activate?" })).getByRole("button", { name: /Activate now/ }));
-    // A new business is offered its first sale (add a product, sell it); skipping it opens the apps.
-    fireEvent.click(within(await screen.findByRole("dialog", { name: "Your first sale" })).getByRole("button", { name: "Skip for now" }));
+    // Activating goes straight to the apps (the first-sale walkthrough was removed, owner 2026-11-24).
     expect(navigate).toHaveBeenLastCalledWith({ to: "/apps" });
     expect(erp.load().locations.find((l) => l.id === MAIN_LOCATION)).toMatchObject({ name: "Amina Traders", code: "S001", type: "shop" });
     expect(store.get()).toMatchObject({ businessTypes: ["Retail Shop"] });

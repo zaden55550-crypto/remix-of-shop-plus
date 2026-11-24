@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { addPasskey, passkeysEnabled, currentIdentity, listPasskeys, passkeyCancelled, passkeyMessage, passkeysSupported, removePasskey, type Passkey } from "@/lib/auth-service";
+import { markDevicePasskey } from "@/components/shopbook/ui";
 
 type View = { kind: "loading" } | { kind: "off" } | { kind: "unsupported" } | { kind: "signed-out" } | { kind: "error"; message: string } | { kind: "ready"; keys: Passkey[] };
 
@@ -18,7 +19,7 @@ export function PasskeysPanel() {
     if (!(await passkeysEnabled())) { setView({ kind: "off" }); return; }
     if (!passkeysSupported()) { setView({ kind: "unsupported" }); return; }
     if (!(await currentIdentity().catch(() => null))) { setView({ kind: "signed-out" }); return; }
-    try { setView({ kind: "ready", keys: await listPasskeys() }); }
+    try { const keys = await listPasskeys(); markDevicePasskey(keys.length > 0); setView({ kind: "ready", keys }); }
     catch (e) { setView({ kind: "error", message: passkeyMessage(e) }); }
   }, []);
   useEffect(() => { void load(); }, [load]);

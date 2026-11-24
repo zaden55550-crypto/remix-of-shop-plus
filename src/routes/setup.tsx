@@ -4,7 +4,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { History, Building2, Camera, ChevronDown, CircleCheck, Crown, FileText, ImagePlus, Info, MoreHorizontal, Paperclip, Pencil, Plus, Save, ShieldCheck, Store, Trash2, Upload, UserPlus, Users, Warehouse } from "lucide-react";
+import { History, Building2, Camera, ChevronDown, CircleCheck, Crown, FileText, ImagePlus, Info, MoreHorizontal, Paperclip, Pencil, Phone, Plus, Save, ShieldCheck, SlidersHorizontal, Store, Trash2, Upload, UserPlus, Users, Warehouse } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { GlassNotice } from "@/components/shopbook/plan-loss";
@@ -23,7 +23,6 @@ import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook
 import { GlassPage } from "@/components/shopbook/glass-page";
 import { ReadyButton, ReadyToSell } from "@/components/shopbook/ready-to-sell";
 import { MoveInPanel } from "@/components/shopbook/move-in-panel";
-import { FirstSale } from "@/components/shopbook/first-sale";
 import { moneyFor } from "@/components/shopbook/selling";
 import { applyCountryDefaults, type ReadyStep } from "@/lib/ready-setup";
 import { LOCATIONS_TEMPLATE, counterHardware, locationsFromSheets, saveCounterHardware, setupHistory, type CounterHardware } from "@/lib/setup-extras";
@@ -75,6 +74,17 @@ function Setup() {
   return <main dir={dir} className="bsetup-page">{acct && <SetupScreen acct={acct} onDone={() => nav({ to: "/apps" })} />}</main>;
 }
 
+/** True on phones and iPads, where the laptop view is drawn small (laptop-view.ts toggles the class and sends a resize). */
+function useSmallScreen() {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const f = () => setOn(document.documentElement.classList.contains("laptop-view"));
+    f(); window.addEventListener("resize", f); window.addEventListener("orientationchange", f);
+    return () => { window.removeEventListener("resize", f); window.removeEventListener("orientationchange", f); };
+  }, []);
+  return on;
+}
+
 function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const { tr } = useLanguage();
   const s = useErp();
@@ -103,6 +113,17 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   // Pop-ups are drawn outside the page, so a body class lets them read at Setup's large size too.
   useEffect(() => { document.body.classList.add("on-setup"); return () => document.body.classList.remove("on-setup"); }, []);
   const [importMenu, setImportMenu] = useState(false);
+  // Phones and iPads (the laptop view shrunk to a small screen, laptop-view.ts) get a tidier Setup (owner, 2026-11-24): the company
+  // buttons go under More, the feature ticks under one Business Features button in the strip, and the header is shorter.
+  const compact = useSmallScreen();
+  const [pop, setPop] = useState<"more" | "features" | null>(null);
+  useEffect(() => {
+    if (!pop) return;
+    const out = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.(".bsetup-pop-wrap")) setPop(null); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setPop(null); };
+    window.addEventListener("pointerdown", out); window.addEventListener("keydown", esc);
+    return () => { window.removeEventListener("pointerdown", out); window.removeEventListener("keydown", esc); };
+  }, [pop]);
   useEffect(() => {
     if (!importMenu) return;
     const out = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.(".bsetup-import-wrap")) setImportMenu(false); };
@@ -351,7 +372,6 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     if (activating || !check()) return;
     setConfirmActivate(true);
   };
-  const [firstSale, setFirstSale] = useState(false);
   const activateNow = () => {
     if (activating) return;
     setConfirmActivate(false);
@@ -360,9 +380,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       activateSetup(d);
       applyCountryDefaults(place.country || acct.country);
       toast.success(tr("Your business is set up"));
-      // A brand-new business goes through its first sale (add one product, sell one); one that already sells goes straight on.
-      const now = erp.load();
-      if (!now.products.some((p) => !p.archived) && !now.sales.length) setFirstSale(true); else onDone();
+      // Straight to the apps (owner, 2026-11-24: the quick add-a-product / sell-it walkthrough is gone).
+      onDone();
     } catch (e) { toast.error(tr(e instanceof Error ? e.message : "Setup could not be saved")); setActivating(false); }
   };
 
@@ -403,12 +422,11 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [moveIn, setMoveIn] = useState<{ files?: File[] | undefined } | null>(null);
   const [dragging, setDragging] = useState(false);
   const hasFiles = (e: React.DragEvent) => [...e.dataTransfer.types].includes("Files");
-  return <div className="bsetup"
+  return <div className={cn("bsetup", compact && "is-compact")}
     onDragOver={(e) => { if (!hasFiles(e) || moveIn) return; e.preventDefault(); setDragging(true); }}
     onDragLeave={(e) => { if (e.currentTarget === e.target) setDragging(false); }}
     onDrop={(e) => { if (!hasFiles(e) || moveIn) return; e.preventDefault(); setDragging(false); const list = [...e.dataTransfer.files]; if (list.length) setMoveIn({ files: list }); }}>
     {dragging && <div className="bsetup-dropping" onDragLeave={() => setDragging(false)}><Upload aria-hidden /><b>{tr("Drop to bring your business over")}</b><small>{tr("Excel, CSV or zip from Odoo, QuickBooks, Zoho, Loyverse, Sage or any spreadsheet")}</small></div>}
-    {firstSale && <GlassPage label={tr("Your first sale")} onClose={onDone}><FirstSale tr={tr} money={moneyFor(acct.currency || "KSh")} onFinish={onDone} /></GlassPage>}
     {moveIn && <GlassPage label={tr("Bring your business over")} onClose={() => setMoveIn(null)}><MoveInPanel tr={tr} files={moveIn.files} onClose={() => setMoveIn(null)} /></GlassPage>}
     <header className="bsetup-head">
       {/* Left: the business's own logo from Create Account (or the Zakrio mark), the title, and the country and currency given at
@@ -423,19 +441,22 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <VoiceGuide />
         <span className="bsetup-head-sub">
         <button type="button" className="bsetup-head-meta bsetup-place-btn" title={tr("Change country and currency")} onClick={() => setPlaceOpen(true)}>{[countryName, currencyShown].filter(Boolean).join(" · ") || tr("Country & currency")} <Pencil aria-hidden /></button>
-        {savedText && <span className="bsetup-saved" role="status">{savedText}</span>}
+        {savedText && (compact ? <span className="bsetup-saved is-icon" role="status" title={savedText} aria-label={savedText}><Save aria-hidden /></span> : <span className="bsetup-saved" role="status">{savedText}</span>)}
         </span>
       </div>
-      <ol className="bsetup-steps" aria-label={tr("Getting started")}>
+      {!compact && <ol className="bsetup-steps" aria-label={tr("Getting started")}>
         <li className="is-done" title={tr("Create Account")}><CircleCheck aria-hidden /> {tr("Account")}</li>
         <li className="is-done" title={tr("Choose plan")}><CircleCheck aria-hidden /> {tr("Plan")}</li>
         <li className="is-now" aria-current="step" title={tr("Business Setup")}><span>3</span> {tr("Setup")}</li>
         <li><span>4</span> {tr("Activate")}</li>
-      </ol>
+      </ol>}
       <div className="bsetup-head-actions">
-        <ul className={cn("bsetup-ready", readyCount === ready.length && "is-all")} aria-label={tr("Ready to activate?")} title={tr("{x} of 4 ready", String(readyCount))}>
+        {compact ? <button type="button" className={cn("bsetup-ready-chip", readyCount === ready.length && "is-all")} title={ready.map((x) => `${x.ok ? "✓" : "○"} ${tr(x.label)}`).join("\n")}
+          onClick={() => { const next = ready.find((x) => !x.ok); if (!next) return; const el = document.getElementById(next.field); el?.scrollIntoView({ block: "center", behavior: "smooth" }); el?.focus(); }}>
+          {readyCount === ready.length ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr("Ready")} {readyCount}/{ready.length}</button>
+        : <ul className={cn("bsetup-ready", readyCount === ready.length && "is-all")} aria-label={tr("Ready to activate?")} title={tr("{x} of 4 ready", String(readyCount))}>
           {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined}><button type="button" title={x.ok ? tr(x.label) : `${tr(x.label)} · ${tr("Tap to fill it in")}`} onClick={() => { const el = document.getElementById(x.field); el?.scrollIntoView({ block: "center", behavior: "smooth" }); el?.focus(); }}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.short)}</button></li>)}
-        </ul>
+        </ul>}
         <ReadyButton s={s} onOpen={() => setReadyOpen(true)} />
         <ShopButton className="bsetup-review" disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
       </div>
@@ -454,7 +475,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
           {morePhones ? <div className="bsetup-extra-phones">
             <label className="bsetup-field bsetup-phone2"><span>{tr("Second phone")}</span><input id="bsetup-phone2" className="inventory-input" inputMode="tel" value={d.phone2 ?? ""} aria-invalid={!!problem(undefined, "phone2")} onChange={(e) => set({ phone2: e.target.value })} placeholder={tr("Optional")} /></label>
             <label className="bsetup-field bsetup-phone3"><span>{tr("Third phone")}</span><input id="bsetup-phone3" className="inventory-input" inputMode="tel" value={d.phone3 ?? ""} aria-invalid={!!problem(undefined, "phone3")} onChange={(e) => set({ phone3: e.target.value })} placeholder={tr("Optional")} /></label>
-          </div> : <button type="button" className="bsetup-link-btn bsetup-more-phones" onClick={() => setMorePhones(true)}><Plus aria-hidden /> {tr("Add phone")}</button>}
+          </div> : !compact && <button type="button" className="bsetup-link-btn bsetup-more-phones" onClick={() => setMorePhones(true)}><Plus aria-hidden /> {tr("Add phone")}</button>}
         </div>
         <label className="bsetup-field"><span>{tr("Industry")} <i aria-hidden>*</i></span>
           <IndustrySelect id="bsetup-industry" value={selectedIndustry} keep={isIndustryFamilyId(acct.industryFamilyId) ? acct.industryFamilyId : undefined} onChange={(id) => {
@@ -474,17 +495,26 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
             {!!d.businessDocuments?.length && <button type="button" className="bsetup-doc-count" title={tr("See uploaded documents")} onClick={() => setDocsOpen(true)}><FileText aria-hidden /> {d.businessDocuments.length}</button>}
           </div>
         </div>
-        <div className="bsetup-company-actions" role="group" aria-label={tr("Company-wide actions")}>
+        {compact ? <span className="bsetup-pop-wrap bsetup-more-wrap">
+          <button type="button" className="bsetup-co-btn is-more" aria-haspopup="menu" aria-expanded={pop === "more"} onClick={() => setPop(pop === "more" ? null : "more")}><MoreHorizontal aria-hidden /> {tr("More")} <ChevronDown aria-hidden /></button>
+          {pop === "more" && <span className="bsetup-import-menu bsetup-more-menu" role="menu">
+            {!morePhones && <button type="button" role="menuitem" onClick={() => { setPop(null); setMorePhones(true); }}><Phone aria-hidden /><span><b>{tr("Add phone")}</b><small>{tr("A second or third phone number for the business")}</small></span></button>}
+            <button type="button" role="menuitem" disabled={loginFull} onClick={() => { setPop(null); setNewUserLocation(null); setEditingUser("new"); }}><UserPlus aria-hidden /><span><b>{tr("Add User")}</b><small>{loginFull ? tr("Your plan has no more login accounts") : tr("A manager or staff member who logs in")}</small></span></button>
+            <button type="button" role="menuitem" onClick={() => { setPop(null); setOwnerInfo(true); }}><Pencil aria-hidden /><span><b>{tr("Edit Owner")}</b><small>{tr("The owner's name, email and phone")}</small></span></button>
+            <button type="button" role="menuitem" onClick={() => { setPop(null); setManaging("company"); }}><Users aria-hidden /><span><b>{tr("Manage Users")}</b><small>{tr("Everyone added to this business")}</small></span></button>
+            <button type="button" role="menuitem" onClick={() => { setPop(null); openAccess(); }}><ShieldCheck aria-hidden /><span><b>{tr("Manage Access")}</b><small>{tr("Roles, permissions and invitations")}</small></span></button>
+          </span>}
+        </span> : <div className="bsetup-company-actions" role="group" aria-label={tr("Company-wide actions")}>
           <button type="button" className="bsetup-co-btn is-add" disabled={loginFull} title={loginFull ? tr("Your plan has no more login accounts") : undefined} onClick={() => { setNewUserLocation(null); setEditingUser("new"); }}><UserPlus aria-hidden /> {tr("Add User")}</button>
           <button type="button" className="bsetup-co-btn is-owner" onClick={() => setOwnerInfo(true)}><Pencil aria-hidden /> {tr("Edit Owner")}</button>
           <button type="button" className="bsetup-co-btn is-users" onClick={() => setManaging("company")}><Users aria-hidden /> {tr("Manage Users")}</button>
           <button type="button" className="bsetup-co-btn is-access" title={tr("Set role templates and individual employee permissions, review invitations, reset access and suspend or reactivate logins. Business Setup and Settings use the same employee and permission records.")} onClick={() => openAccess()}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
-        </div>
+        </div>}
       </div>
-      {selectedIndustry === "trade" && <div className="bsetup-feature-row"><span>{tr("Business Features")}</span><FeatureChecks className="bsetup-feature-checks" types={chosenTypes} value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} /></div>}
-      <div className="bsetup-save-row">
+      {!compact && selectedIndustry === "trade" && <div className="bsetup-feature-row"><span>{tr("Business Features")}</span><FeatureChecks className="bsetup-feature-checks" types={chosenTypes} value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} /></div>}
+      {!compact && <div className="bsetup-save-row">
         <ShopButton variant="outline" className="bsetup-later" disabled={activating} onClick={saveLater}><Save /> {tr("Save")}</ShopButton>
-      </div>
+      </div>}
     </section>
     {readyOpen && <GlassPage label={tr("Ready to sell")} onClose={() => { setReadyOpen(false); setReadyStart(undefined); }}><ReadyToSell s={s} start={readyStart} onClose={() => { setReadyOpen(false); setReadyStart(undefined); }} /></GlassPage>}
     {historyOpen && <GlassPage label={tr("Setup history")} onClose={() => setHistoryOpen(false)}>
@@ -518,6 +548,13 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
             <button type="button" role="menuitem" onClick={() => { setImportMenu(false); setHistoryOpen(true); }}><History aria-hidden /><span><b>{tr("History")}</b><small>{tr("Who changed what in setup")}</small></span></button>
           </span>}
         </span>
+        {compact && selectedIndustry === "trade" && <span className="bsetup-pop-wrap bsetup-feat-wrap">
+          <button type="button" className="bsetup-import-other bsetup-feat-btn" aria-haspopup="true" aria-expanded={pop === "features"} onClick={() => setPop(pop === "features" ? null : "features")}><SlidersHorizontal aria-hidden /> {tr("Business Features")} <ChevronDown aria-hidden /></button>
+          {pop === "features" && <span className="bsetup-feat-menu" role="group" aria-label={tr("Business Features")}>
+            <FeatureChecks className="bsetup-feature-checks" types={chosenTypes} value={features} onChange={(p) => set({ features: { ...(d.features ?? {}), ...p } })} />
+            <button type="button" className="bsetup-feat-done" onClick={() => setPop(null)}>{tr("Done")}</button>
+          </span>}
+        </span>}
         <span className="bsetup-strip-count">{counts.shops} {tr(counts.shops === 1 ? "shop" : "shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
         {!full && <span className="bsetup-add">
@@ -528,6 +565,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </span>
         <span className="bsetup-strip-plan bsetup-plan-card"><Crown aria-hidden /><span className="bsetup-plan-card-name"><small>{trial ? tr("Free trial") : tr("Your plan")}</small><b>{plan.name}</b></span><b className="bsetup-plan-card-price">${price.amount}{tr(price.period === "year" ? "/yr" : "/mo")}</b><button type="button" className="bsetup-info" aria-label={tr("How plan limits work")} title={tr("How plan limits work")} onClick={() => setInfo(true)}><Info /></button></span>
         </span>
+        {compact && <ShopButton variant="outline" className="bsetup-later bsetup-strip-save" disabled={activating} onClick={saveLater}><Save /> {tr("Save")}</ShopButton>}
       </header>
       {/* Locations 1-5, and 6-10 beside them once there are more than five (the second panel also shows the plan's free places). */}
       <div className={cn("bsetup-tables", panels.length > 1 && "is-two")}>

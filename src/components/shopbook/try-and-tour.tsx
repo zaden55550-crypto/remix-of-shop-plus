@@ -92,18 +92,19 @@ export function Testimonials() {
 
 /** A phone held upright shows the laptop view very small: once per device, suggest turning it sideways. */
 export function RotateHint() {
-  const { tr } = useLanguage();
+  const { tr, language } = useLanguage();
   const [on, setOn] = useState(false);
   useEffect(() => {
     const f = () => {
       let seen = false; try { seen = localStorage.getItem("shopbook.rotateHint") === "1"; } catch { /* show */ }
       const phone = Math.min(window.screen.width, window.screen.height) < 600, upright = window.matchMedia("(orientation: portrait)").matches;
-      setOn(!seen && phone && upright && document.documentElement.classList.contains("laptop-view"));
+      // Business Setup shows its own tip (one-page-fit.tsx).
+      setOn(!seen && phone && upright && window.location.pathname !== "/setup" && document.documentElement.classList.contains("laptop-view"));
     };
     const t = window.setTimeout(f, 800); window.addEventListener("orientationchange", f); window.addEventListener("resize", f);
     return () => { window.clearTimeout(t); window.removeEventListener("orientationchange", f); window.removeEventListener("resize", f); };
   }, []);
   if (!on) return null;
   const close = () => { try { localStorage.setItem("shopbook.rotateHint", "1"); } catch { /* this visit only */ } setOn(false); };
-  return <div className="rotate-hint" role="status"><RotateCw aria-hidden /><span>{tr("Turn your phone sideways for a bigger view")}</span><button type="button" onClick={close}>{tr("Got it")}</button></div>;
+  return <div className="rotate-hint" role="status"><RotateCw aria-hidden /><span>{tr("Turn your phone sideways for a bigger view")}{language !== "Swahili" && <small lang="sw">Geuza simu yako ilale upande</small>}</span><button type="button" onClick={close}>{tr("Got it")}</button></div>;
 }

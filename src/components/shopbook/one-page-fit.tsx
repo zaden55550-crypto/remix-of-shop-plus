@@ -1,5 +1,6 @@
 // Mounted once in __root: keeps Log In, Create Account, Plans and Business Setup (and their windows) on one screen (src/lib/one-page.ts),
-// and on a phone held upright covers Setup with a "turn your phone sideways" card.
+// and on a phone held upright tells Setup's visitor, in English and Kiswahili, that turning the phone sideways gives the better view
+// (owner, 2026-11-24: the page stays usable upright; the tip can be closed).
 import { useEffect, useState } from "react";
 import { RotateCw } from "lucide-react";
 import { useRouterState } from "@tanstack/react-router";
@@ -25,18 +26,26 @@ export function OnePageFit() {
   return pathname === "/setup" ? <TurnSideways /> : null;
 }
 
+/** Both languages always (owner, 2026-11-24): many owners haven't changed the language yet when they first reach Setup. */
+export const TURN_SIDEWAYS_SW = "Geuza simu yako ilale upande kwa mwonekano bora";
 function TurnSideways() {
-  const { tr } = useLanguage();
+  const { tr, language } = useLanguage();
   const [upright, setUpright] = useState(false);
+  const [closed, setClosed] = useState(false);
   useEffect(() => {
+    try { setClosed(sessionStorage.getItem("zakrio.setupTilt") === "1"); } catch { /* show */ }
     const f = () => setUpright(phoneUpright());
     f(); window.addEventListener("resize", f); window.addEventListener("orientationchange", f);
     return () => { window.removeEventListener("resize", f); window.removeEventListener("orientationchange", f); };
   }, []);
-  if (!upright) return null;
-  return <div className="turn-sideways" role="alert">
+  if (!upright || closed) return null;
+  const close = () => { try { sessionStorage.setItem("zakrio.setupTilt", "1"); } catch { /* this visit only */ } setClosed(true); };
+  return <div className="turn-sideways" role="status">
     <RotateCw aria-hidden />
-    <b>{tr("Turn your phone sideways")}</b>
-    <span>{tr("Business Setup needs the wide view. Hold your phone sideways to see everything.")}</span>
+    <div className="turn-sideways-text">
+      <b>{language === "Swahili" ? TURN_SIDEWAYS_SW : tr("Turn your phone sideways for the best view")}</b>
+      <span lang={language === "Swahili" ? "en" : "sw"}>{language === "Swahili" ? "Turn your phone sideways for the best view" : TURN_SIDEWAYS_SW}</span>
+    </div>
+    <button type="button" onClick={close}>{tr("OK")}</button>
   </div>;
 }
