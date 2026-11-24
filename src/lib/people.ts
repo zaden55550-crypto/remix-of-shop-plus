@@ -80,7 +80,9 @@ export function settlePeople(kind: "customer" | "supplier" | "payroll", id: stri
 export const EMPLOYMENT_TYPES = ["Full-time", "Part-time", "Contract", "Casual"] as const;
 export type EmployeeProfile = { name: string; phone: string; email: string; code: string; businessRefs: string[]; locationIds: string[]; accessRole: string; startDate: string; employmentType: string;
   /** Counters this person may sell at, per shop (location id → numbers). Left out keeps what is saved. */
-  counters?: Record<string, number[]> | undefined };
+  counters?: Record<string, number[]> | undefined;
+  /** Own access before a login exists (access-levels.ts). Left out keeps what is saved. */
+  access?: Record<string, boolean> | undefined };
 export const employeeStatus = (e: Employee) => (e.status === "terminated" || (!e.active && e.status !== "suspended") ? "Terminated" : e.status === "suspended" ? "Suspended" : "Active");
 const needOwner = () => { if (!isAdmin()) throw new ErpError("Only the owner can manage employees"); };
 
@@ -101,7 +103,7 @@ export function saveEmployeeProfile(p: EmployeeProfile, id?: string) {
     if (!p.businessRefs.length) throw new ErpError("Choose a business");
     const code = p.code.trim() || (id && s.employees.find((e) => e.id === id)?.code) || c.nextRef("EMP");
     if (s.employees.some((e) => e.id !== id && e.code?.toLowerCase() === code.toLowerCase())) throw new ErpError("That Employee ID is already in use");
-    const fields = { name, phone, email: email || undefined, code, businessRefs: p.businessRefs, locationIds: p.locationIds, accessRole: p.accessRole, startDate: p.startDate || undefined, employmentType: p.employmentType, ...(p.counters !== undefined ? { counters: cleanCounters(p.counters, p.locationIds) } : {}) };
+    const fields = { name, phone, email: email || undefined, code, businessRefs: p.businessRefs, locationIds: p.locationIds, accessRole: p.accessRole, startDate: p.startDate || undefined, employmentType: p.employmentType, ...(p.counters !== undefined ? { counters: cleanCounters(p.counters, p.locationIds) } : {}), ...(p.access !== undefined ? { access: Object.fromEntries(Object.entries(p.access).filter(([k, v]) => typeof k === "string" && typeof v === "boolean")) } : {}) };
     if (id) {
       const e = s.employees.find((x) => x.id === id); if (!e) throw new ErpError("Employee not found");
       Object.assign(e, fields); c.audit("EMPLOYEE EDITED", `${code} • ${name}`); return e;

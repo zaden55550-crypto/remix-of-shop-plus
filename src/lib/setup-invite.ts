@@ -3,6 +3,8 @@
 // step that last succeeded (the employee record, then the login and invitation, then only re-sending), so no one is created twice.
 import { load } from "@/lib/erp";
 import { createEmployeeLogin, renewInvitation } from "@/lib/people-access.functions";
+import { applyAccess } from "@/lib/access-levels";
+import { toast } from "sonner";
 import { linkEmployeeLogin, saveEmployeeProfile } from "@/lib/people";
 import { connectPeople, mirrorErpLocations, peopleCloud, peopleData, reloadPeople } from "@/lib/people-cloud";
 import { store } from "@/lib/shopbook";
@@ -17,7 +19,8 @@ export class NeedsConnection extends Error {}
 
 export type InvitePerson = { name: string; email: string; phone: string; role: string;
   /** Counters this person may use, per saved location id (Business Setup). */
-  counters?: Record<string, number[]> | undefined };
+  counters?: Record<string, number[]> | undefined;
+  access?: Record<string, boolean> | undefined };
 
 async function server() {
   let c = peopleCloud();
@@ -39,7 +42,7 @@ export async function sendSetupInvitation(p: InvitePerson, locationIds: string[]
   }
   let employeeId = stage.employeeId;
   if (!employeeId) {
-    const e = saveEmployeeProfile({ name: p.name, phone: p.phone, email: p.email, code: "", businessRefs: [store.get()?.businessId ?? ""], locationIds, accessRole: p.role, startDate: "", employmentType: "Full-time", ...(p.counters ? { counters: p.counters } : {}) });
+    const e = saveEmployeeProfile({ name: p.name, phone: p.phone, email: p.email, code: "", businessRefs: [store.get()?.businessId ?? ""], locationIds, accessRole: p.role, startDate: "", employmentType: "Full-time", ...(p.counters ? { counters: p.counters } : {}), ...(p.access && Object.keys(p.access).length ? { access: p.access } : {}) });
     employeeId = e.id;
   }
   try { return await loginFor(c, employeeId, locationIds); }
@@ -59,7 +62,10 @@ async function loginFor(c: Awaited<ReturnType<typeof server>>, employeeId: strin
   if (!e) throw new Error("Employee not found");
   const issued = await createEmployeeLogin({ data: { account: c.account!, employeeRef: e.id, fullName: e.name, phone: e.phone || null, email: e.email || null, code: e.code ?? null, role: e.accessRole ?? "staff", businesses: c.business ? [c.business] : [], locations: places } });
   linkEmployeeLogin(e.id, issued.memberId ?? null);
+  // Their own access from Add User goes to the server with the login (a failure is said, never hidden).
+  const failed = issued.memberId ? await applyAccess(issued.memberId, e.access) : 0;
   await reloadPeople();
+  if (failed) toast.error(`${failed} access setting(s) weren't saved. Set them in Manage Access`);
   return { employeeId, memberId: issued.memberId ?? undefined, sent: issued.delivery.sent, via: issued.delivery.via, error: issued.delivery.error ?? undefined, expiresAt: issued.expiresAt };
 }
 /** The progress a failed attempt reached (set when the employee record already exists). */

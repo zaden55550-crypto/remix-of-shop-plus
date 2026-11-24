@@ -140,6 +140,8 @@ export type Employee = AtBusiness & { id: string; name: string; /** Staff quick 
   code?: string | undefined; email?: string | undefined; businessRefs?: string[] | undefined; locationIds?: string[] | undefined; accessRole?: string | undefined; startDate?: string | undefined; employmentType?: string | undefined; status?: "active" | "suspended" | "terminated" | undefined; terminatedAt?: number | undefined; memberId?: string | undefined;
   /** The counters this person may sell at, per shop (location id → counter numbers), chosen on Business Setup. A shop left out: any counter. */
   counters?: Record<string, number[]> | undefined;
+  /** Their own access chosen before they had a login (differences from the role, access-levels.ts); applied to the server when the login is made. */
+  access?: Record<string, boolean> | undefined;
 };
 /** Commission ledger: adjustments are new negative rows, never edits/deletes. */
 export type Commission = AtBusiness & { id: string; at: number; employeeId: string; source: string; amount: number; kind: "EARNED" | "RETURN ADJUSTMENT"; pending: boolean; payrollId?: string | undefined; productAmounts?: Record<string, number> };

@@ -24,6 +24,8 @@ export const TYPE_LABEL: Record<LocationType, string> = { shop: "Shop", store: "
  *  `photos` and `logo` are data URLs, left out to keep a saved location's as they are. `code` is optional: left empty, the
  *  next free number (S001, W001…) is given on activation. The row's identity is `key` (a saved location's id), never its position. */
 export type SetupRow = { key: string; savedId?: string | undefined; slotNumber?: number | undefined; type: LocationType; name: string; code: string; archive?: boolean | undefined; connected?: string[] | undefined; photos?: string[] | undefined; logo?: string | undefined;
+  /** Added with "+ Add location" and no type chosen yet (owner, 2026-11-24): the type box says Choose type until one is picked. */
+  untyped?: boolean | undefined;
   /** A shop's counters (tills); left out keeps the saved number. */
   counters?: number | undefined;
   /** Which of the chosen business types this shop is (Supermarket, Butchery…); left out: the main type. */
@@ -41,7 +43,9 @@ export type SetupRow = { key: string; savedId?: string | undefined; slotNumber?:
 /** A person added here. They become an employee record on activation; their login is invited from People & Access. */
 export type SetupUser = { key: string; name: string; phone: string; email: string; role: string; locations: string[];
   /** Counters this person may use, per shop row key; a shop left out (or an empty list) means any counter. */
-  counters?: Record<string, number[]> | undefined };
+  counters?: Record<string, number[]> | undefined;
+  /** This person's own access, as differences from their role (access-levels.ts); sent to the server once their login exists. */
+  access?: Record<string, boolean> | undefined };
 /** One industry and any number of its business types: the main type, then the others. For Trade none is needed (General Trade).
  *  `features` holds only the switches the owner changed on this page; the rest follow the types (trade-features.ts). */
 export type SetupDraft = { businessName: string; businessType: string; otherType: string; extraBusinessTypes: string[]; industryFamilyId?: IndustryFamilyId | undefined; features?: Partial<Features> | undefined;
@@ -158,6 +162,7 @@ export function validate(
   for (const r of live) { if (r.code.trim()) codes.set(norm(r.code), (codes.get(norm(r.code)) ?? 0) + 1); names.set(norm(r.name), (names.get(norm(r.name)) ?? 0) + 1); }
   for (const r of live) {
     const label = TYPE_LABEL[r.type];
+    if (r.untyped) out.push({ key: r.key, field: "type", message: "Choose the type of this location" });
     if (!r.name.trim()) out.push({ key: r.key, field: "name", message: `Enter the ${label.toLowerCase()} name` });
     else if ((names.get(norm(r.name)) ?? 0) > 1 || otherNames.some((n) => norm(n) === norm(r.name))) out.push({ key: r.key, field: "name", message: `“${r.name.trim()}” is used by another location` });
     // The number is optional; one that is given must be unique.
@@ -177,7 +182,6 @@ export function validate(
     if (d.users.length && after.usedStaff > after.staff && after.usedStaff > before.usedStaff) out.push({ field: "users", message: `Your plan allows ${after.staff} staff account${after.staff === 1 ? "" : "s"}, shared across all your businesses` });
     if (d.users.length && before.used > before.total) out.push({ field: "users", message: "Your account is already over its login allowance. Upgrade or remove a login before adding another" });
     for (const u of d.users) {
-      if (u.role === "staff") out.push({ key: u.key, field: "users", message: "Choose Manager, Shopkeeper or Storekeeper for this login" });
       for (const key of u.locations) {
         const row = live.find((r) => r.key === key);
         if (!row) continue;
@@ -234,7 +238,7 @@ export function activateSetup(d: SetupDraft) {
       const locationIds = u.locations.map((k) => map[k]).filter((x): x is string => !!x);
       if (!locationIds.length) throw new ErpError(`Choose a location for ${u.name}`);
       const counters = u.counters ? Object.fromEntries(Object.entries(u.counters).map(([k, v]) => [map[k] ?? k, v])) : undefined;
-      saveEmployeeProfile({ name: u.name, phone: u.phone, email: u.email, code: "", businessRefs: [businessId], locationIds, accessRole: u.role, startDate: "", employmentType: "Full-time", ...(counters ? { counters } : {}) });
+      saveEmployeeProfile({ name: u.name, phone: u.phone, email: u.email, code: "", businessRefs: [businessId], locationIds, accessRole: u.role, startDate: "", employmentType: "Full-time", ...(counters ? { counters } : {}), ...(u.access && Object.keys(u.access).length ? { access: u.access } : {}) });
     }
     // Recheck the dynamic account total here too; backend check_login_allowance enforces each server login separately.
     const current = erp.load();

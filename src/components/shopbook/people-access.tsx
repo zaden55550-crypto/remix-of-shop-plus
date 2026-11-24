@@ -19,6 +19,7 @@ import { ACTIONS, MODULES, OWNER_ONLY, ROLES, SENSITIVE, isManagerRole, moduleKe
 import { businessTypeByName, type IndustryFamilyId } from "@/lib/industry-config";
 import { PLANS, store, type PlanId } from "@/lib/shopbook";
 import { SlotsFull } from "@/components/shopbook/slots-full";
+import { applyAccess } from "@/lib/access-levels";
 import { supabase } from "@/integrations/supabase/client";
 import { authMessage, linkProvider, registerEmailIdentity, signInEmail, signInProvider } from "@/lib/auth-service";
 
@@ -209,6 +210,8 @@ async function makeLogin(e: Employee, cloud: Cloud) {
   const refs = e.locationIds ?? [], d = await refreshedOverview(refs);
   const issued = await createEmployeeLogin({ data: { account: cloud.account, employeeRef: e.id, fullName: e.name, phone: e.phone || null, email: e.email || null, code: e.code ?? null, role: e.accessRole ?? "staff", businesses: serverBusinesses(d, e.businessRefs ?? [], cloud), locations: serverLocations(d, refs) } });
   linkEmployeeLogin(e.id, issued.memberId ?? null);
+  // Access chosen on Business Setup before the login existed.
+  if (issued.memberId && e.access && Object.keys(e.access).length) { const failed = await applyAccess(issued.memberId, e.access); if (failed) toast.error(`${failed} access setting(s) weren't saved. Set them in Manage permissions`); }
   rememberLink(issued.memberId ?? e.id, issued);
   await reloadPeople();
   return issued;
