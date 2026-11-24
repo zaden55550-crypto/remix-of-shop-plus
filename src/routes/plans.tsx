@@ -5,7 +5,9 @@ import {
   ArrowRight,
   Building2,
   Check,
+  ChevronDown,
   ChevronLeft,
+  Search,
   PlayCircle,
   Gift,
   Store,
@@ -398,12 +400,10 @@ function Plans() {
             </span>
           </button>
         </div>
-        <label className="plans-currency" title={tr("Show prices in")}>
+        <div className="plans-currency">
           <span>{tr("Currency")}</span>
-          <select value={cur} onChange={(e) => pickCurrency(e.target.value)} aria-label={tr("Show prices in")}>
-            {PLAN_CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </label>
+          <CurrencyChooser value={cur} onPick={pickCurrency} />
+        </div>
       </div>
 
       {/* 3. THREE PLANS CARDS GRID (ELEVATED 3D HOVER, BOLDER BORDERS, STRICT 3-COLUMN) */}
@@ -582,4 +582,43 @@ function Plans() {
       {limitsDialog}
     </main>
   );
+}
+
+/** Every currency's English name, for the chooser's list and search ("KES · Kenyan Shilling"). */
+function currencyName(code: string) {
+  try { return new Intl.DisplayNames(["en"], { type: "currency" }).of(code) ?? code; } catch { return code; }
+}
+
+/** Currency for the plan prices (owner, 2026-11-24): a button showing the code that opens a list with a search box. Not a
+ *  role="dialog", so the one-page fit leaves it at full size; closes on a choice, an outside tap or Escape. */
+function CurrencyChooser({ value, onPick }: { value: string; onPick: (code: string) => void }) {
+  const { tr } = useLanguage();
+  const [open, setOpen] = useState(false), [q, setQ] = useState("");
+  useEffect(() => {
+    if (!open) return;
+    const out = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.(".plans-cur")) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    window.addEventListener("pointerdown", out); window.addEventListener("keydown", esc);
+    return () => { window.removeEventListener("pointerdown", out); window.removeEventListener("keydown", esc); };
+  }, [open]);
+  const needle = q.trim().toLowerCase();
+  const list = PLAN_CURRENCIES.map((c) => ({ c, name: currencyName(c) })).filter((x) => !needle || x.c.toLowerCase().includes(needle) || x.name.toLowerCase().includes(needle));
+  const pick = (c: string) => { onPick(c); setOpen(false); setQ(""); };
+  return <span className="plans-cur">
+    <button type="button" className="plans-cur-btn" aria-haspopup="listbox" aria-expanded={open} aria-label={tr("Show prices in")} onClick={() => setOpen(!open)}>
+      {value} <ChevronDown aria-hidden />
+    </button>
+    {open && <span className="plans-cur-pop">
+      <span className="plans-cur-search"><Search aria-hidden />
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr("Search currency")} aria-label={tr("Search currency")}
+          onKeyDown={(e) => { if (e.key === "Enter" && list[0]) pick(list[0].c); }} />
+      </span>
+      <span className="plans-cur-list" role="listbox" aria-label={tr("Show prices in")}>
+        {list.map(({ c, name }) => <button key={c} type="button" role="option" aria-selected={c === value} className={cn(c === value && "is-on")} onClick={() => pick(c)}>
+          <b>{c}</b><span>{name}</span>{c === value && <Check aria-hidden />}
+        </button>)}
+        {!list.length && <em>{tr("No currency found")}</em>}
+      </span>
+    </span>}
+  </span>;
 }

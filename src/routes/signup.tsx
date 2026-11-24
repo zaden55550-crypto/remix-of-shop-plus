@@ -259,14 +259,11 @@ function Signup() {
         toast.error(tr(message));
         return;
       }
-      // A password the server refuses as common or leaked (owner's screenshot, 2026-11-24): ask for another one before anything is
-      // saved, instead of creating a device-only business with a confusing message.
-      if (/weak|easy to guess|pwned|leaked|compromised|common password/i.test(message)) {
-        toast.error(tr("This password is too common and easy to guess. Choose a different one."));
-        return;
-      }
+      // Any password of 6+ characters is the owner's choice (owner, 2026-11-24): the meter on the form says when it is weak, and a
+      // server that refuses a common password is not reported again. The business is kept on this device either way.
       centralStatus = "not_started";
-      identityNotice = "Your business is saved on this device. Online sign-in could not be set up yet, so it works on this device only for now.";
+      identityNotice = /weak|easy to guess|pwned|leaked|compromised|common password/i.test(message) ? ""
+        : "Your business is saved on this device. Online sign-in could not be set up yet, so it works on this device only for now.";
     }
 
     try {

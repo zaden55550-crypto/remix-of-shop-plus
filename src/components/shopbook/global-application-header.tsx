@@ -2,7 +2,7 @@
 // < Apps | Online — SHOP NAME / app name — notifications · theme · calendar · profile. Styles: the dash-header block in styles.css.
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Info, LayoutGrid, MapPin, Moon, Sun, Users } from "lucide-react";
+import { Bell, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Info, LayoutGrid, MapPin, Moon, Settings as SettingsIcon, Store, Sun, Users } from "lucide-react";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { businessView, useErp, useShopErp } from "@/components/shopbook/product-search";
 import { useTheme } from "@/components/shopbook/ui";
@@ -251,6 +251,14 @@ export function GlobalApplicationHeader({
                     {tr(m)}
                   </button>
                 ))}
+                {!store.get()?.staff && <button type="button" onClick={() => go("/setup")} className={MENU_ROW}>
+                  <Store className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>{tr("Business Setup")}</span>
+                </button>}
+                <button type="button" onClick={() => go("/settings")} className={MENU_ROW}>
+                  <SettingsIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{tr("Settings")}</span>
+                </button>
                 <button type="button" onClick={() => go("/settings")} className={MENU_ROW}>
                   <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>{tr("Business Profile")}</span>

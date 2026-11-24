@@ -14,6 +14,8 @@ function overflowOf(box: HTMLElement) {
   let over = Math.max(0, box.scrollHeight - box.clientHeight);
   for (const e of box.querySelectorAll<HTMLElement>("*")) {
     if (e.clientHeight < 40 || e.closest("[role=dialog]") !== box.closest("[role=dialog]")) continue;
+    // Pick lists (currencies, countries, languages) scroll inside themselves by design: never a reason to shrink the page.
+    if (e.closest("[role=listbox], [data-own-scroll]")) continue;
     if (!scrolls(e) || getComputedStyle(e).overflowY === "hidden") continue;
     over = Math.max(over, e.scrollHeight - e.clientHeight);
   }

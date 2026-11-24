@@ -1,6 +1,6 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Building2, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, UserRound, X } from "lucide-react";
+import { Bell, Building2, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, Settings as SettingsIcon, Store, UserRound, X } from "lucide-react";
 import { toast } from "sonner";
 import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -503,6 +503,22 @@ function Apps() {
                   })}
                 </div>
               )}
+
+              {/* Back into Business Setup or Settings at any time after setting up (owner, 2026-11-24). */}
+              {!acct.staff && <ShopButton
+                variant="ghost"
+                className="justify-start gap-2 text-xs font-semibold py-2"
+                onClick={() => { setProfileOpen(false); nav({ to: "/setup" }); }}
+              >
+                <Store className="h-4 w-4 text-emerald-400" /> {tr("Business Setup")}
+              </ShopButton>}
+              <ShopButton
+                variant="ghost"
+                className="justify-start gap-2 text-xs font-semibold py-2"
+                onClick={() => { setProfileOpen(false); nav({ to: "/settings" }); }}
+              >
+                <SettingsIcon className="h-4 w-4 text-blue-400" /> {tr("Settings")}
+              </ShopButton>
 
               {/* 4. HELP & SUPPORT */}
               <ShopButton

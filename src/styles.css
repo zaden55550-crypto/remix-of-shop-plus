@@ -15279,7 +15279,7 @@ html:not([data-scale-ready]) body > * {
 .plans-currency { display: inline-flex; align-items: center; gap: 0.35rem; flex: none; font-size: 0.75rem; font-weight: 800; color: var(--muted-foreground); }
 .plans-currency select { height: 1.9rem; padding: 0 0.5rem; border-radius: 999px; border: 1px solid var(--border); background: var(--input-bg, rgb(15 23 42 / 0.6)); color: var(--input-text, inherit); font-weight: 800; font-size: 0.8rem; }
 .plans-approx { opacity: 0.85; }
-@media (max-width: 480px) { .plans-currency > span { display: none; } }
+@media (max-width: 480px) { .plans-currency > span:first-child { display: none; } }
 .plans-nudge > div {
   animation: plans-nudge 1s ease-in-out 3;
 }
@@ -26061,3 +26061,36 @@ body.on-setup .movein-page { width: min(78rem, calc(88vw / 1.15)) !important; }
   .sale-tour-text p { font-size: 14px; line-height: 1.45; }
 }
 /* ===== END SALE TOUR POLISH ===== */
+
+/* ===== PLANS CURRENCY CHOOSER (owner, 2026-11-24): a code button that opens a searchable list; solid white so every name reads. ===== */
+.plans-cur { position: relative; display: inline-flex; }
+.plans-cur-btn { display: inline-flex; align-items: center; gap: 0.3rem; height: 1.9rem; padding: 0 0.6rem 0 0.75rem; border-radius: 999px; border: 1px solid rgb(190 215 255 / 0.45);
+  background: rgb(15 23 42 / 0.55); color: #fff; font-weight: 900; font-size: 0.8rem; cursor: pointer; }
+.plans-cur-btn svg { width: 0.9rem; height: 0.9rem; }
+.plans-cur-pop { position: absolute; top: calc(100% + 6px); right: 0; z-index: 80; width: min(17rem, calc(100vw - 1.5rem)); display: flex; flex-direction: column; gap: 6px; padding: 8px;
+  border-radius: 14px; background: #ffffff; color: #0f2a4f; box-shadow: 0 18px 46px rgb(5 15 45 / 0.5); white-space: normal; }
+.plans-cur-search { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 2.4rem; border-radius: 10px; border: 1px solid #cbd5e1; background: #f8fafc; }
+.plans-cur-search svg { width: 1rem; height: 1rem; color: #64748b; flex: none; }
+.plans-cur-search input { flex: 1; min-width: 0; height: 100%; border: 0 !important; outline: none; background: transparent !important; color: #0f2a4f !important; font-size: 0.9rem; font-weight: 700; box-shadow: none !important; padding: 0 !important; }
+.plans-cur-list { display: flex; flex-direction: column; max-height: min(16rem, 50vh); overflow-y: auto; overscroll-behavior: contain; }
+.plans-cur-list > button { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 8px; text-align: start; color: #0f2a4f; font-size: 0.85rem; cursor: pointer; }
+.plans-cur-list > button:hover, .plans-cur-list > button:focus-visible { background: #eff6ff; }
+.plans-cur-list > button.is-on { background: #ecfdf5; }
+.plans-cur-list > button b { width: 2.8rem; flex: none; font-weight: 900; }
+.plans-cur-list > button span { flex: 1; min-width: 0; color: #475569; font-weight: 600; }
+.plans-cur-list > button svg { width: 1rem; height: 1rem; color: #059669; flex: none; }
+.plans-cur-list > em { padding: 10px; color: #64748b; font-style: normal; font-size: 0.85rem; }
+/* ===== END PLANS CURRENCY CHOOSER ===== */
+/* The app's glass and input rules must not reach the white currency list. */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-search { background: #f1f5f9 !important; border: 1px solid #cbd5e1 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-search input, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-search input:focus { background: transparent !important; background-color: transparent !important; color: #0f2a4f !important; -webkit-text-fill-color: #0f2a4f !important; border: 0 !important; box-shadow: none !important; outline: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-search input::placeholder { color: #64748b !important; -webkit-text-fill-color: #64748b !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-search:focus-within { border-color: #10b981 !important; box-shadow: 0 0 0 2px rgb(16 185 129 / 0.25) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list > button { background: transparent !important; color: #0f2a4f !important; border: 0 !important; box-shadow: none !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list > button:hover, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list > button:focus-visible { background: #eff6ff !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list > button.is-on { background: #ecfdf5 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list > button b { color: #0f2a4f !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list > button span { color: #475569 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop [role="listbox"] { background: #ffffff !important; background-color: #ffffff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: 0 !important; box-shadow: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop { box-shadow: 0 18px 46px rgb(5 15 45 / 0.5) !important; }
+/* ===== END PLANS CURRENCY CHOOSER OVERRIDES ===== */
