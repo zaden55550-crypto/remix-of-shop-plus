@@ -1,7 +1,7 @@
 // Day-to-day screens (owner, 2026-11-23): Close the day (POS › Cash), barcode labels (Inventory), the online-shop QR on receipts,
 // the spoken Setup guide, and "Invite a shop, get a free month" (Plans). Logic lives in src/lib/day-tools.ts and src/lib/qr.ts.
 import { useEffect, useMemo, useState } from "react";
-import { Barcode, Gift, MessageCircle, Printer, Volume2, VolumeX } from "lucide-react";
+import { Barcode, Gift, MessageCircle, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
 import { CounterPicker } from "@/components/shopbook/counter-picker";
@@ -103,31 +103,6 @@ export function ReceiptQr({ tr }: { tr: Tr }) {
   const src = useMemo(() => { try { return url ? qrDataUrl(url) : ""; } catch { return ""; } }, [url]);
   if (!src) return null;
   return <div className="receipt-qr"><img src={src} alt={url} width={96} height={96} /><small>{tr("Scan to order again on WhatsApp")}</small></div>;
-}
-
-/* ---------- 7. Spoken Setup guide (English or Kiswahili) ---------- */
-const GUIDE: Record<"English" | "Swahili", string[]> = {
-  English: ["Welcome to Business Setup.", "First, type your business name and phone number.", "Next, choose your business type.", "Then add your shops and warehouses. Each one gets its own row.", "Add the people who will work with you using Add User.", "When everything is ready, press the green Activate button at the top right."],
-  Swahili: ["Karibu kwenye Mpangilio wa Biashara.", "Kwanza, andika jina la biashara yako na namba ya simu.", "Kisha, chagua aina ya biashara yako.", "Baadaye ongeza maduka na maghala yako. Kila moja lina mstari wake.", "Ongeza watu watakaofanya kazi nawe kwa kubonyeza Ongeza Mtumiaji.", "Kila kitu kikiwa tayari, bonyeza kitufe cha kijani cha Washa juu upande wa kulia."],
-};
-export function VoiceGuide() {
-  const { tr, language } = useLanguage();
-  const [on, setOn] = useState(false);
-  useEffect(() => () => { try { window.speechSynthesis?.cancel(); } catch { /* none */ } }, []);
-  const play = () => {
-    const synth = typeof window !== "undefined" ? window.speechSynthesis : undefined;
-    if (!synth) { toast.error(tr("This browser can't read aloud")); return; }
-    if (on) { synth.cancel(); setOn(false); return; }
-    const sw = language === "Swahili", voices = synth.getVoices();
-    const voice = voices.find((v) => v.lang.toLowerCase().startsWith(sw ? "sw" : "en-ke")) ?? voices.find((v) => v.lang.toLowerCase().startsWith(sw ? "sw" : "en"));
-    const u = new SpeechSynthesisUtterance(GUIDE[sw ? "Swahili" : "English"].join(" "));
-    u.lang = sw ? "sw-KE" : "en-KE"; u.rate = 0.92; if (voice) u.voice = voice;
-    u.onend = () => setOn(false); u.onerror = () => setOn(false);
-    synth.cancel(); synth.speak(u); setOn(true);
-  };
-  return <button type="button" className={`voice-guide${on ? " is-on" : ""}`} onClick={play} title={tr(on ? "Stop the spoken guide" : "Listen to the setup guide")} aria-label={tr(on ? "Stop the spoken guide" : "Listen to the setup guide")}>
-    {on ? <VolumeX aria-hidden /> : <Volume2 aria-hidden />}
-  </button>;
 }
 
 /* ---------- 8. Invite a shop, get a free month ---------- */

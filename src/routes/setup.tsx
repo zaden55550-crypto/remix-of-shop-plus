@@ -37,7 +37,7 @@ import { friendly } from "@/lib/people-cloud";
 import { readProductImage } from "@/lib/product-export";
 import { ROLES, isManagerRole, roleLabel } from "@/lib/staff-access";
 import { businessTypesOf, canOpen, planAllowanceLines, planCounterLine, planEmployeeRule, planPrice, store, type Account, type BusinessDocument } from "@/lib/shopbook";
-import { VoiceGuide } from "@/components/shopbook/daily-tools";
+import { SLOTS_FULL, SlotsFull } from "@/components/shopbook/slots-full";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/setup")({
@@ -150,6 +150,9 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const existingPeople = s.employees.filter((e) => e.memberId && e.active && e.status !== "terminated" && e.accessRole);
   const logins = loginSummary(plan.id, d.users, existingPeople, live);
   const loginFull = logins.used >= logins.total || (logins.usedStaff >= logins.staff && logins.usedManagers >= logins.managers);
+  // Every place taken (owner, 2026-11-24): Add User explains, with 0 left and how to contact us for more, instead of doing nothing.
+  const [slotsOpen, setSlotsOpen] = useState(false);
+  const addUser = () => { if (loginFull) { setSlotsOpen(true); return; } setNewUserLocation(null); setEditingUser("new"); };
   const set = (p: Partial<SetupDraft>) => { setD((x) => ({ ...x, ...p })); setProblems([]); };
   // Auto-save: every change is kept on this device about a second later, quietly ("Saved just now" beside Save). Photos too big
   // for the device's storage are left out of the saved copy and stay on the page until Activate.
@@ -449,10 +452,9 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </button>
         <input ref={logoFile} hidden type="file" accept="image/*" onChange={(e) => { pickHeadLogo(e.target.files?.[0]); e.target.value = ""; }} />
         <h1 className="bsetup-title">{tr("Business Setup")}</h1>
-        <VoiceGuide />
         <span className="bsetup-head-sub">
         <button type="button" className="bsetup-head-meta bsetup-place-btn" title={tr("Change country and currency")} onClick={() => setPlaceOpen(true)}>{[countryName, currencyShown].filter(Boolean).join(" · ") || tr("Country & currency")} <Pencil aria-hidden /></button>
-        {savedText && (compact ? <span className="bsetup-saved is-icon" role="status" title={savedText} aria-label={savedText}><Save aria-hidden /></span> : <span className="bsetup-saved" role="status">{savedText}</span>)}
+        {savedText && (compact ? <span className="bsetup-saved is-icon" role="status" title={savedText} aria-label={savedText}><Save aria-hidden /></span> : <span className="bsetup-saved" role="status"><span className="bsetup-saved-text">{savedText}</span></span>)}
         </span>
       </div>
       {!compact && <ol className="bsetup-steps" aria-label={tr("Getting started")}>
@@ -514,13 +516,13 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
           <button type="button" className="bsetup-co-btn is-more" aria-haspopup="menu" aria-expanded={pop === "more"} onClick={() => setPop(pop === "more" ? null : "more")}><MoreHorizontal aria-hidden /> {tr("More")} <ChevronDown aria-hidden /></button>
           {pop === "more" && <span className="bsetup-import-menu bsetup-more-menu" role="menu">
             {!morePhones && <button type="button" role="menuitem" onClick={() => { setPop(null); setMorePhones(true); }}><Phone aria-hidden /><span><b>{tr("Add phone")}</b><small>{tr("A second or third phone number for the business")}</small></span></button>}
-            <button type="button" role="menuitem" disabled={loginFull} onClick={() => { setPop(null); setNewUserLocation(null); setEditingUser("new"); }}><UserPlus aria-hidden /><span><b>{tr("Add User")}</b><small>{loginFull ? tr("Your plan has no more login accounts") : tr("A manager or staff member who logs in")}</small></span></button>
+            <button type="button" role="menuitem" onClick={() => { setPop(null); addUser(); }}><UserPlus aria-hidden /><span><b>{tr("Add User")}</b><small>{loginFull ? tr("All user places are used") + " · " + tr("0 left") : tr("A manager or staff member who logs in")}</small></span></button>
             <button type="button" role="menuitem" onClick={() => { setPop(null); setOwnerInfo(true); }}><Pencil aria-hidden /><span><b>{tr("Edit Owner")}</b><small>{tr("The owner's name, email and phone")}</small></span></button>
             <button type="button" role="menuitem" onClick={() => { setPop(null); setManaging("company"); }}><Users aria-hidden /><span><b>{tr("Manage Users")}</b><small>{tr("Everyone added to this business")}</small></span></button>
             <button type="button" role="menuitem" onClick={() => { setPop(null); openAccess(); }}><ShieldCheck aria-hidden /><span><b>{tr("Manage Access")}</b><small>{tr("Roles, permissions and invitations")}</small></span></button>
           </span>}
         </span> : <div className="bsetup-company-actions" role="group" aria-label={tr("Company-wide actions")}>
-          <button type="button" className="bsetup-co-btn is-add" disabled={loginFull} title={loginFull ? tr("Your plan has no more login accounts") : undefined} onClick={() => { setNewUserLocation(null); setEditingUser("new"); }}><UserPlus aria-hidden /> {tr("Add User")}</button>
+          <button type="button" className={`bsetup-co-btn is-add${loginFull ? " is-full" : ""}`} title={loginFull ? tr(SLOTS_FULL) : undefined} onClick={addUser}><UserPlus aria-hidden /> {tr("Add User")}</button>
           <button type="button" className="bsetup-co-btn is-owner" onClick={() => setOwnerInfo(true)}><Pencil aria-hidden /> {tr("Edit Owner")}</button>
           <button type="button" className="bsetup-co-btn is-users" onClick={() => setManaging("company")}><Users aria-hidden /> {tr("Manage Users")}</button>
           <button type="button" className="bsetup-co-btn is-access" title={tr("Set role templates and individual employee permissions, review invitations, reset access and suspend or reactivate logins. Business Setup and Settings use the same employee and permission records.")} onClick={() => openAccess()}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>
@@ -630,6 +632,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       onClose={() => setEditingRow(null)}
       onSave={(rows, users) => { set({ rows: d.rows.map((x) => rows.find((y) => y.key === x.key) ?? x), users }); setEditingRow(null); }} />}
 
+    {slotsOpen && <GlassPage label={tr("All user places are used")} onClose={() => setSlotsOpen(false)} narrow><div className="inventory-box dash-panel"><SlotsFull tr={tr} planId={plan.id} staffOnly={logins.used < logins.total} onClose={() => setSlotsOpen(false)} /></div></GlassPage>}
     {editingUser && <UserEditor tr={tr} rows={live} canManager={plan.managerRoles} initial={editingUser === "new" ? (newUserLocation ? { key: newKey(), name: "", phone: "", email: "", role: "staff", locations: [newUserLocation] } : undefined) : editingUser} business={d.businessName.trim() || acct.shopName || ""}
       onSend={sendInvite} onConnect={(u) => void connectServer(u)} takenEmails={takenEmails(editingUser === "new" ? undefined : editingUser.key)}
       onClose={() => { setEditingUser(null); setNewUserLocation(null); }} onSave={(u) => { putUser(u); setEditingUser(null); setNewUserLocation(null); }} />}
@@ -641,7 +644,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
       return <ManageUsers tr={tr} owner={acct.email || tr("Owner")} site={site} siteName={site ? site.name || site.code : undefined} people={site ? peopleAt(site) : existingPeople} users={scopedUsers} others={otherUsers} placeName={placeName} savedPlaceName={savedPlaceName} logins={logins}
         onEdit={(u) => { setManaging(null); setEditingUser(u); }} onRemove={(u) => set({ users: d.users.filter((x) => x.key !== u.key) })}
         onAssign={site ? (u) => set({ users: d.users.map((x) => x.key === u.key ? { ...x, locations: [...new Set([...x.locations, site.key])] } : x) }) : undefined}
-        onAdd={() => { setManaging(null); setNewUserLocation(site?.key ?? null); setEditingUser("new"); }} onAccess={() => openAccess("Location Assignments", site?.savedId ?? null)} onClose={() => setManaging(null)} />;
+        onAdd={() => { setManaging(null); if (loginFull) { setSlotsOpen(true); return; } setNewUserLocation(site?.key ?? null); setEditingUser("new"); }} onAccess={() => openAccess("Location Assignments", site?.savedId ?? null)} onClose={() => setManaging(null)} />;
     })()}
     {welcome && <GlassNotice title={tr("Welcome to Business Setup")} onClose={closeWelcome} className="bsetup-dialog bsetup-welcome">
       <p>{tr("Four short steps, all on this page:")}</p>
@@ -1040,13 +1043,13 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
   };
   const saveWithoutSending = () => {
     if (!typed) { save(); return; }
-    if (full) { toast.error(tr("Your plan has no more login accounts")); return; }
+    if (full) { toast.error(tr(SLOTS_FULL)); return; }
     const x = checkUser(tr, u, places, current, takenEmails);
     if (x) save(x);
   };
   const sendInvitation = async () => {
     if (!inv.locked && !typed) { toast.error(tr("Fill in the person's name, email and role first")); personRef.current?.focus(); return; }
-    if (full && !inv.locked) { toast.error(tr("Your plan has no more login accounts")); return; }
+    if (full && !inv.locked) { toast.error(tr(SLOTS_FULL)); return; }
     const x = checkUser(tr, u, places, current, takenEmails);
     if (x && await inv.send(x)) { setSentTo(x.email); setU(blank()); inv.reset(); }
   };
@@ -1129,7 +1132,7 @@ function EntryEditor({ tr, r, rows, focus, codeProblem, placeholder, logo, users
           <CounterPicks tr={tr} rows={current} chosen={u.locations} value={u.counters} onChange={(counters) => setU({ ...u, counters })} />
         </fieldset>
         {u.role && ROLE_HELP[u.role] && <p className="bsetup-note">{tr(ROLE_HELP[u.role]!)}{!canManager ? ` ${tr("Basic has no manager logins: one owner and one employee.")}` : ""}</p>}
-        {full && !inv.locked && <p className="bsetup-problem">{tr("Your plan has no more login accounts")}</p>}
+        {full && !inv.locked && <SlotsFull tr={tr} planId={setupPlan(store.get()).id} />}
         {(typed || inv.locked) && <p className="bsetup-note">{tr("Send Invitation emails {x} now", u.email.trim() || "—")} · {tr("Business")}: {business || "—"}. {tr("Each person counts once, whatever sites they are assigned to.")}</p>}
         <InviteOutcome tr={tr} inv={inv} email={u.email.trim()} onConnect={() => { const x = checkUser(tr, u, places, current, takenEmails); if (x) onConnect(x); }} />
         {sentTo && <p role="status" className="bsetup-sent">{tr("Invitation sent")} · {sentTo} · {tr("Pending acceptance")}<small> · {tr("The email provider accepted the message; that doesn't yet mean it reached the inbox or was accepted.")}</small></p>}
@@ -1244,7 +1247,7 @@ function ManageUsers({ tr, owner, site, siteName, people, users, others = [], pl
       {onAccess && <button type="button" className="bsetup-link-btn" onClick={onAccess}><ShieldCheck aria-hidden /> {tr("Manage Access")}</button>}
       <span className="flex-1" />
       <ShopButton variant="outline" className="h-auto min-h-11 px-3 py-2 text-sm" onClick={onClose}>{tr("Close")}</ShopButton>
-      <ShopButton className="h-auto min-h-11 px-3 py-2 text-sm" disabled={logins.used >= logins.total} title={logins.used >= logins.total ? tr("Your plan has no more login accounts") : undefined} onClick={onAdd}><UserPlus /> {tr(site ? "Add user to this site" : "Add User")}</ShopButton>
+      <ShopButton className="h-auto min-h-11 px-3 py-2 text-sm" title={logins.used >= logins.total ? tr(SLOTS_FULL) : undefined} onClick={onAdd}><UserPlus /> {tr(site ? "Add user to this site" : "Add User")}</ShopButton>
     </div>
   </GlassNotice>;
 }

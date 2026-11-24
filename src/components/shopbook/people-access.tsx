@@ -17,7 +17,8 @@ import { connectPeople, friendly, mirrorErpLocations, peopleData, rememberLink, 
 import { EMPLOYMENT_TYPES, employeeStatus, linkEmployeeLogin, saveEmployeeProfile, setEmployeeAssignments, setEmploymentStatus, type EmployeeProfile } from "@/lib/people";
 import { ACTIONS, MODULES, OWNER_ONLY, ROLES, SENSITIVE, isManagerRole, moduleKey, roleLabel, rolesForIndustry } from "@/lib/staff-access";
 import { businessTypeByName, type IndustryFamilyId } from "@/lib/industry-config";
-import { store } from "@/lib/shopbook";
+import { PLANS, store, type PlanId } from "@/lib/shopbook";
+import { SlotsFull } from "@/components/shopbook/slots-full";
 import { supabase } from "@/integrations/supabase/client";
 import { authMessage, linkProvider, registerEmailIdentity, signInEmail, signInProvider } from "@/lib/auth-service";
 
@@ -146,7 +147,7 @@ function SeatLine({ d, tr }: { d: Overview; tr: Tr }) {
     {u.usable && !over && u.available_users > 0 && someFull && <p>{tr("One of your allowances is fully used.")} <Link to="/plans" className="dash-link">{tr("Upgrade")}</Link></p>}
     {!u.usable ? <p role="alert">{tr("The subscription is not active, so no new logins can be created.")} <Link to="/plans" className="dash-link">{tr("View plans")}</Link></p>
       : over ? <p role="alert">{tr("You have more logins than this plan allows. Nobody is removed, but you can't add more until you are within the limit.")} <Link to="/plans" className="dash-link">{tr("Upgrade")}</Link></p>
-      : u.available_users === 0 ? <p role="alert">{tr("All user accounts are in use. Employees without a login don't count, and removing a login frees its place.")} <Link to="/plans" className="dash-link">{tr("Upgrade")}</Link></p> : null}
+      : u.available_users === 0 || (u.available_managers === 0 && u.active_employees >= u.employee_slots) ? <SlotsFull tr={tr} planId={(PLANS.some((p) => p.id === u.plan_id) ? u.plan_id : "business") as PlanId} /> : null}
   </div>;
 }
 
