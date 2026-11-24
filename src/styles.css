@@ -25571,6 +25571,18 @@ html.dark .bsetup {
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .type-picker-dialog .type-picker-list > li label > span { min-width: 0; white-space: normal !important; overflow-wrap: anywhere; line-height: 1.15; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup.is-compact .bsetup-profile.is-more :is(.bsetup-doc-upload, .bsetup-doc-count) { height: 54px !important; min-height: 54px !important; padding: 0 16px !important; font-size: 19px !important; white-space: nowrap; border-radius: 12px !important; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup.is-compact .bsetup-profile.is-more :is(.bsetup-doc-upload, .bsetup-doc-count) svg { width: 20px !important; height: 20px !important; }
+/* Import's three choices on the strip (owner, 2026-11-24): From another system · Spreadsheet (green, they bring data in) · History (blue). */
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-row { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-row > .bsetup-imp-btn { display: inline-flex !important; flex-direction: row !important; flex-wrap: nowrap !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
+  white-space: nowrap !important; height: 50px !important; min-height: 0 !important; padding: 0 14px !important; border-radius: 12px !important; font-size: 17px !important; font-weight: 800 !important;
+  background: #059669 !important; color: #fff !important; border: 0 !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-row > .bsetup-imp-btn.is-history { background: #2563eb !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-row > .bsetup-imp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-import-row > .bsetup-imp-btn svg { width: 20px; height: 20px; flex: none; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup.is-compact .bsetup-strip-count { display: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup .bsetup-strip { flex-wrap: wrap !important; row-gap: 8px !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup.is-compact .bsetup-strip-usage { display: none !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup.is-compact .bsetup-import-row > .bsetup-imp-btn, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .bsetup.is-compact .bsetup-feat-wrap > .bsetup-feat-btn { font-size: 16px !important; padding: 0 12px !important; }
 /* ===== END BUSINESS SETUP, READABLE LAPTOP LAYOUT ===== */
 .bsetup-docs-page .settings-note { font-size: 15px; }
 
@@ -26094,3 +26106,75 @@ body.on-setup .movein-page { width: min(78rem, calc(88vw / 1.15)) !important; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop .plans-cur-list, :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop [role="listbox"] { background: #ffffff !important; background-color: #ffffff !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; border: 0 !important; box-shadow: none !important; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .plans-cur-pop { box-shadow: 0 18px 46px rgb(5 15 45 / 0.5) !important; }
 /* ===== END PLANS CURRENCY CHOOSER OVERRIDES ===== */
+
+/* ===== INVITE RULES (owner, 2026-11-24): paying shops per free month by plan; the inviter's own plan is highlighted. ===== */
+.referral-rules { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.referral-rules > li { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgb(190 215 255 / 0.3); background: rgb(15 23 42 / 0.25); }
+.referral-rules > li b { font-size: 16px; font-weight: 900; }
+.referral-rules > li span { font-size: 13.5px; line-height: 1.3; opacity: 0.9; }
+.referral-rules > li.is-mine { border-color: #10b981; background: rgb(16 185 129 / 0.18); box-shadow: inset 0 0 0 1px #10b981; }
+.referral-count small { display: block; margin-top: 2px; opacity: 0.85; }
+@media (max-width: 520px) { .referral-rules { grid-template-columns: 1fr; } }
+/* ===== END INVITE RULES ===== */
+
+/* ===== MANAGE SHOPS & COMPARE (owner, 2026-11-24; manage-shops.tsx, shop-compare.ts) ===== */
+.manage-shops { display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: rgb(15 23 42 / 0.25); }
+.manage-shops-note { font-size: 11.5px; color: var(--muted-foreground); line-height: 1.35; margin: 0; }
+.manage-shops-list { display: flex; flex-direction: column; gap: 4px; }
+.manage-shops-list > button { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; font-size: 12.5px; font-weight: 700; text-align: start; color: inherit; }
+.manage-shops-list > button:hover { background: rgb(255 255 255 / 0.06); }
+.manage-shops-list > button.is-on { border-color: #10b981; background: rgb(16 185 129 / 0.16); }
+.manage-shops-list > button svg { width: 15px; height: 15px; flex: none; }
+.manage-shops-list > button > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manage-shops-list > button > svg:last-child { color: #10b981; }
+.manage-shops-compare { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; border-radius: 10px; background: #2563eb; color: #fff; font-size: 13px; font-weight: 800; }
+.manage-shops-compare svg { width: 16px; height: 16px; }
+.compare-shops { width: min(64rem, 94vw); display: flex; flex-direction: column; gap: 10px; }
+.compare-shops-done { height: 40px; padding: 0 18px; border-radius: 10px; background: #10b981; color: #fff; font-weight: 800; }
+.compare-shops-scroll { overflow-x: auto; max-height: 60vh; overflow-y: auto; border-radius: 12px; border: 1px solid rgb(190 215 255 / 0.25); }
+.compare-shops table { width: 100%; border-collapse: collapse; font-size: 14px; white-space: nowrap; }
+.compare-shops th, .compare-shops td { padding: 10px 12px; border-bottom: 1px solid rgb(190 215 255 / 0.15); text-align: end; }
+.compare-shops thead th { position: sticky; top: 0; background: #13224a; font-size: 12.5px; font-weight: 800; opacity: 0.95; z-index: 1; }
+.compare-shops th:first-child { text-align: start; }
+.compare-shops tbody th { display: flex; flex-direction: column; gap: 1px; font-weight: 700; }
+.compare-shops tbody th small { font-size: 11.5px; opacity: 0.7; font-weight: 600; }
+.compare-shops td.is-top { color: #34d399; font-weight: 900; }
+.compare-shops td.is-warn { color: #fbbf24; font-weight: 800; }
+.compare-shops tfoot th, .compare-shops tfoot td { font-weight: 900; border-bottom: 0; background: rgb(16 185 129 / 0.12); }
+/* ===== END MANAGE SHOPS & COMPARE ===== */
+
+/* ===== FREE TRIAL BAR, EMERALD (owner, 2026-11-24): the trial bar on the Apps page is solid emerald; days left and Explore plans
+   are white pills with emerald writing, so the three parts read at a glance in both themes. ===== */
+:root:root:root:root:root:root:root:root:root:root:root:root .trial-banner, :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-glass-banner.trial-banner { background: linear-gradient(135deg, #059669, #10b981 55%, #047857) !important; border: 1px solid rgb(167 243 208 / 0.55) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 0 1.2rem rgb(16 185 129 / 0.4), 0 0.4rem 1rem rgb(2 6 23 / 0.45) !important; color: #fff !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .trial-banner .trial-banner-text { color: #fff !important; font-weight: 900 !important; letter-spacing: 0.06em; }
+:root:root:root:root:root:root:root:root:root:root:root:root .trial-banner .trial-banner-sep { background: rgb(255 255 255 / 0.55) !important; }
+:root:root:root:root:root:root:root:root:root:root:root:root .trial-banner .trial-banner-days, :root:root:root:root:root:root:root:root:root:root:root:root .trial-banner .trial-banner-upgrade { background: #ffffff !important; color: #047857 !important; border: 0 !important; font-weight: 900 !important;
+  box-shadow: 0 2px 8px rgb(2 6 23 / 0.25) !important; text-shadow: none !important; }
+/* ===== END FREE TRIAL BAR ===== */
+
+/* ===== APPS PAGE ON PHONES (owner, 2026-11-24): /apps keeps its own phone layout (laptop-view.ts). The shop name stays on one line
+   and ends in "…", upright phones get taller tiles that fill the rows, and a phone held sideways gets a slimmer header and trial
+   bar so the tiles have the room. Every tile stays inside its glass. ===== */
+:root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-shop-name { white-space: normal !important; overflow: hidden !important; text-overflow: ellipsis !important; word-break: keep-all !important; overflow-wrap: normal !important; hyphens: none !important;
+  display: -webkit-box !important; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.1 !important; text-align: center; }
+@media (max-width: 1099px) { :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-header-side button span:has(> [role="status"]) { display: none !important; } }
+@media (max-width: 480px) { :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-brand { display: none !important; } }
+@media (max-width: 600px) and (orientation: portrait) {
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-grid { --tile-h: min(var(--row), calc(var(--col) * 1.5), 220px); --tile-w: var(--col); }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-header .apps-glass-logo { width: 34px !important; height: 34px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-header .apps-gbtn, :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-header .auth-theme-toggle-button { width: 34px !important; height: 34px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-brand { font-size: 14px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-shop-name { font-size: 15px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-glass-banner.trial-banner { margin-top: 4px !important; padding-block: 3px !important; min-height: 0 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-glass-banner .trial-banner-row { font-size: 12px !important; min-height: 0 !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-glass-banner :is(.trial-banner-days, .trial-banner-upgrade) { padding-block: 3px !important; font-size: 11.5px !important; }
+  :root:root:root:root:root:root:root:root:root:root:root:root .apps-glass .apps-grid { --tile-w: min(var(--col), calc(var(--tile-h) * 1.9)); }
+}
+/* ===== END APPS PAGE ON PHONES ===== */
+.referral { width: 100% !important; max-width: 46rem; margin-inline: auto; box-sizing: border-box; white-space: normal; }
+.referral > *, .referral-rules > li { min-width: 0; box-sizing: border-box; }
+.referral .connection-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.referral .connection-actions > * { flex: 1 1 12rem; justify-content: center; }

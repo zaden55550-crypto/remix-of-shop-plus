@@ -12,7 +12,8 @@ import * as erp from "@/lib/erp";
 import { assignBarcodes, closeDayText, code128, dayAtCounter, shopLinkUrl } from "@/lib/day-tools";
 import { qrDataUrl } from "@/lib/qr";
 import { readSettings } from "@/lib/settings-config";
-import { store } from "@/lib/shopbook";
+import { PLANS, store } from "@/lib/shopbook";
+import { PAID_INVITES_PER_FREE_MONTH, deviceReferralCode, freeMonths, referralPlan, rememberReferralCode } from "@/lib/referrals";
 import { smsLink, waLink } from "@/lib/whatsapp";
 
 type Tr = (x: string) => string;
@@ -146,28 +147,51 @@ export async function sendReferral() {
   const r = await (supabase.rpc as unknown as (fn: string, a: object) => Promise<{ error: unknown }>)("record_referral", { p_code: code });
   if (!r.error) try { localStorage.removeItem(REF); } catch { /* sent again next time; recorded once on the server */ }
 }
+/** Invite a shop, get a free month (owner, 2026-11-24): the link shows at once, made on this device; online, the server claims the
+ *  same code (proposed 0026, falling back to 0025's my_referral_code) and says how many invited shops joined and how many paid.
+ *  Only paying shops count, and the number per free month follows the inviter's plan (src/lib/referrals.ts). */
 export function ReferralCard() {
   const { tr } = useLanguage();
-  const [info, setInfo] = useState<{ code: string; joined: number; paid: number } | null | "off">(null);
+  const acct = store.get();
+  const plan = referralPlan(acct);
+  const [code, setCode] = useState(() => deviceReferralCode(acct));
+  const [counts, setCounts] = useState<{ joined: number; paid: number } | null>(null);
   useEffect(() => {
-    void (supabase.rpc as unknown as (fn: string) => Promise<{ data: { code: string; joined: number; paid: number } | null; error: unknown }>)("my_referral_code")
-      .then((r) => setInfo(r.error || !r.data ? "off" : r.data), () => setInfo("off"));
+    type Res = { data: { code: string; joined: number; paid: number } | null; error: unknown };
+    const rpc = supabase.rpc as unknown as (fn: string, args?: object) => Promise<Res>;
+    let live = true;
+    void (async () => {
+      const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+      if (!data.session) return;
+      let r = await rpc("claim_referral_code", { p_code: deviceReferralCode(acct) }).catch(() => null);
+      if (!r || r.error || !r.data) r = await rpc("my_referral_code").catch(() => null);
+      if (!live || !r || r.error || !r.data) return;
+      rememberReferralCode(r.data.code); setCode(r.data.code); setCounts({ joined: r.data.joined, paid: r.data.paid });
+    })();
+    return () => { live = false; };
   }, []);
-  const link = info && info !== "off" ? `${window.location.origin}/signup?ref=${info.code}` : "";
+  const link = `${window.location.origin}/signup?ref=${code}`;
   const text = `${tr("I run my shop with Zakrio Systems: sales, stock and M-Pesa in one app, even offline. Try it free for 30 days:")} ${link}`;
+  const progress = counts ? freeMonths(counts.paid, plan) : null;
+  const planName = PLANS.find((p) => p.id === plan)?.name ?? plan;
   return <div className="referral">
     <h3><Gift aria-hidden /> {tr("Invite a shop, get a free month")}</h3>
-    <p className="settings-note">{tr("Share your link. When a shop you invited pays for its first plan, you get one month free on your plan.")}</p>
-    {info === null && <p>{tr("Loading…")}</p>}
-    {info === "off" && <p className="settings-note is-warn">{tr("Sign in online with your business email to get your invite link.")}</p>}
-    {info && info !== "off" && <>
-      <p className="referral-code"><span>{tr("Your code")}</span><b>{info.code}</b></p>
-      <p className="referral-link">{link}</p>
-      <div className="connection-actions">
-        <a className="tools-btn is-wa" href={waLink(text)} target="_blank" rel="noopener"><MessageCircle aria-hidden /> {tr("Share on WhatsApp")}</a>
-        <ShopButton variant="outline" onClick={() => { void navigator.clipboard?.writeText(link).then(() => toast.success(tr("Link copied"))); }}>{tr("Copy link")}</ShopButton>
-      </div>
-      <p className="referral-count">{tr("Shops joined")}: <b>{info.joined}</b> · {tr("Paid")}: <b>{info.paid}</b></p>
-    </>}
+    <p className="settings-note">{tr("Share your link. Only shops that pay for a plan count, not free trials.")}</p>
+    <ul className="referral-rules">
+      {(["basic", "growth", "business"] as const).map((p) => <li key={p} className={p === plan ? "is-mine" : undefined}>
+        <b>{PLANS.find((x) => x.id === p)?.name ?? p}</b>
+        <span>{tr("Every {x} paying shops = 1 free month", String(PAID_INVITES_PER_FREE_MONTH[p]))}</span>
+      </li>)}
+    </ul>
+    <p className="referral-code"><span>{tr("Your code")}</span><b>{code}</b></p>
+    <p className="referral-link">{link}</p>
+    <div className="connection-actions">
+      <a className="tools-btn is-wa" href={waLink(text)} target="_blank" rel="noopener"><MessageCircle aria-hidden /> {tr("Share on WhatsApp")}</a>
+      <ShopButton variant="outline" onClick={() => { void navigator.clipboard?.writeText(link).then(() => toast.success(tr("Link copied"))); }}>{tr("Copy link")}</ShopButton>
+    </div>
+    {progress && counts ? <p className="referral-count">
+      {tr("Shops joined")}: <b>{counts.joined}</b> · {tr("Paid")}: <b>{counts.paid}</b> · {tr("Free months earned")}: <b>{progress.earned}</b>
+      <small>{tr("{x} more paying shops for your next free month", String(progress.toNext))} ({planName})</small>
+    </p> : <p className="referral-count"><small>{tr("Your invited shops are counted here when you are online.")}</small></p>}
   </div>;
 }

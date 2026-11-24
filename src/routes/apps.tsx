@@ -1,6 +1,7 @@
 ﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Bell, Building2, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, Settings as SettingsIcon, Store, UserRound, X } from "lucide-react";
+import { Bell, Building2, ChevronDown, ChevronUp, HelpCircle, LayoutGrid, Lock, LogOut, MapPin, Store, UserRound, X } from "lucide-react";
+import { ManageShops } from "@/components/shopbook/manage-shops";
 import { toast } from "sonner";
 import { ThemeToggle, useTheme } from "@/components/shopbook/ui";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -86,7 +87,7 @@ function Apps() {
   const shown = launcher?.apps ?? [];
   const [locked, setLocked] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [panel, setPanel] = useState<null | "profile" | "manageApps">(null);
+  const [panel, setPanel] = useState<null | "profile" | "manageApps" | "shops">(null);
   const [chat, setChat] = useState(false);
 
   useEffect(() => {
@@ -504,7 +505,20 @@ function Apps() {
                 </div>
               )}
 
-              {/* Back into Business Setup or Settings at any time after setting up (owner, 2026-11-24). */}
+              {/* Manage shops (owner, 2026-11-24): which shop the apps show, or all shops, and a side-by-side comparison. */}
+              {!acct.staff && <ShopButton
+                variant="ghost"
+                className="justify-between text-xs font-semibold py-2"
+                onClick={() => setPanel(panel === "shops" ? null : "shops")}
+              >
+                <span className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-amber-400" /> {tr("Manage shops")}
+                </span>
+                {panel === "shops" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </ShopButton>}
+              {panel === "shops" && <ManageShops />}
+
+              {/* Back into Business Setup at any time after setting up (owner, 2026-11-24). Settings is on the launcher already. */}
               {!acct.staff && <ShopButton
                 variant="ghost"
                 className="justify-start gap-2 text-xs font-semibold py-2"
@@ -512,13 +526,6 @@ function Apps() {
               >
                 <Store className="h-4 w-4 text-emerald-400" /> {tr("Business Setup")}
               </ShopButton>}
-              <ShopButton
-                variant="ghost"
-                className="justify-start gap-2 text-xs font-semibold py-2"
-                onClick={() => { setProfileOpen(false); nav({ to: "/settings" }); }}
-              >
-                <SettingsIcon className="h-4 w-4 text-blue-400" /> {tr("Settings")}
-              </ShopButton>
 
               {/* 4. HELP & SUPPORT */}
               <ShopButton

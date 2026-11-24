@@ -133,6 +133,31 @@ describe("proposed 0025: referrals", () => {
   }, 60_000);
 });
 
+describe("proposed 0026: invite links made on the device", () => {
+  it("claims the device code, counts shops that signed up before the claim, and never lets an owner refer themselves", async () => {
+    const db = new PGlite();
+    await db.exec(BASE);
+    for (const f of JOURNAL) await db.exec(journalFile(f));
+    for (const m of ["0024_plan_payments", "0025_referrals", "0026_referral_device_codes", "0026_referral_device_codes"]) await db.exec(readFileSync(resolve(`drizzle/proposed/${m}.sql`), "utf8"));
+    const a = "00000000-0000-4000-8000-00000000000a", b = "00000000-0000-4000-8000-00000000000b", c = "00000000-0000-4000-8000-00000000000c", d = "00000000-0000-4000-8000-00000000000d";
+    const as = async (user: string, sql: string) => { await db.exec(`RESET ROLE; SELECT set_config('test.uid', '${user}', false); SET ROLE authenticated`); try { return (await db.query(sql)).rows; } finally { await db.exec("RESET ROLE"); } };
+    // Shops sign up with A's device code before A is online: they wait.
+    expect(((await as(b, "SELECT record_referral('ab12cd') ok"))[0] as { ok: boolean }).ok).toBe(true);
+    await as(c, "SELECT record_referral('AB12CD')");
+    await db.exec(`INSERT INTO plan_payments (owner_id, plan_id, billing, amount_kes, phone, checkout_request_id, status) VALUES ('${b}', 'basic', 'monthly', 1419, '2547', 'ws_1', 'paid')`);
+    // A claims it: the code is A's, both shops count, one has paid.
+    const r = ((await as(a, "SELECT claim_referral_code('AB12CD') r"))[0] as { r: { code: string; joined: number; paid: number } }).r;
+    expect(r).toEqual({ code: "AB12CD", joined: 2, paid: 1 });
+    expect(((await as(a, "SELECT claim_referral_code('ZZZZZZ') r"))[0] as { r: { code: string } }).r.code).toBe("AB12CD");
+    // Someone else asking for A's code gets their own; A can't use their own code.
+    expect(((await as(d, "SELECT claim_referral_code('AB12CD') r"))[0] as { r: { code: string } }).r.code).not.toBe("AB12CD");
+    expect(((await as(a, "SELECT record_referral('AB12CD') ok"))[0] as { ok: boolean }).ok).toBe(false);
+    await expect(as(a, "SELECT * FROM pending_referrals")).rejects.toThrow();
+    await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0026_referral_device_codes.down.sql"), "utf8"));
+    await db.exec(readFileSync(resolve("drizzle/proposed/rollback/0025_referrals.down.sql"), "utf8"));
+  }, 60_000);
+});
+
 describe("WIPE-2026-11-23-fresh-start: a brand new system", () => {
   it("empties every data table, the documents bucket and every online account, and keeps the reference lists", async () => {
     const db = new PGlite();

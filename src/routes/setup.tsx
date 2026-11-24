@@ -112,7 +112,6 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
   // Pop-ups are drawn outside the page, so a body class lets them read at Setup's large size too.
   useEffect(() => { document.body.classList.add("on-setup"); return () => document.body.classList.remove("on-setup"); }, []);
-  const [importMenu, setImportMenu] = useState(false);
   // Phones and iPads (the laptop view shrunk to a small screen, laptop-view.ts) get a tidier Setup (owner, 2026-11-24): the company
   // buttons go under More, the feature ticks under one Business Features button in the strip, and the header is shorter.
   const compact = useSmallScreen();
@@ -124,13 +123,6 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     window.addEventListener("pointerdown", out); window.addEventListener("keydown", esc);
     return () => { window.removeEventListener("pointerdown", out); window.removeEventListener("keydown", esc); };
   }, [pop]);
-  useEffect(() => {
-    if (!importMenu) return;
-    const out = (e: PointerEvent) => { if (!(e.target as Element | null)?.closest?.(".bsetup-import-wrap")) setImportMenu(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setImportMenu(false); };
-    window.addEventListener("pointerdown", out); window.addEventListener("keydown", esc);
-    return () => { window.removeEventListener("pointerdown", out); window.removeEventListener("keydown", esc); };
-  }, [importMenu]);
   const [readyOpen, setReadyOpen] = useState(false), [readyStart, setReadyStart] = useState<ReadyStep | undefined>(undefined);
   // A short welcome the first time this owner opens Setup on this device; dismissed for good with one tap.
   const welcomeKey = `shopbook.setupWelcome@${acct.businessId || acct.email || "owner"}`;
@@ -539,14 +531,11 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
 
     <section className="bsetup-card bsetup-entries" aria-label={tr("Shops & Warehouses")}>
       <header className="bsetup-strip">
-        {/* One Import menu (owner, 2026-11-23): another system, locations from a sheet, and setup history. */}
-        <span className="bsetup-import-wrap">
-          <button type="button" className="bsetup-import-other" aria-haspopup="menu" aria-expanded={importMenu} onClick={() => setImportMenu(!importMenu)}><Upload aria-hidden /> {tr("Import")} <ChevronDown aria-hidden /></button>
-          {importMenu && <span className="bsetup-import-menu" role="menu">
-            <button type="button" role="menuitem" onClick={() => { setImportMenu(false); setMoveIn({}); }}><Upload aria-hidden /><span><b>{tr("From another system")}</b><small>{tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")}</small></span></button>
-            {!full && <button type="button" role="menuitem" onClick={() => { setImportMenu(false); sheetInput.current?.click(); }}><FileText aria-hidden /><span><b>{tr("Locations from a sheet")}</b><small>{tr("Add many shops and warehouses from a CSV or Excel sheet (Type, Name, Phone, Number, Address)")}</small></span></button>}
-            <button type="button" role="menuitem" onClick={() => { setImportMenu(false); setHistoryOpen(true); }}><History aria-hidden /><span><b>{tr("History")}</b><small>{tr("Who changed what in setup")}</small></span></button>
-          </span>}
+        {/* Import's three choices sit on the strip itself, beside Add Shop / Add Warehouse (owner, 2026-11-24, every screen size). */}
+        <span className="bsetup-import-row" role="group" aria-label={tr("Import")}>
+          <button type="button" className="bsetup-import-other bsetup-imp-btn" title={tr("Bring products, customers, suppliers and balances from Odoo, QuickBooks, Zoho, Loyverse or Excel")} onClick={() => setMoveIn({})}><Upload aria-hidden /> {tr("From another system")}</button>
+          <button type="button" className="bsetup-import-other bsetup-imp-btn" disabled={full} title={full ? tr("All your plan's locations are in use") : tr("Add many shops and warehouses from a CSV or Excel sheet (Type, Name, Phone, Number, Address)")} onClick={() => sheetInput.current?.click()}><FileText aria-hidden /> {tr("Spreadsheet")}</button>
+          <button type="button" className="bsetup-import-other bsetup-imp-btn is-history" title={tr("Who changed what in setup")} onClick={() => setHistoryOpen(true)}><History aria-hidden /> {tr("History")}</button>
         </span>
         {compact && selectedIndustry === "trade" && <span className="bsetup-pop-wrap bsetup-feat-wrap">
           <button type="button" className="bsetup-import-other bsetup-feat-btn" aria-haspopup="true" aria-expanded={pop === "features"} onClick={() => setPop(pop === "features" ? null : "features")}><SlidersHorizontal aria-hidden /> {tr("Business Features")} <ChevronDown aria-hidden /></button>
@@ -557,7 +546,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </span>}
         <span className="bsetup-strip-count">{counts.shops} {tr(counts.shops === 1 ? "shop" : "shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
-        {!full && <span className="bsetup-add">
+        {/* Only when the panel has no Add tile of its own (5 or 10 locations shown), so the two never repeat each other. */}
+        {!full && shownSlots.length % 5 === 0 && <span className="bsetup-add">
           {NEW_LOCATION_TYPES.map((t) => { const I = TYPE_ICON[t]; return <button key={t} type="button" className={cn("bsetup-add-btn", `is-${t}`)} onClick={() => addRow(t)}><Plus aria-hidden /> <I aria-hidden /> {t === "shop" ? `${tr("Add")} ${tr("Shop")}` : tr("Add Warehouse")}</button>; })}</span>}
         <span className="bsetup-strip-summary" role="group" aria-label={tr("Plan Usage & Summary")}>
         <span className={cn("bsetup-strip-usage", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
