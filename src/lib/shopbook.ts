@@ -1,5 +1,6 @@
 ﻿import { clean } from "@/lib/format";
 import { randomUUID } from "@/lib/id";
+import { setAsideCurrentBusiness } from "@/lib/device-businesses";
 // Local-only store for the screens-first phase (no backend yet).
 // App icons are served from public/SHOP_PLUS_3D_Transparent_Icons.
 
@@ -223,6 +224,9 @@ export const store = {
     }
   },
   register(a: Account) {
+    // A new account never inherits the business already on this device: that one is set aside untouched (device-businesses.ts).
+    const before = store.get();
+    if (before && !before.demo && (!a.businessId || before.businessId !== a.businessId)) setAsideCurrentBusiness();
     const freshAccount: Account = {
       ...a,
       businessId: a.businessId || randomUUID(),

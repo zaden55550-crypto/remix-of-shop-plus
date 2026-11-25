@@ -8,6 +8,9 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { SUPPORT } from "@/lib/i18n";
 import { checkPassword } from "@/lib/device-password";
+import { restoreBusiness, savedBusinessFor } from "@/lib/device-businesses";
+
+const sameAs = (a: { shopName?: string; email?: string } | null, id: string) => { const n = (v: string) => v.trim().toLowerCase().replace(/s+/g, ""); return !!a && (n(a.shopName ?? "") === n(id) || (!!a.email && n(a.email) === n(id))); };
 import { PLANS, store, type Account, type PlanId } from "@/lib/shopbook";
 import { resumeEmployeeSession, signInEmployee, takeSignOutNotice } from "@/lib/staff-session";
 import { authenticatedContext, authMessage, currentIdentity, registerEmailIdentity, signInEmail } from "@/lib/auth-service";
@@ -176,6 +179,8 @@ function Login() {
     setError(null);
     // After 5 wrong passwords in a minute, wait a minute: said plainly, with the way out.
     if (lockedUntil > Date.now()) { setError(tr("Too many tries. Wait a minute, or reset your password.")); return; }
+    // Another owner who used this device earlier: their business was set aside when a new account was made here; swap it back.
+    if (!sameAs(store.get(), id)) { const saved = savedBusinessFor(id); if (saved) restoreBusiness(saved); }
     const account = store.get();
     const norm = (value: string) => value.trim().toLowerCase().replace(/\s+/g, "");
     const sameOwner = Boolean(account && (norm(account.shopName) === norm(id) || norm(account.email || "") === norm(id)));

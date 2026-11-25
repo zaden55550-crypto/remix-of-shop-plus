@@ -17,7 +17,7 @@ import { PEOPLE_SECTIONS, PeoplePanel } from "@/components/shopbook/people-acces
 import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
 import * as erp from "@/lib/erp";
-import { TYPE_LABEL, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
+import { TYPE_LABEL, fitDraftToPlan, activateSetup, draftTypes, countTypes, liveRows, loginSummary, newKey, readDraft, rowsFromRecords, saveDraft, setupPlan, suggestCode, validate, type SetupDraft, type SetupProblem, type SetupRow, type SetupUser } from "@/lib/business-setup";
 import { GENERAL_TRADE, INDUSTRIES, businessTypeByName, isIndustryFamilyId, type IndustryFamilyId } from "@/lib/industry-config";
 import { FeatureChecks, IndustrySelect, TypePicker } from "@/components/shopbook/type-picker";
 import { GlassPage } from "@/components/shopbook/glass-page";
@@ -92,19 +92,19 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   // Locations this business already has that are not rows on the page (archived ones keep their name and number).
   const records = useMemo(() => listLocations(s), [s]);
   const [d, setD] = useState<SetupDraft>(() => {
-    const saved = readDraft();
+    const saved = readDraft(acct.businessId);
     const savedType = saved?.businessType === "Other" && saved.otherType.trim() ? saved.otherType.trim() : saved?.businessType;
     const businessType = savedType ?? businessTypesOf(acct)[0] ?? GENERAL_TRADE;
     const industryFamilyId = businessTypeByName(businessType)?.familyId
       ?? (isIndustryFamilyId(saved?.industryFamilyId) ? saved.industryFamilyId : undefined)
       ?? (isIndustryFamilyId(acct.industryFamilyId) ? acct.industryFamilyId : undefined)
       ?? "trade";
-    if (saved) return { ...saved, businessType, otherType: "", extraBusinessTypes: saved.extraBusinessTypes ?? [], industryFamilyId, businessDocuments: saved.businessDocuments ?? acct.businessDocuments ?? [] };
+    if (saved) return fitDraftToPlan({ ...saved, owner: acct.businessId, businessType, otherType: "", extraBusinessTypes: saved.extraBusinessTypes ?? [], industryFamilyId, businessDocuments: saved.businessDocuments ?? acct.businessDocuments ?? [] }, plan);
     // An empty number stays empty: its placeholder shows the number it will be given on activation, and nothing generated is typed in for the owner.
     const rows = rowsFromRecords(erp.load());
     // Every type already saved on the account comes back ticked, not only the main one.
     const extraBusinessTypes = businessTypesOf(acct).filter((t) => t !== businessType);
-    return { businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: localPhone(acct.phone, acct.country), phone2: localPhone(acct.phone2, acct.country), phone3: localPhone(acct.phone3, acct.country), taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
+    return { owner: acct.businessId, businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: localPhone(acct.phone, acct.country), phone2: localPhone(acct.phone2, acct.country), phone3: localPhone(acct.phone3, acct.country), taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
   });
   const [problems, setProblems] = useState<SetupProblem[]>([]);
   const [access, setAccess] = useState<string | null>(null);
@@ -418,9 +418,9 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const price = planPrice(plan, acct.plan === plan.id ? acct.billing : "monthly");
   const trial = acct.plan === "trial";
   const stores = counts.warehouses + counts.stores;
-  const shopRows = live.filter((r) => r.type === "shop" && !r.untyped);
   const untypedRows = live.filter((r) => r.untyped).length;
-  const namedShops = shopRows.filter((r) => !!realName(r)).length, unfinishedShops = shopRows.length - namedShops;
+  // Locations, not shops (owner, 2026-11-25): "1 named location"; "not named", warehouses and untyped rows only appear when there are any.
+  const namedLocations = live.filter((r) => !!realName(r)).length, notNamed = live.length - namedLocations;
   const full = live.length >= plan.locations;
   const bySlot = new Map(live.map((r, index) => [r.slotNumber ?? index + 1, r]));
   const tableSlots = Array.from({ length: Math.max(plan.locations, live.length) }, (_, index) => ({ n: index + 1, r: bySlot.get(index + 1) }));
@@ -582,7 +582,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         </span>}
         {/* Named and unfinished shops apart (owner, 2026-11-24): a shop row with a blank name (or only the placeholder text) is unfinished.
             Display only; Sites and remaining still count every location row. */}
-        <span className="bsetup-strip-count" role="status">{namedShops} {tr(namedShops === 1 ? "named shop" : "named shops")} · {unfinishedShops} {tr(unfinishedShops === 1 ? "unfinished shop" : "unfinished shops")} · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}{untypedRows > 0 && <> · {untypedRows} {tr(untypedRows === 1 ? "without a type" : "without a type")}</>}</span>
+        <span className="bsetup-strip-count" role="status">{namedLocations} {tr(namedLocations === 1 ? "named location" : "named locations")}{notNamed > 0 && <> · {notNamed} {tr("not named")}</>}{stores > 0 && <> · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</>}{untypedRows > 0 && <> · {untypedRows} {tr("without a type")}</>}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
         {/* Only when the panel has no Add tile of its own (5 or 10 locations shown), so the two never repeat each other. */}
         {!full && shownSlots.length % 5 === 0 && <span className="bsetup-add">

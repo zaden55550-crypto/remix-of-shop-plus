@@ -48,7 +48,7 @@ export type SetupUser = { key: string; name: string; phone: string; email: strin
   access?: Record<string, boolean> | undefined };
 /** One industry and any number of its business types: the main type, then the others. For Trade none is needed (General Trade).
  *  `features` holds only the switches the owner changed on this page; the rest follow the types (trade-features.ts). */
-export type SetupDraft = { businessName: string; businessType: string; otherType: string; extraBusinessTypes: string[]; industryFamilyId?: IndustryFamilyId | undefined; features?: Partial<Features> | undefined;
+export type SetupDraft = { /** The business this draft belongs to (its businessId); another business's draft is never shown. */ owner?: string | undefined; businessName: string; businessType: string; otherType: string; extraBusinessTypes: string[]; industryFamilyId?: IndustryFamilyId | undefined; features?: Partial<Features> | undefined;
   /** The business's phone numbers (the second is optional). Left out: the account keeps what it has. */
   phone?: string | undefined; phone2?: string | undefined; phone3?: string | undefined;
   /** The business's tax number (KRA PIN or similar), for receipts; saved in its settings. */
@@ -195,9 +195,37 @@ export function validate(
   return out;
 }
 
-export const readDraft = (): SetupDraft | null => {
-  try { const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); return d && Array.isArray(d.rows) && Array.isArray(d.users) ? d : null; } catch { return null; }
+/** The saved draft for this business only: a draft made for another business on this device is ignored (owner, 2026-11-25). */
+export const readDraft = (owner?: string): SetupDraft | null => {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+    if (!(d && Array.isArray(d.rows) && Array.isArray(d.users))) return null;
+    return owner && d.owner && d.owner !== owner ? null : d;
+  } catch { return null; }
 };
+
+/** A draft never holds more than the plan allows (owner, 2026-11-25: a Basic business showed Sites 5/1 and Counters 15/1 from an
+ *  older draft). Saved locations always stay; unsaved rows past the plan's locations are dropped (and taken off people), and shop
+ *  counters are cut so the total fits the plan's counters, each shop keeping at least one. */
+export function fitDraftToPlan(d: SetupDraft, plan: { locations: number; counters: number; countersPerShop: boolean }): SetupDraft {
+  const live = liveRows(d.rows);
+  let room = plan.locations - live.filter((r) => r.savedId).length;
+  const drop = new Set<string>();
+  for (const r of live) if (!r.savedId) { if (room > 0) room--; else drop.add(r.key); }
+  let rows = d.rows.filter((r) => !drop.has(r.key));
+  const shops = liveRows(rows).filter((r) => r.type === "shop");
+  let budget = plan.counters;
+  const counters = new Map<string, number>();
+  shops.forEach((r, i) => {
+    const want = Math.max(1, r.counters ?? 1);
+    const left = shops.length - i - 1;
+    const give = plan.countersPerShop ? Math.min(want, plan.counters) : Math.max(1, Math.min(want, budget - left));
+    budget -= give; counters.set(r.key, give);
+  });
+  rows = rows.map((r) => (counters.has(r.key) && r.counters !== undefined && r.counters !== counters.get(r.key) ? { ...r, counters: counters.get(r.key) } : r));
+  const users = drop.size ? d.users.map((u) => ({ ...u, locations: u.locations.filter((k) => !drop.has(k)) })) : d.users;
+  return { ...d, rows, users };
+}
 export const saveDraft = (d: SetupDraft) => localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
 export const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
 

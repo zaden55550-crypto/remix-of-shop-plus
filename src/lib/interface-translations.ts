@@ -2,6 +2,9 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+named location|eneo lenye jina|emplacement nommé|موقع مسمّى|ubicación con nombre|local com nome|benannter Standort|sede con nome|已命名地点|नामित स्थान|goob magac leh
+named locations|maeneo yenye majina|emplacements nommés|مواقع مسمّاة|ubicaciones con nombre|locais com nome|benannte Standorte|sedi con nome|已命名地点|नामित स्थान|goobo magac leh
+not named|bila jina|sans nom|بلا اسم|sin nombre|sem nome|ohne Namen|senza nome|未命名|बिना नाम|magac la'aan
 Add location|Ongeza eneo|Ajouter un emplacement|إضافة موقع|Añadir ubicación|Adicionar local|Standort hinzufügen|Aggiungi sede|添加地点|स्थान जोड़ें|Ku dar goob
 Choose type|Chagua aina|Choisir le type|اختر النوع|Elegir tipo|Escolher tipo|Typ wählen|Scegli il tipo|选择类型|प्रकार चुनें|Dooro nooca
 without a type|bila aina|sans type|بلا نوع|sin tipo|sem tipo|ohne Typ|senza tipo|未选类型|बिना प्रकार|nooc la'aan
