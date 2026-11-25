@@ -67,6 +67,10 @@ export async function linkProvider(provider: IdentityProvider, redirectTo = `${w
 }
 
 export async function requestOwnerRecovery(email: string) {
+  // Through Resend when the server has it (owner-reset.functions.ts); otherwise the sign-in system's own reset email.
+  const { sendOwnerReset } = await import("@/lib/owner-reset.functions");
+  const viaResend = await sendOwnerReset({ data: { email: email.trim() } }).then((r) => r.resend).catch((e: unknown) => { if (e instanceof Error && /couldn't be sent/.test(e.message)) throw e; return false; });
+  if (viaResend) return;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/auth/recovery` });
   if (error) throw new Error(authMessage(error));
   // Do not reveal whether an address has an account.

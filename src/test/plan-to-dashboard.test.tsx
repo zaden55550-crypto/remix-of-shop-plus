@@ -90,6 +90,10 @@ describe.each(PLANS.map((p) => [p.name, p] as const))("first run on %s", (name, 
     const picker = await screen.findByRole("dialog", { name: "Business Type" });
     fireEvent.click(within(picker).getByLabelText("Retail Shop"));
     fireEvent.click(within(picker).getByRole("button", { name: /Done/ }));
+    // A new business's first place says "Choose a place" until the owner picks it (owner, 2026-11-25): pick the Retail Shop.
+    const place = document.querySelector<HTMLSelectElement>(".bsetup-type.is-untyped")!;
+    expect(place).toBeTruthy();
+    fireEvent.change(place, { target: { value: "shop:Retail Shop" } });
     // A one-time welcome opens first; then Activate shows its summary, and "Activate now" saves.
     const welcome = screen.queryByRole("dialog", { name: "Welcome to Business Setup" });
     if (welcome) fireEvent.click(within(welcome).getByRole("button", { name: "Let's start" }));

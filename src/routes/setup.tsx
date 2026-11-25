@@ -13,6 +13,7 @@ import { findByCountry, findByCurrency } from "@/lib/world-data";
 import { localPhone } from "@/lib/dial-codes";
 import { readSettings } from "@/lib/settings-config";
 import { ImportCenter } from "@/components/shopbook/import-center";
+import { SmartImport } from "@/components/shopbook/smart-import";
 import { PEOPLE_SECTIONS, PeoplePanel } from "@/components/shopbook/people-access";
 import { useErp } from "@/components/shopbook/product-search";
 import { useLanguage } from "@/hooks/use-language";
@@ -51,10 +52,13 @@ type Tr = (t: string, x?: string) => string;
  *  "Supermarket"); stores and older warehouses are both "Warehouse". Set by SetupScreen on each render, read by its rows. */
 let shopWord = "Shop";
 let shopTypes: string[] = [];
+/** Whether the owner has picked a business type (General Trade included). Until then a place can only be a Warehouse, and an arrow
+ *  points at Business Type (owner, 2026-11-25). */
+let typeChosen = true;
 /** A row's shop type is one of the types chosen in Business Type (owner, 2026-11-23); anything else shows as the main type. */
 const placeTypeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.placeType && shopTypes.includes(x.placeType) ? x.placeType : shopTypes[0]);
 /** The row's type list: only the types chosen in Business Type (Shop when none), then Warehouse. More types: tick them in Business Type. */
-const shopChoices = () => ({ own: [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) })), other: [] as { value: string; label: string }[] });
+const shopChoices = () => ({ own: !typeChosen ? [] : [...new Set(shopTypes.length ? shopTypes : [""])].map((t) => ({ value: `shop:${t}`, label: placeName(t) })), other: [] as { value: string; label: string }[] });
 const placeOf = (x: { type: erp.LocationType; placeType?: string | undefined }) => (x.type === "shop" ? placeName(placeTypeOf(x)) : TYPE_LABEL[x.type]);
 const isStorage = (r: SetupRow) => r.type !== "shop";
 
@@ -94,14 +98,17 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const [d, setD] = useState<SetupDraft>(() => {
     const saved = readDraft(acct.businessId);
     const savedType = saved?.businessType === "Other" && saved.otherType.trim() ? saved.otherType.trim() : saved?.businessType;
-    const businessType = savedType ?? businessTypesOf(acct)[0] ?? GENERAL_TRADE;
+    // A new business starts with no type chosen, so the owner picks one (General Trade is one of the choices).
+    const businessType = savedType ?? businessTypesOf(acct)[0] ?? "";
     const industryFamilyId = businessTypeByName(businessType)?.familyId
       ?? (isIndustryFamilyId(saved?.industryFamilyId) ? saved.industryFamilyId : undefined)
       ?? (isIndustryFamilyId(acct.industryFamilyId) ? acct.industryFamilyId : undefined)
       ?? "trade";
     if (saved) return fitDraftToPlan({ ...saved, owner: acct.businessId, businessType, otherType: "", extraBusinessTypes: saved.extraBusinessTypes ?? [], industryFamilyId, businessDocuments: saved.businessDocuments ?? acct.businessDocuments ?? [] }, plan);
     // An empty number stays empty: its placeholder shows the number it will be given on activation, and nothing generated is typed in for the owner.
-    const rows = rowsFromRecords(erp.load());
+    // Brand-new business: its first place says "Choose a place" until the owner picks what it is.
+    const fresh = acct.setupPending && !businessTypesOf(acct).length;
+    const rows = rowsFromRecords(erp.load()).map((r) => (fresh && r.savedId === MAIN_LOCATION ? { ...r, untyped: true } : r));
     // Every type already saved on the account comes back ticked, not only the main one.
     const extraBusinessTypes = businessTypesOf(acct).filter((t) => t !== businessType);
     return { owner: acct.businessId, businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: localPhone(acct.phone, acct.country), phone2: localPhone(acct.phone2, acct.country), phone3: localPhone(acct.phone3, acct.country), taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
@@ -229,6 +236,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
   const features: Features = { ...currentFeatures(draftTypes(d)), ...(d.features ?? {}) };
   shopWord = sellingPlaceName(draftTypes(d));
   shopTypes = draftTypes(d);
+  typeChosen = chosenTypes.length > 0;
   const setRow = (key: string, p: Partial<SetupRow>) => set({ rows: d.rows.map((r) => (r.key === key ? { ...r, ...p } : r)) });
   const problem = (key: string | undefined, field: string) => problems.find((x) => x.key === key && x.field === field)?.message;
   const savedPhotos = (r: SetupRow) => r.photos ?? records.find((l) => l.id === r.savedId)?.photos ?? [];
@@ -512,7 +520,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
           }} />
         </label>
         <div className="bsetup-field"><span>{tr("Business Type")}{selectedIndustry === "trade" ? <small> ({tr("Optional")})</small> : <i aria-hidden> *</i>}</span>
-          <TypePicker id="bsetup-business-type" industry={selectedIndustry} value={chosenTypes} invalid={!!problem(undefined, "businessType")}
+          {!chosenTypes.length && <span className="bsetup-arrow-hint" role="note" title={tr("Choose your business type here")}><b aria-hidden>↓</b> {tr("Choose here")}</span>}
+          <TypePicker id="bsetup-business-type" emptyLabel={tr("Choose business type")} industry={selectedIndustry} value={chosenTypes} invalid={!!problem(undefined, "businessType")}
             onChange={(types) => set({ businessType: types[0] ?? "", otherType: "", extraBusinessTypes: types.slice(1) })} />
           {selectedIndustryConfig?.implementationStatus === "configuration-only" && <small className="bsetup-note">{tr("This records your industry and business type; its specialized operating modules are not available yet.")}</small>}
         </div>
@@ -585,7 +594,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <span className="bsetup-strip-count" role="status">{namedLocations} {tr(namedLocations === 1 ? "named location" : "named locations")}{notNamed > 0 && <> · {notNamed} {tr("not named")}</>}{stores > 0 && <> · {stores} {tr(stores === 1 ? "warehouse" : "warehouses")}</>}{untypedRows > 0 && <> · {untypedRows} {tr("without a type")}</>}</span>
         <input ref={sheetInput} hidden type="file" accept=".csv,.xlsx,.xls" onChange={(e) => { void addFromSheet(e.target.files); e.target.value = ""; }} />
         {/* Only when the panel has no Add tile of its own (5 or 10 locations shown), so the two never repeat each other. */}
-        {!full && shownSlots.length % 5 === 0 && <span className="bsetup-add">
+        {!full && <span className="bsetup-add">
           <button type="button" className="bsetup-add-btn is-location" onClick={addLocation}><Plus aria-hidden /> {tr("Add location")}</button></span>}
         <span className="bsetup-strip-summary" role="group" aria-label={tr("Plan Usage & Summary")}>
         <span className={cn("bsetup-strip-usage", (live.length > plan.locations || logins.used > logins.total) && "has-problem")}>
@@ -603,7 +612,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
             : <LocationEntryRow key={`slot-${n}`} n={n} tr={tr} showCounters={features.counters} onType={(type) => addRowAt(n, type as "shop" | "store")} onPlace={(type) => addRowAt(n, "shop", type)} />)}
           {group.length < 5 && (gi === panels.length - 1) && <div className="bsetup-add-slot" style={{ gridRow: `span ${5 - group.length}` }}>
             {full ? <span>{tr("All your plan's locations are in use")}</span> : <>
-              <button type="button" className="bsetup-add-slot-btn is-location" onClick={addLocation}><Plus aria-hidden /> {tr("Add location")}</button>
+              <span className="bsetup-add-slot-hint"><b aria-hidden>↑</b> {tr("Use + Add location at the top to add another place")}</span>
               <small>{Math.max(0, plan.locations - live.length)} {tr("remaining")}</small></>}
           </div>}
         </div>)}
@@ -771,7 +780,9 @@ function LocationEntryRow({ r, n, tr, nameProblem, codeProblem, phoneProblem, pl
     <span className="bsetup-rownum" role="cell" aria-label={`${tr("Row")} ${n}`}>{n}</span>
     <select id={r ? `bsetup-type-${r.key}` : undefined} className={cn("inventory-input bsetup-type", r?.untyped && "is-untyped")} role="cell" aria-label={`${tr("Type")} · ${title}`} title={r && !r.untyped ? tr(label) : tr("Choose Shop or Warehouse")} value={value} onChange={(e) => pickType(e.target.value)}>
       {!r && <option value="">{tr("Type")}</option>}
-      {r?.untyped && <option value="" disabled>{tr("Choose type")}</option>}
+      {r?.untyped && <option value="" disabled>{tr("Choose a place")}</option>}
+      {!typeChosen && r?.type === "shop" && !r.untyped && <option value={value}>{tr(label)}</option>}
+      {!typeChosen && <option value="" disabled>{tr("Shops: choose a business type first")}</option>}
       {choices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}{otherChoices.length > 0 && <optgroup label={tr("Other shop types")}>{otherChoices.map((c) => <option key={c.value} value={c.value}>{tr(c.label)}</option>)}</optgroup>}
       <option value="store">{tr("Warehouse")}</option>
       {r?.type === "warehouse" && <option value="warehouse">{`${tr("Warehouse")} (${tr("older")})`}</option>}
@@ -799,7 +810,10 @@ function ImportPanel({ tr, kind, start, onClose }: { tr: Tr; kind: "Products" | 
     <label className="bsetup-field"><span>{tr(kind === "Products" ? "Products are added at" : "Opening stock goes to")}</span>
       <select className="inventory-input" value={at} onChange={(e) => setAt(e.target.value)}>{places.map((l) => <option key={l.id} value={l.id}>{l.code} · {l.name}</option>)}</select>
     </label>
-    <ImportCenter tr={tr} only={kind} />
+    {/* The same Smart Import as "From another system" (owner, 2026-11-25): duplicates merged, phones cleaned, problems listed, and
+        document numbers continue from the last one imported. Everything goes to the location chosen above. */}
+    <SmartImport tr={tr} />
+    <details className="bsetup-import-advanced"><summary>{tr("Advanced: one kind of record at a time")}</summary><ImportCenter tr={tr} only={kind} /></details>
   </GlassNotice>;
 }
 

@@ -21,7 +21,7 @@ export async function linkBusinessOnline(input: { legacyBusiness: string; busine
 /** First sign-in with Google or Apple (or a verified email with no business yet): creates the owner's business straight away,
  *  named from the account's name (else the part of the email before @), with country and currency from this device's region,
  *  then links it online. Setup lets the owner change the name, type and phones next. Returns the new account. */
-export async function createOwnerFromIdentity(language: string) {
+export async function createOwnerFromIdentity(language: string, details?: { shopName: string; phone: string; country: string; currency: string }) {
   const { supabase } = await import("@/integrations/supabase/client");
   const { authenticatedContext } = await import("@/lib/auth-service");
   const { detectUserCountry } = await import("@/lib/world-data");
@@ -32,15 +32,16 @@ export async function createOwnerFromIdentity(language: string) {
   if (!user?.email) throw new Error("Your Google or Apple account didn't share an email address. Use email sign-up instead.");
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
   const person = [meta["full_name"], meta["name"]].find((v): v is string => typeof v === "string" && !!v.trim())?.trim();
-  const shopName = (person ? `${person.split(/\s+/)[0]}'s Business` : user.email.split("@")[0]!).slice(0, 80);
-  const region = detectUserCountry();
+  // The owner's own details from the Finish your business window; the guesses only when called without them.
+  const shopName = (details?.shopName || (person ? `${person.split(/\s+/)[0]}'s Business` : user.email.split("@")[0]!)).slice(0, 80);
+  const region = details ? { countryCode: details.country, currencyCode: details.currency } : detectUserCountry();
   const legacyBusiness = randomUUID();
   const linked = await linkBusinessOnline({ legacyBusiness, businessName: shopName, currency: region.currencyCode, country: region.countryCode, fullName: person });
   if (linked.status !== "complete") throw new Error("The online account could not be linked safely. Contact Support.");
   const context = await authenticatedContext();
   if (context.kind !== "owner") throw new Error("This account could not be set up as an owner. Contact Support.");
   return store.register({
-    language, shopName, email: user.email, password: "", currency: region.currencyCode, country: region.countryCode, businessId: legacyBusiness,
+    language, shopName, email: user.email, ...(details?.phone ? { phone: details.phone } : {}), password: "", currency: region.currencyCode, country: region.countryCode, businessId: legacyBusiness,
     authMigration: { status: "complete", centralUserId: user.id, ...(linked.account ? { centralAccountId: linked.account } : {}), ...(linked.business ? { centralBusinessId: linked.business } : {}), updatedAt: Date.now() },
     centralContext: { accountId: context.accountId, businesses: context.businesses, locations: context.locations, subscription: context.subscription, syncBusiness: context.syncBusiness, syncedAt: Date.now() },
   });

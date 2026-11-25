@@ -22,6 +22,12 @@ function OwnerRecovery() {
   const [error, setError] = useState("");
   useEffect(() => {
     const refresh = () => void supabase.auth.getSession().then(({ data }) => setSession(Boolean(data.session)));
+    // A link from the Resend reset email carries a one-time token: exchanging it opens the "choose a new password" form.
+    const q = new URLSearchParams(window.location.search), tokenHash = q.get("token_hash");
+    if (tokenHash && q.get("type") === "recovery") {
+      window.history.replaceState(null, "", window.location.pathname);
+      void supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" }).then(({ error: e }) => { if (e) setError(tr("This reset link has expired or was already used. Ask for a new one.")); refresh(); });
+    }
     refresh(); const auth = supabase.auth.onAuthStateChange(refresh);
     return () => auth.data.subscription.unsubscribe();
   }, []);

@@ -15,6 +15,7 @@ import { PLANS, store, type Account, type PlanId } from "@/lib/shopbook";
 import { resumeEmployeeSession, signInEmployee, takeSignOutNotice } from "@/lib/staff-session";
 import { authenticatedContext, authMessage, currentIdentity, registerEmailIdentity, signInEmail } from "@/lib/auth-service";
 import { createOwnerFromIdentity, linkBusinessOnline } from "@/lib/owner-link";
+import { FinishBusiness, type BusinessDetails } from "@/components/shopbook/finish-business";
 import { SampleShopButton } from "@/components/shopbook/try-and-tour";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -149,14 +150,9 @@ function Login() {
           if (!local || local.staff) {
             // First Google/Apple sign-in: the business is created straight away; Setup collects its details next.
             if (local?.staff) return;
-            try {
-              const created = await createOwnerFromIdentity(language);
-              toast.success(tr("Your account is ready. Choose a plan to start."));
-              nav({ to: created.plan ? "/setup" : "/plans", replace: true });
-            } catch (x) {
-              await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-              toast.error(tr(authMessage(x)));
-            }
+            // Ask for the business name and phone first (FinishBusiness); the business is created when they press Continue.
+            const who = await currentIdentity().catch(() => null);
+            if (active) setFinishing({ email: who?.email ?? "" });
             return;
           }
           if (local.authMigration?.status !== "complete") {
@@ -175,6 +171,21 @@ function Login() {
 
   const submit = (e: React.FormEvent) => { e.preventDefault(); void logIn(id, pw); };
   /** The one login routine: the form and the Email button's window both use it, so linking and every check are identical. */
+  // First Google/Apple sign-in: the "Finish your business" window, then the business is created with those details.
+  const [finishing, setFinishing] = useState<{ email: string } | null>(null);
+  const finishBusiness = async (d: BusinessDetails) => {
+    try {
+      const created = await createOwnerFromIdentity(language, d);
+      setFinishing(null);
+      toast.success(tr("Your account is ready. Choose a plan to start."));
+      nav({ to: created.plan ? "/setup" : "/plans", replace: true });
+    } catch (x) {
+      setFinishing(null);
+      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      toast.error(tr(authMessage(x)));
+    }
+  };
+  const cancelFinish = () => { setFinishing(null); void supabase.auth.signOut({ scope: "local" }).catch(() => undefined); };
   const logIn = async (id: string, pw: string) => {
     setError(null);
     // After 5 wrong passwords in a minute, wait a minute: said plainly, with the way out.
@@ -311,6 +322,7 @@ function Login() {
 
   return (
     <>
+      {finishing && <FinishBusiness email={finishing.email} onDone={finishBusiness} onCancel={cancelFinish} />}
       <header className="signup-form-heading">
         <ConnectionPill />
             <h1><span className="auth-phone-text">{tr("Log In")}</span><span className="auth-desk-text">{tr("Welcome back")}</span></h1>

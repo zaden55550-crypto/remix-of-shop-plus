@@ -147,6 +147,7 @@ export function previewTX(s: ErpState, sheets: { sheet: Sheet; mapping: TXMappin
 export function applyTX(groups: TXGroup[], o: TXOptions) {
   const go = groups.filter((g) => g.status === "VALID" && !g.excluded).sort((a, b) => a.at - b.at);
   let sales = 0, purchases = 0;
+  const continued: Partial<Record<"SALE" | "PURCHASE", string>> = {};
   commit((s, c) => {
     const done = new Set([...s.sales, ...s.purchases].map((x) => x.importKey).filter(Boolean));
     for (const g of go) {
@@ -177,10 +178,22 @@ export function applyTX(groups: TXGroup[], o: TXOptions) {
       }
       done.add(g.key);
     }
+    // Numbering carries on from the old system (owner, 2026-11-25): if the last imported sale was C003840, the next sale made here is
+    // C003841 (the same for purchases). Only while this business has made none of that kind itself, so its own numbering never jumps.
+    const tail = (ref: string) => /^(.*?)(\d+)$/.exec(ref.trim());
+    for (const [kind, prefix, list] of [["SALE", "S", s.sales], ["PURCHASE", "PO", s.purchases]] as const) {
+      if ((list as { importKey?: string | undefined }[]).some((x) => !x.importKey)) continue;
+      const mine = go.filter((g) => g.kind === kind && done.has(g.key)).sort((a, b) => b.at - a.at);
+      const last = mine[0] && tail(mine[0].ref);
+      if (!last) continue;
+      const top = mine.map((g) => tail(g.ref)).filter((x): x is RegExpExecArray => !!x && x[1] === last[1] && x[2]!.length === last[2]!.length)
+        .reduce((a, x) => (Number(x[2]) > Number(a[2]) ? x : a), last);
+      if (c.continueNumbering(prefix, top[0])) { continued[kind] = top[0]; c.audit("NUMBERING CONTINUED", `${kind === "SALE" ? "Sales" : "Purchases"} continue after ${top[0]}`); }
+    }
     s.sales.sort((a, b) => b.at - a.at); s.purchases.sort((a, b) => b.at - a.at); s.payments.sort((a, b) => b.at - a.at); s.movements.sort((a, b) => b.at - a.at);
     c.audit("TRANSACTIONS IMPORTED", `${sales} sales • ${purchases} purchases`);
   });
-  return { sales, purchases, skipped: groups.filter((g) => g.status === "DUPLICATE" || g.excluded).length, rejected: groups.filter((g) => g.status === "INVALID").length };
+  return { sales, purchases, continued, skipped: groups.filter((g) => g.status === "DUPLICATE" || g.excluded).length, rejected: groups.filter((g) => g.status === "INVALID").length };
 }
 
 export const TX_TEMPLATE = "Type,Receipt No,Date,Customer/Supplier,Phone,Product,Qty,Unit Price,Discount,Total,Cash,M-Pesa,Bank\nSale,R-1001,05/01/2026,,,Sugar 1kg,2,150,0,300,300,,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Rice 2kg,1,320,20,500,,200,\nSale,R-1002,05/01/2026,Amina Hassan,0712345678,Sugar 1kg,1,200,20,500,,200,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Sugar 1kg,20,110,0,3450,1000,,\nPurchase,INV-77,03/01/2026,Bidco Ltd,0722000000,Rice 2kg,5,250,0,3450,1000,,\n";

@@ -69,14 +69,14 @@ export function FeaturePanel({ value, onChange, types }: { value: Features; onCh
 }
 
 /** `value` holds the chosen types, main first. */
-export function TypePicker({ id, industry, value, onChange, invalid, required }: { id?: string; industry: IndustryFamilyId; value: readonly string[]; onChange: (types: string[]) => void; invalid?: boolean; required?: boolean }) {
+export function TypePicker({ id, industry, value, onChange, invalid, required, emptyLabel }: { id?: string; emptyLabel?: string | undefined; industry: IndustryFamilyId; value: readonly string[]; onChange: (types: string[]) => void; invalid?: boolean; required?: boolean }) {
   const { tr } = useLanguage();
   const [open, setOpen] = useState(false);
   const types = businessTypesForFamily(industry).map((t) => t.name);
   const chosen = value.filter(Boolean);
   const legacy = chosen.filter((t) => !types.includes(t));
   const main = chosen[0];
-  const empty = industry === "trade" ? GENERAL_TRADE : tr("Choose business type");
+  const empty = emptyLabel ?? (industry === "trade" ? GENERAL_TRADE : tr("Choose business type"));
   const label = main ? `${tr(main)}${chosen.length > 1 ? ` +${chosen.length - 1}` : ""}` : empty;
   // General Trade means "no particular type", so ticking a real type takes it off.
   const toggle = (t: string) => onChange(chosen.includes(t) ? chosen.filter((x) => x !== t) : [...chosen.filter((x) => t === GENERAL_TRADE || x !== GENERAL_TRADE), t]);

@@ -552,6 +552,17 @@ function checkProducts(before: ErpState, after: ErpState) {
   }
 }
 
+/** The numbering a business brought from its old system for this counter key, if any (see continueNumbering). */
+export function refFormat(seq: Record<string, number>, key: string): { prefix: string; width: number } | null {
+  let best: { prefix: string; width: number; at: number } | null = null;
+  for (const [k, at] of Object.entries(seq)) {
+    if (!k.startsWith(`fmt:${key}|`)) continue;
+    const [, prefix = "", width = ""] = k.slice(4).split("|");
+    const w = Number(width);
+    if (Number.isInteger(w) && w >= 1 && w <= 12 && (!best || at > best.at)) best = { prefix, width: w, at };
+  }
+  return best && { prefix: best.prefix, width: best.width };
+}
 type Ctx = ReturnType<typeof makeCtx>;
 function makeCtx(s: ErpState) {
   // An employee's sale worked out on the server happens at their shop, so it belongs to that shop's business (never the first by default).
@@ -574,10 +585,26 @@ function makeCtx(s: ErpState) {
      *  (`SALE@<business>`) and starts its numbers with its code (B2-SALE-000001), so numbering is independent per business and a number
      *  never matches another business's record. Counted inside the one save, so a device never gives two records the same number. */
     nextRef(prefix: string) {
-      if (business === MAIN_BUSINESS) { s.seq[prefix] = (s.seq[prefix] ?? 0) + 1; return `${prefix}-${String(s.seq[prefix]).padStart(6, "0")}`; }
-      const key = `${prefix}@${business}`;
+      const key = business === MAIN_BUSINESS ? prefix : `${prefix}@${business}`;
       s.seq[key] = (s.seq[key] ?? 0) + 1;
+      // A business that moved in keeps its own numbering: after C003840 comes C003841 (continueNumbering, imports).
+      const fmt = refFormat(s.seq, key);
+      if (fmt) return `${fmt.prefix}${String(s.seq[key]).padStart(fmt.width, "0")}`;
+      if (business === MAIN_BUSINESS) return `${prefix}-${String(s.seq[key]).padStart(6, "0")}`;
       return `${businessCode(s, business)}-${prefix}-${String(s.seq[key]).padStart(6, "0")}`;
+    },
+    /** Continue this kind of document from the last number a business used in its old system (owner, 2026-11-25): `ref` like
+     *  C003840 makes the next one C003841. Numbers only move forward. The format is kept in `seq` (which every device syncs) as the
+     *  key `fmt:<key>|<prefix>|<width>`; the newest such key wins. Returns false when the reference has no number at its end. */
+    continueNumbering(prefix: string, ref: string) {
+      const m = /^(.*?)(\d+)$/.exec(ref.trim());
+      if (!m || m[2]!.length > 12) return false;
+      const key = business === MAIN_BUSINESS ? prefix : `${prefix}@${business}`;
+      const head = m[1]!.slice(0, 20), n = Number(m[2]);
+      if (/[|]/.test(head)) return false;
+      s.seq[key] = Math.max(s.seq[key] ?? 0, n);
+      s.seq[`fmt:${key}|${head}|${m[2]!.length}`] = Date.now();
+      return true;
     },
     audit(action: string, detail: string) { s.audit.unshift({ id: uid(), at: Date.now(), action, detail, user }); },
     /** Happens at the active shop unless a location is named; naming MAIN_LOCATION means the main shop whichever shop is active. */
