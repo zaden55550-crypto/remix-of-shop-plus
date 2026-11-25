@@ -4,6 +4,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { SUPPORT } from "@/lib/i18n";
+import { MessageCircle } from "lucide-react";
 import { History, Camera, ChevronDown, CircleCheck, Crown, FileText, ImagePlus, Info, MoreHorizontal, Paperclip, Pencil, Phone, Plus, Save, ShieldCheck, SlidersHorizontal, Trash2, Upload, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -469,6 +471,8 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     onDrop={(e) => { if (!hasFiles(e) || moveIn) return; e.preventDefault(); setDragging(false); const list = [...e.dataTransfer.files]; if (list.length) setMoveIn({ files: list }); }}>
     {dragging && <div className="bsetup-dropping" onDragLeave={() => setDragging(false)}><Upload aria-hidden /><b>{tr("Drop to bring your business over")}</b><small>{tr("Excel, CSV or zip from Odoo, QuickBooks, Zoho, Loyverse, Sage or any spreadsheet")}</small></div>}
     {moveIn && <GlassPage label={tr("Bring your business over")} onClose={() => setMoveIn(null)}><MoveInPanel tr={tr} files={moveIn.files} onClose={() => setMoveIn(null)} /></GlassPage>}
+    {/* Help is one tap away (owner, 2026-11-25). */}
+    <a className="bsetup-help" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(tr("Hello DataQuill Solutions, I need help with Business Setup."))}`} target="_blank" rel="noopener noreferrer" title={tr("Need help? WhatsApp us")}><MessageCircle aria-hidden /> <span>{tr("Need help?")}</span></a>
     <header className="bsetup-head">
       {/* Left: the business's own logo from Create Account (or the DataQuill mark), the title, and the country and currency given at
           sign-up. Middle: where this page sits in getting started. Right: what Activate does, then Activate. */}
@@ -498,7 +502,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
           {ready.map((x) => <li key={x.label} className={x.ok ? "is-ok" : undefined}><button type="button" title={x.ok ? tr(x.label) : `${tr(x.label)} · ${tr("Tap to fill it in")}`} onClick={() => { const el = document.getElementById(x.field); el?.scrollIntoView({ block: "center", behavior: "smooth" }); el?.focus(); }}>{x.ok ? <CircleCheck aria-hidden /> : <span className="bsetup-ready-dot" aria-hidden />} {tr(x.short)}</button></li>)}
         </ul>}
         <ReadyButton s={s} onOpen={() => setReadyOpen(true)} />
-        <ShopButton className="bsetup-review" disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
+        <ShopButton className={cn("bsetup-review", readyCount === ready.length && !activating && "is-ready-pulse")} disabled={activating} aria-busy={activating} title={tr("Saves all shops, warehouses and people, then opens your apps")} onClick={activate}>{tr(activating ? "Activating…" : "Activate")} <CircleCheck aria-hidden /></ShopButton>
       </div>
       {/* Setup progress (owner, 2026-11-24) from the same ready checks as Activate. */}
       <div className="bsetup-progress" role="progressbar" aria-label={tr("Setup progress")} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((readyCount / ready.length) * 100)} title={tr("Setup {x}% done", String(Math.round((readyCount / ready.length) * 100)))}>

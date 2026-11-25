@@ -50,7 +50,7 @@ function Plans() {
   const nav = useNavigate();
   const { tr, dir } = useLanguage();
 
-  const [tour, setTour] = useState(false), [invite, setInvite] = useState(false);
+  const [tour, setTour] = useState(false), [invite, setInvite] = useState(false), [faq, setFaq] = useState(false);
   // Real M-Pesa plan payments (payment.ts): whether the server has DataQuill Solutions' M-Pesa keys, and the shilling prices.
   const [real, setReal] = useState<{ ready: boolean; prices: Record<string, number> }>({ ready: false, prices: {} });
   const [payPhone, setPayPhone] = useState(""), [payStep, setPayStep] = useState<"sent" | "waiting" | null>(null);
@@ -361,6 +361,7 @@ function Plans() {
       </header>
 
       {invite && <GlassPage label={tr("Invite a shop, get a free month")} onClose={() => setInvite(false)}><ReferralCard /></GlassPage>}
+      {faq && <GlassPage label={tr("Questions and answers")} onClose={() => setFaq(false)}><PlansFaq onClose={() => setFaq(false)} /></GlassPage>}
       {tour && <GlassPage label={tr("See a sale in 30 seconds")} onClose={() => setTour(false)}><SaleTour /><Testimonials /></GlassPage>}
 
       {/* 2. BILLING CYCLE TOGGLE IN SOLID EMERALD GREEN */}
@@ -449,7 +450,7 @@ function Plans() {
               {p.recommended && paidPlan !== p.id && (
                 <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-30">
                   <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-blue-600 text-white shadow-md shadow-blue-600/40 border border-blue-400/40 whitespace-nowrap">
-                    {tr("RECOMMENDED")}
+                    {tr("MOST POPULAR")}
                   </span>
                 </div>
               )}
@@ -565,6 +566,7 @@ function Plans() {
           <button type="button" onClick={() => setComparing(true)}>{tr("Compare plans")}</button>
         </p>}
         {paidPlan && <p className="plans-terms"><button type="button" onClick={() => setComparing(true)}>{tr("Compare plans")}</button></p>}
+        <p className="plans-terms"><button type="button" onClick={() => setFaq(true)}>{tr("Questions? Read the answers")}</button></p>
         <button
           type="button"
           disabled={!!paidPlan}
@@ -652,5 +654,22 @@ function ComparePlans({ cur, yearly, paidPlan, onClose }: { cur: string; yearly:
         </tbody>
       </table>
     </div>
+  </div>;
+}
+
+/** Plans questions and answers (owner, 2026-11-25), written from how the app really works. */
+const FAQ: [string, string][] = [
+  ["Can I change my plan later?", "Yes. Move up or down at any time from Plans. Nothing you have recorded is ever deleted; a smaller plan only locks the apps it doesn't include."],
+  ["What happens after the 30-day trial?", "Nothing is charged automatically. Your records stay and can still be viewed and exported, but nothing new can be recorded until you choose a plan."],
+  ["Do I need a card for the trial?", "No. The trial needs no card and no payment details."],
+  ["Is my data safe?", "Your records are kept on your device and backed up online to your own account. Staff only see the shops and apps you allow."],
+  ["Does it work without internet?", "Yes. You can keep selling offline; everything uploads when the internet is back."],
+  ["How do I pay?", "By M-Pesa from the payment step. The plan changes only after the payment is confirmed."],
+];
+function PlansFaq({ onClose }: { onClose: () => void }) {
+  const { tr } = useLanguage();
+  return <div className="inventory-box dash-panel plans-faq plans-type">
+    <div className="feature-panel-head"><h3>{tr("Questions and answers")}</h3><button type="button" className="compare-shops-done" onClick={onClose}>{tr("Done")}</button></div>
+    {FAQ.map(([q, a]) => <details key={q} className="plans-faq-item"><summary>{tr(q)}</summary><p>{tr(a)}</p></details>)}
   </div>;
 }

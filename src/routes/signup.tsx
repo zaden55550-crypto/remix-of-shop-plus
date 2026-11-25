@@ -16,6 +16,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { hashPassword } from "@/lib/device-password";
 import { passwordProblem, passwordStrength } from "@/lib/password-strength";
 import { store } from "@/lib/shopbook";
+import { savedBusinessFor } from "@/lib/device-businesses";
 import { detectUserCountry } from "@/lib/world-data";
 import { cleanDialCode, dialCodeFor, kenyaPhoneHint, phoneToSave } from "@/lib/dial-codes";
 import { authMessage, authenticatedContext, currentIdentity, registerEmailIdentity } from "@/lib/auth-service";
@@ -109,6 +110,14 @@ function Signup() {
   }, []);
 
   const [agree, setAgree] = useState(false);
+  // "Name free on this device" while typing (owner, 2026-11-25): checked against the business here and any set aside here.
+  const [nameState, setNameState] = useState<"" | "free" | "taken">("");
+  useEffect(() => {
+    const n = f.shopName.trim().toLowerCase().replace(/\s+/g, "");
+    if (n.length < 2) { setNameState(""); return; }
+    const here = (store.get()?.shopName ?? "").toLowerCase().replace(/\s+/g, "");
+    setNameState(here === n || savedBusinessFor(f.shopName) ? "taken" : "free");
+  }, [f.shopName]);
   // Came through an invite link (/signup?ref=CODE, kept by captureReferral): say so, so the new owner knows it counted. Read after mount.
   const [invitedBy, setInvitedBy] = useState("");
   useEffect(() => { try { const ref = new URLSearchParams(window.location.search).get("ref") || localStorage.getItem("shopbook.ref") || ""; if (/^[A-Za-z0-9]{6}$/.test(ref)) setInvitedBy(ref.toUpperCase()); } catch { /* no badge */ } }, []);
@@ -326,7 +335,7 @@ function Signup() {
         <div className="signup-form-fields signup-form-grid">
           <Field
             icon={<Store className="h-5 w-5" />}
-            label={tr("Business Name")}
+            label={nameState === "free" ? `${tr("Business Name")} · ✓ ${tr("Name free on this device")}` : nameState === "taken" ? `${tr("Business Name")} · ${tr("This device already has this name")}` : tr("Business Name")}
             placeholder={tr("Enter business name")}
             value={f.shopName}
             error={err.shopName}
@@ -497,6 +506,7 @@ function Signup() {
           <ShopButton type="submit" className="auth-btn-primary w-full">
             {tr("Create Account")}
           </ShopButton>
+          <p className="signup-trust">{tr("Free for 30 days · No card · Cancel any time")}</p>
 
           <div className="auth-split-card">
             <span className="auth-split-label">{tr("Already have an account?")}</span>
@@ -507,6 +517,7 @@ function Signup() {
 
           {/* Google, Apple and Email on one line. */}
           <SocialButtons />
+          <p className="auth-inline-switch">{tr("Already have an account?")} <Link to="/">{tr("Log In")}</Link></p>
         </div>
       </form>
     </>
