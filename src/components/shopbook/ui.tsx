@@ -622,8 +622,8 @@ export function ZakrioMark({ compact = false, size }: { compact?: boolean; size?
 /** The eight industries, in the owner's order, each with the owner's own icon (public/brand/industries). */
 const INDUSTRY_ICONS = ["trade", "manufacturing", "hospitality", "logistics", "healthcare", "education", "property", "services"].map((n) => `/brand/industries/${n}.png`);
 
-/** One ring of icons spaced evenly at `radius` (% of the emblem), with an arrow between each pair pointing the way the ring turns. */
-function OrbitRing({ icons, radius, iconSize, dir, arrow }: { icons: readonly string[]; radius: number; iconSize: number; dir: "cw" | "ccw"; arrow: string }) {
+/** One ring of icons spaced evenly at `radius` (% of the emblem). */
+function OrbitRing({ icons, radius, iconSize, dir }: { icons: readonly string[]; radius: number; iconSize: number; dir: "cw" | "ccw" }) {
   const n = icons.length;
   const at = (k: number) => { const a = (k / n) * 2 * Math.PI - Math.PI / 2; return { x: 50 + radius * Math.cos(a), y: 50 + radius * Math.sin(a), deg: (a * 180) / Math.PI }; };
   return (
@@ -636,29 +636,20 @@ function OrbitRing({ icons, radius, iconSize, dir, arrow }: { icons: readonly st
           </span>
         );
       })}
-      {icons.map((_, i) => {
-        // Halfway to the next icon; the arrow points along the ring in the direction it turns.
-        const p = at(i + 0.5), turn = dir === "cw" ? p.deg + 90 : p.deg - 90;
-        return (
-          <svg key={`a${i}`} className="dq-ring-arrow" viewBox="0 0 24 24" style={{ left: `${p.x.toFixed(3)}%`, top: `${p.y.toFixed(3)}%`, transform: `translate(-50%, -50%) rotate(${turn.toFixed(1)}deg)` }}>
-            <path d="M4 12h13M12 6l6 6-6 6" fill="none" stroke={arrow} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        );
-      })}
     </div>
   );
 }
 
-/** DataQuill's two-ring emblem (owner's design, 2026-11-25): the DQ logo still in a white centre with a gold edge; the eight industry
- *  icons on an emerald ring turning clockwise with gold arrows; the ERP app icons on a navy outer ring turning anticlockwise with
- *  light-blue arrows. Every icon stays upright, and nothing moves for people who ask for reduced motion. */
+/** DataQuill's two-ring emblem (owner's reference picture, 2026-11-25): the full DataQuill Solutions logo still in a white centre with a
+ *  gold edge; the eight industry icons on an emerald ring turning clockwise; the app icons on a white outer ring turning anticlockwise;
+ *  no arrows. Every icon stays upright, and nothing moves for people who ask for reduced motion. */
 export function BrandRing({ size = 180 }: { size?: number }) {
   return (
     <div className="auth-brand-emblem dq-orbit" style={{ "--emblem-size": `${size}px` } as CSSProperties} aria-label="DataQuill Solutions" role="img">
       <div className="dq-outer-disc" />
-      <OrbitRing icons={RING_ICONS} radius={42.2} iconSize={10.2} dir="ccw" arrow="#93c5fd" />
+      <OrbitRing icons={RING_ICONS} radius={42.2} iconSize={10.2} dir="ccw" />
       <div className="dq-inner-disc" />
-      <OrbitRing icons={INDUSTRY_ICONS} radius={25.6} iconSize={11.8} dir="cw" arrow="#fbbf24" />
+      <OrbitRing icons={INDUSTRY_ICONS} radius={25.6} iconSize={11.8} dir="cw" />
       <div className="dq-centre"><img src="/brand/dataquill-logo-white.jpg" alt="" /></div>
     </div>
   );
