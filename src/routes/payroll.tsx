@@ -18,8 +18,8 @@ import { editEmployee, savePayrollDraft } from "@/lib/people";
 import { PERIODS, periodStart, type Period } from "@/lib/summary";
 import * as erp from "@/lib/erp";
 export const Route = createFileRoute("/payroll")({ head: () => ({ meta: [
- { title: "Payroll — Zakrio Systems" }, { name: "description", content: "Compact employee profiles, salary and commission rules, payroll drafts, partial payments and reports." },
- { property: "og:title", content: "Payroll — Zakrio Systems" }, { property: "og:description", content: "Manage employee earnings and payroll with a protected transaction history." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+ { title: "Payroll — DataQuill Solutions" }, { name: "description", content: "Compact employee profiles, salary and commission rules, payroll drafts, partial payments and reports." },
+ { property: "og:title", content: "Payroll — DataQuill Solutions" }, { property: "og:description", content: "Manage employee earnings and payroll with a protected transaction history." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), component: Payroll });
 const MENUS: Record<string, readonly string[]> = { Overview: [], Employees: ["All Employees", "Add Employee", "Active", "Inactive", "History"], Payroll: ["Current Payroll", "Drafts", "Completed", "History"], Payments: ["All Payments", "Make Payment", "P.PAY", "History"], Reports: ["Payroll Report", "Salary Report", "Commission Report", "Employee Report", "Payment Report"] };
 const compName = (c: erp.Employee["comp"]) => c === "salary" ? "Fixed Salary" : c === "commission" ? "Commission Only" : "Salary + Commission";

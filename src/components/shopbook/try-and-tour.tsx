@@ -2,7 +2,7 @@
 // Kiswahili on the first screen, a 30-second sale tour (Plans) and real customer words (shown only once some exist).
 import { useEffect, useState } from "react";
 
-import { CheckCircle2, Printer, RotateCw, ShoppingCart, Smartphone, Store, X } from "lucide-react";
+import { CheckCircle2, Printer, RotateCw, ShoppingCart, Smartphone, Store, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/use-language";
 import { inSampleShop, leaveSampleShop, sampleBlocked, startSampleShop } from "@/lib/sample-shop";
@@ -37,7 +37,7 @@ export function SampleShopBar() {
   return <div className="sample-bar" role="status" data-short={tr("Sample shop")}>
     <Store aria-hidden /><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>
-    <button type="button" className="is-leave" onClick={() => leave("/")} aria-label={tr("Leave the sample shop")} title={tr("Leave the sample shop")}><X aria-hidden /></button>
+    <button type="button" className="is-leave" onClick={() => leave("/")} title={tr("Leave the sample shop")}><LogOut aria-hidden /> {tr("Exit")}</button>
   </div>;
 }
 

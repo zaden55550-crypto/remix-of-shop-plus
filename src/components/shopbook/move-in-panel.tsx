@@ -18,7 +18,7 @@ export function MoveInPanel({ tr, files, onClose }: { tr: Tr; files?: File[] | u
   useEffect(() => subscribe(() => bump((n) => n + 1)), []);
   const undo = undoState();
   const business = store.get()?.shopName ?? "";
-  const message = `${tr("Hello Zakrio Systems team, please help me bring my records over from my old system.")} ${tr("Business")}: ${business}`;
+  const message = `${tr("Hello DataQuill Solutions team, please help me bring my records over from my old system.")} ${tr("Business")}: ${business}`;
   return <div className="inventory-box dash-panel movein-page">
     <div className="feature-panel-head"><h3>{tr("Bring your business over")}</h3><ShopButton variant="outline" onClick={onClose}>{tr("Done")}</ShopButton></div>
     {/* Smart Import (owner, 2026-11-23): where from · drop files · automatic check · one Import button. */}

@@ -45,7 +45,7 @@ export function AnnouncementAdmin() {
   const end = async (id: string) => { const { supabase } = await import("@/integrations/supabase/client"); await supabase.from("system_announcements").update({ active: false, updated_at: new Date().toISOString() }).eq("id", id); load(); };
   return <section className="mb-4 rounded-xl border border-border p-3 text-xs">
     <h2 className="mb-2 text-sm font-bold">System status message</h2>
-    <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} className="w-full rounded-lg border border-border bg-background p-2" placeholder="Zakrio Systems is experiencing a temporary synchronization issue…" />
+    <textarea value={msg} onChange={(e) => setMsg(e.target.value)} rows={3} className="w-full rounded-lg border border-border bg-background p-2" placeholder="DataQuill Solutions is experiencing a temporary synchronization issue…" />
     <div className="mt-2 flex flex-wrap items-center gap-2">
       <select value={kind} onChange={(e) => setKind(e.target.value as Announcement["kind"])} className="rounded-lg border border-border bg-background p-1.5"><option value="info">Information</option><option value="degraded">Degraded service</option><option value="outage">Outage</option><option value="maintenance">Maintenance</option></select>
       <label className="flex items-center gap-1">Ends <input type="datetime-local" value={ends} onChange={(e) => setEnds(e.target.value)} className="rounded-lg border border-border bg-background p-1" /></label>

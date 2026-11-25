@@ -19,9 +19,9 @@ import { usePrefs } from "@/lib/prefs";
 
 export const Route = createFileRoute("/accounting")({
   head: () => ({ meta: [
-    { title: "Accounting — Zakrio Systems" },
-    { name: "description", content: "Compact account balances, transactions, receivables, payables and financial reports from Zakrio Systems records." },
-    { property: "og:title", content: "Accounting — Zakrio Systems" },
+    { title: "Accounting — DataQuill Solutions" },
+    { name: "description", content: "Compact account balances, transactions, receivables, payables and financial reports from DataQuill Solutions records." },
+    { property: "og:title", content: "Accounting — DataQuill Solutions" },
     { property: "og:description", content: "Review your business accounts, financial history and VAT in one place." },
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }), component: Accounting,

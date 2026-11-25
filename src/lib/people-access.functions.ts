@@ -115,7 +115,7 @@ export const acceptInvitation = createServerFn({ method: "POST" })
       if (r.error) throw new Error(r.error.message);
     } else {
       const r = await a.auth.admin.createUser({ email: check.loginEmail ?? "", password: data.password, email_confirm: true });
-      if (r.error || !r.data.user) throw new Error(/already/i.test(r.error?.message ?? "") ? "This email already has a Zakrio Systems login. Ask your employer to use another email or your phone number." : r.error?.message ?? "Could not create the login");
+      if (r.error || !r.data.user) throw new Error(/already/i.test(r.error?.message ?? "") ? "This email already has a DataQuill Solutions login. Ask your employer to use another email or your phone number." : r.error?.message ?? "Could not create the login");
       user = r.data.user.id; created = true;
     }
     try { await call(a, "finish_invitation", { p_token: data.token, p_user: user }); }

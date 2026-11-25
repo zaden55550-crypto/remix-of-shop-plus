@@ -21,9 +21,9 @@ import { weighedUnit } from "@/lib/weight-display";
 export const Route = createFileRoute("/sales")({
   head: () => ({
     meta: [
-      { title: "Sales — Zakrio Systems" },
+      { title: "Sales — DataQuill Solutions" },
       { name: "description", content: "New sales, sales history, customers, part payments, returns and sales reports." },
-      { property: "og:title", content: "Sales — Zakrio Systems" },
+      { property: "og:title", content: "Sales — DataQuill Solutions" },
       { property: "og:description", content: "Every sale, customer balance, payment and return in one place." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

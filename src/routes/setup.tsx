@@ -43,7 +43,7 @@ import { AccessPicker } from "@/components/shopbook/access-picker";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/setup")({
-  head: () => ({ meta: [{ title: "Business / Shop Setup — Zakrio Systems" }] }),
+  head: () => ({ meta: [{ title: "Business / Shop Setup — DataQuill Solutions" }] }),
   component: Setup,
 });
 
@@ -111,9 +111,17 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     const rows = rowsFromRecords(erp.load()).map((r) => (fresh && r.savedId === MAIN_LOCATION ? { ...r, untyped: true } : r));
     // Every type already saved on the account comes back ticked, not only the main one.
     const extraBusinessTypes = businessTypesOf(acct).filter((t) => t !== businessType);
-    return { owner: acct.businessId, businessName: acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: localPhone(acct.phone, acct.country), phone2: localPhone(acct.phone2, acct.country), phone3: localPhone(acct.phone3, acct.country), taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
+    // A name made up from a Google or Apple account is left empty here, so the owner types the real one.
+    return { owner: acct.businessId, businessName: acct.autoName ? "" : acct.shopName ?? "", businessType, otherType: "", extraBusinessTypes, industryFamilyId, phone: localPhone(acct.phone, acct.country), phone2: localPhone(acct.phone2, acct.country), phone3: localPhone(acct.phone3, acct.country), taxPin: readSettings().taxPin, businessDocuments: acct.businessDocuments ?? [], rows, users: [] };
   });
   const [problems, setProblems] = useState<SetupProblem[]>([]);
+  // Came in with Google or Apple: say what is still needed and put the cursor in Business Name (owner, 2026-11-25).
+  useEffect(() => {
+    if (!acct.autoName) return;
+    toast.info(tr("Welcome! Fill in your business name and phone number to finish."), { duration: 8000 });
+    window.setTimeout(() => document.getElementById("bsetup-business-name")?.focus(), 400);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [access, setAccess] = useState<string | null>(null);
   const [confirmActivate, setConfirmActivate] = useState(false);
   // "Ready to sell": payment details, tax, opening stock and cash, receipt, numbering, hours, PINs, sample data, moving in.
@@ -462,7 +470,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     {dragging && <div className="bsetup-dropping" onDragLeave={() => setDragging(false)}><Upload aria-hidden /><b>{tr("Drop to bring your business over")}</b><small>{tr("Excel, CSV or zip from Odoo, QuickBooks, Zoho, Loyverse, Sage or any spreadsheet")}</small></div>}
     {moveIn && <GlassPage label={tr("Bring your business over")} onClose={() => setMoveIn(null)}><MoveInPanel tr={tr} files={moveIn.files} onClose={() => setMoveIn(null)} /></GlassPage>}
     <header className="bsetup-head">
-      {/* Left: the business's own logo from Create Account (or the Zakrio mark), the title, and the country and currency given at
+      {/* Left: the business's own logo from Create Account (or the DataQuill mark), the title, and the country and currency given at
           sign-up. Middle: where this page sits in getting started. Right: what Activate does, then Activate. */}
       <div className="bsetup-head-id">
         <button type="button" className="bsetup-head-logo-btn" title={tr(headLogo ? "Change logo" : "Upload logo")} aria-label={tr(headLogo ? "Change logo" : "Upload logo")} onClick={() => logoFile.current?.click()}>
@@ -559,7 +567,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
         <div className="feature-panel-head"><h3>{tr("Setup history")}</h3><ShopButton variant="outline" onClick={() => setHistoryOpen(false)}>{tr("Done")}</ShopButton></div>
         <p className="settings-note">{tr("Locations, numbering, staff PINs, opening balances and other setup changes, newest first. Changes you haven't activated yet are not listed.")}</p>
         {setupHistory(s).length ? <ul className="bsetup-docs-list">{setupHistory(s).map((a) => <li key={a.id} className="bsetup-history-row"><span><b>{tr(a.action)}</b><small>{a.detail}</small></span><span className="bsetup-history-when"><b>{a.user}</b><small>{new Date(a.at).toLocaleString("en-GB")}</small></span></li>)}</ul> : <p className="settings-note">{tr("Nothing yet. Changes appear here once you activate.")}</p>}
-        <a className="bsetup-template-link" href={`data:text/csv;charset=utf-8,${encodeURIComponent(LOCATIONS_TEMPLATE)}`} download="zakrio-systems-locations-template.csv">{tr("Download the locations sheet template")}</a>
+        <a className="bsetup-template-link" href={`data:text/csv;charset=utf-8,${encodeURIComponent(LOCATIONS_TEMPLATE)}`} download="dataquill-solutions-locations-template.csv">{tr("Download the locations sheet template")}</a>
       </div>
     </GlassPage>}
     {docsOpen && <GlassPage label={tr("Business Documents")} onClose={() => setDocsOpen(false)}>
@@ -1214,7 +1222,7 @@ function UserEditor({ tr, rows, canManager, initial, business, takenEmails, onSe
     <fieldset className="bsetup-lockable bsetup-user-form" disabled={locked || sending}>
     <div className="bsetup-user-line">
       <label className="bsetup-field"><span>{tr("Full Name")} <i>*</i></span><input className="inventory-input" value={u.name} onChange={(e) => setU({ ...u, name: e.target.value })} /></label>
-      <label className="bsetup-field"><span>{tr("Email")} <i>*</i></span><input className="inventory-input" type="email" autoComplete="off" title={tr("Any email provider works, Gmail included. Zakrio Systems never asks for their email password: they set their own Zakrio Systems password from the invitation.")} value={u.email} onChange={(e) => setU({ ...u, email: e.target.value })} placeholder="name@gmail.com" /></label>
+      <label className="bsetup-field"><span>{tr("Email")} <i>*</i></span><input className="inventory-input" type="email" autoComplete="off" title={tr("Any email provider works, Gmail included. DataQuill Solutions never asks for their email password: they set their own DataQuill Solutions password from the invitation.")} value={u.email} onChange={(e) => setU({ ...u, email: e.target.value })} placeholder="name@gmail.com" /></label>
       <label className="bsetup-field"><span>{tr("Phone Number")} <small>({tr("Optional")})</small></span><input className="inventory-input" inputMode="tel" value={u.phone} onChange={(e) => setU({ ...u, phone: e.target.value })} /></label>
       <label className="bsetup-field"><span>{tr("Role")} <i>*</i></span>
         <select className="inventory-input" value={u.role} title={ROLE_HELP[u.role] ? tr(ROLE_HELP[u.role]!) : undefined} onChange={(e) => { const { access: _drop, ...rest } = u; setU({ ...rest, role: e.target.value }); }}>{roles.map(([id, l]) => <option key={id} value={id}>{tr(id === "staff" ? "Staff (choose access)" : l)}</option>)}</select>
@@ -1306,7 +1314,7 @@ function CounterHardwareRows({ tr, shop, count }: { tr: Tr; shop: string; count:
     </div>)}
     {testing && <PrintPreview title={tr("Test print")} onClose={() => setTesting(null)}>
       <div className="receipt-paper mx-auto p-4 font-mono text-[12px]" style={{ width: list[testing - 1]?.printer === "58mm" ? "48mm" : list[testing - 1]?.printer === "A4" ? "180mm" : "72mm" }}>
-        <p className="text-center font-bold">ZAKRIO SYSTEMS</p><p className="text-center">{tr("Test print")} · {tr("Counter")} {testing}</p>
+        <p className="text-center font-bold">DATAQUILL SOLUTIONS</p><p className="text-center">{tr("Test print")} · {tr("Counter")} {testing}</p>
         <p className="text-center">{new Date().toLocaleString("en-GB")}</p><p className="text-center">--------------------------------</p>
         <p className="text-center">{tr("If you can read this line, the printer works.")}</p>
       </div>

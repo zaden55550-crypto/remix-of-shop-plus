@@ -1,4 +1,4 @@
-/** Shared Zakrio Systems identity/session boundary. Local ERP credentials are never sent to Supabase. */
+/** Shared DataQuill Solutions identity/session boundary. Local ERP credentials are never sent to Supabase. */
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { store } from "@/lib/shopbook";

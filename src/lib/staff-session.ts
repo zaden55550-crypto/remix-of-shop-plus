@@ -26,7 +26,7 @@ export async function applyMember(me: Extract<MyAccess, { kind: "member" }>) {
   const place = places.find((l) => l.id === keep);
   const plan: PlanId | "trial" = me.subscription === "trial" ? "trial" : (me.plan as PlanId);
   // An employee signed in to one shop sees that shop's name; with no shop chosen yet, the business name.
-  const account = { shopName: place?.name || business?.name || "Zakrio Systems", email: me.email ?? "", phone: me.phone ?? "", currency: business?.currency ?? "KES", password: "", businessId: business?.id ?? me.account, plan, role: "staff",
+  const account = { shopName: place?.name || business?.name || "DataQuill Solutions", email: me.email ?? "", phone: me.phone ?? "", currency: business?.currency ?? "KES", password: "", businessId: business?.id ?? me.account, plan, role: "staff",
     ...(me.trialEndsAt ? { trialStart: new Date(me.trialEndsAt).getTime() - 30 * 86400000 } : {}),
     staff: { memberId: me.memberId, fullName: me.fullName, role: me.role, permissions: me.permissions, businesses: me.businesses, locations: places, activeLocationId: keep, syncedAt: Date.now(), writable: me.writable !== false } };
   localStorage.setItem("shopbook.account", JSON.stringify(account));

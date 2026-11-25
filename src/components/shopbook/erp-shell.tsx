@@ -16,8 +16,12 @@ type Props = { className?: string; children?: ReactNode };
 const isHeading = (n: ReactNode): n is ReactElement<Props> =>
   isValidElement<Props>(n) && typeof n.type === "string" && /\bmoney-heading\b/.test(n.props.className ?? "");
 /** Expands fragments so headings written inside `<>…</>` are found too. */
-const flat = (nodes: ReactNode): ReactNode[] =>
-  Children.toArray(nodes).flatMap((n) => (isValidElement<Props>(n) && n.type === Fragment ? flat(n.props.children) : [n]));
+const flat = (nodes: ReactNode, prefix = ""): ReactNode[] =>
+  Children.toArray(nodes).flatMap((n) => {
+    if (isValidElement<Props>(n) && n.type === Fragment) return flat(n.props.children, `${prefix}${String(n.key)}/`);
+    // Children of different fragments get the same keys (.0, .1…) from toArray; the fragment's own key keeps them unique.
+    return [prefix && isValidElement(n) ? cloneElement(n, { key: `${prefix}${String(n.key)}` }) : n];
+  });
 
 /** Liquid Glass sections: every `money-heading` title and the rows after it become one separate glass
  *  card, so titled lists never float loose on the page. Content without such titles is returned as it

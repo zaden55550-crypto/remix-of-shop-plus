@@ -51,9 +51,9 @@ import { useSyncStatus } from "@/lib/shop-sync";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Zakrio Systems" },
+      { title: "Dashboard — DataQuill Solutions" },
       { name: "description", content: "Real-time retail business performance overview and analytics." },
-      { property: "og:title", content: "Dashboard — Zakrio Systems" },
+      { property: "og:title", content: "Dashboard — DataQuill Solutions" },
       { property: "og:description", content: "Live financial KPIs, trends, and recent store activity." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

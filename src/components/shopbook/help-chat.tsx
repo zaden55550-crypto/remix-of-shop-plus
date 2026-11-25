@@ -78,7 +78,7 @@ export function HelpChat({ open, onClose, shopName, email, icon }: { open: boole
   const bubble = (m: Pick<Msg, "sender" | "body">, k: string) => (
     <div key={k} className={cn("flex", m.sender === "user" ? "justify-end" : "justify-start")}>
       <div className={cn("max-w-[85%] text-sm", m.sender === "user" ? "rounded-2xl rounded-ee-sm bg-primary px-3 py-2 text-primary-foreground" : "")}>
-        {m.sender === "support" && <div className="mb-0.5 flex items-center gap-1 text-xs font-bold text-primary"><Headset className="h-3 w-3" />{tr("Zakrio Systems support")}</div>}
+        {m.sender === "support" && <div className="mb-0.5 flex items-center gap-1 text-xs font-bold text-primary"><Headset className="h-3 w-3" />{tr("DataQuill Solutions support")}</div>}
         {m.sender === "user" ? m.body : (
           <div className="space-y-2 [&_a]:font-semibold [&_a]:text-primary [&_a]:underline [&_ul]:list-disc [&_ul]:ps-4 [&_ol]:list-decimal [&_ol]:ps-4">
             <ReactMarkdown components={{ a: ({ href, children }) => href?.startsWith("/")
@@ -95,7 +95,7 @@ export function HelpChat({ open, onClose, shopName, email, icon }: { open: boole
       <div dir={dir} className="mx-auto flex h-full max-w-[440px] md:max-w-[640px] flex-col border-x border-border glass-card" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-border p-4">
           <img src={icon} alt="" className="h-9 w-9 rounded-full" />
-          <div className="min-w-0 flex-1"><div className="font-bold">{tr("Zakrio Systems assistant")}</div><div className="text-xs text-muted-foreground">{tr("Instant answers · support team reads every chat")}</div></div>
+          <div className="min-w-0 flex-1"><div className="font-bold">{tr("DataQuill Solutions assistant")}</div><div className="text-xs text-muted-foreground">{tr("Instant answers · support team reads every chat")}</div></div>
           <ShopButton variant="bare" className="h-auto w-auto p-0" aria-label={tr("Close")} onClick={onClose}><X className="h-5 w-5" /></ShopButton>
         </div>
         {signedIn === false ? (
@@ -107,7 +107,7 @@ export function HelpChat({ open, onClose, shopName, email, icon }: { open: boole
         ) : (
           <>
             <div className="flex-1 space-y-3 overflow-y-auto p-4">
-              {bubble({ sender: "ai", body: tr("Hi! Ask me anything about Zakrio Systems — how to record a sale, where to find stock, how to back up. I'll point you to the right place.") }, "hello")}
+              {bubble({ sender: "ai", body: tr("Hi! Ask me anything about DataQuill Solutions — how to record a sale, where to find stock, how to back up. I'll point you to the right place.") }, "hello")}
               {msgs.map((m) => bubble(m, m.id))}
               {streaming && bubble({ sender: "ai", body: streaming }, "stream")}
               {busy && !streaming && <div className="text-xs text-muted-foreground">{tr("Thinking…")}</div>}

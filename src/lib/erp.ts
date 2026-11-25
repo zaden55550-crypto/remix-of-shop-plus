@@ -1,4 +1,4 @@
-// Zakrio Systems ERP Core — shared business data + one transaction engine.
+// DataQuill Solutions ERP Core — shared business data + one transaction engine.
 // Every module (Inventory, Sales, POS, Purchases, Returns, Reports) reads and
 // writes through `commit`, which validates and applies a whole transaction or nothing.
 import { tillCashier } from "@/lib/till-cashier";

@@ -1,4 +1,4 @@
-// Real plan payments by M-Pesa to Zakrio Systems' own Paybill or Till (owner, 2026-11-23). The keys are server secrets set in
+// Real plan payments by M-Pesa to DataQuill Solutions' own Paybill or Till (owner, 2026-11-23). The keys are server secrets set in
 // Lovable Cloud (never in the browser): ZAKRIO_MPESA_ENVIRONMENT (sandbox|live), ZAKRIO_MPESA_TYPE (paybill|till),
 // ZAKRIO_MPESA_SHORTCODE, ZAKRIO_MPESA_TILL (Buy Goods only), ZAKRIO_MPESA_CONSUMER_KEY, ZAKRIO_MPESA_CONSUMER_SECRET,
 // ZAKRIO_MPESA_PASSKEY, and ZAKRIO_KES_PER_USD (the exchange rate used to turn the plan's USD price into shillings).
@@ -39,7 +39,7 @@ export const startPlanPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const c = config(), amount = planKes(data.planId, data.billing, rate());
     if (!darajaReady(c) || amount <= 0) throw new Error("Online payment isn't available yet. You have not been charged.");
-    const r = await stkPush(c, { amount, phone: data.phone, reference: `ZAKRIO ${data.planId}`.toUpperCase(), callbackUrl: `${data.origin.replace(/\/$/, "")}/api/plan-payment-callback` });
+    const r = await stkPush(c, { amount, phone: data.phone, reference: `DQ ${data.planId}`.toUpperCase(), callbackUrl: `${data.origin.replace(/\/$/, "")}/api/plan-payment-callback` });
     const ins = await (await admin()).from("plan_payments").insert({ owner_id: context.userId, plan_id: data.planId, billing: data.billing, amount_kes: amount, phone: r.phone, checkout_request_id: r.checkoutRequestId });
     if (ins.error) throw new Error(/does not exist|schema cache/i.test(ins.error.message) ? "Plan payments aren't switched on in the server yet (migration 0024)" : ins.error.message);
     return { checkoutRequestId: r.checkoutRequestId, amount };

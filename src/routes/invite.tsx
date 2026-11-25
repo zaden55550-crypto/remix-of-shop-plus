@@ -9,7 +9,7 @@ import { acceptInvitation, invitationInfo } from "@/lib/people-access.functions"
 import { roleLabel } from "@/lib/staff-access";
 
 export const Route = createFileRoute("/invite")({
-  head: () => ({ meta: [{ title: "Your invitation — Zakrio Systems" }, { name: "robots", content: "noindex" }, { name: "referrer", content: "no-referrer" }] }),
+  head: () => ({ meta: [{ title: "Your invitation — DataQuill Solutions" }, { name: "robots", content: "noindex" }, { name: "referrer", content: "no-referrer" }] }),
   component: Invite,
 });
 
@@ -47,7 +47,7 @@ function Invite() {
   return <main dir={dir} className="app-screen signup-page auth-login">
     <div className="signup-topbar"><TopBar /></div>
     <div className="signup-layout">
-      <section className="signup-hero" aria-label="Zakrio Systems"><div className="signup-brand-ring"><BrandRing size={180} /></div></section>
+      <section className="signup-hero" aria-label="DataQuill Solutions"><div className="signup-brand-ring"><BrandRing size={180} /></div></section>
       <section className="signup-form-panel">
         {!info ? <header className="signup-form-heading"><h1>{tr("Checking your invitation...")}</h1></header>
         : done ? <>

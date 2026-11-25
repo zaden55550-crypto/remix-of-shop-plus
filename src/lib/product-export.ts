@@ -53,10 +53,10 @@ export function xlsxBytes(XLSX: Xlsx, head: string[], rows: Cell[][]) {
 export function saveExport(format: ExportFormat, s: erp.ErpState, products: erp.Product[], keys: string[], shop: string, XLSX?: Xlsx) {
   const { head, rows } = exportTable(s, products, keys);
   const day = new Date().toISOString().slice(0, 10);
-  const name = `zakrio-systems-products-${day}.${format}`;
+  const name = `dataquill-solutions-products-${day}.${format}`;
   if (format === "csv") return downloadBlob(new Blob([`﻿${csvText(head, rows)}`], { type: "text/csv;charset=utf-8" }), name);
   if (format === "pdf") {
-    const pdf = tablePdf(`${shop || "ZAKRIO SYSTEMS"} - Products`, `${products.length} products - ${day}`, head, rows.map((r) => r.map(String)));
+    const pdf = tablePdf(`${shop || "DATAQUILL SOLUTIONS"} - Products`, `${products.length} products - ${day}`, head, rows.map((r) => r.map(String)));
     return downloadBlob(new Blob([pdf.buffer as ArrayBuffer], { type: "application/pdf" }), name);
   }
   if (!XLSX) throw new Error("Excel export is still loading");

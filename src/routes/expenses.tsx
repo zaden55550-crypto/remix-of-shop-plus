@@ -21,9 +21,9 @@ import { SearchPicker } from "@/components/shopbook/search-picker";
 
 export const Route = createFileRoute("/expenses")({
   head: () => ({ meta: [
-    { title: "Expenses — Zakrio Systems" },
+    { title: "Expenses — DataQuill Solutions" },
     { name: "description", content: "Record shop expenses, part payments and expense reports." },
-    { property: "og:title", content: "Expenses — Zakrio Systems" },
+    { property: "og:title", content: "Expenses — DataQuill Solutions" },
     { property: "og:description", content: "Track rent, transport, bills and other shop costs, paid or part paid." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },

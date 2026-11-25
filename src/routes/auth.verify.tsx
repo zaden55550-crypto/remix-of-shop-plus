@@ -10,7 +10,7 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { ZakrioMark, useSavedTheme } from "@/components/shopbook/ui";
 
 export const Route = createFileRoute("/auth/verify")({
-  head: () => ({ meta: [{ title: "Verify your email — Zakrio Systems" }] }),
+  head: () => ({ meta: [{ title: "Verify your email — DataQuill Solutions" }] }),
   validateSearch: (s: Record<string, unknown>) => ({ email: typeof s["email"] === "string" ? s["email"] : "" }),
   component: VerifyEmail,
 });
@@ -49,7 +49,7 @@ function VerifyEmail() {
       {message && <p role="status" className="verify-ok">{message}</p>}
       {error && <p role="alert" className="verify-err">{tr(error)}</p>}
       <p className="verify-small">{tr("Wrong email address? Contact Support from inside the app after you continue.")}</p>
-      <p className="verify-brand"><ZakrioMark compact /> <b>ZAKRIO SYSTEMS</b></p>
+      <p className="verify-brand"><ZakrioMark compact /> <b>DATAQUILL SOLUTIONS</b></p>
       <Link to="/" className="verify-small readable-back"><ArrowLeft aria-hidden /> {tr("Back to login")}</Link>
     </section>
   </main>;

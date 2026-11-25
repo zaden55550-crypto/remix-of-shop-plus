@@ -34,7 +34,7 @@ export function AuthCard({ mode, children }: { mode: AuthMode; children: ReactNo
   const login = mode === "login";
   return (
     <div className={cn("signup-layout auth-card", `panel-${side}`)} data-mode={mode}>
-      <section className="signup-hero" aria-label="Zakrio Systems">
+      <section className="signup-hero" aria-label="DataQuill Solutions">
         <div className="signup-brand-ring">
           <BrandRing size={180} />
         </div>
@@ -42,12 +42,12 @@ export function AuthCard({ mode, children }: { mode: AuthMode; children: ReactNo
       <section className="signup-form-panel auth-card-form">
         {children}
       </section>
-      <aside className="auth-card-welcome" aria-label="Zakrio Systems">
+      <aside className="auth-card-welcome" aria-label="DataQuill Solutions">
         <div className="auth-card-art">
           <BrandRing size={220} />
         </div>
         <h2 className="auth-card-greeting">{tr(login ? "Hello there" : "Welcome back")}</h2>
-        <p className="auth-card-note">{tr(login ? "New to Zakrio Systems? Create your business account." : "Already have an account? Log in to your business.")}</p>
+        <p className="auth-card-note">{tr(login ? "New to DataQuill Solutions? Create your business account." : "Already have an account? Log in to your business.")}</p>
         {/* Switches mode only: a link outside the form, so it can never submit it. */}
         <Link to={login ? "/signup" : "/"} className="auth-switch-btn">
           {tr(login ? "Sign Up" : "Log In")}
@@ -69,7 +69,7 @@ const BENEFITS = [
 export function AuthBenefits() {
   const { tr } = useLanguage();
   return (
-    <div className="login-benefits-footer auth-benefits" aria-label="Zakrio Systems benefits">
+    <div className="login-benefits-footer auth-benefits" aria-label="DataQuill Solutions benefits">
       {BENEFITS.map((b, i) => (
         <div key={i} className="signup-benefit">
           <div className="signup-benefit-icon">

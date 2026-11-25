@@ -606,13 +606,15 @@ export function SearchableCountryPicker({
    Rotating BrandRing with Orbiting App Icons
 ------------------------------------------------------- */
 
-/** The Zakrio Systems mark: a Z monogram with the name under it, drawn in code so no old SHOPPLUS artwork shows. Used in the logo
+/** The DataQuill Solutions mark: a Z monogram with the name under it, drawn in code so no old SHOPPLUS artwork shows. Used in the logo
  *  circle on Log In / Create Account and in the Business Setup header. Replace with the final logo file when it exists. */
 export function ZakrioMark({ compact = false, size }: { compact?: boolean; size?: number }) {
   return (
     <span className={compact ? "zakrio-mark is-compact" : "zakrio-mark"} aria-hidden="true" style={size ? ({ "--mark-size": `${size}px` } as CSSProperties) : undefined}>
-      <span className="zakrio-mark-z">Z</span>
-      {!compact && <span className="zakrio-mark-name">ZAKRIO</span>}
+      {/* The DataQuill Solutions logo (public/brand/dataquill-logo.png); until the file is there, "DQ" drawn in code. */}
+      <img className="zakrio-mark-logo" src="/brand/dataquill-logo.png" alt="" onLoad={(e) => e.currentTarget.parentElement?.classList.add("has-logo")} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+      <span className="zakrio-mark-z">DQ</span>
+      {!compact && <span className="zakrio-mark-name">DATAQUILL</span>}
     </span>
   );
 }
@@ -626,7 +628,7 @@ export function BrandRing({ size = 180 }: { size?: number }) {
     <div
       className="auth-brand-emblem"
       style={{ "--emblem-size": `${size}px` } as CSSProperties}
-      aria-label="Zakrio Systems"
+      aria-label="DataQuill Solutions"
     >
       <div className="auth-brand-emblem-core">
         <ZakrioMark size={size} />
@@ -943,13 +945,13 @@ export function Field({
 }
 
 /* -------------------------------------------------------
-   Zakrio Systems Wordmark
+   DataQuill Solutions Wordmark
 ------------------------------------------------------- */
 
 export function Wordmark({ className }: { className?: string }) {
   return (
     <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
-      Zakrio <span className="text-primary">Systems</span>
+      DataQuill <span className="text-primary">Systems</span>
     </div>
   );
 }

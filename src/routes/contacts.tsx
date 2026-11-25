@@ -20,8 +20,8 @@ import { useFeature } from "@/lib/use-features";
 import { paidAmount, type Customer, type Supplier, type OtherContact } from "@/lib/erp";
 
 export const Route = createFileRoute("/contacts")({ head: () => ({ meta: [
- { title: "Contacts — Zakrio Systems" }, { name: "description", content: "Compact customer and supplier profiles, balances, payments, histories and other contacts." },
- { property: "og:title", content: "Contacts — Zakrio Systems" }, { property: "og:description", content: "Manage shared Zakrio Systems contacts and outstanding balances." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+ { title: "Contacts — DataQuill Solutions" }, { name: "description", content: "Compact customer and supplier profiles, balances, payments, histories and other contacts." },
+ { property: "og:title", content: "Contacts — DataQuill Solutions" }, { property: "og:description", content: "Manage shared DataQuill Solutions contacts and outstanding balances." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), validateSearch: viewSearch, component: Contacts });
 const MENUS: Record<string, readonly string[]> = { Overview: [], Customers: ["All Customers", "Add Customer", "Balances", "History"], Suppliers: ["All Suppliers", "Add Supplier", "Balances", "History"], "Other Contacts": ["All Contacts", "Add Contact", "Categories", "History"] };
 type Contact = Customer | Supplier | OtherContact;

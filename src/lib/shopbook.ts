@@ -189,6 +189,8 @@ export type Account = {
   industryFamilyId?: import("@/lib/industry-config").IndustryFamilyId | undefined;
   /** Set when a new plan or trial starts and cleared by Review & Activate, so signing in returns to setup until it is done. */
   setupPending?: boolean | undefined;
+  /** The business name was made up from a Google or Apple account (owner, 2026-11-25): Business Setup asks for the real one. */
+  autoName?: boolean | undefined;
   role?: string | undefined;
   /** The "Try a sample shop" account (sample-shop.ts): never synced, backed up or linked online; leaving it removes it. */
   demo?: boolean | undefined;

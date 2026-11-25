@@ -105,7 +105,7 @@ export async function encryptBackup(text: string, password: string): Promise<str
 
 export async function decryptBackup(text: string, password: string): Promise<string> {
   let value: unknown;
-  try { value = JSON.parse(text); } catch { throw new Error("This is not a Zakrio Systems backup file"); }
+  try { value = JSON.parse(text); } catch { throw new Error("This is not a DataQuill Solutions backup file"); }
   if (!value || typeof value !== "object" || (value as Partial<EncryptedBackup>).app !== "SHOPPLUS-ENCRYPTED") return text;
   const file = value as Partial<EncryptedBackup>;
   if (file.version !== 1 || file.kdf !== "PBKDF2-SHA-256" || file.iterations !== 310_000 || typeof file.salt !== "string" || typeof file.iv !== "string" || typeof file.ciphertext !== "string") throw new Error("This encrypted backup version is not supported");

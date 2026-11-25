@@ -183,7 +183,7 @@ describe("auth interface translations", () => {
     "At least 6 characters",
     "You're offline. An account created now works only on this phone or computer. Connect to the internet first to use it anywhere.",
     "e.g. 712 345 678",
-    "Can't reach the Zakrio server right now. You can still log in if you've used the app here before.",
+    "Can't reach the DataQuill server right now. You can still log in if you've used the app here before.",
     "Need help?",
     "WhatsApp support",
     "Add a passkey on this phone or computer",
@@ -332,7 +332,7 @@ describe("login route", () => {
     fillLogin("staff@example.com", "wrong-password");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Incorrect business name, email, or password.",
+        "No account was found with this email and password. Check them, or create a new account.",
       ),
     );
     expect(signInEmail).toHaveBeenCalledWith("staff@example.com", "wrong-password");

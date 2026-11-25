@@ -11,10 +11,10 @@ import { AnnouncementAdmin } from "@/components/shopbook/announcement-banner";
 export const Route = createFileRoute("/support-inbox")({
   head: () => ({
     meta: [
-      { title: "Support inbox — Zakrio Systems" },
-      { name: "description", content: "Zakrio Systems support team inbox for shop owner messages." },
-      { property: "og:title", content: "Support inbox — Zakrio Systems" },
-      { property: "og:description", content: "Read and reply to Zakrio Systems shop owner messages." },
+      { title: "Support inbox — DataQuill Solutions" },
+      { name: "description", content: "DataQuill Solutions support team inbox for shop owner messages." },
+      { property: "og:title", content: "Support inbox — DataQuill Solutions" },
+      { property: "og:description", content: "Read and reply to DataQuill Solutions shop owner messages." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -109,7 +109,7 @@ function Inbox() {
             ))}
           </div>
           <form className="mt-3 flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
-            <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} maxLength={4000} placeholder="Reply as Zakrio Systems support…" className="flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
+            <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={2} maxLength={4000} placeholder="Reply as DataQuill Solutions support…" className="flex-1 resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary" />
             <ShopButton type="submit" aria-label="Send" className="h-11 w-11 shrink-0 p-0" disabled={!reply.trim()}><Send className="h-4 w-4" /></ShopButton>
           </form>
         </>

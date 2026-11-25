@@ -1,7 +1,7 @@
 // Each business connects its OWN accounts (owner, 2026-11-23): M-Pesa Daraja, WhatsApp Business (Cloud API), SMS (Africa's Talking)
 // and KRA eTIMS. Details are saved to the server (proposed migration 0023) and never come back to the browser; these functions read
 // them with the service role only to call the provider. eTIMS details are stored now; sending to KRA is added once KRA approves
-// Zakrio Systems as an integrator and gives its technical specification.
+// DataQuill Solutions as an integrator and gives its technical specification.
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";

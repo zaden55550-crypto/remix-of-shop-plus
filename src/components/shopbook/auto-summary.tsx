@@ -56,7 +56,7 @@ export function AutoSummary() {
         }
         if (a.backup && pastClosing(a, now) && get("shopbook.backupMailed") !== day) {
           const { emailBackup } = await import("@/lib/backup-email.functions");
-          await emailBackup({ data: { business: business || "Zakrio Systems", fileName: `zakrio-systems-backup-${day}.json`, json: backupJson(business) } }).then(() => put("shopbook.backupMailed", day)).catch(() => undefined);
+          await emailBackup({ data: { business: business || "DataQuill Solutions", fileName: `dataquill-solutions-backup-${day}.json`, json: backupJson(business) } }).then(() => put("shopbook.backupMailed", day)).catch(() => undefined);
         }
         if (a.orders) {
           const key = `shopbook.ordered@${day}`, done: string[] = JSON.parse(get(key) || "[]");

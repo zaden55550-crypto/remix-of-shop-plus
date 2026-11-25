@@ -1,6 +1,6 @@
 // Settings › Finance › Connections (owner, 2026-11-23): each business connects its OWN M-Pesa (Daraja), WhatsApp Business, SMS and
 // KRA eTIMS accounts. Keys go to the server (integrations.functions.ts) and are never shown again; the screen only knows what is set.
-// Each connection needs the terms accepted, because providers charge for messages and payments, and Zakrio Systems may add a fee.
+// Each connection needs the terms accepted, because providers charge for messages and payments, and DataQuill Solutions may add a fee.
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -42,7 +42,7 @@ const FORMS: Record<IntegrationKind, { title: string; about: string; fields: Fie
   otherpay: { title: "Other payment provider", about: "Any other mobile money, bank or card provider (Tigo Pesa, Halopesa, Wave, Equity, Paystack…). Save its details here; till prompts switch on once that provider's API is added for you.", fields: [
     { key: "provider", label: "Provider name" }, { key: "baseUrl", label: "API address (URL)" }, { key: "account", label: "Merchant / account number" },
     { key: "apiKey", label: "API key", secret: true }, { key: "apiSecret", label: "API secret", secret: true }] },
-  etims: { title: "KRA eTIMS", about: "Your eTIMS details are kept ready. Sales start going to KRA once Zakrio Systems is approved by KRA as an eTIMS integrator.", fields: [
+  etims: { title: "KRA eTIMS", about: "Your eTIMS details are kept ready. Sales start going to KRA once DataQuill Solutions is approved by KRA as an eTIMS integrator.", fields: [
     { key: "kraPin", label: "KRA PIN" }, { key: "branchId", label: "Branch ID" }, { key: "deviceSerial", label: "Device serial number" }] },
 };
 
@@ -96,7 +96,7 @@ function ConnectionForm({ kind, saved, onSaved }: { kind: IntegrationKind; saved
       if (kind === "mpesa") {
         const r = await mpesaStkPush({ data: { amount: Number(test.amount) || 1, phone: test.phone, reference: "TEST", origin: window.location.origin } });
         toast.success(tr("Payment prompt sent. Check the phone.")); setChecking(r.checkoutRequestId);
-      } else await sendMessage({ data: { channel: kind === "sms" ? "sms" : "whatsapp", to: test.phone, text: tr("Test message from Zakrio Systems") } }).then(() => toast.success(tr("Sent")));
+      } else await sendMessage({ data: { channel: kind === "sms" ? "sms" : "whatsapp", to: test.phone, text: tr("Test message from DataQuill Solutions") } }).then(() => toast.success(tr("Sent")));
     } catch (e) { toast.error(tr(e instanceof Error ? e.message : "Could not send")); }
   };
   const check = async () => { if (!checking) return; const r = await mpesaPaymentStatus({ data: { checkoutRequestId: checking } }); toast(r.status === "paid" ? `${tr("Paid")} · ${r.receipt ?? ""}` : r.status === "failed" ? `${tr("Not paid")} · ${r.result_desc ?? ""}` : tr("Still waiting for the customer")); };
@@ -110,7 +110,7 @@ function ConnectionForm({ kind, saved, onSaved }: { kind: IntegrationKind; saved
       </label>)}
     </div>
     <label className="feature-check"><input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /> {tr("Use this connection")}</label>
-    <label className="connection-terms"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> <span>{tr("I accept the")} <Link to="/terms" target="_blank">{tr("Terms & Conditions")}</Link> {tr("and")} <Link to="/privacy" target="_blank">{tr("Privacy Policy")}</Link>{tr(", and understand that the provider charges for payments and messages and Zakrio Systems may add a service fee.")}</span></label>
+    <label className="connection-terms"><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> <span>{tr("I accept the")} <Link to="/terms" target="_blank">{tr("Terms & Conditions")}</Link> {tr("and")} <Link to="/privacy" target="_blank">{tr("Privacy Policy")}</Link>{tr(", and understand that the provider charges for payments and messages and DataQuill Solutions may add a service fee.")}</span></label>
     <div className="connection-actions">
       <ShopButton disabled={busy} onClick={() => void save()}>{tr("Save")}</ShopButton>
       {saved && (kind === "mpesa" || kind === "whatsapp" || kind === "sms") && <><input className="inventory-input" inputMode="tel" placeholder={tr("Phone to test")} value={test.phone} onChange={(e) => setTest({ ...test, phone: e.target.value })} />

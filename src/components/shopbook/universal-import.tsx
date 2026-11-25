@@ -59,8 +59,8 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
         <p className="import-note">{tr("Cash, M-Pesa, Bank, customer receivables and supplier payables. Opening balances are kept separate from sales, purchases and expenses.")}</p>
         <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
         <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose files (CSV or XLSX)")}</ShopButton>
-        <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-opening-balances-template.csv", OB_TEMPLATE)}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
-        <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-opening-balances.csv", exportOB(s))}><Download className="h-4 w-4" />{tr("Export current opening balances")}</ShopButton>
+        <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-opening-balances-template.csv", OB_TEMPLATE)}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
+        <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-opening-balances.csv", exportOB(s))}><Download className="h-4 w-4" />{tr("Export current opening balances")}</ShopButton>
         <History tr={tr} />
       </>}
       {stage === "map" && <>
@@ -83,11 +83,11 @@ export function UniversalImport({ tr }: { tr: (x: string) => string }) {
           {r.issues[0] && <small>{r.issues[0].field}: {r.issues[0].problem} → {r.issues[0].suggestion}</small>}
         </div>)}</div>
         {conflicts.length > 0 && <label className="flex items-start gap-1 text-[11px]"><input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />{tr("I understand")} {conflicts.length} {tr("rows overlap existing records and could double-count. Untick those rows above if their history is already recorded.")}</label>}
-        {rows.some((r) => r.issues.length) && <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-import-errors.csv", issuesCsv(rows.flatMap((r) => r.issues)))}>{tr("Download error report")}</ShopButton>}
+        {rows.some((r) => r.issues.length) && <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-import-errors.csv", issuesCsv(rows.flatMap((r) => r.issues)))}>{tr("Download error report")}</ShopButton>}
         <ShopButton variant="outline" className="inventory-save" onClick={() => setStage("map")}>{tr("Back to mapping")}</ShopButton>
         <ShopButton className="inventory-save" disabled={!live.length || busy || (conflicts.length > 0 && !ack)} onClick={run}>{busy ? tr("Processing…") : `${tr("Import")} ${live.length} ${tr("opening balances")}`}</ShopButton>
       </>}
-      {stage === "done" && result && <div className="import-done"><FileSpreadsheet className="h-8 w-8 text-primary" /><b>{tr(result.status)}</b><span>✓ {tr("Created")}: {result.created}</span><span>⚠ {tr("Skipped")}: {result.skipped}</span><span>✕ {tr("Rejected")}: {result.rejected}</span>{result.reconciliation.map((x) => <span key={x}>{x}</span>)}{result.errors.length > 0 && <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-import-errors.csv", issuesCsv(result.errors))}>{tr("Download error report")}</ShopButton>}<ShopButton className="inventory-save" onClick={reset}>{tr("New import")}</ShopButton></div>}
+      {stage === "done" && result && <div className="import-done"><FileSpreadsheet className="h-8 w-8 text-primary" /><b>{tr(result.status)}</b><span>✓ {tr("Created")}: {result.created}</span><span>⚠ {tr("Skipped")}: {result.skipped}</span><span>✕ {tr("Rejected")}: {result.rejected}</span>{result.reconciliation.map((x) => <span key={x}>{x}</span>)}{result.errors.length > 0 && <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-import-errors.csv", issuesCsv(result.errors))}>{tr("Download error report")}</ShopButton>}<ShopButton className="inventory-save" onClick={reset}>{tr("New import")}</ShopButton></div>}
     </>}
     </>}
   </div>;

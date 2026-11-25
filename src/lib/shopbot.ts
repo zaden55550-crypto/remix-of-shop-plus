@@ -46,7 +46,7 @@ export function answerShopbot(question: string, context: BotContext, previous?: 
   if (dataQuestion) {
     if (/another (shop|business|user)|other (shop|business|user)/.test(q)) return { text: "I can only answer from this shop's authorized records." };
     if (/live|externally confirmed|provider confirmed/.test(q)) return { text: "I cannot verify external provider payment confirmations. Recorded entries are not proof of M-Pesa or bank settlement." };
-    if (!context.allowed || !context.state) return { text: "Sign in to this shop to view its records. I can still help with Zakrio Systems instructions." };
+    if (!context.allowed || !context.state) return { text: "Sign in to this shop to view its records. I can still help with DataQuill Solutions instructions." };
     const s = context.state, currency = context.currency;
     if (/last month|last week|last year|\d{4}|\bbetween\b/.test(q)) return { text: "For that date range, open Reports and choose the exact dates. I currently answer Today, Yesterday, This week and This month.", path: "/reports" };
     const money = (n: number) => `${currency} ${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;

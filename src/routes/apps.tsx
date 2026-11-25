@@ -31,10 +31,10 @@ const BADGE_LABEL: Record<string, string> = { inventory: "products low or out of
 export const Route = createFileRoute("/apps")({
   head: () => ({
     meta: [
-      { title: "Apps — Zakrio Systems" },
+      { title: "Apps — DataQuill Solutions" },
       { name: "description", content: "Access your business apps: POS, Inventory, Sales, Accounting, and more." },
-      { property: "og:title", content: "Apps — Zakrio Systems" },
-      { property: "og:description", content: "Access your business apps on Zakrio Systems." },
+      { property: "og:title", content: "Apps — DataQuill Solutions" },
+      { property: "og:description", content: "Access your business apps on DataQuill Solutions." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -245,10 +245,10 @@ function Apps() {
         {/* TOP LEFT: APP LOGO + APP NAME + ONLINE/OFFLINE INDICATOR */}
         <div className="apps-header-side flex items-center shrink-0">
           <div className="apps-glass-logo shrink-0 grid place-items-center">
-            <img src={"/SHOP_PLUS_3D_Transparent_Icons/shopplus-logo-512.png"} alt="Zakrio Systems" className="h-full w-full object-contain rounded-full" />
+            <img src={"/SHOP_PLUS_3D_Transparent_Icons/shopplus-logo-512.png"} alt="DataQuill Solutions" className="h-full w-full object-contain rounded-full" />
           </div>
           <span className="apps-brand font-black tracking-tight text-foreground whitespace-nowrap">
-            Zakrio <span className="text-primary">Systems</span>
+            DataQuill <span className="text-primary">Systems</span>
           </span>
           <ConnectionStatus />
         </div>

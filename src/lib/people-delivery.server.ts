@@ -16,8 +16,8 @@ export const providerStatus = (env: Env = process.env) => ({
 const words = (c: Contact, link: string) => {
   const shop = c.shop || "your employer";
   return c.kind === "reset"
-    ? { subject: `Reset your Zakrio Systems password`, body: `${c.name ?? "Hello"}, ${shop} issued you a link to set a new Zakrio Systems password. It works once: ${link}` }
-    : { subject: `You're invited to ${shop} on Zakrio Systems`, body: `${c.name ?? "Hello"}, ${shop} invited you to Zakrio Systems. Open this link to create your own password. It works once: ${link}` };
+    ? { subject: `Reset your DataQuill Solutions password`, body: `${c.name ?? "Hello"}, ${shop} issued you a link to set a new DataQuill Solutions password. It works once: ${link}` }
+    : { subject: `You're invited to ${shop} on DataQuill Solutions`, body: `${c.name ?? "Hello"}, ${shop} invited you to DataQuill Solutions. Open this link to create your own password. It works once: ${link}` };
 };
 
 export async function deliverLink(c: Contact, link: string, env: Env = process.env, send: typeof fetch = fetch): Promise<Delivery> {

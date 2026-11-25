@@ -326,7 +326,7 @@ function ExportDialog({ s, tr, shop, all, filtered, selected, onClose }: { s: er
     try {
       if (format === "pdf") {
         const { head, rows } = exportTable(s, products, keys);
-        const result = await sharePdfTable(`${shop || "ZAKRIO SYSTEMS"} - Products`, `${products.length} products - ${new Date().toISOString().slice(0, 10)}`, head, rows.map((row) => row.map(String)));
+        const result = await sharePdfTable(`${shop || "DATAQUILL SOLUTIONS"} - Products`, `${products.length} products - ${new Date().toISOString().slice(0, 10)}`, head, rows.map((row) => row.map(String)));
         if (result !== "cancelled") onClose();
         return;
       }

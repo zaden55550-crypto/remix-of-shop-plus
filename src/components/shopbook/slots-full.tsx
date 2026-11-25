@@ -1,6 +1,6 @@
 // All user places used (owner, 2026-11-24): every plan has a fixed number of logins (Basic 2, Growth 12, Business 24, the owner
 // included; see loginAllowance in shopbook.ts). Staff choose any counter or role freely within those places; once they are all taken,
-// nobody else can be added and the owner is told to contact us. More places are added only by agreement with Zakrio Systems, for an
+// nobody else can be added and the owner is told to contact us. More places are added only by agreement with DataQuill Solutions, for an
 // agreed charge; Basic and Growth can also move to a bigger plan.
 import { Link } from "@tanstack/react-router";
 import { Mail, MessageCircle, Phone } from "lucide-react";
@@ -21,7 +21,7 @@ export const SLOTS_FULL = "You have used all your user places. To add more, cont
 
 export function SlotsFull({ tr, planId, staffOnly = false, onClose }: { tr: Tr; planId: PlanId; staffOnly?: boolean; onClose?: () => void }) {
   const s = slotParts(planId);
-  const message = `${tr("Hello Zakrio Systems, I have used all the user places on my {x} plan and would like more.", s.name)}`;
+  const message = `${tr("Hello DataQuill Solutions, I have used all the user places on my {x} plan and would like more.", s.name)}`;
   return <div className="slots-full" role="alert">
     <p className="slots-full-title"><b>{tr(staffOnly ? "All staff places are used" : "All user places are used")}</b> · {tr("0 left")}</p>
     <p>{tr("Your {x} plan has", s.name)} <b>{s.total}</b> {tr("places")}: {tr("1 owner")}{s.managers ? ` · ${s.managers} ${tr(s.managers === 1 ? "manager" : "managers")}` : ""} · {s.staff} {tr("staff")}.

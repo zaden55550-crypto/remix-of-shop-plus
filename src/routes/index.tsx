@@ -8,14 +8,13 @@ import { ShopButton } from "@/components/ui/shop-button";
 import { useLanguage } from "@/hooks/use-language";
 import { SUPPORT } from "@/lib/i18n";
 import { checkPassword } from "@/lib/device-password";
-import { restoreBusiness, savedBusinessFor } from "@/lib/device-businesses";
+import { restoreBusiness, savedBusinessFor, setAsideCurrentBusiness } from "@/lib/device-businesses";
 
 const sameAs = (a: { shopName?: string; email?: string } | null, id: string) => { const n = (v: string) => v.trim().toLowerCase().replace(/s+/g, ""); return !!a && (n(a.shopName ?? "") === n(id) || (!!a.email && n(a.email) === n(id))); };
 import { PLANS, store, type Account, type PlanId } from "@/lib/shopbook";
 import { resumeEmployeeSession, signInEmployee, takeSignOutNotice } from "@/lib/staff-session";
 import { authenticatedContext, authMessage, currentIdentity, registerEmailIdentity, signInEmail } from "@/lib/auth-service";
 import { createOwnerFromIdentity, linkBusinessOnline } from "@/lib/owner-link";
-import { FinishBusiness, type BusinessDetails } from "@/components/shopbook/finish-business";
 import { SampleShopButton } from "@/components/shopbook/try-and-tour";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,15 +25,17 @@ const lastLoginId = () => { try { return localStorage.getItem(LAST_LOGIN_ID) ?? 
 const keepLoginId = (value: string, keep: boolean) => { try { if (keep && value.trim()) localStorage.setItem(LAST_LOGIN_ID, value.trim()); else localStorage.removeItem(LAST_LOGIN_ID); } catch { /* a hint only */ } };
 
 const INVALID_LOGIN_MESSAGE = "Incorrect business name, email, or password.";
+/** Online, an email with no account (or the wrong password) gets one plain answer and the way forward (owner, 2026-11-25). */
+const NO_ACCOUNT_MESSAGE = "No account was found with this email and password. Check them, or create a new account.";
 const isInvalidLoginError = (error: unknown) => error instanceof Error && /invalid (?:login )?credentials|incorrect (?:email|password)|email or password is incorrect|this login has no access|not connected to an owner or employee/i.test(error.message);
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Log in — Zakrio Systems" },
-      { name: "description", content: "Sign in to your Zakrio Systems shop account to run sales, stock and accounts." },
-      { property: "og:title", content: "Log in — Zakrio Systems" },
-      { property: "og:description", content: "Sign in to your Zakrio Systems shop account." },
+      { title: "Log in — DataQuill Solutions" },
+      { name: "description", content: "Sign in to your DataQuill Solutions shop account to run sales, stock and accounts." },
+      { property: "og:title", content: "Log in — DataQuill Solutions" },
+      { property: "og:description", content: "Sign in to your DataQuill Solutions shop account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -119,25 +120,17 @@ function Login() {
         if (context.kind === "member") { await resumeEmployeeSession(); nav({ to: "/apps", replace: true }); return; }
         const identity = await currentIdentity();
         if (!identity) return;
-        const local = store.get();
+        let local = store.get();
         if (local?.staff) return;
-        if (local?.authMigration?.status === "complete" && local.authMigration.centralUserId !== identity.userId) {
-          await supabase.auth.signOut({ scope: "local" });
-          toast.error(tr("This device's local business is linked to another central identity."));
-          return;
-        }
-        if (local && local.authMigration?.status !== "complete") {
-          // A business on this device that isn't linked yet: it is linked only after its own password is typed once (below),
-          // so nobody can claim it just by signing in with their own Google or Apple account.
-          await supabase.auth.signOut({ scope: "local" });
-          toast(tr("This device has a business that isn't linked to an online account yet. Log in once with its email and password to link it."));
-          return;
-        }
+        // A business already on this device never blocks a sign-in (owner, 2026-11-25): when it is this person's (linked to them, or
+        // the same business as theirs online) it is used; anyone else's is set aside untouched and comes back when its owner logs in.
+        const mine = !!local && (local.authMigration?.status === "complete" ? local.authMigration.centralUserId === identity.userId : local.businessId === context.syncBusiness);
+        if (local && !mine) { setAsideCurrentBusiness(); local = null; }
         const business = context.businesses.find((b) => b.legacy_business_id === context.syncBusiness) ?? context.businesses[0];
         const businessKey = local?.businessId ?? context.syncBusiness ?? business?.legacy_business_id;
         if (!businessKey) { toast.error(tr("No verified device-business mapping exists yet. Use the original device or request manual reconciliation.")); return; }
         const centralPlan = context.subscription?.status === "trial" ? "trial" : PLANS.find((p) => p.id === context.subscription?.plan_id)?.id;
-        const account: Account = local ?? { shopName: business?.name ?? "ZAKRIO SYSTEMS", email: identity.email ?? "", currency: business?.currency ?? "KES", password: "", businessId: businessKey, role: "owner", ...(centralPlan ? { plan: centralPlan } : {}) };
+        const account: Account = local ?? { shopName: business?.name ?? "DATAQUILL SOLUTIONS", email: identity.email ?? "", currency: business?.currency ?? "KES", password: "", businessId: businessKey, role: "owner", ...(centralPlan ? { plan: centralPlan } : {}) };
         store.save({ ...account, authMigration: { status: "complete", centralUserId: identity.userId, centralAccountId: context.accountId, ...(business ? { centralBusinessId: business.id } : {}), updatedAt: Date.now() }, centralContext: { accountId: context.accountId, businesses: context.businesses, locations: context.locations, subscription: context.subscription, syncBusiness: context.syncBusiness, syncedAt: Date.now() } });
         store.signIn();
         nav({ to: account.plan ? (account.setupPending ? "/setup" : "/apps") : "/plans", replace: true });
@@ -147,19 +140,29 @@ function Login() {
         // Signed in with Google, Apple or a verified email, but no business on the server yet.
         if (/not connected to an owner or employee/i.test(message)) {
           const local = store.get();
-          if (!local || local.staff) {
-            // First Google/Apple sign-in: the business is created straight away; Setup collects its details next.
-            if (local?.staff) return;
-            // Ask for the business name and phone first (FinishBusiness); the business is created when they press Continue.
-            const who = await currentIdentity().catch(() => null);
-            if (active) setFinishing({ email: who?.email ?? "" });
-            return;
-          }
-          if (local.authMigration?.status !== "complete") {
+          if (local?.staff) return;
+          const who = await currentIdentity().catch(() => null);
+          try {
+            // The business on this device has this person's own email and isn't linked yet: it is theirs, so link it.
+            const sameEmail = !!local && !!who?.email && (local.email || "").trim().toLowerCase() === who.email.trim().toLowerCase();
+            if (local && local.authMigration?.status !== "complete" && sameEmail) {
+              await linkSignedInOwner(local);
+              store.signIn();
+              nav({ to: local.plan ? (local.setupPending ? "/setup" : "/apps") : "/plans", replace: true });
+              return;
+            }
+            // Anyone else's business is set aside untouched; this person starts their own. They go straight in, and Business Setup
+            // asks for the business name and phone (the name from Google or Apple is only a placeholder there).
+            if (local) setAsideCurrentBusiness();
+            await createOwnerFromIdentity(language);
+            store.update({ autoName: true });
+            toast.success(tr("Your account is ready. Choose a plan to start."));
+            nav({ to: "/plans", replace: true });
+          } catch (x) {
             await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-            toast(tr("This device has a business that isn't linked to an online account yet. Log in once with its email and password to link it."));
-            return;
+            toast.error(tr(authMessage(x)));
           }
+          return;
         }
         toast.error(tr(message));
       }
@@ -171,21 +174,6 @@ function Login() {
 
   const submit = (e: React.FormEvent) => { e.preventDefault(); void logIn(id, pw); };
   /** The one login routine: the form and the Email button's window both use it, so linking and every check are identical. */
-  // First Google/Apple sign-in: the "Finish your business" window, then the business is created with those details.
-  const [finishing, setFinishing] = useState<{ email: string } | null>(null);
-  const finishBusiness = async (d: BusinessDetails) => {
-    try {
-      const created = await createOwnerFromIdentity(language, d);
-      setFinishing(null);
-      toast.success(tr("Your account is ready. Choose a plan to start."));
-      nav({ to: created.plan ? "/setup" : "/plans", replace: true });
-    } catch (x) {
-      setFinishing(null);
-      await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
-      toast.error(tr(authMessage(x)));
-    }
-  };
-  const cancelFinish = () => { setFinishing(null); void supabase.auth.signOut({ scope: "local" }).catch(() => undefined); };
   const logIn = async (id: string, pw: string) => {
     setError(null);
     // After 5 wrong passwords in a minute, wait a minute: said plainly, with the way out.
@@ -276,21 +264,18 @@ function Login() {
 
       const identity = await currentIdentity();
       if (!identity) throw new Error("Central identity session was not established.");
-      const local = store.get();
+      let local = store.get();
       if (local?.staff) throw new Error("Sign out of the employee account before signing into an owner account.");
-      if (local?.authMigration?.status === "complete" && local.authMigration.centralUserId !== identity.userId) {
-        await supabase.auth.signOut({ scope: "local" });
-        throw new Error("This device's local business is linked to another central identity. Use the linked identity or request manual reconciliation.");
-      }
+      // Another person's business on this device is set aside untouched (it comes back when they log in), never a reason to refuse.
+      if (local?.authMigration?.status === "complete" && local.authMigration.centralUserId !== identity.userId) { setAsideCurrentBusiness(); local = null; }
       if (local && local.authMigration?.status !== "complete") {
         // The same email and password as the business on this device: link them now. Otherwise this device holds someone
         // else's business, which is never handed to a different online account.
         const sameEmail = (local.email || "").trim().toLowerCase() === (identity.email || "").trim().toLowerCase();
         const own = sameEmail && local.password ? (await checkPassword(pw, local.password)).ok : false;
-        if (!own) {
-          await supabase.auth.signOut({ scope: "local" });
-          throw new Error("This device holds another business that isn't linked online. Log in with that business's email and password, or use another device.");
-        }
+        if (!own) { setAsideCurrentBusiness(); local = null; }
+      }
+      if (local && local.authMigration?.status !== "complete") {
         await linkSignedInOwner(local);
         store.signIn(remember); keepLoginId(id, remember);
         nav({ to: local.plan ? (local.setupPending ? "/setup" : "/apps") : "/plans" });
@@ -303,7 +288,7 @@ function Login() {
       }
       const centralPlan = context.subscription?.status === "trial" ? "trial" : PLANS.find((plan) => plan.id === context.subscription?.plan_id)?.id;
       const ownerAccount: Account = local ?? {
-        shopName: business?.name ?? "ZAKRIO SYSTEMS", email: identity.email ?? "", currency: business?.currency ?? "KES", password: "",
+        shopName: business?.name ?? "DATAQUILL SOLUTIONS", email: identity.email ?? "", currency: business?.currency ?? "KES", password: "",
         businessId: businessKey!, role: "owner", ...(centralPlan ? { plan: centralPlan as PlanId | "trial" } : {}),
         authMigration: { status: "complete", centralUserId: identity.userId, centralAccountId: context.accountId, ...(business ? { centralBusinessId: business.id } : {}), updatedAt: Date.now() },
       };
@@ -312,7 +297,7 @@ function Login() {
       nav({ to: ownerAccount.plan ? (ownerAccount.setupPending ? "/setup" : "/apps") : "/plans" });
     } catch (error) {
       // A business name works only where the business was created, so a wrong one (no "@") also says how to log in elsewhere.
-      if (isInvalidLoginError(error)) { setError(id.includes("@") ? tr(INVALID_LOGIN_MESSAGE) : `${tr(INVALID_LOGIN_MESSAGE)} ${tr("On a new phone or computer, log in with your email.")}`); failedAttempt(); }
+      if (isInvalidLoginError(error)) { setError(id.includes("@") ? tr(NO_ACCOUNT_MESSAGE) : `${tr(INVALID_LOGIN_MESSAGE)} ${tr("On a new phone or computer, log in with your email.")}`); failedAttempt(); }
       else toast.error(tr(authMessage(error)));
     } finally {
       setBusy(false);
@@ -322,14 +307,13 @@ function Login() {
 
   return (
     <>
-      {finishing && <FinishBusiness email={finishing.email} onDone={finishBusiness} onCancel={cancelFinish} />}
       <header className="signup-form-heading">
         <ConnectionPill />
             <h1><span className="auth-phone-text">{tr("Log In")}</span><span className="auth-desk-text">{tr("Welcome back")}</span></h1>
             <p>{tr("Sign in to your business account")}</p>
             {/* No internet at all, or internet but the server isn't answering (said only after two missed checks in a row). */}
             {offline === "internet" && <p className="login-offline" role="status">{tr("You're offline. You can still log in if you've used the app here before. Google and Apple need internet.")}</p>}
-            {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the Zakrio server right now. You can still log in if you've used the app here before.")}</p>}
+            {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the DataQuill server right now. You can still log in if you've used the app here before.")}</p>}
           </header>
 
           <form onSubmit={submit} className="signup-form">

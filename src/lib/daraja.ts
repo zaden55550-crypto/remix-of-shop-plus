@@ -1,4 +1,4 @@
-// Safaricom Daraja calls shared by the business's own M-Pesa (integrations.functions.ts) and Zakrio Systems' plan payments
+// Safaricom Daraja calls shared by the business's own M-Pesa (integrations.functions.ts) and DataQuill Solutions' plan payments
 // (plan-payment.functions.ts). Server-side only: callers pass the keys they read from the server.
 export type DarajaConfig = { environment?: string; type?: string; shortcode?: string; till?: string; consumerKey?: string; consumerSecret?: string; passkey?: string };
 

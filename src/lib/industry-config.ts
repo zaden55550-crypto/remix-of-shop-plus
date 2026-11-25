@@ -1,5 +1,5 @@
 /**
- * Approved business catalogue and industry configuration for ZAKRIO SYSTEMS.
+ * Approved business catalogue and industry configuration for DATAQUILL SOLUTIONS.
  *
  * This is a data/configuration foundation only. Trade remains the existing ERP
  * core; other industries are explicitly marked configuration-only until their

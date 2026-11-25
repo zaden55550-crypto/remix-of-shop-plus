@@ -16,7 +16,7 @@ export function kpiTone(label: string): KpiTone {
   return "info";
 }
 
-/** Every Zakrio Systems summary metric is the Dashboard's KPI card (dash-kpi) in one non-wrapping strip. */
+/** Every DataQuill Solutions summary metric is the Dashboard's KPI card (dash-kpi) in one non-wrapping strip. */
 export function KpiRow({ children, className }: { children: ReactNode; className?: string }) {
   return <div className={cn("kpi-row", className)}>{children}</div>;
 }

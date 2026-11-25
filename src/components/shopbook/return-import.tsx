@@ -34,8 +34,8 @@ export function ReturnImport({ tr }: { tr: (x: string) => string }) {
       <p className="import-note">{tr("One row per returned item. Rows with the same return number become one return against the original receipt or invoice; stock, refunds and balances update.")}</p>
       <input ref={ref} hidden multiple type="file" accept=".csv,.xlsx,.xls" onChange={(e) => e.target.files?.length && void read(e.target.files)} />
       <ShopButton className="inventory-save" onClick={() => ref.current?.click()}><Upload className="h-4 w-4" />{tr("Choose files (CSV or XLSX)")}</ShopButton>
-      <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-returns-template.csv", RT_TEMPLATE)}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
-      <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-returns.csv", exportRT(s))}><Download className="h-4 w-4" />{tr("Export returns")}</ShopButton>
+      <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-returns-template.csv", RT_TEMPLATE)}><Download className="h-4 w-4" />{tr("Download template")}</ShopButton>
+      <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-returns.csv", exportRT(s))}><Download className="h-4 w-4" />{tr("Export returns")}</ShopButton>
     </>}
     {stage === "map" && <>
       {sheets.map((x) => { const m = maps[id(x)] ?? {}; return <div key={id(x)} className="import-history" style={{ padding: 8 }}>
@@ -53,7 +53,7 @@ export function ReturnImport({ tr }: { tr: (x: string) => string }) {
         <small>{g.lines.map((l) => `${l.product} × ${l.qty}`).join(", ") || "—"} • {tr("Refund")}: {g.refund}</small>
         {g.issues.slice(0, 3).map((i, k) => <small key={k}>Row {i.row} • {i.field}: {i.problem} → {i.suggestion}</small>)}
       </div>)}</div>
-      {groups.some((g) => g.issues.length) && <ShopButton variant="outline" className="inventory-save" onClick={() => download("zakrio-systems-import-errors.csv", issuesCsv(groups.flatMap((g) => g.issues)))}>{tr("Download error report")}</ShopButton>}
+      {groups.some((g) => g.issues.length) && <ShopButton variant="outline" className="inventory-save" onClick={() => download("dataquill-solutions-import-errors.csv", issuesCsv(groups.flatMap((g) => g.issues)))}>{tr("Download error report")}</ShopButton>}
       <ShopButton variant="outline" className="inventory-save" onClick={() => setStage("map")}>{tr("Back to mapping")}</ShopButton>
       <ShopButton className="inventory-save" disabled={!live.length || busy} onClick={run}>{busy ? tr("Processing…") : `${tr("Import")} ${live.length} ${tr("returns")}`}</ShopButton>
     </>}

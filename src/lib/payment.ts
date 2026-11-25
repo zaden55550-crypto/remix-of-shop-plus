@@ -1,5 +1,5 @@
 // The one place a plan payment is decided.
-// Real payments (owner, 2026-11-23): when Zakrio Systems' own M-Pesa keys are set as server secrets (plan-payment.functions.ts), a
+// Real payments (owner, 2026-11-23): when DataQuill Solutions' own M-Pesa keys are set as server secrets (plan-payment.functions.ts), a
 // plan is paid by an M-Pesa prompt to the owner's phone and counts only once Safaricom confirms it. Until those secrets exist,
 // PAYMENT_TEST_MODE (the owner's instruction for the testing period) accepts every payment and takes no money.
 import type { PlanId } from "@/lib/shopbook";

@@ -22,7 +22,7 @@ export const emailBackup = createServerFn({ method: "POST" })
     const day = new Date().toLocaleDateString("en-GB");
     const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env("RESEND_API_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify({
       from: senderFrom(env("INVITE_EMAIL_FROM")), to, subject: `${data.business} · backup ${day}`,
-      text: `Your Zakrio Systems backup for ${data.business}, ${day}, is attached. Keep it safe: it can restore your records in Settings › Backup.`,
+      text: `Your DataQuill Solutions backup for ${data.business}, ${day}, is attached. Keep it safe: it can restore your records in Settings › Backup.`,
       attachments: [{ filename: data.fileName, content: b64(data.json) }],
     }) });
     if (!r.ok) throw new Error(((await r.json().catch(() => ({}))) as { message?: string }).message ?? "The email provider didn't send the backup");

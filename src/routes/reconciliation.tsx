@@ -12,8 +12,8 @@ import { parseImportFile } from "@/lib/import-center";
 import { autoMatch, candidates, loadRecon, RECON_KINDS, reconTemplate, reconTotals, saveRecon, stageRows, type ReconKind, type ReconRow } from "@/lib/reconciliation";
 
 export const Route = createFileRoute("/reconciliation")({ head: () => ({ meta: [
-  { title: "Reconciliation — Zakrio Systems" }, { name: "description", content: "Import historical sales, purchases and payments, then match them to real shop records without double counting." },
-  { property: "og:title", content: "Reconciliation — Zakrio Systems" }, { property: "og:description", content: "Match historical financial imports to real Zakrio Systems records." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  { title: "Reconciliation — DataQuill Solutions" }, { name: "description", content: "Import historical sales, purchases and payments, then match them to real shop records without double counting." },
+  { property: "og:title", content: "Reconciliation — DataQuill Solutions" }, { property: "og:description", content: "Match historical financial imports to real DataQuill Solutions records." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), component: Reconciliation });
 
 const MENUS: Record<string, readonly string[]> = { Unmatched: [], Matched: [], Ignored: [], Import: [] };
@@ -28,7 +28,7 @@ function Reconciliation() {
   const update = (id: string, patch: Partial<ReconRow>) => setRows(rows.map((r) => r.id === id ? { ...r, ...patch } : r));
   const read = async (f: File) => { try { const { rows: add, errors } = stageRows(await parseImportFile(f), f.name, kind); setRows([...add, ...rows]); toast.success(`${add.length} ${tr("rows staged")}${errors.length ? ` • ${errors.length} ${tr("skipped")}` : ""}`); if (errors[0]) toast.error(errors[0]); setMenu("Unmatched"); } catch (e) { toast.error(e instanceof Error ? e.message : "File could not be read"); } };
   const auto = () => { const x = autoMatch(s, rows); setRows(x.rows); toast.success(`${x.matched} ${tr("matched")}`); };
-  const download = () => { const u = URL.createObjectURL(new Blob([reconTemplate()], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = "zakrio-systems-reconciliation-template.csv"; a.click(); URL.revokeObjectURL(u); };
+  const download = () => { const u = URL.createObjectURL(new Blob([reconTemplate()], { type: "text/csv" })); const a = document.createElement("a"); a.href = u; a.download = "dataquill-solutions-reconciliation-template.csv"; a.click(); URL.revokeObjectURL(u); };
   const list = rows.filter((r) => r.status === menu.toLowerCase());
   return <ErpShell title="Reconciliation" shop={acct.shopName} menus={MENUS} menu={menu} sub="" onMenu={setMenu} onSub={() => {}} deps={rows}>
     <KpiRow><Kpi tone="good" label={tr("Imported")} value={t.total} /><Kpi tone="good" label={tr("Matched")} value={t.matched} /><Kpi label={tr("Unmatched")} value={t.unmatched} tone={t.unmatched ? "warn" : "warn"} /><Kpi tone="warn" label={tr("Unmatched value")} value={money(t.unmatchedValue)} /></KpiRow>

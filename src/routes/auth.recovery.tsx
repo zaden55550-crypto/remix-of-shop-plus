@@ -61,7 +61,7 @@ function OwnerRecovery() {
       <div className="verify-actions"><ShopButton type="submit" className="verify-go" disabled={busy}>{tr("Send reset link")}</ShopButton></div>
     </form>}
     {message && <p role="status" className="verify-ok">{message}</p>}{error && <p role="alert" className="verify-err">{tr(error)}</p>}
-    <p className="verify-brand"><ZakrioMark compact /> <b>ZAKRIO SYSTEMS</b></p>
+    <p className="verify-brand"><ZakrioMark compact /> <b>DATAQUILL SOLUTIONS</b></p>
     {/* People locked out need help most: the same WhatsApp line as Log In. */}
     <p className="verify-small readable-help">{tr("Need help?")} <a href={`https://wa.me/${SUPPORT.whatsapp}`} target="_blank" rel="noreferrer">{tr("WhatsApp support")}</a></p>
     <Link to="/" className="verify-small readable-back"><ArrowLeft aria-hidden /> {tr("Back to login")}</Link>

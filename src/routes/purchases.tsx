@@ -28,9 +28,9 @@ import { randomUUID } from "@/lib/id";
 
 export const Route = createFileRoute("/purchases")({
   head: () => ({ meta: [
-    { title: "Purchases — Zakrio Systems" },
+    { title: "Purchases — DataQuill Solutions" },
     { name: "description", content: "Record supplier purchases, receive stock, pay suppliers and return goods." },
-    { property: "og:title", content: "Purchases — Zakrio Systems" },
+    { property: "og:title", content: "Purchases — DataQuill Solutions" },
     { property: "og:description", content: "Buy stock from suppliers with automatic stock and money updates." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },

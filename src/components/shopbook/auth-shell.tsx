@@ -127,13 +127,13 @@ export function AuthShell({ children }: { children: ReactNode }) {
         data-leave={leave ?? undefined}
         data-transitioning={welcomeMode !== mode ? "true" : undefined}
       >
-        <aside className="auth-card-welcome" aria-label="Zakrio Systems">
+        <aside className="auth-card-welcome" aria-label="DataQuill Solutions">
           <div className="auth-card-art">
             <BrandRing size={220} />
           </div>
           <div className="auth-card-words">
             <h2 className="auth-card-greeting">{tr(welcomeLogin ? "Hello there" : "Welcome back")}</h2>
-            <p className="auth-card-note">{tr(welcomeLogin ? "New to Zakrio Systems? Create your business account." : "Already have an account? Log in to your business.")}</p>
+            <p className="auth-card-note">{tr(welcomeLogin ? "New to DataQuill Solutions? Create your business account." : "Already have an account? Log in to your business.")}</p>
             <Link to={target} className="auth-switch-btn" onClick={onSwitch}>
               {tr(welcomeLogin ? "Sign Up" : "Log In")}
             </Link>
@@ -142,7 +142,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
 
         <section className="signup-form-panel auth-card-form">
           {/* Phones: the same rotating logo as the laptop's welcome panel, at the top of the card. */}
-          <div className="auth-phone-brand auth-phone-ring" aria-label="Zakrio Systems">
+          <div className="auth-phone-brand auth-phone-ring" aria-label="DataQuill Solutions">
             <BrandRing size={112} />
           </div>
           {children}

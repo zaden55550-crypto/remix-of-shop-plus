@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ZakrioMark } from "@/components/shopbook/ui";
 
 export const Route = createFileRoute("/auth/return")({
-  head: () => ({ meta: [{ title: "Signing in — Zakrio Systems" }] }),
+  head: () => ({ meta: [{ title: "Signing in — DataQuill Solutions" }] }),
   component: AuthReturn,
 });
 
@@ -39,7 +39,7 @@ function AuthReturn() {
         <h1>{tr("Email verified")}</h1>
         <p role="status">{tr("Opening your business…")}</p>
       </>}
-      <p className="verify-brand"><ZakrioMark compact /> <b>ZAKRIO SYSTEMS</b></p>
+      <p className="verify-brand"><ZakrioMark compact /> <b>DATAQUILL SOLUTIONS</b></p>
     </section>
   </main>;
 }

@@ -35,9 +35,9 @@ const PLAN_CURRENCIES = Object.keys(USD_RATES).filter((c) => !["KSH", "SOM", "US
 export const Route = createFileRoute("/plans")({
   head: () => ({
     meta: [
-      { title: "Subscription Plans — Zakrio Systems" },
-      { name: "description", content: "Choose the Zakrio Systems plan that fits your business." },
-      { property: "og:title", content: "Subscription Plans — Zakrio Systems" },
+      { title: "Subscription Plans — DataQuill Solutions" },
+      { name: "description", content: "Choose the DataQuill Solutions plan that fits your business." },
+      { property: "og:title", content: "Subscription Plans — DataQuill Solutions" },
       { property: "og:description", content: "Transparent pricing for African small and medium businesses." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -51,7 +51,7 @@ function Plans() {
   const { tr, dir } = useLanguage();
 
   const [tour, setTour] = useState(false), [invite, setInvite] = useState(false);
-  // Real M-Pesa plan payments (payment.ts): whether the server has Zakrio Systems' M-Pesa keys, and the shilling prices.
+  // Real M-Pesa plan payments (payment.ts): whether the server has DataQuill Solutions' M-Pesa keys, and the shilling prices.
   const [real, setReal] = useState<{ ready: boolean; prices: Record<string, number> }>({ ready: false, prices: {} });
   const [payPhone, setPayPhone] = useState(""), [payStep, setPayStep] = useState<"sent" | "waiting" | null>(null);
   useEffect(() => { void realPayment().then(setReal); setPayPhone(store.get()?.phone ?? ""); }, []);
@@ -110,7 +110,7 @@ function Plans() {
   const startTrial = () => {
     // The trial stays full access. The selected plan is only remembered; it never activates a paid plan.
     store.update({ plan: "trial", trialStart: started ?? Date.now(), trialChoice: plan.id, ...(started ? {} : { setupPending: true }) });
-    toast.success(tr(started ? "Your plan choice is saved." : "30-day free trial activated! Welcome to Zakrio Systems."));
+    toast.success(tr(started ? "Your plan choice is saved." : "30-day free trial activated! Welcome to DataQuill Solutions."));
     // Only a brand new trial goes on to Business / Shop Setup.
     nav({ to: started ? "/apps" : "/setup" });
   };
@@ -333,7 +333,7 @@ function Plans() {
         <div className="flex items-center gap-2 min-w-0">
           <Wordmark className="text-xs sm:text-sm md:text-base font-black tracking-tight" />
           <span className="hidden sm:inline-block text-[11px] font-semibold text-muted-foreground truncate">
-            — {tr("Unlock more features and grow your business with Zakrio Systems")}
+            — {tr("Unlock more features and grow your business with DataQuill Solutions")}
           </span>
         </div>
 

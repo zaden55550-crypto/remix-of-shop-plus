@@ -3,7 +3,7 @@ import { DATA_EPOCH, freshStart } from "@/lib/fresh-start";
 
 describe("fresh start", () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
-  it("removes every Zakrio Systems key once, keeps other sites' keys, and never wipes again on the same epoch", () => {
+  it("removes every DataQuill Solutions key once, keeps other sites' keys, and never wipes again on the same epoch", () => {
     localStorage.setItem("shopbook.erp", "{}"); localStorage.setItem("shopbook.account", "{}"); localStorage.setItem("sb-abc-auth-token", "x");
     localStorage.setItem("zakrio.something", "1"); localStorage.setItem("other-app", "keep"); sessionStorage.setItem("shopbook.session", "1");
     expect(freshStart()).toBe(true);

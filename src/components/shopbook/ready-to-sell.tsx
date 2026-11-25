@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 type Tr = (x: string, v?: string | number) => string;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-/** Exports to bring from other systems: where to find them and which Zakrio import takes them. */
+/** Exports to bring from other systems: where to find them and which DataQuill import takes them. */
 export const MOVE_GUIDES: { system: string; steps: string[] }[] = [
   { system: "Odoo", steps: ["Inventory › Products › select all › Action › Export (Name, Internal Reference, Barcode, Sales Price, Cost, Quantity On Hand, Product Category)", "Contacts › select all › Action › Export (Name, Phone, Mobile, Email)", "Accounting › Reports › Aged Receivable and Aged Payable for what customers owe and what you owe"] },
   { system: "QuickBooks", steps: ["Sales › Products and services › Export to Excel", "Sales › Customers › Export to Excel; Expenses › Vendors › Export to Excel", "Reports › Accounts receivable aging summary and Accounts payable aging summary"] },
@@ -332,7 +332,7 @@ function EtimsExport({ s, tr }: { s: erp.ErpState; tr: Tr }) {
     const csv = etimsCsv(s, readSettings().taxPin, new Date(y, m - 1, 1).getTime(), new Date(y, m, 1).getTime() - 1);
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    a.download = `zakrio-systems-sales-for-etims-${month}.csv`;
+    a.download = `dataquill-solutions-sales-for-etims-${month}.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
   };

@@ -7,9 +7,9 @@
 export type LegalSection = { heading: string; paragraphs: string[]; list?: string[] };
 export type LegalDoc = { title: string; updated: string; intro: string[]; sections: LegalSection[] };
 
-/** Details only the business behind Zakrio Systems can give. Empty values are left out of the page. */
+/** Details only the business behind DataQuill Solutions can give. Empty values are left out of the page. */
 export const OWNER_DETAILS = {
-  legalName: "", // e.g. the registered company name, if different from "Zakrio Systems"
+  legalName: "", // e.g. the registered company name, if different from "DataQuill Solutions"
   registrationNumber: "",
   postalAddress: "",
   contactEmail: "",
@@ -19,18 +19,18 @@ const contactLine = () => {
   const parts = [OWNER_DETAILS.contactEmail && `by email at ${OWNER_DETAILS.contactEmail}`, OWNER_DETAILS.postalAddress && `by post at ${OWNER_DETAILS.postalAddress}`].filter(Boolean);
   return `You can contact us through the Support chat inside the app${parts.length ? `, ${parts.join(", ")}` : ""}.`;
 };
-const who = () => [OWNER_DETAILS.legalName || "Zakrio Systems", OWNER_DETAILS.registrationNumber && `(registration number ${OWNER_DETAILS.registrationNumber})`].filter(Boolean).join(" ");
+const who = () => [OWNER_DETAILS.legalName || "DataQuill Solutions", OWNER_DETAILS.registrationNumber && `(registration number ${OWNER_DETAILS.registrationNumber})`].filter(Boolean).join(" ");
 
 export const TERMS: LegalDoc = {
   title: "Terms & Conditions",
   updated: "20 November 2026",
   intro: [
-    `These Terms & Conditions ("Terms") are an agreement between you and ${who()} ("Zakrio Systems", "we", "us") for the use of the Zakrio Systems business management software, its apps and its online services (the "Service").`,
+    `These Terms & Conditions ("Terms") are an agreement between you and ${who()} ("DataQuill Solutions", "we", "us") for the use of the DataQuill Solutions business management software, its apps and its online services (the "Service").`,
     "By creating an account, ticking the box on Create Account or using the Service, you agree to these Terms on behalf of yourself and the business you register. If you do not agree, do not use the Service.",
   ],
   sections: [
     { heading: "1. The Service", paragraphs: [
-      "Zakrio Systems helps businesses record sales, purchases, stock, expenses, payments, staff and payroll, and produces reports and accounts from those records. Some features depend on your plan and your industry, and some are marked \"Coming soon\" until they are available.",
+      "DataQuill Solutions helps businesses record sales, purchases, stock, expenses, payments, staff and payroll, and produces reports and accounts from those records. Some features depend on your plan and your industry, and some are marked \"Coming soon\" until they are available.",
       "The Service runs on your device and keeps a copy of your records on our servers so they can sync between your devices and be restored. Some features work offline and send your changes when you are back online.",
     ] },
     { heading: "2. Your account", paragraphs: [
@@ -89,7 +89,7 @@ export const PRIVACY: LegalDoc = {
   title: "Privacy Policy",
   updated: "20 November 2026",
   intro: [
-    `This Privacy Policy explains how ${who()} ("Zakrio Systems", "we", "us") collects, uses and protects personal information when you use the Zakrio Systems software and online services (the "Service"), in line with the Data Protection Act, 2019 of Kenya.`,
+    `This Privacy Policy explains how ${who()} ("DataQuill Solutions", "we", "us") collects, uses and protects personal information when you use the DataQuill Solutions software and online services (the "Service"), in line with the Data Protection Act, 2019 of Kenya.`,
   ],
   sections: [
     { heading: "1. Our two roles", paragraphs: [

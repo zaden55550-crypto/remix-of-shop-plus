@@ -87,13 +87,13 @@ import {
 export const Route = createFileRoute("/inventory")({
   head: () => ({
     meta: [
-      { title: "Inventory — Zakrio Systems" },
+      { title: "Inventory — DataQuill Solutions" },
       {
         name: "description",
         content: "Products, stock levels, stock in/out, customer and supplier returns, transfers and configuration.",
       },
-      { property: "og:title", content: "Inventory — Zakrio Systems" },
-      { property: "og:description", content: "The single source of truth for products and stock in Zakrio Systems." },
+      { property: "og:title", content: "Inventory — DataQuill Solutions" },
+      { property: "og:description", content: "The single source of truth for products and stock in DataQuill Solutions." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

@@ -24,7 +24,7 @@ export function backupJson(shop: string) { return JSON.stringify(snapshot(shop))
 export const lastBackup = () => Number(localStorage.getItem(LAST) || 0);
 const object = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
 export function validateBackup(value: unknown): asserts value is ReturnType<typeof snapshot> {
-  if (!object(value) || value["app"] !== "SHOPBOOK" || !object(value["data"])) throw new Error("This is not a Zakrio Systems backup file");
+  if (!object(value) || value["app"] !== "SHOPBOOK" || !object(value["data"])) throw new Error("This is not a DataQuill Solutions backup file");
   const d = value["data"];
   for (const key of Object.keys(empty())) {
     const rows = d[key];
@@ -63,7 +63,7 @@ export function validateBackup(value: unknown): asserts value is ReturnType<type
 export function restoreJson(text: string) {
   // Restoring replaces records, so after the trial it waits for a plan like any other change.
   assertCanRecord();
-  let f: unknown; try { f = JSON.parse(text); } catch { throw new Error("This is not a Zakrio Systems backup file"); }
+  let f: unknown; try { f = JSON.parse(text); } catch { throw new Error("This is not a DataQuill Solutions backup file"); }
   validateBackup(f);
   const keys: string[] = [KEY, "shopbook.account", ...BACKUP_KEYS, ACTIVE_BUSINESS, ACTIVE_SHOP, ...new Set([...businessSettingKeys(), ...Object.keys(f.businessSettings ?? {}).map((id) => `shopbook.settings@${id}`)])];
   const previous = keys.map((k) => [k, localStorage.getItem(k)] as const);

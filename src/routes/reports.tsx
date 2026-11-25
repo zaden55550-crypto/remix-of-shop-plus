@@ -17,8 +17,8 @@ import { detailedReport, REPORT_MENUS, reportModule } from "@/lib/analytics-repo
 import { chartSeries } from "@/lib/chart-data";
 
 export const Route = createFileRoute("/reports")({ head: () => ({ meta: [
-  { title: "Reports & Charts — Zakrio Systems" }, { name: "description", content: "Compact real-data sales, purchases, stock, expenses, financial, contacts, returns and commission reports with charts and exports." },
-  { property: "og:title", content: "Reports & Charts — Zakrio Systems" }, { property: "og:description", content: "Build visual reports from shared Zakrio Systems records." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  { title: "Reports & Charts — DataQuill Solutions" }, { name: "description", content: "Compact real-data sales, purchases, stock, expenses, financial, contacts, returns and commission reports with charts and exports." },
+  { property: "og:title", content: "Reports & Charts — DataQuill Solutions" }, { property: "og:description", content: "Build visual reports from shared DataQuill Solutions records." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), validateSearch: viewSearch, component: Reports });
 type Saved = { name: string; menu?: string; sub?: string; type?: string; days?: number };
 function Reports() {
@@ -38,7 +38,7 @@ function Reports() {
   const rep = detailedReport(s, active, activeSub, range);
   const menus: Record<string, readonly string[]> = { ...REPORT_MENUS, Financial: (REPORT_MENUS["Financial"] ?? []).filter((x) => x !== "VAT" || prefs.tax.on) };
   const go = (m: string) => { setMenu(m); setSub(menus[m]?.[0] ?? ""); setView("Preview"); };
-  const exportCsv = () => { const url = URL.createObjectURL(new Blob([toCsv(rep)], { type: "text/csv" })); const a = document.createElement("a"); a.href = url; a.download = `zakrio-systems-${active.toLowerCase()}-${localIso(new Date(range.from))}.csv`; a.click(); URL.revokeObjectURL(url); };
+  const exportCsv = () => { const url = URL.createObjectURL(new Blob([toCsv(rep)], { type: "text/csv" })); const a = document.createElement("a"); a.href = url; a.download = `dataquill-solutions-${active.toLowerCase()}-${localIso(new Date(range.from))}.csv`; a.click(); URL.revokeObjectURL(url); };
   const shareReport = () => {
     const rows = [
       ...rep.kpis.map((k) => [tr(k.label), k.value === null ? "—" : k.money ? money(k.value) : String(k.value), ""]),

@@ -154,7 +154,7 @@ export function SmartImport({ tr, files: given }: { tr: Tr; files?: File[] | und
           {issues.length > 0 && <>
             <p><b>{issues.length}</b> {tr(issues.length === 1 ? "row will be left out:" : "rows will be left out:")}</p>
             <ul className="smart-issues">{issues.slice(0, 6).map((i) => <li key={`${i.file}${i.sheet}${i.row}${i.field}`}>{place(i)}, {tr("row")} {i.row}{i.field ? ` · ${i.field}` : ""}: {i.problem}</li>)}</ul>
-            <button type="button" className="smart-link" onClick={() => download("zakrio-systems-import-problems.csv", issuesCsv(issues))}><Download aria-hidden /> {tr("Download the list to fix them")}</button>
+            <button type="button" className="smart-link" onClick={() => download("dataquill-solutions-import-problems.csv", issuesCsv(issues))}><Download aria-hidden /> {tr("Download the list to fix them")}</button>
           </>}
         </section>
       </div>

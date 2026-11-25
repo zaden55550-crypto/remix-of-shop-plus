@@ -1,4 +1,4 @@
-// The public one-page website (owner, 2026-11-23): what Zakrio Systems does, the plans, Try a sample shop, and how to reach us.
+// The public one-page website (owner, 2026-11-23): what DataQuill Solutions does, the plans, Try a sample shop, and how to reach us.
 // Share /welcome on WhatsApp status, Facebook or TikTok. It reads the real plans (PLANS) and the real support contacts (SUPPORT).
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, Boxes, CloudOff, MessageCircle, Receipt, Smartphone, Store, Users } from "lucide-react";
@@ -11,7 +11,7 @@ import { startSampleShop } from "@/lib/sample-shop";
 import { PLANS, planAllowanceLines } from "@/lib/shopbook";
 
 export const Route = createFileRoute("/welcome")({
-  head: () => ({ meta: [{ title: "Zakrio Systems · Run your shop from your phone" }, { name: "description", content: "Sales, stock, M-Pesa, staff and accounts for shops in one app. Works offline. Try a sample shop free." }] }),
+  head: () => ({ meta: [{ title: "DataQuill Solutions · Run your shop from your phone" }, { name: "description", content: "Sales, stock, M-Pesa, staff and accounts for shops in one app. Works offline. Try a sample shop free." }] }),
   component: Welcome,
 });
 
@@ -31,7 +31,7 @@ function Welcome() {
   const sample = () => { try { startSampleShop(); window.location.assign("/dashboard"); } catch (e) { toast.error(tr(e instanceof Error ? e.message : "The sample shop can't open here")); } };
   return <main className="welcome">
     <header className="welcome-top">
-      <b className="welcome-brand">ZAKRIO SYSTEMS</b>
+      <b className="welcome-brand">DATAQUILL SOLUTIONS</b>
       <span className="welcome-top-right"><LangQuick /><Link to="/" className="welcome-login">{tr("Log In")}</Link></span>
     </header>
 

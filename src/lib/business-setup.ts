@@ -280,7 +280,7 @@ export function activateSetup(d: SetupDraft) {
   });
   // The account lives outside the ERP records, so it is updated once the records are safely saved.
   const phones = { ...(d.phone !== undefined ? { phone: d.phone.trim() } : {}), ...(d.phone2 !== undefined ? { phone2: d.phone2.trim() || undefined } : {}), ...(d.phone3 !== undefined ? { phone3: d.phone3.trim() || undefined } : {}) };
-  store.update({ shopName: d.businessName.trim(), businessType: undefined, businessTypes, ...(industryFamilyId ? { industryFamilyId } : {}), ...phones, ...(d.businessDocuments !== undefined ? { businessDocuments: d.businessDocuments } : {}), setupPending: undefined });
+  store.update({ shopName: d.businessName.trim(), businessType: undefined, businessTypes, ...(industryFamilyId ? { industryFamilyId } : {}), ...phones, ...(d.businessDocuments !== undefined ? { businessDocuments: d.businessDocuments } : {}), setupPending: undefined, autoName: undefined });
   // Only the switches the owner changed here are saved; the others keep following the business types.
   if (d.features && Object.keys(d.features).length) saveFeatures(d.features);
   if (d.taxPin !== undefined) saveSettings({ taxPin: d.taxPin.trim().toUpperCase() });

@@ -19,8 +19,8 @@ import * as erp from "@/lib/erp";
 import * as fin from "@/lib/finance";
 
 export const Route = createFileRoute("/float")({ head: () => ({ meta: [
-  { title: "Float — Zakrio Systems" }, { name: "description", content: "Compact Cash, M-Pesa and Bank activity, internal transfers, owner capital and daily cash-up." },
-  { property: "og:title", content: "Float — Zakrio Systems" }, { property: "og:description", content: "Track your real business money and reconcile the cash drawer." },
+  { title: "Float — DataQuill Solutions" }, { name: "description", content: "Compact Cash, M-Pesa and Bank activity, internal transfers, owner capital and daily cash-up." },
+  { property: "og:title", content: "Float — DataQuill Solutions" }, { property: "og:description", content: "Track your real business money and reconcile the cash drawer." },
   { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), validateSearch: viewSearch, component: Float });
 const MENUS: Record<string, readonly string[]> = {

@@ -26,14 +26,14 @@ import { randomUUID } from "@/lib/id";
 export const Route = createFileRoute("/signup")({
   head: () => ({
     meta: [
-      { title: "Create Account — Zakrio Systems" },
+      { title: "Create Account — DataQuill Solutions" },
       {
         name: "description",
         content:
-          "Create your free Zakrio Systems shop account to manage sales, stock and accounts.",
+          "Create your free DataQuill Solutions shop account to manage sales, stock and accounts.",
       },
-      { property: "og:title", content: "Create Account — Zakrio Systems" },
-      { property: "og:description", content: "Create your free Zakrio Systems shop account." },
+      { property: "og:title", content: "Create Account — DataQuill Solutions" },
+      { property: "og:description", content: "Create your free DataQuill Solutions shop account." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -229,7 +229,7 @@ function Signup() {
       const identity = await registerEmailIdentity(emailTrimmed, f.password, shopTrimmed);
       if (identity.user && !identity.session && identity.user.identities?.length === 0) {
         throw new Error(
-          "An identity already uses this email. Sign in to it first; ZAKRIO SYSTEMS will not link accounts by email.",
+          "An identity already uses this email. Sign in to it first; DATAQUILL SOLUTIONS will not link accounts by email.",
         );
       }
       centralUserId = identity.user?.id;
@@ -319,7 +319,7 @@ function Signup() {
         <p>{tr("30-day free trial · no card needed")}</p>
         {/* An account made without the server is kept only on this device (nothing links it online later), so say so first. */}
         {offline === "internet" && <p className="login-offline" role="status">{tr("You're offline. An account created now works only on this phone or computer. Connect to the internet first to use it anywhere.")}</p>}
-        {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the Zakrio server right now. An account created now works only on this phone or computer. Try again in a moment to use it anywhere.")}</p>}
+        {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the DataQuill server right now. An account created now works only on this phone or computer. Try again in a moment to use it anywhere.")}</p>}
       </header>
 
       <form onSubmit={submit} className="signup-form">

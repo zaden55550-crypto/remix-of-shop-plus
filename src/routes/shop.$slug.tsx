@@ -29,6 +29,6 @@ function PublicShop() {
       {p.inStock && <span className="pshop-qty"><button type="button" onClick={() => setCart({ ...cart, [p.name]: Math.max(0, (cart[p.name] ?? 0) - 1) })}>−</button><b>{cart[p.name] ?? 0}</b><button type="button" onClick={() => setCart({ ...cart, [p.name]: (cart[p.name] ?? 0) + 1 })}>+</button></span>}
     </li>)}</ul>
     {data.whatsapp && picked.length > 0 && <a className="pshop-order" href={`https://wa.me/${data.whatsapp}?text=${encodeURIComponent(order)}`} target="_blank" rel="noopener">Order on WhatsApp · {total.toLocaleString("en-KE")}</a>}
-    <p className="pshop-foot">Powered by Zakrio Systems</p>
+    <p className="pshop-foot">Powered by DataQuill Solutions</p>
   </main>;
 }

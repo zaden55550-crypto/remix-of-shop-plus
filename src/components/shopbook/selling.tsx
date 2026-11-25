@@ -166,7 +166,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
   const taxPin = here?.taxPin || cfg.taxPin, hours = here?.hours || cfg.hours;
   return (
     <div className="print-area receipt-paper mx-auto w-full max-w-xs rounded-xl p-4 font-mono text-[12px] leading-5">
-      <p className="text-center text-sm font-bold">Zakrio Systems</p>
+      <p className="text-center text-sm font-bold">DataQuill Solutions</p>
       <p className="text-center font-bold uppercase">{shop}</p>
       {phone && <p className="text-center">{tr("Tel")}: {phone}</p>}
       {here?.receiptHeader && <p className="text-center">{here.receiptHeader}</p>}
@@ -203,7 +203,7 @@ export function Receipt({ sale, s, money, tr, shop }: { sale: erp.Sale; s: erp.E
 
 export function ReceiptSheet({ sale, s, money, tr, shop, onClose, children, live }: { sale: erp.Sale; s: erp.ErpState; money: SCtx["money"]; tr: Tr; shop: string; onClose: () => void; children?: ReactNode; live?: boolean }) {
   const byWeight = useFeature("weight");
-  const text = () => [`Zakrio Systems — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""}${i.gas ? ` (${i.gas.mode === "refill" ? tr("Refill") : `${tr("New cylinder")}, ${tr("deposit")} ${i.gas.deposit}`})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}${i.serials?.length ? ` [${i.serials.join(", ")}${i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}]` : ""}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
+  const text = () => [`DataQuill Solutions — ${shop}`, `${sale.ref} • ${dt(sale.at)}`, ...sale.items.map((i) => `${i.name} ${qtyTimesPrice(i.qty, String(i.price), weighedUnit(s, i.productId, i.unit, byWeight))}${i.wholesale ? ` (${tr("Wholesale")})` : ""}${i.gas ? ` (${i.gas.mode === "refill" ? tr("Refill") : `${tr("New cylinder")}, ${tr("deposit")} ${i.gas.deposit}`})` : ""} = ${Math.round(i.qty * i.price * 100) / 100}${i.serials?.length ? ` [${i.serials.join(", ")}${i.warrantyUntil ? ` · ${tr("Warranty until")} ${new Date(i.warrantyUntil).toLocaleDateString("en-GB")}` : ""}]` : ""}`), `${tr("TOTAL")} ${money(sale.total)}`, ...erp.payLines(s, sale.pay).map(([m, v]) => `${m === "credit" ? tr("On credit") : erp.methodLabel(m, s, tr)} ${money(v)}`)].join("\n");
   const share = () => { void sharePdfText(`${tr("Receipt")} ${sale.ref}`, text()); };
   const [print, setPrint] = useState<null | "print" | "pdf">(null);
   const [animate] = useState(() => !!live && readSettings().liveReceipt && !(typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));

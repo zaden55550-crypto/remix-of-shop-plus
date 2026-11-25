@@ -15,8 +15,8 @@ import { profitAndLoss } from "@/lib/accounting";
 import { performance, position } from "@/lib/summary";
 
 export const Route = createFileRoute("/summary")({ head: () => ({ meta: [
-  { title: "Summary & Trends — Zakrio Systems" }, { name: "description", content: "Compact business, sales, inventory and financial charts from real shop records, with shared date filters." },
-  { property: "og:title", content: "Summary & Trends — Zakrio Systems" }, { property: "og:description", content: "Compare shop performance and explore real sales, expense, profit and stock trends." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  { title: "Summary & Trends — DataQuill Solutions" }, { name: "description", content: "Compact business, sales, inventory and financial charts from real shop records, with shared date filters." },
+  { property: "og:title", content: "Summary & Trends — DataQuill Solutions" }, { property: "og:description", content: "Compare shop performance and explore real sales, expense, profit and stock trends." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), component: Summary });
 const MENUS: Record<string, readonly string[]> = { "Business performance": [], "Sales performance": ["Overview", "By Product", "By Payment", "By Seller", "By Customer"], Inventory: ["Stock Value", "Movement", "Best Selling", "Low Stock", "Performance"], "Financial position": ["Revenue", "Expenses", "Profit", "Receivables", "Payables", "Cash Position"], Trends: [] };
 function Summary() {

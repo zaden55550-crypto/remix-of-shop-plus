@@ -1,4 +1,4 @@
-// Forgot password, sent through Resend (owner, 2026-11-25: Zakrio Systems emails people only for a forgotten password and for staff
+// Forgot password, sent through Resend (owner, 2026-11-25: DataQuill Solutions emails people only for a forgotten password and for staff
 // invitations, both through Resend; no SMS). The server makes a one-time recovery token with the sign-in system and emails a link to
 // /auth/recovery on this same site (the address comes from the request, never from the browser, so a link can't be pointed elsewhere).
 // It never says whether an address has an account. Sent from info@dataquillsolutions.com (email-sender.ts). Without RESEND_API_KEY it answers `resend: false` and the
@@ -30,8 +30,8 @@ export const sendOwnerReset = createServerFn({ method: "POST" })
       method: "POST",
       headers: { Authorization: `Bearer ${env("RESEND_API_KEY")}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: senderFrom(env("INVITE_EMAIL_FROM")), to: data.email, subject: "Reset your Zakrio Systems password",
-        text: `Someone asked to reset the password for this email on Zakrio Systems. If it was you, open this link to choose a new password. It works once and expires soon:\n\n${link}\n\nIf it wasn't you, ignore this email; your password stays the same.`,
+        from: senderFrom(env("INVITE_EMAIL_FROM")), to: data.email, subject: "Reset your DataQuill Solutions password",
+        text: `Someone asked to reset the password for this email on DataQuill Solutions. If it was you, open this link to choose a new password. It works once and expires soon:\n\n${link}\n\nIf it wasn't you, ignore this email; your password stays the same.`,
       }),
     }).catch(() => null);
     if (!sent?.ok) lastSent.delete(data.email);

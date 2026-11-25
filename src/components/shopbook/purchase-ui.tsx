@@ -41,14 +41,14 @@ export function ShareMenu({ title, shop, head, rows, tr, print }: { title: strin
   const [xlsx, setXlsx] = useState<typeof import("xlsx")>();
   // Loaded when the menu opens: phones only allow a download during the tap itself.
   useEffect(() => { if (open && !xlsx) void import("xlsx").then(setXlsx); }, [open, xlsx]);
-  const name = (ext: string) => `zakrio-systems-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+  const name = (ext: string) => `dataquill-solutions-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toISOString().slice(0, 10)}.${ext}`;
   const done = (fn: () => void) => { try { fn(); setOpen(false); } catch (e) { toast.error(tr(e instanceof Error ? e.message : "Export failed")); } };
   const excel = () => done(() => { if (!xlsx) throw new Error("Excel export is still loading"); downloadBlob(new Blob([xlsxBytes(xlsx, head, rows)], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }), name("xlsx")); });
-  const pdf = () => done(() => { const bytes = tablePdf(`${shop || "ZAKRIO SYSTEMS"} - ${title}`, `${rows.length} ${tr("records")} - ${new Date().toISOString().slice(0, 10)}`, head, rows.map((r) => r.map(String))); downloadBlob(new Blob([bytes.buffer as ArrayBuffer], { type: "application/pdf" }), name("pdf")); });
+  const pdf = () => done(() => { const bytes = tablePdf(`${shop || "DATAQUILL SOLUTIONS"} - ${title}`, `${rows.length} ${tr("records")} - ${new Date().toISOString().slice(0, 10)}`, head, rows.map((r) => r.map(String))); downloadBlob(new Blob([bytes.buffer as ArrayBuffer], { type: "application/pdf" }), name("pdf")); });
   const csv = () => done(() => downloadBlob(new Blob([`﻿${csvText(head, rows)}`], { type: "text/csv;charset=utf-8" }), name("csv")));
   const whatsapp = () => {
     setOpen(false);
-    void sharePdfTable(`${shop || "ZAKRIO SYSTEMS"} - ${title}`, `${rows.length} ${tr("records")} - ${new Date().toISOString().slice(0, 10)}`, head, rows.map((r) => r.map(String)));
+    void sharePdfTable(`${shop || "DATAQUILL SOLUTIONS"} - ${title}`, `${rows.length} ${tr("records")} - ${new Date().toISOString().slice(0, 10)}`, head, rows.map((r) => r.map(String)));
   };
   return <Pop open={open} setOpen={setOpen} button={<button type="button" className="pw-btn" aria-expanded={open} onClick={() => setOpen(!open)}><Share2 /><span>{tr("Share")}</span></button>}>
     <button type="button" className="pm-pop-row" disabled={!rows.length} onClick={excel}><span><FileSpreadsheet />{tr("Excel")}</span></button>

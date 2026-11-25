@@ -18,7 +18,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/businesses")({
-  head: () => ({ meta: [{ title: "Businesses — Zakrio Systems" }, { name: "description", content: "Open, switch between and create your businesses on Zakrio Systems." }] }),
+  head: () => ({ meta: [{ title: "Businesses — DataQuill Solutions" }, { name: "description", content: "Open, switch between and create your businesses on DataQuill Solutions." }] }),
   component: BusinessesPage,
 });
 

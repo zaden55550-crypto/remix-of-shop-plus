@@ -1,4 +1,4 @@
-// One printing workflow for every Zakrio Systems document: white preview, Print, and an Exit that always works.
+// One printing workflow for every DataQuill Solutions document: white preview, Print, and an Exit that always works.
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Printer, X } from "lucide-react";
 import { ShopButton } from "@/components/ui/shop-button";
@@ -72,7 +72,7 @@ export const DocHead = ({ shop, title }: { shop: string; title: string }) => <di
 export const DocLine = ({ k, v, bold }: { k: string; v: ReactNode; bold?: boolean }) => <div className={bold ? "flex justify-between font-bold" : "flex justify-between"}><span>{k}</span><span className="tabular-nums">{v}</span></div>;
 export const DocRule = () => <div className="my-2 border-t border-dashed border-current opacity-40" />;
 
-const pdfName = (title: string) => `zakrio-systems-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "document"}-${new Date().toISOString().slice(0, 10)}.pdf`;
+const pdfName = (title: string) => `dataquill-solutions-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "document"}-${new Date().toISOString().slice(0, 10)}.pdf`;
 const deliverPdf = async (title: string, bytes: Uint8Array) => {
   const blob = new Blob([bytes.buffer as ArrayBuffer], { type: "application/pdf" });
   const result = await shareBlob(blob, pdfName(title), title);

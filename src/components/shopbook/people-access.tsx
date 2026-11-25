@@ -62,7 +62,7 @@ function CloudIdentitySignIn({ tr }: { tr: Tr }) {
     setBusy(true); setError(""); setNotice("");
     try {
       if (password.length < 8) throw new Error(tr("Use a password with at least 8 characters"));
-      const result = await registerEmailIdentity(email, password, store.get()?.shopName ?? "ZAKRIO SYSTEMS owner");
+      const result = await registerEmailIdentity(email, password, store.get()?.shopName ?? "DATAQUILL SOLUTIONS owner");
       if (result.session) await connectPeople();
       else setNotice(tr("Check your email to verify this sign-in, then return to Settings and connect again. Existing account identities are never linked by email alone."));
     } catch (x) { setError(authMessage(x)); }
@@ -163,8 +163,8 @@ function LinkResult({ issued, name, onClose, tr }: { issued: IssuedLink; name: s
     <p className="pw-note">{tr("Expires")} {when(issued.expiresAt)}. {tr("For safety this link is shown only now and isn't stored. If it is lost, generate a new one.")}</p>
     {/* Suggestion 7: send the link by WhatsApp or SMS from this phone's own apps (no paid provider needed). */}
     <div className="pw-share">
-      <a className="pw-btn is-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(`${tr("You're invited to join our business on Zakrio Systems. Open this link to set up your login (it works once):")} ${issued.link}`)}`} target="_blank" rel="noopener">{tr("Send by WhatsApp")}</a>
-      <a className="pw-btn is-sms" href={`sms:?&body=${encodeURIComponent(`${tr("You're invited to join our business on Zakrio Systems. Open this link to set up your login (it works once):")} ${issued.link}`)}`}>{tr("Send by SMS")}</a>
+      <a className="pw-btn is-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(`${tr("You're invited to join our business on DataQuill Solutions. Open this link to set up your login (it works once):")} ${issued.link}`)}`} target="_blank" rel="noopener">{tr("Send by WhatsApp")}</a>
+      <a className="pw-btn is-sms" href={`sms:?&body=${encodeURIComponent(`${tr("You're invited to join our business on DataQuill Solutions. Open this link to set up your login (it works once):")} ${issued.link}`)}`}>{tr("Send by SMS")}</a>
     </div>
     <div className="pw-foot"><span /><span className="pw-foot-right"><button type="button" className="pw-btn" onClick={() => void copy(issued.link, tr)}>{tr("Copy invitation link")}</button><button type="button" className="pw-btn is-primary" onClick={onClose}>{tr("Done")}</button></span></div>
   </div></GlassPage>;

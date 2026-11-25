@@ -146,7 +146,7 @@ export function ReferralCard() {
     return () => { live = false; };
   }, []);
   const link = `${window.location.origin}/signup?ref=${code}`;
-  const text = `${tr("I run my shop with Zakrio Systems: sales, stock and M-Pesa in one app, even offline. Try it free for 30 days:")} ${link}`;
+  const text = `${tr("I run my shop with DataQuill Solutions: sales, stock and M-Pesa in one app, even offline. Try it free for 30 days:")} ${link}`;
   const progress = counts ? freeMonths(counts.paid, plan) : null;
   const planName = PLANS.find((p) => p.id === plan)?.name ?? plan;
   return <div className="referral">

@@ -29,9 +29,9 @@ import * as erp from "@/lib/erp";
 export const Route = createFileRoute("/pos")({
   head: () => ({
     meta: [
-      { title: "POS — Zakrio Systems" },
+      { title: "POS — DataQuill Solutions" },
       { name: "description", content: "Fast till: scan, floating cart, part payments, receipts and cash-up." },
-      { property: "og:title", content: "POS — Zakrio Systems" },
+      { property: "og:title", content: "POS — DataQuill Solutions" },
       { property: "og:description", content: "Sell fast with search, scan, split and part payments, and receipts." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
