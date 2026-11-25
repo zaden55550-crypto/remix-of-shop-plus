@@ -951,7 +951,7 @@ export function Field({
 export function Wordmark({ className }: { className?: string }) {
   return (
     <div className={cn("text-center text-lg font-extrabold tracking-tight", className)}>
-      DataQuill <span className="text-primary">Systems</span>
+      DataQuill <span className="text-primary">Solutions</span>
     </div>
   );
 }

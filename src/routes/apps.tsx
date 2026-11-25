@@ -245,10 +245,10 @@ function Apps() {
         {/* TOP LEFT: APP LOGO + APP NAME + ONLINE/OFFLINE INDICATOR */}
         <div className="apps-header-side flex items-center shrink-0">
           <div className="apps-glass-logo shrink-0 grid place-items-center">
-            <img src={"/SHOP_PLUS_3D_Transparent_Icons/shopplus-logo-512.png"} alt="DataQuill Solutions" className="h-full w-full object-contain rounded-full" />
+            <img src="/brand/dataquill-logo.png" alt="DataQuill Solutions" className="brand-logo-img h-full w-full object-contain rounded-full" />
           </div>
           <span className="apps-brand font-black tracking-tight text-foreground whitespace-nowrap">
-            DataQuill <span className="text-primary">Systems</span>
+            DataQuill <span className="text-primary">Solutions</span>
           </span>
           <ConnectionStatus />
         </div>
