@@ -26392,3 +26392,7 @@ body.on-setup .movein-page { width: min(78rem, calc(88vw / 1.15)) !important; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .sample-bar .is-go { flex: 0 0 auto; padding: 0 16px; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .sample-bar > span { min-width: 0; }
 :root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root:root .sample-bar > span { font-weight: 800; font-size: 17px; }
+/* The logo file exists (2026-11-25): it always shows; the drawn "DQ" only when the image fails to load. */
+.zakrio-mark .zakrio-mark-z, .zakrio-mark .zakrio-mark-name { visibility: hidden; }
+.zakrio-mark.no-logo .zakrio-mark-z, .zakrio-mark.no-logo .zakrio-mark-name { visibility: visible; }
+.zakrio-mark .zakrio-mark-logo { inset: 4%; width: 92%; height: 92%; border-radius: 0; filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.35)); }

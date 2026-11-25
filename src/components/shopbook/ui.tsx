@@ -611,8 +611,8 @@ export function SearchableCountryPicker({
 export function ZakrioMark({ compact = false, size }: { compact?: boolean; size?: number }) {
   return (
     <span className={compact ? "zakrio-mark is-compact" : "zakrio-mark"} aria-hidden="true" style={size ? ({ "--mark-size": `${size}px` } as CSSProperties) : undefined}>
-      {/* The DataQuill Solutions logo (public/brand/dataquill-logo.png); until the file is there, "DQ" drawn in code. */}
-      <img className="zakrio-mark-logo" src="/brand/dataquill-logo.png" alt="" onLoad={(e) => e.currentTarget.parentElement?.classList.add("has-logo")} onError={(e) => { e.currentTarget.style.display = "none"; }} />
+      {/* The DataQuill Solutions logo (public/brand/dataquill-logo.png); "DQ" drawn in code only if the image can't load. */}
+      <img className="zakrio-mark-logo" src="/brand/dataquill-logo.png" alt="" onError={(e) => { e.currentTarget.parentElement?.classList.add("no-logo"); e.currentTarget.style.display = "none"; }} />
       <span className="zakrio-mark-z">DQ</span>
       {!compact && <span className="zakrio-mark-name">DATAQUILL</span>}
     </span>
