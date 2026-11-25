@@ -1,5 +1,6 @@
 // Device preferences that are not business records: interface size, text size and tax (VAT) setup.
 import { useEffect, useState } from "react";
+import { fitOnePage } from "@/lib/one-page";
 
 /** Whole-interface scale: 50% (left) to 200% (right), in 5% steps. */
 export const UI_MIN = 0.5, UI_MAX = 2, UI_STEP = 0.05;
@@ -57,7 +58,10 @@ const dockedScale = (w: number) => (w >= 360 ? fluidScale(w) : +Math.max(0.8, 0.
 const SHOP_SCALE = 1.03, SHOP_SCALE_WIDTH = 1860;
 export const applyFluidScale = () => { if (typeof window === "undefined") return; const w = scaleWidth(), f = shopbotDocked ? dockedScale(w) : fluidScale(w), wide = +(f / fluidScale(PHONE_MAX)).toFixed(4); document.documentElement.style.setProperty("--fluid-scale", String(f)); document.documentElement.style.setProperty("--wide-scale", String(shopbotDocked ? wide : Math.max(1, wide))); document.documentElement.style.setProperty("--shop-scale", String(+Math.min(Math.max(1, wide), Math.max(SHOP_SCALE, w / SHOP_SCALE_WIDTH)).toFixed(4))); };
 /** Applies Interface Size ? Text Size; also runs on resize because phones and wider screens use different text steps. */
-export const applyUiSize = () => { if (typeof window === "undefined") return; document.documentElement.setAttribute("data-scale-ready", ""); applyDock(); applyFluidScale(); const z = String(+totalZoom().toFixed(4)); document.documentElement.style.setProperty("zoom", z); document.documentElement.style.setProperty("--ui-zoom", z); document.documentElement.dataset["textSize"] = getTextSize(); };
+export const applyUiSize = () => { if (typeof window === "undefined") return; document.documentElement.setAttribute("data-scale-ready", ""); applyDock(); applyFluidScale(); const z = String(+totalZoom().toFixed(4)); document.documentElement.style.setProperty("zoom", z); document.documentElement.style.setProperty("--ui-zoom", z); document.documentElement.dataset["textSize"] = getTextSize();
+  // Log In, Create Account, Plans and Setup fit the screen in this same step, before the page is drawn: fitting a moment later made
+  // the page show big and then jump smaller (owner, 2026-11-25).
+  if (document.querySelector(".auth-split-page, .plans-page, .bsetup-page")) fitOnePage(true); };
 
 export const getTax = (): Tax => { try { const t = JSON.parse(localStorage.getItem(TAX) || "null"); if (t && typeof t.rate === "number") return { on: !!t.on, rate: Math.min(100, Math.max(0, t.rate)) }; } catch { /* default */ } return { on: false, rate: 16 }; };
 export const setTax = (t: Tax) => { localStorage.setItem(TAX, JSON.stringify(t)); window.dispatchEvent(new Event(EVT)); };

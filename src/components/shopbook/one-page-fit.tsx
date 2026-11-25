@@ -14,7 +14,8 @@ export function OnePageFit() {
     if (!on) return;
     let frame = 0, timer = 0;
     const run = (reset: boolean) => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => fitOnePage(reset)); };
-    const later = () => { window.clearTimeout(timer); timer = window.setTimeout(() => run(false), 120); };
+    // Content that changes (a translation, an error line) is refitted on the next frame, not 120 ms later, so it never shows too big.
+    const later = () => run(false);
     const grow = () => { window.clearTimeout(timer); timer = window.setTimeout(() => run(true), 150); };
     run(true);
     const t1 = window.setTimeout(() => run(false), 600), t2 = window.setTimeout(() => run(false), 2000);
