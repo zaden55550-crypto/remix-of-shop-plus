@@ -235,7 +235,7 @@ export default function Dashboard() {
     { go: GO.expenses, label: tr("Expenses"), icon: Receipt, color: KPI_COLOR.bad, value: k.expenses, chip: trendChip(k.expensesChange, false) },
     {
       go: GO.profit, label: tr("Profit"), qualifier: tr("After expenses"), define: tr("Sales minus cost of goods sold and expenses for this period. Payroll and stock adjustments are not deducted. Margin is this profit divided by sales."), icon: TrendingUp, color: KPI_COLOR.profit, value: k.profit,
-      chip: k.margin === null ? null : <span className="dash-margin" aria-label={`${tr("Margin")} ${k.margin}%`}>{tr("Margin")} <b className={k.margin >= 0 ? "is-good" : "is-bad"}>{k.margin}%</b></span>, inline: true,
+      chip: k.margin === null ? null : <span className="dash-margin" aria-label={`${tr("Margin")} ${k.margin}%`}>(<span className="dash-margin-word">{tr("Margin")} </span><b className={k.margin >= 0 ? "is-good" : "is-bad"}>{k.margin}%</b>)</span>, inline: true,
     },
     { go: GO.stockValue, label: tr("Stock Value"), qualifier: tr("At cost"), define: tr("Current stock quantity multiplied by each product's buying price. A balance right now, not period activity."), icon: Boxes, color: KPI_COLOR.warn, value: v.stockValue, chip: <span className="dash-now">{tr("Now")}</span>, inline: true },
   ];
@@ -324,21 +324,24 @@ export default function Dashboard() {
               })}
               {/* What customers owe: always last, shown apart and never part of the total above. */}
             </div>
-            <span className="dash-wb-owed">
-              <Users />
-              <span className="dash-wb-tile-text"><span>{tr("Receivables")}</span><small className="dash-wb-note">{tr("Owed by customers, not included")}</small></span>
-              <Money value={v.receivables.amount} curr={cur} />
-            </span>
             {v.working.accounts.length > WB_START && <button type="button" className="dash-more" onClick={() => setWbOpen(!wbOpen)}>{tr(wbOpen ? "Show Less" : "Show More")} {wbOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
-            <Link to={GO.cashFlow.to} search={GO.cashFlow.search} className="dash-cta"><BarChart3 aria-hidden /> {tr("Cash Flow")} <ArrowRight aria-hidden /></Link>
+            <div className="dash-wb-foot">
+              <span className="dash-wb-owed">
+                <Users />
+                <span className="dash-wb-tile-text"><span>{tr("Receivables")}</span><small className="dash-wb-note">{tr("Owed by customers, not included")}</small></span>
+                <Money value={v.receivables.amount} curr={cur} />
+              </span>
+              <Link to={GO.cashFlow.to} search={GO.cashFlow.search} className="dash-cta"><BarChart3 aria-hidden /> {tr("Cash Flow")} <ArrowRight aria-hidden /></Link>
+            </div>
           </section>
 
           <section className="dash-panel dash-pay dash-area-pay">
             <header className="dash-panel-head">
               <Link to={GO.payMethods.to} search={GO.payMethods.search} className="dash-panel-title"><span className="dash-title-icon is-blue"><CreditCard /></span>{tr("Sales by Payment Method")}<Info className="dash-info" aria-label={tr("Sales by Payment Method")} /></Link>
+              <label className="dash-period-cal"><CalendarDays aria-hidden />
               <select className="dash-period-pick" aria-label={tr("Period")} value={per.period ?? "This Month"} onChange={(e) => per.setPeriod(e.target.value as typeof per.period)}>
                 {(["Today", "This Week", "This Month", "This Year", "Custom"] as const).map((p) => <option key={p} value={p}>{p === "Custom" ? tr("Custom Range") : tr(p)}</option>)}
-              </select>
+              </select></label>
             </header>
             {per.period === "Custom" && <p className="dash-range">
               <input type="date" value={per.custom[0]} max={per.custom[1]} onChange={(e) => per.setCustom([e.target.value, per.custom[1]])} aria-label={tr("From")} /> – <input type="date" value={per.custom[1]} min={per.custom[0]} onChange={(e) => per.setCustom([per.custom[0], e.target.value])} aria-label={tr("To")} />

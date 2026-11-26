@@ -54,6 +54,9 @@ export function SampleShopBar() {
       unpush();
       if (!bar || !anchor) { setHome(null); return; }
       const b = bar.getBoundingClientRect();
+      // Phones: the header is one line, so the bar floats over the trial strip (still carried and tucked like ShopBot).
+      const strip = window.innerWidth < 600 ? document.querySelector(".dash-strip") : null;
+      if (strip) { const sr = strip.getBoundingClientRect(); setHome({ x: Math.max(4, sr.left + sr.width / 2 - b.width / 2), y: Math.max(4, sr.top + sr.height / 2 - b.height / 2) }); return; }
       const r = anchor!.getBoundingClientRect(), x = Math.max(4, Math.min(r.right + 10, window.innerWidth - b.width - 4));
       setHome({ x, y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
       // The shop name starts after the bar, so part of it still shows on the right. The header may be zoomed: work in its own pixels.
