@@ -56,6 +56,7 @@ describe("Dashboard states", () => {
     account();
     localStorage.setItem("shopbook.erp", "{}");
     const { container } = render(<Dashboard />);
+    await waitFor(() => expect(container.querySelector(".dashboard-screen[data-fitted]")).toBeTruthy());
     await waitFor(() => expect(container.querySelector(".dash-needs-row .dash-attention")).toBeTruthy());
     const labels = [...container.querySelectorAll(".dash-att-text > span")].map((x) => x.textContent);
     expect(labels).toEqual(["Low Stock", "Payables", "Receivables", "Approvals"]);

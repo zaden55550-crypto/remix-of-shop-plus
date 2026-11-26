@@ -1,0 +1,391 @@
+/* DASHBOARD, ONE PAGE ON EVERY SCREEN (owner, 2026-11-26; replaces every earlier Dashboard layout block).
+   The page is exactly one screen tall on phones, iPads, laptops and desktops and never scrolls as a whole: every part keeps its
+   natural, readable size and the Recent Transactions table takes whatever height is left, scrolling inside its own box. Only a
+   screen too short for that (a phone held sideways) lets the content scroll. Calm colours: navy glass cards, a thin coloured edge
+   per KPI, white figures, colour only where it carries meaning. One plain sans-serif font.
+   The id in :not() outranks the older repeated-:root rules in styles.css, so this block is the one source of truth. */
+
+:root:not(#dq-dash) .dashboard-screen {
+  --d-card: rgb(13 26 58 / 0.80);
+  --d-card-2: rgb(20 38 80 / 0.70);
+  --d-line: rgb(148 163 184 / 0.20);
+  --d-text: #eef3fb;
+  --d-muted: #a9b8d2;
+  --d-good: #34d399;
+  --d-info: #60a5fa;
+  --d-bad: #f87171;
+  --d-profit: #c4b5fd;
+  --d-warn: #fbbf24;
+  --d-head: #0f2150;
+  --d-fs: 14px;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif !important;
+  font-size: var(--d-fs) !important;
+  font-size-adjust: none !important;
+  letter-spacing: normal;
+  color: var(--d-text);
+  zoom: 1 !important;
+  height: calc(100dvh / var(--ui-zoom, 1)) !important;
+  min-height: 0 !important;
+  max-height: calc(100dvh / var(--ui-zoom, 1)) !important;
+  padding-bottom: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+:root:not(.dark):not(#dq-dash) .dashboard-screen {
+  --d-card: rgb(255 255 255 / 0.92);
+  --d-card-2: #f3f6fb;
+  --d-line: rgb(15 23 42 / 0.12);
+  --d-text: #0f1f3d;
+  --d-muted: #4b5b77;
+  --d-good: #047857;
+  --d-info: #1d4ed8;
+  --d-bad: #b91c1c;
+  --d-profit: #6d28d9;
+  --d-warn: #b45309;
+  --d-head: #e8eef8;
+}
+:root:not(#dq-dash) .dashboard-screen :is(button, input, select, table, h1, h2, h3, small, b) { font-family: inherit !important; }
+:root:not(#dq-dash) body:has(.dashboard-screen), :root:not(#dq-dash) body:has(.dashboard-screen) #root { height: calc(100dvh / var(--ui-zoom, 1)) !important; min-height: 0 !important; overflow: hidden !important; }
+
+/* The page: header, then rows that keep their size, then the transactions taking the rest */
+:root:not(#dq-dash) .dashboard-screen > header { flex: 0 0 auto !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-main {
+  flex: 1 1 0 !important; min-height: 0 !important; display: flex !important; flex-direction: column !important;
+  gap: 8px !important; padding: 6px 12px 10px !important; overflow: hidden !important; max-width: none !important;
+}
+:root:not(#dq-dash) .dashboard-screen .dash-main > * { flex: 0 0 auto !important; margin: 0 !important; min-width: 0; }
+:root:not(#dq-dash) .dashboard-screen .dash-main > .dash-tx { flex: 1 1 0 !important; min-height: 150px !important; }
+
+/* Shared card look */
+:root:not(#dq-dash) .dashboard-screen :is(.dash-panel, .dash-fin, .dash-kpi, .dash-att) {
+  background: var(--d-card) !important; border: 1px solid var(--d-line) !important; border-radius: 12px !important;
+  box-shadow: 0 4px 14px rgb(2 6 23 / 0.25) !important; color: var(--d-text) !important; backdrop-filter: none !important;
+}
+:root:not(#dq-dash) .dashboard-screen :is(.dash-panel, .dash-fin) { padding: 10px 12px !important; min-height: 0 !important; height: auto !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-panel-head { display: flex !important; align-items: center !important; gap: 8px !important; margin: 0 0 6px !important; padding: 0 !important; min-height: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-panel-title { display: inline-flex !important; align-items: center !important; gap: 6px !important; font-size: 1em !important; font-weight: 700 !important; color: var(--d-text) !important; text-transform: none !important; letter-spacing: 0 !important; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-panel-icon { width: 1.1em !important; height: 1.1em !important; color: var(--d-info) !important; flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-muted { color: var(--d-muted) !important; font-size: 0.85em !important; margin-left: auto; }
+
+/* Trial strip: quiet, one line */
+:root:not(#dq-dash) .dashboard-screen .dash-strip { padding: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-strip .trial-banner { background: rgb(16 185 129 / 0.12) !important; border: 1px solid rgb(52 211 153 / 0.35) !important; border-radius: 10px !important; box-shadow: none !important; padding: 3px 6px !important; min-height: 0 !important; }
+:root:not(.dark):not(#dq-dash) .dashboard-screen .dash-strip .trial-banner { background: #ecfdf5 !important; border-color: #a7f3d0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-strip .trial-banner-row { font-size: 0.86em !important; min-height: 26px; align-items: center !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-strip .trial-banner-text { color: var(--d-good) !important; font-weight: 700 !important; letter-spacing: 0.06em; }
+:root:not(#dq-dash) .dashboard-screen .dash-strip :is(.trial-banner-days, .trial-banner-upgrade) { background: transparent !important; border: 1px solid rgb(52 211 153 / 0.5) !important; color: var(--d-good) !important; border-radius: 999px !important; padding: 2px 10px !important; font-weight: 700 !important; box-shadow: none !important; font-size: 1em !important; }
+
+/* KPI cards: five, one row; a coloured edge, the name above, the figure in white */
+:root:not(#dq-dash) .dashboard-screen .dash-kpis { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 8px !important; overflow: visible !important; padding: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi {
+  display: flex !important; align-items: center !important; justify-content: flex-start !important; text-align: left !important;
+  min-width: 0 !important; min-height: 0 !important; height: auto !important; padding: 8px 12px !important;
+  border-left: 4px solid var(--tone) !important; background-image: none !important;
+}
+:root:not(#dq-dash) .dashboard-screen .dash-kpi:hover { background: var(--d-card-2) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-icon { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-body { display: flex !important; flex-direction: column !important; align-items: flex-start !important; gap: 3px !important; min-width: 0 !important; width: 100%; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-label { color: var(--d-muted) !important; font-size: 0.8em !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.04em !important; line-height: 1.15 !important; white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-qualifier { text-transform: none !important; letter-spacing: 0 !important; font-weight: 500 !important; font-size: 0.95em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-figures { display: flex !important; align-items: baseline !important; flex-wrap: wrap !important; gap: 4px 8px !important; min-width: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-value { background: none !important; padding: 0 !important; color: var(--d-text) !important; font-size: 1.4em !important; font-weight: 700 !important; line-height: 1.15 !important; white-space: nowrap !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-value small { font-size: 0.62em !important; font-weight: 600 !important; color: var(--d-muted) !important; margin-right: 3px; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-value.is-negative { color: var(--d-bad) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-value .dash-money-full { display: inline !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-value .dash-money-short { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi .dash-chip { background: var(--d-card-2) !important; color: var(--d-muted) !important; border: 1px solid var(--d-line) !important; font-size: 0.78em !important; font-weight: 700 !important; padding: 1px 8px !important; border-radius: 999px !important; white-space: nowrap !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi .dash-chip.is-bad { color: var(--d-bad) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi .dash-chip.is-good { color: var(--d-good) !important; }
+
+/* Working Balance | Sales by Payment Method */
+:root:not(#dq-dash) .dashboard-screen .dash-grid { display: grid !important; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.3fr) !important; grid-template-areas: "wb pay" !important; grid-template-rows: auto !important; gap: 8px !important; align-items: stretch !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-grid > * { min-height: 0 !important; height: auto !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-working { display: block !important; text-decoration: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-body { display: flex !important; flex-direction: column !important; gap: 6px !important; height: 100%; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-head { display: grid !important; justify-items: center; gap: 1px !important; padding: 0 0 6px !important; border-bottom: 1px solid var(--d-line) !important; text-align: center; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-head .dash-panel-title { justify-self: start; margin-bottom: 2px; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-head small { color: var(--d-muted) !important; font-size: 0.85em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-fin-value { font-size: 1.5em !important; font-weight: 700 !important; color: var(--d-text) !important; line-height: 1.2 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-fin-value small { font-size: 0.6em !important; color: var(--d-muted) !important; margin-right: 3px; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-fin-value .dash-money-full { display: inline !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-fin-value .dash-money-short { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-list { display: grid !important; gap: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row { display: grid !important; grid-template-columns: 1.2em minmax(0, 1fr) auto !important; align-items: center !important; column-gap: 8px !important; padding: 4px 0 !important; border-bottom: 1px solid var(--d-line) !important; font-size: 0.95em !important; font-weight: 600 !important; color: var(--d-text) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row:last-child { border-bottom: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row > svg { width: 1.1em !important; height: 1.1em !important; color: var(--d-muted) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row .dash-money { font-weight: 700 !important; font-size: 1em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row .dash-money small { color: var(--d-muted) !important; font-size: 0.75em !important; margin-right: 3px; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row .dash-money-full { display: inline !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row .dash-money-short { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed { border-top: 1px dashed var(--d-line) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed .dash-money { color: var(--d-warn) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-note { grid-column: 2 / -1; color: var(--d-muted) !important; font-size: 0.8em !important; font-weight: 500 !important; }
+
+:root:not(#dq-dash) .dashboard-screen .dash-pay { display: flex !important; flex-direction: column !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-period-pick { margin-left: auto; min-height: 30px !important; padding: 0 10px !important; border-radius: 8px !important; border: 1px solid var(--d-line) !important; background: var(--d-card-2) !important; color: var(--d-text) !important; font-size: 0.9em !important; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-sum { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 10px !important; padding: 0 0 6px !important; margin-bottom: 6px !important; border-bottom: 1px solid var(--d-line) !important; flex-wrap: wrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-total.is-top { display: inline-flex !important; align-items: center !important; gap: 10px !important; margin: 0 !important; padding: 0 !important; border: 0 !important; font-size: 1em !important; font-weight: 700 !important; color: var(--d-text) !important; text-decoration: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-total.is-top > span:first-child { color: var(--d-muted) !important; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-total.is-top .dash-fin-value { color: var(--d-good) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-total-go { width: 1.6em !important; height: 1.6em !important; padding: 0.25em !important; border-radius: 999px !important; border: 1px solid var(--d-line) !important; color: var(--d-info) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-returns { margin: 0 !important; color: var(--d-muted) !important; font-size: 0.9em !important; font-weight: 600 !important; text-align: right !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-range { display: flex; gap: 6px; align-items: center; margin: 0 0 6px !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-body { display: grid !important; grid-template-columns: auto minmax(0, 1fr) !important; align-items: center !important; gap: 14px !important; flex: 1 1 auto; min-height: 0; }
+:root:not(#dq-dash) .dashboard-screen .dash-desktop-pie { display: block !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pie { width: 9.5em !important; height: 9.5em !important; min-height: 0 !important; flex: none !important; margin: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pie-label { font-size: 0.78em !important; font-weight: 700 !important; fill: #fff !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-fit { width: 100% !important; min-width: 0 !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table { width: 100% !important; border-collapse: collapse !important; table-layout: auto !important; font-size: 0.95em !important; height: auto !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table :is(th, td) { padding: 3px 4px !important; height: auto !important; line-height: 1.25 !important; border-bottom: 1px solid var(--d-line) !important; font-weight: 600 !important; white-space: nowrap !important; text-align: right; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table :is(th, td):first-child { text-align: left !important; white-space: normal !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table th { color: var(--d-muted) !important; font-size: 0.85em !important; font-weight: 600 !important; text-transform: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table tr:last-child td { border-bottom: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table .dash-money-full { display: inline !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table .dash-money-short { display: none !important; }
+
+/* Needs Attention: four in one row */
+:root:not(#dq-dash) .dashboard-screen .dash-needs-row { padding: 8px 12px !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-panel-head { margin-bottom: 6px !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-attention { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 8px !important; overflow: visible !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-att { display: flex !important; align-items: center !important; gap: 10px !important; min-width: 0 !important; min-height: 0 !important; padding: 7px 10px !important; background: var(--d-card-2) !important; box-shadow: none !important; border-left: 3px solid var(--tone) !important; text-decoration: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-icon { display: grid !important; place-items: center; width: 2em !important; height: 2em !important; border-radius: 8px !important; background: color-mix(in srgb, var(--tone) 22%, transparent) !important; color: var(--tone) !important; flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-icon svg { width: 1.1em !important; height: 1.1em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-text { display: flex !important; flex-direction: column !important; min-width: 0 !important; gap: 1px !important; line-height: 1.2 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-text > span { color: var(--d-muted) !important; font-size: 0.85em !important; font-weight: 600 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-text b { color: var(--d-text) !important; font-size: 1em !important; font-weight: 700 !important; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-text b.is-bad { color: var(--d-bad) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-att-text b.is-warn { color: var(--d-warn) !important; }
+
+/* Announcement | Actionable Alerts: one row */
+:root:not(#dq-dash) .dashboard-screen .dash-news-row { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; gap: 8px !important; align-items: stretch !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-news-row > * { margin: 0 !important; min-width: 0 !important; height: auto !important; min-height: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker { display: flex !important; align-items: center !important; gap: 8px !important; padding: 5px 10px !important; background: var(--d-card) !important; border: 1px solid var(--d-line) !important; border-radius: 12px !important; box-shadow: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-label { display: inline-flex !important; align-items: center; gap: 6px; font-weight: 700 !important; font-size: 0.95em !important; color: var(--d-text) !important; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-label svg { width: 1.1em; height: 1.1em; color: var(--d-warn) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-sep { width: 1px; align-self: stretch; background: var(--d-line); }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-window { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-text { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--d-muted) !important; font-size: 0.95em !important; font-weight: 600 !important; animation: none !important; transform: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-ctrl { display: inline-flex !important; gap: 4px !important; margin-left: auto; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-ctrl button { display: grid; place-items: center; width: 26px !important; height: 26px !important; min-height: 0 !important; padding: 0 !important; border-radius: 999px !important; border: 1px solid var(--d-line) !important; background: transparent !important; color: var(--d-text) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-ctrl button:disabled { opacity: 0.35; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-ctrl svg { width: 14px !important; height: 14px !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts { position: relative; padding: 0 !important; overflow: visible !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-head { display: flex !important; align-items: center !important; gap: 8px !important; width: 100%; height: 100% !important; min-height: 38px !important; padding: 5px 10px !important; background: transparent !important; border: 0 !important; color: var(--d-text) !important; text-align: left; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-head .dash-panel-title { font-size: 0.95em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-bell { width: 1.1em !important; height: 1.1em !important; color: var(--d-bad) !important; flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-count { display: inline-grid; place-items: center; min-width: 1.5em; height: 1.5em; padding: 0 5px; border-radius: 999px; background: #b91c1c !important; color: #fff !important; font-size: 0.8em !important; font-weight: 700 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-summary { flex: 1 1 auto; min-width: 0; display: flex; gap: 10px; overflow: hidden; white-space: nowrap; color: var(--d-muted) !important; font-size: 0.92em !important; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-summary > span { overflow: hidden; text-overflow: ellipsis; display: inline-flex; align-items: center; gap: 6px; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-summary i, :root:not(#dq-dash) .dashboard-screen .dash-alert i { width: 7px; height: 7px; border-radius: 999px; background: var(--d-warn); flex: none; display: inline-block; }
+:root:not(#dq-dash) .dashboard-screen :is(.dash-alerts-summary, .dash-alert) i.is-bad { background: var(--d-bad); }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts .dash-link { margin-left: auto; color: var(--d-info) !important; font-size: 0.9em !important; font-weight: 700 !important; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts .dash-link svg { width: 1em; height: 1em; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-list { position: absolute !important; left: 0; right: 0; top: calc(100% + 4px); z-index: 30; max-height: 45vh; overflow: auto; padding: 6px !important; background: var(--d-head) !important; border: 1px solid var(--d-line) !important; border-radius: 12px !important; box-shadow: 0 16px 34px rgb(0 0 0 / 0.45) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alert { display: flex !important; align-items: center; gap: 8px; padding: 8px 10px !important; border-radius: 8px; color: var(--d-text) !important; font-size: 0.95em !important; font-weight: 600 !important; line-height: 1.3 !important; text-decoration: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-alert:hover { background: var(--d-card-2); }
+:root:not(#dq-dash) .dashboard-screen .dash-alert svg { width: 1em; height: 1em; margin-left: auto; color: var(--d-muted); flex: none; }
+
+/* Recent Transactions: tabs and Share on one line, then one table filling the rest of the page */
+:root:not(#dq-dash) .dashboard-screen .dash-tx { display: flex !important; flex-direction: column !important; padding: 8px 12px 6px !important; overflow: hidden !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-head { display: flex !important; align-items: center !important; gap: 8px !important; margin: 0 0 6px !important; flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-tabs { display: flex !important; gap: 4px !important; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; flex-wrap: nowrap !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-tab { display: inline-flex !important; align-items: center; gap: 6px; white-space: nowrap !important; padding: 5px 12px !important; border-radius: 8px !important; border: 1px solid var(--d-line) !important; background: transparent !important; color: var(--d-muted) !important; font-size: 0.92em !important; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-tab svg { width: 1em !important; height: 1em !important; display: inline-block !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-tab.is-on { background: #1d4ed8 !important; border-color: #1d4ed8 !important; color: #fff !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-share { position: relative; flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-share-btn { display: inline-flex !important; align-items: center; gap: 6px; padding: 5px 12px !important; border-radius: 8px !important; border: 1px solid var(--d-line) !important; background: transparent !important; color: var(--d-text) !important; font-size: 0.92em !important; font-weight: 600 !important; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-share-btn :is(.dash-share-text, .dash-share-chevron, .dash-share-icon) { display: inline-block !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-share-btn svg { width: 1em !important; height: 1em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx .dash-tx-table {
+  display: block !important; flex: 1 1 0 !important; min-height: 0 !important; overflow: auto !important; border: 1px solid var(--d-line) !important;
+  border-radius: 10px !important; grid-template-columns: none !important; padding: 0 !important; scrollbar-width: thin;
+}
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row {
+  display: grid !important; grid-template-columns: 11.5em 8.5em 7.5em minmax(0, 1fr) 10em 9em !important; align-items: center !important;
+  column-gap: 10px !important; width: 100% !important; min-height: 0 !important; padding: 6px 12px !important; margin: 0 !important;
+  border: 0 !important; border-bottom: 1px solid var(--d-line) !important; border-radius: 0 !important; background: transparent !important;
+  color: var(--d-text) !important; font-size: 0.95em !important; font-weight: 500 !important; line-height: 1.3 !important; text-align: left !important;
+  white-space: nowrap !important; overflow: hidden !important; text-decoration: none; cursor: pointer;
+}
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row:not(.is-head):hover { background: var(--d-card-2) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row.is-head { position: sticky !important; top: 0; z-index: 1; background: var(--d-head) !important; color: var(--d-muted) !important; font-size: 0.85em !important; font-weight: 700 !important; cursor: default; padding-block: 6px !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row > span { min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; flex: none !important; padding: 0 !important; background: none !important; border: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-when, :root:not(#dq-dash) .dashboard-screen .dash-tx-ref { color: var(--d-muted) !important; font-variant-numeric: tabular-nums; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-details small { display: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row .dash-tx-amount { text-align: right !important; font-weight: 700 !important; font-variant-numeric: tabular-nums; margin: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row .dash-tx-amount.is-in { color: var(--d-good) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row .dash-tx-amount.is-out { color: var(--d-bad) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row.is-head .dash-tx-amount { color: var(--d-muted) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-badge { display: inline-block; padding: 1px 8px; border-radius: 6px; font-size: 0.85em; font-weight: 700; border: 1px solid transparent; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-badge.is-sale { color: var(--d-good); border-color: color-mix(in srgb, var(--d-good) 45%, transparent); background: color-mix(in srgb, var(--d-good) 12%, transparent); }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-badge.is-purchase { color: var(--d-profit); border-color: color-mix(in srgb, var(--d-profit) 45%, transparent); background: color-mix(in srgb, var(--d-profit) 12%, transparent); }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-badge.is-move { color: var(--d-info); border-color: color-mix(in srgb, var(--d-info) 45%, transparent); background: color-mix(in srgb, var(--d-info) 12%, transparent); }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row .dash-tx-method { color: var(--d-text) !important; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row .dash-tx-method.is-mpesa { color: var(--d-good) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row.is-head .dash-tx-method { color: var(--d-muted) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-empty { margin: 0; padding: 16px; color: var(--d-muted); text-align: center; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-menu { z-index: 40; }
+
+/* Bigger screens read bigger: the text grows with the screen's height */
+@media (min-width: 1100px) and (min-height: 860px) { :root:not(#dq-dash) .dashboard-screen { --d-fs: 15px; } }
+@media (min-width: 1400px) and (min-height: 980px) { :root:not(#dq-dash) .dashboard-screen { --d-fs: 16.5px; } }
+@media (min-width: 1100px) and (max-height: 700px) { :root:not(#dq-dash) .dashboard-screen { --d-fs: 13px; } }
+
+/* iPads and small laptops (600–1099px wide): the same page; the table drops the time column */
+@media (min-width: 600px) and (max-width: 1099px) {
+  :root:not(#dq-dash) .dashboard-screen { --d-fs: 14.5px; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi-qualifier { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-row { grid-template-columns: 8em 7em minmax(0, 1fr) 7.5em 8em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-row > .dash-tx-when { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att-icon { display: none !important; }
+}
+@media (min-width: 600px) and (max-width: 1099px) and (orientation: portrait) {
+  :root:not(#dq-dash) .dashboard-screen { --d-fs: 15.5px; }
+}
+
+/* Phones: the same parts, arranged for a narrow screen, one page */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen { --d-fs: 13px; }
+  :root:not(#dq-dash) .dashboard-screen .dash-main { gap: 6px !important; padding: 4px 8px 8px !important; }
+  :root:not(#dq-dash) .dashboard-screen :is(.dash-panel, .dash-fin) { padding: 8px !important; border-radius: 10px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-strip .trial-banner-row { min-height: 24px; font-size: 0.8em !important; }
+  /* KPI: three on top, two below, every figure in full */
+  :root:not(#dq-dash) .dashboard-screen .dash-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; gap: 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi { grid-column: span 2; padding: 6px 8px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi:nth-child(n + 4) { grid-column: span 3; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi-label { font-size: 0.75em !important; letter-spacing: 0.02em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi-qualifier { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi-value { font-size: 1.12em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-kpi .dash-chip { font-size: 0.72em !important; padding: 0 6px !important; }
+  /* Working Balance and payments side by side */
+  :root:not(#dq-dash) .dashboard-screen .dash-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr) !important; gap: 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-panel-title { font-size: 0.92em !important; white-space: normal; }
+  :root:not(#dq-dash) .dashboard-screen .dash-fin-value { font-size: 1.2em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-row { font-size: 0.88em !important; column-gap: 5px !important; padding: 3px 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-note { font-size: 0.75em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay .dash-panel-head { flex-wrap: wrap; row-gap: 4px; }
+  :root:not(#dq-dash) .dashboard-screen .dash-period-pick { min-height: 26px !important; font-size: 0.85em !important; padding: 0 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-sum { justify-content: center !important; gap: 2px 8px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-total.is-top { gap: 6px !important; font-size: 0.9em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-total-go { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-returns { font-size: 0.8em !important; text-align: center !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-body { grid-template-columns: minmax(0, 1fr) !important; gap: 6px !important; justify-items: center; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pie { width: 5.6em !important; height: 5.6em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pie-label { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-table { font-size: 0.82em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-table :is(th, td) { padding: 2px 2px !important; }
+  /* Needs Attention: four small cards in one row */
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row { padding: 6px 8px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-panel-head { margin-bottom: 4px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-attention { gap: 5px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att { padding: 5px 6px !important; gap: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att-icon { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att-text > span { font-size: 0.78em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att-text b { font-size: 0.88em !important; }
+  /* Announcement and alerts side by side, short */
+  :root:not(#dq-dash) .dashboard-screen .dash-news-row { gap: 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker { padding: 4px 6px !important; gap: 5px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker-label { font-size: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker-label svg { width: 15px; height: 15px; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker-sep { display: none; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker-text { font-size: 0.82em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker-ctrl button { width: 22px !important; height: 22px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-alerts-head { min-height: 32px !important; padding: 4px 6px !important; gap: 5px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-alerts-head .dash-panel-title { font-size: 0.85em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-alerts-summary { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-alerts .dash-link { font-size: 0.82em !important; }
+  /* Transactions: type, details (number and time beneath), payment and amount */
+  :root:not(#dq-dash) .dashboard-screen .dash-tx { padding: 6px 8px 4px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-main > .dash-tx { min-height: 140px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-tab { padding: 4px 8px !important; font-size: 0.85em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-tab svg { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-share-btn { padding: 4px 8px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-share-btn :is(.dash-share-text, .dash-share-chevron) { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-row { grid-template-columns: 5.6em minmax(0, 1fr) 5.2em 6.6em !important; column-gap: 6px !important; padding: 5px 8px !important; font-size: 0.9em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-row > :is(.dash-tx-when, .dash-tx-ref) { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-row:not(.is-head) .dash-tx-details small { display: block; color: var(--d-muted); font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; }
+  :root:not(#dq-dash) .dashboard-screen .dash-tx-badge { padding: 1px 5px; font-size: 0.8em; }
+}
+
+/* Screens too short for one page (a phone held sideways): the content scrolls rather than crushing the parts */
+@media (max-height: 520px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-main { overflow-y: auto !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-main > .dash-tx { flex: 0 0 auto !important; min-height: 260px !important; }
+}
+
+/* One plain font on every element of the page (older app-wide rules set Times New Roman element by element) */
+:root:not(#dq-dash) .dashboard-screen *:not(svg):not(svg *) { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif !important; }
+/* The payment card's parts always use its full width */
+:root:not(#dq-dash) .dashboard-screen .dash-pay { align-items: stretch !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay > * { align-self: stretch !important; width: auto !important; max-width: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-body > * { max-width: none !important; justify-self: stretch; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-desktop-pie { justify-self: center; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table td:first-child { white-space: nowrap !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table td:first-child::before { margin-right: 6px; }
+/* Alerts summary on one line */
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-summary { flex-direction: row !important; align-items: center !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-summary > span { flex: 0 1 auto; min-width: 0; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row { border-top: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-row::before, :root:not(#dq-dash) .dashboard-screen .dash-wb-row::after { content: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed { border-top: 1px dashed var(--d-line) !important; }
+@media (min-width: 600px) and (max-height: 800px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-pie { width: 8em !important; height: 8em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row { padding: 6px 10px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att { padding: 5px 10px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-row { padding: 3px 0 !important; }
+}
+/* Phones: the pie sits beside Gross Sales and Returns, the table under both */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-pay { display: grid !important; grid-template-columns: auto minmax(0, 1fr) !important; grid-template-areas: "head head" "range range" "pie sum" "fit fit" !important; align-content: start; column-gap: 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-panel-head { grid-area: head; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-range { grid-area: range; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-pay-sum { grid-area: sum; flex-direction: column !important; align-items: flex-start !important; justify-content: center !important; border: 0 !important; margin: 0 !important; padding: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-body { display: contents !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-desktop-pie { grid-area: pie; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-pay-fit { grid-area: fit; margin-top: 4px; border-top: 1px solid var(--d-line); }
+  :root:not(#dq-dash) .dashboard-screen .dash-pie { width: 3.8em !important; height: 3.8em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-total.is-top { flex-direction: column; align-items: flex-start !important; gap: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-returns { text-align: left !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay .dash-panel-head { flex-wrap: nowrap !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay .dash-panel-title { font-size: 0.85em !important; line-height: 1.15; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay .dash-panel-icon { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-period-pick { max-width: 6.2em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-head small { font-size: 0.75em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker, :root:not(#dq-dash) .dashboard-screen .dash-alerts-head { min-height: 30px !important; padding-block: 2px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-panel-head { margin-bottom: 3px !important; }
+}
+/* Rows always fit the table's width (an older rule made them at least 720px wide) */
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row { min-width: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx .dash-tx-table { overflow-x: hidden !important; overflow-y: auto !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker { min-height: 0 !important; height: auto !important; padding: 5px 10px !important; border-color: var(--d-line) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-ticker-window { line-height: 1.3; }
+/* Wide screens: "Needs Attention" sits beside its four cards, saving a line */
+@media (min-width: 600px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row { display: grid !important; grid-template-columns: auto minmax(0, 1fr) !important; align-items: center !important; column-gap: 14px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-panel-head { margin: 0 !important; flex-direction: column; align-items: flex-start !important; gap: 2px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-muted { margin-left: 0 !important; }
+}
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-ticker { padding: 3px 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-muted { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-period-pick { max-width: none; padding: 0 4px !important; }
+}
+@media (max-width: 599px) and (max-height: 720px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-main > .dash-tx { min-height: 112px !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-main { gap: 5px !important; }
+}
+/* The alert title always shows in full; the summary beside it gives way first */
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-head > :is(.dash-panel-title, .dash-alerts-count, .dash-link, .dash-alerts-bell) { flex: 0 0 auto !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-head .dash-panel-title { overflow: visible !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-alerts-summary { flex: 1 1 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pie-label, :root:not(#dq-dash) .dashboard-screen svg text { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif !important; }
+/* Figures take their card's colour in both themes (older bright-mode rules painted the digits white) */
+:root:not(#dq-dash) .dashboard-screen :is(.dash-kpi-value, .dash-fin-value, .dash-wb-row .dash-money) > span { color: inherit !important; -webkit-text-fill-color: currentColor !important; background: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-label, :root:not(#dq-dash) .dashboard-screen .dash-kpi-qualifier { -webkit-text-fill-color: currentColor !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-kpi-qualifier { color: var(--d-muted) !important; }
+/* Phones: the shop name wraps between words onto two lines instead of being cut */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-header-title h1 { white-space: normal !important; overflow: hidden !important; text-overflow: clip !important; display: -webkit-box !important; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-height: 1.1 !important; font-size: 12px !important; text-align: center; overflow-wrap: normal; word-break: normal; }
+}
+:root:not(#dq-dash) .dashboard-screen .dash-header-left [aria-label="Connection status"] { min-width: 30px !important; min-height: 30px !important; padding: 0 4px !important; }

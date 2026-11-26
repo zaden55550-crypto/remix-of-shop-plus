@@ -91,6 +91,7 @@ export function dashboardView(s: ErpState, from: number, to: number) {
     lowStock: pos.low + pos.out,
     cashUpPending: pos.cashUpPending,
     recentMoves: money.slice(0, 5),
+    allMoves: money,
   };
 }
 export type DashboardView = ReturnType<typeof dashboardView>;

@@ -4,7 +4,7 @@
 // keep their own phone design. A device can opt out with localStorage "shopbook.phoneLayout" = "1".
 export const LAPTOP_WIDTH = 1280;
 const DEVICE = "width=device-width, initial-scale=1, viewport-fit=cover";
-const OWN_PHONE_DESIGN = ["/", "/signup", "/terms", "/privacy", "/welcome", "/plans", "/apps"];
+const OWN_PHONE_DESIGN = ["/", "/signup", "/terms", "/privacy", "/welcome", "/plans", "/apps", "/dashboard"];
 /** Phones (owner, 2026-11-26): the laptop layout of every app, laid out a little narrower so it reads closer. 1100 is the narrowest
  *  width where every laptop layout still applies. */
 export const PHONE_LAPTOP_WIDTH = 900;

@@ -55,7 +55,9 @@ function eligible(el: HTMLElement) {
   // Image tiles have no text to fit, and freeing their height would let a tall logo stretch the row (Business Setup's 44px logos).
   if (el.matches(".bsetup-logo")) return false;
   // Rows of a pick list (currency, country: about 250 each) lay out their own text; measuring every row froze the page.
-  if (el.matches("[role=option], .signup-picker-option")) return false;
+  if (el.matches("[role=option], .signup-picker-option, .dash-tx-row")) return false;
+  // The Dashboard sets its own readable sizes for one page on every screen (owner, 2026-11-26): its cards and bars are never shrunk.
+  if (el.closest(".dashboard-screen .dash-main")) return false;
   return el.isConnected && el.clientWidth > 0;
 }
 

@@ -3,7 +3,6 @@ import type { ViewSearch } from "@/lib/deep-link";
 import { GlobalApplicationHeader } from "@/components/shopbook/global-application-header";
 import { KPI_COLOR } from "@/components/shopbook/kpi";
 import { Component, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { useScreenFit } from "@/lib/fill-screen";
 import {
   AlertTriangle,
   ArrowLeftRight,
@@ -40,6 +39,7 @@ import { useLanguage } from "@/hooks/use-language";
 import { usePeriod } from "@/lib/period";
 import { methodLabel, namedAccounts, payLines, empty, type Method, type Sale, type ErpState } from "@/lib/erp";
 import { store, trialDaysLeft } from "@/lib/shopbook";
+import { tillCashier } from "@/lib/till-cashier";
 import { ERP_KEY } from "@/lib/outbox";
 import { cn } from "@/lib/utils";
 import { TrialBanner } from "@/components/shopbook/trial-banner";
@@ -48,6 +48,7 @@ import { ALERT_GO, businessAlerts, dashboardView } from "@/lib/dashboard";
 import { cardFigure, toCurrencySymbol } from "@/lib/exact-amount";
 import { useSyncStatus } from "@/lib/shop-sync";
 import { AnnouncementTicker, RecentTransactions } from "@/components/shopbook/dash-extras";
+import "./dashboard-approved.css";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -168,7 +169,6 @@ export default function Dashboard() {
   // Text keeps its readable size on tablets, laptops and desktops: a page too long for the screen scrolls instead of shrinking.
   const screenRef = useRef<HTMLDivElement>(null);
   // One page on every screen (owner, 2026-11-26): shrinks until nothing in the page needs scrolling; the transactions list scrolls inside.
-  useScreenFit(screenRef, { min: 0.55, scroller: ".dash-main" });
   const s: ErpState = erpState || empty();
   const { tr: translate } = useLanguage();
   // Some short words are stored lower-case in the translation table ("credit", "out"); labels start upper-case.
@@ -198,7 +198,7 @@ export default function Dashboard() {
 
   // Like every other app: draw nothing until the signed-in account is known on the device.
   // The server has no device data, so rendering figures here caused a hydration mismatch.
-  if (!account) return <div ref={screenRef} role="status" className="dashboard-screen dash-loading min-h-screen w-full bg-background">{tr("Loading records…")}</div>;
+  if (!account) return <div ref={screenRef} data-fitted="" role="status" className="dashboard-screen dash-loading min-h-screen w-full bg-background">{tr("Loading records…")}</div>;
 
   // An employee's device gets its records from the server: until the first copy arrives, empty is not the same as zero.
   const staff = store.get()?.staff;
@@ -215,12 +215,12 @@ export default function Dashboard() {
       </span>
     );
   const kpiCards: { go: Go; label: string; qualifier?: string; define?: string; icon: LucideIcon; color: string; value: number; chip: ReactNode }[] = [
-    { go: GO.sales, label: tr("Sales"), icon: ShoppingCart, color: KPI_COLOR.good, value: k.sales, chip: trendChip(k.salesChange, true) },
+    { go: GO.sales, label: tr("Net Sales"), icon: ShoppingCart, color: KPI_COLOR.good, value: k.sales, chip: trendChip(k.salesChange, true) },
     { go: GO.purchases, label: tr("Purchases"), icon: ShoppingBasket, color: KPI_COLOR.info, value: k.purchases, chip: trendChip(k.purchasesChange, false) },
     { go: GO.expenses, label: tr("Expenses"), icon: Receipt, color: KPI_COLOR.bad, value: k.expenses, chip: trendChip(k.expensesChange, false) },
     {
       go: GO.profit, label: tr("Profit"), qualifier: tr("After expenses"), define: tr("Sales minus cost of goods sold and expenses for this period. Payroll and stock adjustments are not deducted. Margin is this profit divided by sales."), icon: TrendingUp, color: KPI_COLOR.profit, value: k.profit,
-      chip: k.margin === null ? null : <span className={cn("dash-chip", k.margin >= 0 ? "is-good" : "is-bad")}>{tr("Margin")} {k.margin}%</span>,
+      chip: k.margin === null ? null : <span className={cn("dash-chip", "dash-margin", k.margin >= 0 ? "is-good" : "is-bad")} aria-label={`${tr("Margin")} ${k.margin}%`}>{tr("Margin")} {k.margin}%</span>,
     },
     { go: GO.stockValue, label: tr("Stock Value"), qualifier: tr("At cost"), define: tr("Current stock quantity multiplied by each product's buying price. A balance right now, not period activity."), icon: Boxes, color: KPI_COLOR.warn, value: v.stockValue, chip: <span className="dash-chip">{tr("Now")}</span> },
   ];
@@ -239,7 +239,7 @@ export default function Dashboard() {
     payLines(s, sale.pay).map(([m]) => (m === "credit" ? tr("Credit") : methodLabel(m, s, tr))).join(" + ");
 
   return (
-    <div ref={screenRef} className="dashboard-screen relative min-h-screen w-full text-foreground pb-20 font-sans select-none antialiased bg-background bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(56,189,248,0.08),transparent_70%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(16,185,129,0.05),transparent_70%)] dark:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(56,189,248,0.10),transparent_70%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(16,185,129,0.07),transparent_70%)] bg-fixed">
+    <div ref={screenRef} data-fitted="" className="dashboard-screen relative min-h-screen w-full text-foreground pb-20 font-sans select-none antialiased bg-background bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(56,189,248,0.08),transparent_70%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(16,185,129,0.05),transparent_70%)] dark:bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(56,189,248,0.10),transparent_70%),radial-gradient(ellipse_60%_40%_at_100%_100%,rgba(16,185,129,0.07),transparent_70%)] bg-fixed">
       {/* 1. HEADER: the one shared application header; the Dashboard adds its period picker */}
       <header className="sticky top-0 z-40">
         <GlobalApplicationHeader
@@ -255,7 +255,7 @@ export default function Dashboard() {
           <div className="dash-strip is-trial">
             <TrialBanner
               days={daysLeft}
-              className="rounded-xl border-2 border-amber-400/70 bg-amber-500/10 dark:bg-amber-500/15 backdrop-blur-xl shadow-[0_0_14px_rgba(245,158,11,0.25)]"
+              className="dash-trial"
             />
           </div>
         )}
@@ -269,8 +269,10 @@ export default function Dashboard() {
               <span className="dash-kpi-icon"><c.icon /></span>
               <span className="dash-kpi-body">
                 <span className="dash-kpi-label" data-exact={c.define}>{c.label}{c.qualifier && <small className="dash-kpi-qualifier"> {c.qualifier}</small>}</span>
-                <Money value={c.value} curr={cur} className={cn("dash-kpi-value", c.value < 0 && "is-negative")} />
-                {c.chip}
+                <span className="dash-kpi-figures">
+                  <Money value={c.value} curr={cur} className={cn("dash-kpi-value", c.value < 0 && "is-negative")} />
+                  {c.chip}
+                </span>
               </span>
             </Link>
           ))}
@@ -315,10 +317,14 @@ export default function Dashboard() {
             {per.period === "Custom" && <p className="dash-range">
               <input type="date" value={per.custom[0]} max={per.custom[1]} onChange={(e) => per.setCustom([e.target.value, per.custom[1]])} aria-label={tr("From")} /> – <input type="date" value={per.custom[1]} min={per.custom[0]} onChange={(e) => per.setCustom([per.custom[0], e.target.value])} aria-label={tr("To")} />
             </p>}
-            <Link to={GO.sales.to} search={GO.sales.search} className="dash-pay-total is-top" aria-label={`${tr("Total Sales")}: ${exactFmt(cur, v.payTotal)}`}>
-              <span>{tr("Total Sales")}</span><Money value={v.payTotal} curr={cur} className="dash-fin-value" /><ArrowRight className="dash-pay-total-go" aria-hidden />
+            <div className="dash-pay-sum">
+            <Link to={GO.sales.to} search={GO.sales.search} className="dash-pay-total is-top" aria-label={`${tr("Gross Sales")}: ${exactFmt(cur, v.payTotal)}`}>
+              <span>{tr("Gross Sales")}</span><Money value={v.payTotal} curr={cur} className="dash-fin-value" /><ArrowRight className="dash-pay-total-go" aria-hidden />
             </Link>
+            <p className="dash-returns">{tr("Returns")}: {exactFmt(cur, Math.max(0, v.payTotal - k.sales))}</p>
+            </div>
             <div className="dash-pay-body">
+              <div className="dash-desktop-pie">
               <div className={cn("dash-donut dash-pie", v.payTotal <= 0 && "is-empty")}>
                 {/* No sales: a plain ring, never invented shares. Real shares only when there are real sales. */}
                 {v.payTotal > 0 ? (
@@ -352,8 +358,9 @@ export default function Dashboard() {
                   <small role={loading ? "status" : undefined}>{loading ? tr("Loading records…") : tr(per.period === "Today" ? "No sales today" : "No sales for this period")}</small>
                 </div>}
               </div>
-              {/* Narrow phones: the money fitter shrinks the whole table so every digit and % stays inside the card */}
-              <div className="dash-pay-fit" data-fit-text="money">
+              </div>
+              {/* The full table retains amounts for every method, including zero balances. */}
+              <div className="dash-pay-fit">
                 <table className="dash-pay-table">
                   <thead>
                     <tr><th>{tr("Payment")}</th><th>{tr("Amount")}</th><th>%</th></tr>
@@ -375,11 +382,6 @@ export default function Dashboard() {
                   </tbody>
                 </table>
               </div>
-              {v.payTotal - k.sales > 0.005 && (
-                <p className="dash-pay-note">
-                  {cur} {compactFmt(v.payTotal - k.sales)} {translate("of these sales were later returned")}
-                </p>
-              )}
             </div>
           </Panel>
 
@@ -404,7 +406,7 @@ export default function Dashboard() {
 
         {/* Announcement ticker and Actionable Alerts share one row, so the Dashboard stays one page (owner, 2026-11-26) */}
         <div className="dash-news-row">
-        <AnnouncementTicker tr={tr} />
+        <AnnouncementTicker tr={tr} audit={s.audit} canViewActivity={!tillCashier() && (!staff || ((staff.role === "manager" || staff.role === "admin") && staff.permissions.includes("audit.view")))} />
 
         {/* 10. ACTIONABLE ALERTS: summary line, expand for every alert */}
         <section className="dash-panel dash-alerts">
@@ -413,7 +415,7 @@ export default function Dashboard() {
             <span className="dash-panel-title">{tr("Actionable Alerts")}</span>
             <span className="dash-alerts-count">{actionableAlerts.length}</span>
             <span className="dash-alerts-summary">
-              {actionableAlerts.slice(0, 2).map((a) => <span key={a.id}><i className={`is-${a.tone}`} />{a.title}</span>)}
+              {actionableAlerts.slice(0, 2).map((a) => <span key={a.id}><i className={`is-${a.tone}`} />{a.id === "lowstock" ? tr("Low or out-of-stock products") : a.title}</span>)}
               {!actionableAlerts.length && <span>{tr("No urgent alerts right now")}</span>}
             </span>
             <span className="dash-link">{showAlerts ? tr("Hide") : tr("View All")} <ChevronDown className={cn(showAlerts && "rotate-180")} /></span>
@@ -423,7 +425,7 @@ export default function Dashboard() {
               {actionableAlerts.map((a) => (
                 <Link key={a.id} to={a.go.to} search={a.go.search} className="dash-alert">
                   <i className={`is-${a.tone}`} />
-                  <span>{a.title}</span>
+                  <span>{a.id === "lowstock" ? tr("Low or out-of-stock products") : a.title}</span>
                   <ArrowRight />
                 </Link>
               ))}
@@ -433,7 +435,7 @@ export default function Dashboard() {
         </div>
 
         {/* 11. RECENT TRANSACTIONS: one section with tabs and a Share menu */}
-        <RecentTransactions s={s} moves={v.recentMoves} cur={cur} tr={tr} shop={account.shopName || ""} phone={account.phone} country={account.country} staff={!!staff} summary={summaryText} onSale={setViewSale} />
+        <RecentTransactions s={s} moves={v.allMoves} cur={cur} tr={tr} shop={account.shopName || ""} phone={account.phone} country={account.country} staff={!!staff} summary={summaryText} onSale={setViewSale} />
       </main>
 
       {/* 14. SHOPBOT: shared floating icon + right-docked panel (same as every app) */}

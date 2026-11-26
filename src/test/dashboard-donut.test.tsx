@@ -38,7 +38,7 @@ describe("Sales by payment method doughnut", () => {
     signIn();
     localStorage.setItem("shopbook.erp", "{}");
     const { container } = render(<Dashboard />);
-    await waitFor(() => expect(screen.getByText("No sales today")).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText("No sales today").length).toBeGreaterThan(0));
     expect(container.querySelector(".dash-donut-ring")).toBeTruthy();
     expect(screen.queryByTestId("pie")).toBeNull();
     expect(pie.data).toHaveLength(0);
