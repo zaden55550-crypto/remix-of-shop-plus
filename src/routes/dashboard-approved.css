@@ -657,3 +657,57 @@
 @media (min-width: 600px) and (max-width: 1099px) {
   html.in-sample :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left, html.in-sample:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { min-height: 50px !important; }
 }
+
+/* ===== ROUND 44 (owner, 2026-11-26) ===== */
+/* The shop name's own list opens right under it: Businesses (when several), All Shops and every shop, then Add or edit shops */
+:root:not(#dq-dash) .dashboard-screen .dash-shop-pick { position: relative; display: flex; justify-content: center; min-width: 0; max-width: 100%; }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-scrim { position: fixed; inset: 0; z-index: 60; background: transparent; border: 0; cursor: default; }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-menu { position: absolute; top: calc(100% + 0.4em); left: 50%; transform: translateX(-50%); z-index: 61; min-width: 16em; max-width: min(24em, 92vw); max-height: 60vh; overflow: auto; padding: 0.4em; border-radius: 0.8em; border: 1.5px solid var(--d-line); background: #0b1838; box-shadow: 0 18px 40px rgb(0 0 0 / 0.55); font-size: 1em; }
+:root:not(.dark):not(#dq-dash) .dashboard-screen .dash-shop-menu { background: #fff; }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-menu-head { margin: 0.3em 0.6em 0.2em; color: var(--d-muted); font-size: 0.78em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-row { display: flex; align-items: center; gap: 0.6em; width: 100%; padding: 0.5em 0.7em; border: 0; border-radius: 0.5em; background: none; color: var(--d-text); font-size: 1em; font-weight: 700; text-align: left; text-decoration: none; cursor: pointer; }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-row:hover { background: var(--d-head); }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-row.is-on { background: rgb(34 197 94 / 0.18); color: var(--d-green); }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-row svg { width: 1.1em; height: 1.1em; flex: none; color: var(--d-cyan); }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-row span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-shop-row.is-link { border-top: 1px solid var(--d-rule); border-radius: 0; margin-top: 0.3em; color: var(--d-green); }
+
+/* Payment card: pie with Gross Sales, Returns and Net Sales under it on the left; the methods table (up to ten) on the right */
+:root:not(#dq-dash) .dashboard-screen .dash-pay { display: grid !important; grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr) !important; grid-template-rows: auto auto 1fr !important; grid-template-areas: "head head" "pie table" "tiles table" !important; column-gap: 0.8em !important; row-gap: 0.5em !important; align-items: start !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-panel-head { grid-area: head; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-range { grid-column: 1 / -1; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-body { display: contents !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-pie { grid-area: pie; width: min(100%, 10em) !important; max-height: none !important; justify-self: center !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-pay-fit { grid-area: table; align-self: stretch; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-pay-totals { grid-area: tiles; display: flex !important; flex-direction: column; gap: 0.35em; margin: 0 !important; align-self: end; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile { flex-direction: row !important; justify-content: space-between !important; gap: 0.5em !important; padding: 0.32em 0.6em !important; text-align: left !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile svg { width: 1.1em !important; height: 1.1em !important; flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile > span { flex: 1 1 auto; font-size: 0.92em !important; font-weight: 800; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money { font-size: 1.05em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table td { padding-block: 0.2em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-table td:first-child { white-space: nowrap !important; }
+
+/* Bolder everywhere it carries information */
+:root:not(#dq-dash) .dashboard-screen :is(.dash-pay-table td, .dash-wb-tile-text > span, .dash-tx-row:not(.is-head) > span, .dash-ticker-text, .dash-wb-total-text small, .dash-kpi-sub) { font-weight: 800 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row.is-head > span, :root:not(#dq-dash) .dashboard-screen .dash-pay-table th { font-weight: 800 !important; }
+
+/* Phones: the same arrangement, smaller */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-pay { grid-template-columns: minmax(0, 1fr) !important; grid-template-areas: "head" "pie" "table" "tiles" !important; grid-template-rows: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-pie { width: 42% !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-pay-totals { gap: 0.25em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile { padding: 0.2em 0.4em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile > span { font-size: 0.72em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money { font-size: 0.78em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay .dash-pay-body .dash-pay-fit { font-size: 0.68em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-shop-menu { left: 0; transform: none; }
+}
+/* Landscape screens: each account tile on one line (name left, amount right) so the larger text still fits one page */
+@media (min-width: 600px) and (orientation: landscape) {
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text { flex-direction: row !important; align-items: baseline; justify-content: space-between; gap: 0.5em; flex: 1 1 auto; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile { padding-block: 0.28em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile > svg { width: 1.25em; height: 1.25em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-body > .dash-pie { width: min(100%, 8.5em) !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-total-icon { width: 1.9em; height: 1.9em; }
+}
+:root:not(#dq-dash) .dashboard-screen :is(> header, .dash-header, .dash-header-row, .dash-header-title, .dash-shop-pick) { overflow: visible !important; }

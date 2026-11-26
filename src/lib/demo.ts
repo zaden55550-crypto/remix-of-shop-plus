@@ -6,7 +6,7 @@ import {
   addCustomer, addEmployee, addNamed, addProduct, adjustStock, cashUp, cashSession, commit, confirmPayroll,
   confirmSale, createTransfer, empty, load, payPayroll, receiveDebt, returnSale, runErpTransaction, type Method,
 } from "@/lib/erp";
-import { addExpense, addExpenseCategory, addSupplier, confirmPurchase, floatDeposit, floatTransfer, paySupplier, expenseCategories } from "@/lib/finance";
+import { addExpense, addExpenseCategory, addMoneyAccount, addSupplier, confirmPurchase, floatDeposit, floatTransfer, paySupplier, expenseCategories } from "@/lib/finance";
 import { backupJson } from "@/lib/backup";
 
 const KEY = "shopbook.erp";
@@ -60,6 +60,10 @@ function seed() {
   floatDeposit("cash", 80000, "DEPOSIT", "Opening balance");
   floatDeposit("mpesa", 120000, "DEPOSIT", "Opening balance");
   floatDeposit("bank", 350000, "DEPOSIT", "Opening balance");
+  // More ways to pay, as a shop serving Kenya and Somalia keeps (owner, 2026-11-26): each is a real payment method with its own balance.
+  const more = ([["Salaam Bank", "bank", 45000], ["EVC Plus", "mobile", 37500], ["Izaad", "mobile", 26000], ["Other Funds", "other", 12500], ["Card", "card", 0], ["Cheque", "cheque", 0], ["Wallet", "wallet", 0]] as const)
+    .map(([name, cat, opening]) => { const a = addMoneyAccount(name, cat); if (opening) floatDeposit(a.id, opening, "DEPOSIT", "Opening balance"); return a; });
+  const acct = (name: string) => more.find((a) => a.name === name)!.id;
 
   // Products
   const cats = [...new Set(PRODUCTS.map((p) => p[2]))], brands = [...new Set(PRODUCTS.map((p) => p[3]))];
@@ -128,6 +132,11 @@ function seed() {
   // Commission tests: KSh 50,000 by Peter (2%), KSh 30,000 by Grace (3%)
   confirmSale({ cart: [c("LAP-002")], discount: 15000, pay: P(0, 50000), channel: "POS", sellerId: peter.id });
   confirmSale({ cart: [c("TEL-005", 2)], discount: 4000, pay: P(0, 30000), channel: "POS", sellerId: grace.id });
+  // Sales paid through the other methods
+  confirmSale({ cart: [c("NET-001")], discount: 0, pay: { ...P(), [acct("Salaam Bank")]: 5500 }, channel: "POS" });
+  confirmSale({ cart: [c("AUD-002")], discount: 0, pay: { ...P(), [acct("EVC Plus")]: 7000 }, channel: "POS" });
+  confirmSale({ cart: [c("STO-001", 2)], discount: 0, pay: { ...P(), [acct("Izaad")]: 3000 }, channel: "POS" });
+  confirmSale({ cart: [c("ACC-007")], discount: 0, pay: { ...P(), [acct("Card")]: 3000 }, channel: "POS" });
 
   // Stock adjustment & transfer (transfer stays pending until sent and received)
   adjustStock(id["AUD-001"]!, load().products.find((p) => p.id === id["AUD-001"])!.qty - 1, "Damaged item");

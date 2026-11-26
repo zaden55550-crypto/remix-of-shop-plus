@@ -117,8 +117,8 @@ function PieLabel(p: { cx?: number; cy?: number; midAngle?: number; outerRadius?
     <tspan x={x} dy={small ? 0 : "1.15em"}>{pct}</tspan>
   </text>;
 }
-/** Working Balance accounts and payment methods listed before Show More. */
-const LIST_START = 7;
+/** Listed before Show More: Working Balance tiles (two by two) and payment-method rows (owner, 2026-11-26). */
+const WB_START = 8, PAY_START = 10;
 const tone = (color: string) => ({ "--tone": color }) as CSSProperties;
 /** Dashboard card with a title row; `to` makes the title open the detailed screen. */
 /** Where each Dashboard figure leads: the app plus the tab (and filter) that lists the records behind it. */
@@ -250,7 +250,7 @@ export default function Dashboard() {
   // Each payment method by the business's own name; Credit is what is still owed, so it reads "Unpaid (credit)" in its own last row.
   const payRows = v.payments.map((p) => ({ ...p, name: p.method === "credit" ? tr("Credit (Unpaid)") : methodLabel(p.method, s, tr), short: p.method === "credit" ? tr("Credit") : methodLabel(p.method, s, tr), color: payColor(p.method, s) }));
   const methodRows = payRows.filter((p) => p.method !== "credit"), creditRow = payRows.filter((p) => p.method === "credit");
-  const shownPayRows = [...(payOpen ? methodRows : methodRows.slice(0, LIST_START)), ...creditRow];
+  const shownPayRows = [...(payOpen ? methodRows : methodRows.slice(0, PAY_START - 1)), ...creditRow];
   const pieRows = payRows.filter((p) => p.amount > 0);
   const saleWho = (sale: Sale) =>
     s.customers.find((c) => c.id === sale.customerId)?.name ??
@@ -307,7 +307,7 @@ export default function Dashboard() {
               </span>
             </div>
             <div className="dash-wb-list">
-              {(wbOpen ? v.working.accounts : v.working.accounts.slice(0, LIST_START)).map(({ method, name, amount }) => {
+              {(wbOpen ? v.working.accounts : v.working.accounts.slice(0, WB_START)).map(({ method, name, amount }) => {
                 const Icon = ACCOUNT_ICON[method] ?? (/bank/i.test(name) ? Landmark : WalletCards);
                 return (
                   <span key={method} className="dash-wb-tile">
@@ -326,7 +326,7 @@ export default function Dashboard() {
               <span className="dash-wb-tile-text"><span>{tr("Receivables")}</span><small className="dash-wb-note">{tr("Owed by customers, not included")}</small></span>
               <Money value={v.receivables.amount} curr={cur} />
             </span>
-            {v.working.accounts.length > LIST_START && <button type="button" className="dash-more" onClick={() => setWbOpen(!wbOpen)}>{tr(wbOpen ? "Show Less" : "Show More")} {wbOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
+            {v.working.accounts.length > WB_START && <button type="button" className="dash-more" onClick={() => setWbOpen(!wbOpen)}>{tr(wbOpen ? "Show Less" : "Show More")} {wbOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
             <Link to={GO.cashFlow.to} search={GO.cashFlow.search} className="dash-cta"><BarChart3 aria-hidden /> {tr("Cash Flow")} <ArrowRight aria-hidden /></Link>
           </section>
 
@@ -376,7 +376,7 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
-                {methodRows.length > LIST_START && <button type="button" className="dash-more" onClick={() => setPayOpen(!payOpen)}>{tr(payOpen ? "Show Less" : "Show More")} {payOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
+                {methodRows.length > PAY_START - 1 && <button type="button" className="dash-more" onClick={() => setPayOpen(!payOpen)}>{tr(payOpen ? "Show Less" : "Show More")} {payOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
               </div>
             </div>
             <div className="dash-pay-totals">

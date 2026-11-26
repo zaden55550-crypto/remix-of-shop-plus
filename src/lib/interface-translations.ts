@@ -2,6 +2,7 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Add or edit shops|Ongeza au hariri maduka|Ajouter ou modifier des boutiques|إضافة المتاجر أو تعديلها|Añadir o editar tiendas|Adicionar ou editar lojas|Läden hinzufügen oder bearbeiten|Aggiungi o modifica negozi|添加或编辑店铺|दुकानें जोड़ें या बदलें|Ku dar ama wax ka beddel dukaamada
 Announcements|Matangazo|Annonces|الإعلانات|Anuncios|Anúncios|Ankündigungen|Annunci|公告|घोषणाएँ|Ogeysiisyo
 Filter|Chuja|Filtrer|تصفية|Filtrar|Filtrar|Filtern|Filtra|筛选|फ़िल्टर|Shaandheeye
 All payment methods|Njia zote za malipo|Tous les moyens de paiement|جميع طرق الدفع|Todos los métodos de pago|Todos os métodos de pagamento|Alle Zahlungsarten|Tutti i metodi di pagamento|所有付款方式|सभी भुगतान तरीके|Dhammaan hababka lacag bixinta

@@ -91,6 +91,8 @@ export function GlobalApplicationHeader({
   const [calOpen, setCalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  // The Dashboard's shop name opens its own list right under it (owner, 2026-11-26): all shops, or one.
+  const [shopListOpen, setShopListOpen] = useState(false);
   const whole = useErp();
   // An owner with several businesses chooses which one they are working in. An employee's login decides theirs, so they get no choice.
   const businesses = store.get()?.staff ? [] : listBusinesses(whole);
@@ -136,9 +138,31 @@ export function GlobalApplicationHeader({
             </>
           ) : pills ? (
             // The business pill opens the same menu as the profile button, where the business and shop are chosen.
-            <button type="button" className="dash-biz-pill" onClick={() => { setMenuOpen(!menuOpen); setCalOpen(false); setBellOpen(false); }} aria-haspopup="menu" aria-expanded={menuOpen} title={name}>
-              <Building2 aria-hidden="true" /><h1>{name}</h1><ChevronDown aria-hidden="true" />
-            </button>
+            <div className="dash-shop-pick">
+              <button type="button" className="dash-biz-pill" onClick={() => { setShopListOpen(!shopListOpen); setMenuOpen(false); setCalOpen(false); setBellOpen(false); }} aria-haspopup="menu" aria-expanded={shopListOpen} title={name}>
+                <Building2 aria-hidden="true" /><h1>{name}</h1><ChevronDown aria-hidden="true" className={cn(shopListOpen && "rotate-180")} />
+              </button>
+              {shopListOpen && <>
+                <button type="button" className="dash-shop-scrim" aria-label={tr("Close")} onClick={() => setShopListOpen(false)} />
+                <div role="menu" className="dash-shop-menu">
+                  {businesses.length > 1 && <>
+                    <p className="dash-shop-menu-head">{tr("Businesses")}</p>
+                    {businesses.map((b) => (
+                      <button key={b.id} type="button" role="menuitemradio" aria-checked={activeBiz === b.id} className={cn("dash-shop-row", activeBiz === b.id && "is-on")} onClick={() => { setShopListOpen(false); selectBusiness(b.id); }}>
+                        <Building2 aria-hidden="true" /><span>{b.name}</span>{activeBiz === b.id && <Check aria-hidden="true" />}
+                      </button>
+                    ))}
+                  </>}
+                  <p className="dash-shop-menu-head">{tr("Shops")}</p>
+                  {[{ id: null as string | null, name: tr("All Shops") }, ...shops].map((l) => (
+                    <button key={l.id ?? "all"} type="button" role="menuitemradio" aria-checked={chosen === l.id} className={cn("dash-shop-row", chosen === l.id && "is-on")} onClick={() => { setShopListOpen(false); selectShop(l.id); }}>
+                      {l.id ? <MapPin aria-hidden="true" /> : <Store aria-hidden="true" />}<span>{l.name}</span>{chosen === l.id && <Check aria-hidden="true" />}
+                    </button>
+                  ))}
+                  {!store.get()?.staff && <Link to="/setup" className="dash-shop-row is-link" onClick={() => setShopListOpen(false)}><SettingsIcon aria-hidden="true" /><span>{tr("Add or edit shops")}</span></Link>}
+                </div>
+              </>}
+            </div>
           ) : (
             <>
               <h1>{name.toUpperCase()}</h1>
