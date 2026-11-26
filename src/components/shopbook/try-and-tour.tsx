@@ -32,18 +32,48 @@ export function SampleShopBar() {
     f(); window.addEventListener("shopbook-session", f); window.addEventListener("storage", f);
     return () => { window.removeEventListener("shopbook-session", f); window.removeEventListener("storage", f); };
   }, []);
-  // Carried by its shop icon like ShopBot (owner, 2026-11-26); back to its place when another page opens.
+  // Floating like ShopBot (owner, 2026-11-26): the whole bar is carried by finger or mouse (its buttons still work). Its home is the top
+  // bar, just after the Online status, so the shop name still shows on the right; it goes home when another page opens.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const drag = useRef<{ dx: number; dy: number } | null>(null);
-  useEffect(() => { const home = () => setPos(null); window.addEventListener("dq-floating-home", home); return () => window.removeEventListener("dq-floating-home", home); }, []);
-  const grab = (e: React.PointerEvent<HTMLElement>) => { const bar = e.currentTarget.parentElement!.getBoundingClientRect(); drag.current = { dx: e.clientX - bar.left, dy: e.clientY - bar.top }; e.currentTarget.setPointerCapture(e.pointerId); };
-  const move = (e: React.PointerEvent<HTMLElement>) => { const d = drag.current; if (!d) return; const bar = e.currentTarget.parentElement!.getBoundingClientRect(); setPos({ x: Math.min(Math.max(4, e.clientX - d.dx), window.innerWidth - bar.width - 4), y: Math.min(Math.max(4, e.clientY - d.dy), window.innerHeight - bar.height - 4) }); };
+  const [home, setHome] = useState<{ x: number; y: number } | null>(null);
+  const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!on) return;
+    const place = () => {
+      const anchor = document.querySelector(".dash-header-left, .apps-header-side");
+      const bar = barRef.current;
+      if (!anchor || !bar) { setHome(null); return; }
+      const r = anchor.getBoundingClientRect(), b = bar.getBoundingClientRect();
+      setHome({ x: Math.max(4, Math.min(r.right + 10, window.innerWidth - b.width - 4)), y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
+      // The shop name starts after the bar, so part of it still shows on the right.
+      const title = document.querySelector<HTMLElement>(".dash-header-title, .apps-shop");
+      if (title) { title.style.paddingLeft = "0px"; const t = title.getBoundingClientRect(), barRight = Math.min(r.right + 10, window.innerWidth - b.width - 4) + b.width + 10; title.style.paddingLeft = `${Math.max(0, barRight - t.left)}px`; title.classList.add("is-after-sample"); }
+    };
+    const goHome = () => { setPos(null); window.setTimeout(place, 60); };
+    place(); const t = window.setTimeout(place, 600);
+    window.addEventListener("resize", place); window.addEventListener("dq-floating-home", goHome);
+    return () => { document.querySelectorAll<HTMLElement>(".is-after-sample").forEach((e) => { e.style.paddingLeft = ""; e.classList.remove("is-after-sample"); }); window.clearTimeout(t); window.removeEventListener("resize", place); window.removeEventListener("dq-floating-home", goHome); };
+  }, [on]);
+  const grab = (e: React.PointerEvent<HTMLDivElement>) => {
+    if ((e.target as Element).closest("button")) return;
+    const bar = e.currentTarget.getBoundingClientRect();
+    drag.current = { dx: e.clientX - bar.left, dy: e.clientY - bar.top, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const move = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current; if (!d) return;
+    const bar = e.currentTarget.getBoundingClientRect(); d.moved = true;
+    setPos({ x: Math.min(Math.max(4, e.clientX - d.dx), window.innerWidth - bar.width - 4), y: Math.min(Math.max(4, e.clientY - d.dy), window.innerHeight - bar.height - 4) });
+  };
   const drop = () => { drag.current = null; };
+  const at = pos ?? home;
   useEffect(() => { document.documentElement.classList.toggle("in-sample", on); return () => document.documentElement.classList.remove("in-sample"); }, [on]);
   if (!on) return null;
   const leave = (to: "/" | "/signup") => { leaveSampleShop(); setOn(false); window.location.replace(to); };
-  return <div className={pos ? "sample-bar is-moved" : "sample-bar"} role="status" data-short={tr("Sample shop")} style={pos ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto", transform: "none" } : undefined}>
-    <span className="sample-grip" title={tr("Drag to move")} onPointerDown={grab} onPointerMove={move} onPointerUp={drop} onPointerCancel={drop}><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
+  return <div ref={barRef} className={at ? "sample-bar is-moved" : "sample-bar"} role="status" title={tr("Drag to move")} data-short={tr("Sample shop")} style={at ? { left: at.x, top: at.y, right: "auto", bottom: "auto", transform: "none" } : undefined}
+    onPointerDown={grab} onPointerMove={move} onPointerUp={drop} onPointerCancel={drop}>
+    <span className="sample-grip"><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>
     <button type="button" className="is-leave" onClick={() => leave("/")} title={tr("Leave the sample shop")}><LogOut aria-hidden /> {tr("Exit")}</button>
   </div>;
