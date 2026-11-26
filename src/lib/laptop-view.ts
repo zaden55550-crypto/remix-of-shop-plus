@@ -21,6 +21,9 @@ function deviceWidth() {
 export function laptopViewWanted(pathname: string) {
   if (typeof window === "undefined" || keepsPhoneDesign(pathname)) return false;
   try { if (localStorage.getItem("shopbook.phoneLayout") === "1") return false; } catch { /* default: laptop view */ }
+  // Phones use their own phone layouts again (owner, 2026-11-26: big readable tiles and screens, like the original phone design);
+  // only iPads and other mid-size screens get the shrunk laptop page.
+  if (Math.min(window.screen.width, window.screen.height) < 600) return false;
   // Selling on a phone held upright (owner, 2026-11-23): POS keeps its own large phone layout so a cashier can read and tap it.
   if (pathname.startsWith("/pos") && Math.min(window.screen.width, window.screen.height) < 600 && deviceWidth() < 600) return false;
   return deviceWidth() < 1100;
