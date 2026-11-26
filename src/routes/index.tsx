@@ -9,8 +9,6 @@ import { useLanguage } from "@/hooks/use-language";
 import { SUPPORT } from "@/lib/i18n";
 import { checkPassword } from "@/lib/device-password";
 import { restoreBusiness, savedBusinessFor, setAsideCurrentBusiness } from "@/lib/device-businesses";
-import { GlassPage } from "@/components/shopbook/glass-page";
-import { SaleTour } from "@/components/shopbook/try-and-tour";
 
 const sameAs = (a: { shopName?: string; email?: string } | null, id: string) => { const n = (v: string) => v.trim().toLowerCase().replace(/s+/g, ""); return !!a && (n(a.shopName ?? "") === n(id) || (!!a.email && n(a.email) === n(id))); };
 import { PLANS, store, type Account, type PlanId } from "@/lib/shopbook";
@@ -103,7 +101,6 @@ function Login() {
   const { reason: offline } = useConnection();
   const [lockedUntil, setLockedUntil] = useState(0);
   const [fails, setFails] = useState<number[]>([]);
-  const [tour, setTour] = useState(false);
   const failedAttempt = () => setFails((list) => {
     const recent = [...list.filter((t) => Date.now() - t < 60_000), Date.now()];
     if (recent.length >= 5) { setLockedUntil(Date.now() + 60_000); return []; }
@@ -310,13 +307,10 @@ function Login() {
 
   return (
     <>
-      {tour && <GlassPage label={tr("See a sale in 30 seconds")} onClose={() => setTour(false)}><SaleTour /></GlassPage>}
       <header className="signup-form-heading">
         <ConnectionPill />
             <h1><span className="auth-phone-text">{tr("Log In")}</span><span className="auth-desk-text">{tr("Welcome back")}</span></h1>
             <p>{tr("Sign in to your business account")}</p>
-            {/* A 30-second look at a sale (owner, 2026-11-25), the same tour as on Plans. */}
-            <button type="button" className="login-tour-link" onClick={() => setTour(true)}>▶ {tr("See how it works (30 s)")}</button>
             {/* No internet at all, or internet but the server isn't answering (said only after two missed checks in a row). */}
             {offline === "internet" && <p className="login-offline" role="status">{tr("You're offline. You can still log in if you've used the app here before. Google and Apple need internet.")}</p>}
             {offline === "server" && <p className="login-offline" role="status">{tr("Can't reach the DataQuill server right now. You can still log in if you've used the app here before.")}</p>}

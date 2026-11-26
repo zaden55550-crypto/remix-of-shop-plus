@@ -424,51 +424,7 @@ function Apps() {
 
             {/* MENU ITEMS */}
             <div className="mt-4 flex flex-1 flex-col gap-1.5">
-              {/* 2. PROFILE & BUSINESS DETAILS */}
-              <ShopButton
-                variant="ghost"
-                className="justify-between text-xs font-semibold py-2"
-                onClick={() => setPanel(panel === "profile" ? null : "profile")}
-              >
-                <span className="flex items-center gap-2">
-                  <UserRound className="h-4 w-4 text-primary" /> {tr("Profile & Shop Details")}
-                </span>
-                {panel === "profile" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </ShopButton>
-              {panel === "profile" && (
-                <div className="rounded-xl border border-border bg-muted/40 p-3 text-xs space-y-2">
-                  <div>
-                    <span className="text-muted-foreground block text-[11px] uppercase font-bold">{t("shopName")}</span>
-                    <span className="font-bold uppercase text-foreground">{acct.shopName}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground block text-[11px] uppercase font-bold">{t("email")}</span>
-                    <span className="font-medium text-foreground">{acct.email}</span>
-                  </div>
-                  {acct.phone && (
-                    <div>
-                      <span className="text-muted-foreground block text-[11px] uppercase font-bold">{tr("Phone")}</span>
-                      <span className="font-medium text-foreground">{acct.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <div>
-                      <span className="text-muted-foreground block text-[11px] uppercase font-bold">
-                        {t("currency")}
-                      </span>
-                      <span className="font-bold text-foreground">{acct.currency}</span>
-                    </div>
-                    {acct.country && (
-                      <div>
-                        <span className="text-muted-foreground block text-[11px] uppercase font-bold">
-                          {tr("Country")}
-                        </span>
-                        <span className="font-bold text-foreground">{acct.country}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* Profile & Shop Details removed (owner, 2026-11-26). */}
 
               {/* 3. MANAGE APPS (SLIDING TOGGLE SWITCH: GREEN/RIGHT FOR ACTIVE, GREY/LEFT FOR DEACTIVATE) */}
               <ShopButton
