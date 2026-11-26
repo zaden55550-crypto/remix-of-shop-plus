@@ -229,15 +229,15 @@ export default function Dashboard() {
         <b>{pct >= 0 ? "↑" : "↓"} {pct >= 0 ? "+" : "-"}{Math.abs(pct)}%</b> <small>{versus}</small>
       </span>
     );
-  const kpiCards: { go: Go; label: string; qualifier?: string; define?: string; icon: LucideIcon; color: string; value: number; chip: ReactNode }[] = [
+  const kpiCards: { go: Go; label: string; qualifier?: string; define?: string; icon: LucideIcon; color: string; value: number; chip: ReactNode; inline?: boolean }[] = [
     { go: GO.sales, label: tr("Net Sales"), icon: ShoppingCart, color: KPI_COLOR.good, value: k.sales, chip: trendChip(k.salesChange, true) },
     { go: GO.purchases, label: tr("Purchases"), icon: ShoppingBasket, color: KPI_COLOR.info, value: k.purchases, chip: trendChip(k.purchasesChange, false) },
     { go: GO.expenses, label: tr("Expenses"), icon: Receipt, color: KPI_COLOR.bad, value: k.expenses, chip: trendChip(k.expensesChange, false) },
     {
       go: GO.profit, label: tr("Profit"), qualifier: tr("After expenses"), define: tr("Sales minus cost of goods sold and expenses for this period. Payroll and stock adjustments are not deducted. Margin is this profit divided by sales."), icon: TrendingUp, color: KPI_COLOR.profit, value: k.profit,
-      chip: k.margin === null ? null : <span className="dash-margin" aria-label={`${tr("Margin")} ${k.margin}%`}>{tr("Margin")} <b className={k.margin >= 0 ? "is-good" : "is-bad"}>{k.margin}%</b></span>,
+      chip: k.margin === null ? null : <span className="dash-margin" aria-label={`${tr("Margin")} ${k.margin}%`}>{tr("Margin")} <b className={k.margin >= 0 ? "is-good" : "is-bad"}>{k.margin}%</b></span>, inline: true,
     },
-    { go: GO.stockValue, label: tr("Stock Value"), qualifier: tr("At cost"), define: tr("Current stock quantity multiplied by each product's buying price. A balance right now, not period activity."), icon: Boxes, color: KPI_COLOR.warn, value: v.stockValue, chip: <span className="dash-now">{tr("Now")}</span> },
+    { go: GO.stockValue, label: tr("Stock Value"), qualifier: tr("At cost"), define: tr("Current stock quantity multiplied by each product's buying price. A balance right now, not period activity."), icon: Boxes, color: KPI_COLOR.warn, value: v.stockValue, chip: <span className="dash-now">{tr("Now")}</span>, inline: true },
   ];
   // Four indicators, two by two. POS cash-up and sync problems surface in Actionable Alerts when they need attention.
   const attention: { go: Go; label: string; icon: LucideIcon; color: string; value: string; exact?: string; state: "ok" | "warn" | "bad" }[] = [
@@ -286,8 +286,11 @@ export default function Dashboard() {
                 <span className="dash-kpi-icon"><c.icon /></span>
                 <span className="dash-kpi-label" data-exact={c.define}>{c.label}</span>
               </span>
-              <Money value={c.value} curr={cur} className={cn("dash-kpi-value", c.value < 0 && "is-negative")} />
-              {c.chip && <span className="dash-kpi-sub">{c.chip}</span>}
+              <span className="dash-kpi-figures">
+                <Money value={c.value} curr={cur} className={cn("dash-kpi-value", c.value < 0 && "is-negative")} />
+                {c.inline && c.chip}
+              </span>
+              {!c.inline && c.chip && <span className="dash-kpi-sub">{c.chip}</span>}
             </Link>
           ))}
         </div>
@@ -297,15 +300,15 @@ export default function Dashboard() {
           <section className="dash-panel dash-working dash-area-wb" style={tone("#22c55e")}>
             <header className="dash-panel-head">
               <h2 className="dash-panel-title"><span className="dash-title-icon"><Wallet /></span>{tr("Working Balance")}<Info className="dash-info" aria-label={tr("Available business funds")} /></h2>
-              <Link to={GO.float.to} search={GO.float.search} className="dash-pill-btn">{tr("View Details")} <ArrowRight aria-hidden /></Link>
             </header>
-            <div className="dash-wb-total">
+            <Link to={GO.float.to} search={GO.float.search} className="dash-wb-total" aria-label={`${tr("Available business funds")}: ${exactFmt(cur, v.working.total)} · ${tr("View Details")}`}>
               <Coins className="dash-wb-total-icon" aria-hidden />
               <span className="dash-wb-total-text">
                 <Money value={v.working.total} curr={cur} className="dash-fin-value" />
                 <small>{tr("Available business funds")}</small>
               </span>
-            </div>
+              <ArrowRight className="dash-wb-total-go" aria-hidden />
+            </Link>
             <div className="dash-wb-list">
               {(wbOpen ? v.working.accounts : v.working.accounts.slice(0, WB_START)).map(({ method, name, amount }) => {
                 const Icon = ACCOUNT_ICON[method] ?? (/bank/i.test(name) ? Landmark : WalletCards);

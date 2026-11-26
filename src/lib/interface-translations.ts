@@ -2,6 +2,11 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Account number (optional)|Nambari ya akaunti (si lazima)|Numéro de compte (facultatif)|رقم الحساب (اختياري)|Número de cuenta (opcional)|Número da conta (opcional)|Kontonummer (optional)|Numero di conto (facoltativo)|账号（可选）|खाता संख्या (वैकल्पिक)|Lambarka akoonka (ikhtiyaari)
+Mobile money name|Jina la pesa ya simu|Nom du mobile money|اسم خدمة المال عبر الجوال|Nombre del dinero móvil|Nome do dinheiro móvel|Name des Mobile Money|Nome del mobile money|移动支付名称|मोबाइल मनी का नाम|Magaca lacagta mobilka
+Till or Paybill number (optional)|Nambari ya Till au Paybill (si lazima)|Numéro Till ou Paybill (facultatif)|رقم Till أو Paybill (اختياري)|Número Till o Paybill (opcional)|Número Till ou Paybill (opcional)|Till- oder Paybill-Nummer (optional)|Numero Till o Paybill (facoltativo)|Till 或 Paybill 号码（可选）|Till या Paybill नंबर (वैकल्पिक)|Lambarka Till ama Paybill (ikhtiyaari)
+e.g. Salaam Bank, KCB, Equity|mf. Salaam Bank, KCB, Equity|ex. Salaam Bank, KCB, Equity|مثل Salaam Bank وKCB وEquity|p. ej. Salaam Bank, KCB, Equity|ex.: Salaam Bank, KCB, Equity|z. B. Salaam Bank, KCB, Equity|es. Salaam Bank, KCB, Equity|例如 Salaam Bank、KCB、Equity|जैसे Salaam Bank, KCB, Equity|tusaale Salaam Bank, KCB, Equity
+e.g. EVC Plus, Zaad, Airtel Money|mf. EVC Plus, Zaad, Airtel Money|ex. EVC Plus, Zaad, Airtel Money|مثل EVC Plus وZaad وAirtel Money|p. ej. EVC Plus, Zaad, Airtel Money|ex.: EVC Plus, Zaad, Airtel Money|z. B. EVC Plus, Zaad, Airtel Money|es. EVC Plus, Zaad, Airtel Money|例如 EVC Plus、Zaad、Airtel Money|जैसे EVC Plus, Zaad, Airtel Money|tusaale EVC Plus, Zaad, Airtel Money
 Add or edit shops|Ongeza au hariri maduka|Ajouter ou modifier des boutiques|إضافة المتاجر أو تعديلها|Añadir o editar tiendas|Adicionar ou editar lojas|Läden hinzufügen oder bearbeiten|Aggiungi o modifica negozi|添加或编辑店铺|दुकानें जोड़ें या बदलें|Ku dar ama wax ka beddel dukaamada
 Announcements|Matangazo|Annonces|الإعلانات|Anuncios|Anúncios|Ankündigungen|Annunci|公告|घोषणाएँ|Ogeysiisyo
 Filter|Chuja|Filtrer|تصفية|Filtrar|Filtrar|Filtern|Filtra|筛选|फ़िल्टर|Shaandheeye

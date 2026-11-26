@@ -166,7 +166,7 @@ export const PAYMENT_CATEGORIES: { id: PaymentCategory; label: string }[] = [
  * "bank") and need no record; a record with that id is written only when the owner renames, disables, reorders or recategorises one
  * (like the built-in units), so every sale, payment and balance keeps pointing at the same id whatever it is called.
  */
-export type MoneyAccount = AtBusiness & { id: MoneyMethod; name: string; active?: boolean | undefined; createdAt: number; category?: PaymentCategory | undefined; order?: number | undefined };
+export type MoneyAccount = AtBusiness & { id: MoneyMethod; name: string; active?: boolean | undefined; createdAt: number; category?: PaymentCategory | undefined; order?: number | undefined; /** Optional, information only: a bank account or till number printed nowhere unless chosen. */ accountNumber?: string | undefined };
 /** The built-in methods, in their default order. Credit is a payment state, not a method. */
 export const METHODS: BaseMethod[] = ["cash", "mpesa", "bank", "credit"];
 export const BUILT_IN_MONEY = ["cash", "mpesa", "bank"] as const;
@@ -190,7 +190,7 @@ export function methodName(m: string, s?: Pick<ErpState, "moneyAccounts">): stri
   if (own) return own;
   return isBuiltInMoney(m) ? METHOD_LABEL[m] : "Other account";
 }
-export type PaymentMethodInfo = { id: MoneyMethod; name: string; category: PaymentCategory; active: boolean; builtIn: boolean; order: number; createdAt: number };
+export type PaymentMethodInfo = { id: MoneyMethod; name: string; category: PaymentCategory; active: boolean; builtIn: boolean; order: number; createdAt: number; accountNumber?: string | undefined };
 /** Payment methods suited to a new business's country. Mobile money is called M-Pesa in Kenya and Mobile Money elsewhere; the method's id
  *  (and so every pay record) stays "mpesa". The owner can rename, reorder or disable any of them later. */
 export function defaultPaymentSettings(country: string | undefined): Business["paymentSettings"] {
@@ -210,8 +210,8 @@ export function businessMoneyAccounts(s: Pick<ErpState, "moneyAccounts" | "busin
 /** Every payment method of this business in its display order (disabled ones included, marked). The one list every screen reads. */
 export function paymentMethods(s: Pick<ErpState, "moneyAccounts">): PaymentMethodInfo[] {
   const rows = s.moneyAccounts ?? [];
-  const built = BUILT_IN_MONEY.map((id, i): PaymentMethodInfo => { const r = rows.find((a) => a.id === id); return { id, name: r?.name || METHOD_LABEL[id], category: r?.category ?? BUILT_IN_CATEGORY[id], active: r?.active !== false, builtIn: true, order: r?.order ?? i, createdAt: r?.createdAt ?? 0 }; });
-  const named = rows.filter((a) => isAccountMethod(a.id)).map((a, i): PaymentMethodInfo => ({ id: a.id, name: a.name, category: a.category ?? "other", active: a.active !== false, builtIn: false, order: a.order ?? BUILT_IN_MONEY.length + i, createdAt: a.createdAt }));
+  const built = BUILT_IN_MONEY.map((id, i): PaymentMethodInfo => { const r = rows.find((a) => a.id === id); return { id, name: r?.name || METHOD_LABEL[id], category: r?.category ?? BUILT_IN_CATEGORY[id], active: r?.active !== false, builtIn: true, order: r?.order ?? i, createdAt: r?.createdAt ?? 0, accountNumber: r?.accountNumber }; });
+  const named = rows.filter((a) => isAccountMethod(a.id)).map((a, i): PaymentMethodInfo => ({ id: a.id, name: a.name, category: a.category ?? "other", active: a.active !== false, builtIn: false, order: a.order ?? BUILT_IN_MONEY.length + i, createdAt: a.createdAt, accountNumber: a.accountNumber }));
   const all = [...built, ...named], pos = new Map(all.map((m, i) => [m.id, i]));
   return all.sort((x, y) => x.order - y.order || pos.get(x.id)! - pos.get(y.id)!);
 }

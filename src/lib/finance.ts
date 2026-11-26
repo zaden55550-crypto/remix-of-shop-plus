@@ -69,14 +69,22 @@ function methodRow(s: ErpState, id: string, business = MAIN_BUSINESS): MoneyAcco
 /** Money held in one method by one business, so disabling a method only looks at that business's money. */
 const businessBalance = (s: ErpState, business: string, id: Parameters<typeof balanceOf>[1]) => balanceOf(floatBalances({ ...s, payments: s.payments.filter((p) => atBusiness(p, business)), payrollPayments: s.payrollPayments.filter((p) => atBusiness(p, business)), cash: s.cash.filter((e) => atBusiness(e, business)), moneyAccounts: businessMoneyAccounts(s, business) }), id);
 /** Adds a payment method. It shows at the end of every money screen's choices until the owner moves it. */
-export const addMoneyAccount = (name: string, cat: PaymentCategory = "other") => commit((s, c) => {
+const cleanNumber = (n: string | undefined) => (n ?? "").trim().slice(0, 40) || undefined;
+export const addMoneyAccount = (name: string, cat: PaymentCategory = "other", accountNumber?: string) => commit((s, c) => {
   const n = accountName(s, name, undefined, c.business);
   if (moneyMethods(view(s, c.business)).length >= MONEY_ACCOUNT_LIMIT) throw tooMany();
   const last = paymentMethods(view(s, c.business)).reduce((a, m) => Math.max(a, m.order), -1);
-  const acct: MoneyAccount = { id: `acct-${uid()}` as AccountMethod, name: n, createdAt: Date.now(), category: category(cat), order: last + 1 };
+  const acct: MoneyAccount = { id: `acct-${uid()}` as AccountMethod, name: n, createdAt: Date.now(), category: category(cat), order: last + 1, ...(cleanNumber(accountNumber) ? { accountNumber: cleanNumber(accountNumber) } : {}) };
   s.moneyAccounts.push(acct);
   c.audit("MONEY ACCOUNT ADDED", n);
   return acct;
+});
+/** The method's optional account or till number (bank account, Paybill…). Information only: it never changes balances. */
+export const setMoneyAccountNumber = (id: string, accountNumber: string) => commit((s, c) => {
+  const a = methodRow(s, id, c.business), next = cleanNumber(accountNumber);
+  if (next) a.accountNumber = next; else delete a.accountNumber;
+  c.audit("MONEY ACCOUNT NUMBER", `${a.name}: ${next ?? "removed"}`);
+  return a;
 });
 /** A new name only; every record keeps pointing at the same method. Works for Cash, M-Pesa and Bank too. */
 export const renameMoneyAccount = (id: string, name: string) => commit((s, c) => {
