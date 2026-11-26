@@ -102,8 +102,6 @@ export function GlobalApplicationHeader({
   const initials = name.trim().split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
   const inventoryHeader = moduleFirst && title === "Inventory";
   const go = (to: string) => { setMenuOpen(false); nav({ to }); };
-  // Phones show the app's icon in place of its name (owner, 2026-11-26).
-  const appIcon = APPS.find((a) => a.name === title)?.iconDark;
 
   return (
     <div className="dash-header app-header-bar">
@@ -117,7 +115,6 @@ export function GlobalApplicationHeader({
           <span className="dash-divider" />
           {inventoryHeader ? <><span className="app-header-module inventory-header-module-desktop">{tr(title)}</span><span className="dash-divider inventory-header-divider-desktop" /></> : !branded && (moduleFirst || title === "Dashboard") && <><span className="app-header-module app-header-module-desktop">{tr(title)}</span><span className="dash-divider app-header-divider-desktop" /></>}
           {branded && <span className="app-header-module app-header-module-phone">{tr(title)}</span>}
-          {appIcon && <img className="app-header-icon" src={appIcon} alt={tr(title)} title={tr(title)} />}
           <ConnectionStatus />
         </div>
 

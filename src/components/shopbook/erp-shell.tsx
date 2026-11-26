@@ -82,7 +82,7 @@ export function ErpShell({
   const subs = menus[menu] ?? [];
   // Tablets, laptops and desktops: the whole app screen on one full screen (src/lib/fill-screen.ts).
   const screenRef = useRef<HTMLElement>(null);
-  useScreenFit(screenRef, { min: 1, scroller: ".inventory-content" }); // min 1: text keeps its size, long content scrolls inside
+  useScreenFit(screenRef, { min: 0.6, scroller: ".inventory-content" }); // min 1: text keeps its size, long content scrolls inside
 
   return (
     <main ref={screenRef} dir={dir} className="shop-app inventory-screen fit-screen flex w-full flex-col">

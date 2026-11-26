@@ -5,6 +5,7 @@
 // the text. Support links (data-plain="1") stay plain chats.
 import { shareBlob } from "@/lib/download";
 import { textPdf } from "@/lib/simple-pdf";
+import { toast } from "sonner";
 
 /** The message carried by a WhatsApp or SMS link, if the link is one. */
 export function messageOf(href: string): { via: "whatsapp" | "sms"; text: string } | null {
@@ -20,6 +21,10 @@ const nameFor = (title: string) => `dataquill-solutions-${title.toLowerCase().re
 /** Opens a WhatsApp or SMS link, sending its message as a PDF. Returns once the share sheet or the link has opened. */
 export async function openAsPdf(href: string, target = "_blank") {
   const msg = messageOf(href);
+  if (msg?.via === "whatsapp" && typeof navigator !== "undefined" && navigator.onLine === false) {
+    toast.error("Connect to the internet (Wi-Fi or mobile data) to send by WhatsApp. SMS works without internet.");
+    return;
+  }
   if (!msg || !msg.text.trim()) { window.open(href, target); return; }
   const title = msg.text.split("\n").find((l) => l.trim())?.trim().slice(0, 70) || "DataQuill Solutions";
   const blob = new Blob([textPdf(title, msg.text).buffer as ArrayBuffer], { type: "application/pdf" });

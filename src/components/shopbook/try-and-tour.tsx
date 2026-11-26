@@ -2,7 +2,7 @@
 // Kiswahili on the first screen, a 30-second sale tour (Plans) and real customer words (shown only once some exist).
 import { useEffect, useRef, useState } from "react";
 
-import { CheckCircle2, Printer, RotateCw, ShoppingCart, Smartphone, Store, LogOut } from "lucide-react";
+import { CheckCircle2, Printer, ShoppingCart, Smartphone, Store, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/use-language";
 import { inSampleShop, leaveSampleShop, sampleBlocked, startSampleShop } from "@/lib/sample-shop";
@@ -24,6 +24,8 @@ export function SampleShopButton() {
 }
 
 /** Shown on every page while inside the sample shop. */
+const unpush = () => document.querySelectorAll<HTMLElement>(".is-after-sample").forEach((e) => { e.style.paddingLeft = ""; e.classList.remove("is-after-sample"); });
+
 export function SampleShopBar() {
   const { tr } = useLanguage();
   const [on, setOn] = useState(false);
@@ -32,28 +34,43 @@ export function SampleShopBar() {
     f(); window.addEventListener("shopbook-session", f); window.addEventListener("storage", f);
     return () => { window.removeEventListener("shopbook-session", f); window.removeEventListener("storage", f); };
   }, []);
-  // Floating like ShopBot (owner, 2026-11-26): the whole bar is carried by finger or mouse (its buttons still work). Its home is the top
-  // bar, just after the Online status, so the shop name still shows on the right; it goes home when another page opens.
+  // Floating like ShopBot (owner, 2026-11-26): the whole bar is carried by finger or mouse (its buttons still work). Its home is the middle
+  // of the free-trial strip where a page has one (the shop name in the header is never covered), otherwise the top bar just after the
+  // status, with the shop name pushed after it; it goes home when another page opens.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  // Pushed mostly off the screen it tucks away behind the edge; a small arrow there brings it back (owner, 2026-11-26).
+  const [tucked, setTucked] = useState<null | { side: "left" | "right" | "top" | "bottom"; at: number }>(null);
   const [home, setHome] = useState<{ x: number; y: number } | null>(null);
+  const [onStrip, setOnStrip] = useState(false);
   const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!on) return;
     const place = () => {
-      const anchor = document.querySelector(".dash-header-left, .apps-header-side");
       const bar = barRef.current;
-      if (!anchor || !bar) { setHome(null); return; }
-      const r = anchor.getBoundingClientRect(), b = bar.getBoundingClientRect();
-      setHome({ x: Math.max(4, Math.min(r.right + 10, window.innerWidth - b.width - 4)), y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
-      // The shop name starts after the bar, so part of it still shows on the right.
+      const strip = document.querySelector<HTMLElement>(".dash-strip");
+      const anchor = document.querySelector(".dash-header-left, .apps-header-side");
+      setOnStrip(!!strip);
+      unpush();
+      if (!bar || (!strip && !anchor)) { setHome(null); return; }
+      const b = bar.getBoundingClientRect();
+      if (strip) {
+        // In the gap between Days left and Explore plans, so neither is covered.
+        const r = strip.getBoundingClientRect(), first = strip.querySelector(".trial-banner-days")?.getBoundingClientRect(), last = strip.querySelector(".trial-banner-upgrade")?.getBoundingClientRect();
+        const from = first ? first.right : r.left, to = last ? last.left : r.right;
+        setHome({ x: Math.max(4, (from + to) / 2 - b.width / 2), y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
+        return;
+      }
+      const r = anchor!.getBoundingClientRect(), x = Math.max(4, Math.min(r.right + 10, window.innerWidth - b.width - 4));
+      setHome({ x, y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
+      // The shop name starts after the bar, so part of it still shows on the right. The header may be zoomed: work in its own pixels.
       const title = document.querySelector<HTMLElement>(".dash-header-title, .apps-shop");
-      if (title) { title.style.paddingLeft = "0px"; const t = title.getBoundingClientRect(), barRight = Math.min(r.right + 10, window.innerWidth - b.width - 4) + b.width + 10; title.style.paddingLeft = `${Math.max(0, barRight - t.left)}px`; title.classList.add("is-after-sample"); }
+      if (title) { const t = title.getBoundingClientRect(), k = t.width / (title.offsetWidth || 1) || 1; title.style.paddingLeft = `${Math.max(0, (x + b.width + 10 - t.left) / k)}px`; title.classList.add("is-after-sample"); }
     };
-    const goHome = () => { setPos(null); window.setTimeout(place, 60); };
+    const goHome = () => { setPos(null); setTucked(null); window.setTimeout(place, 60); };
     place(); const t = window.setTimeout(place, 600);
     window.addEventListener("resize", place); window.addEventListener("dq-floating-home", goHome);
-    return () => { document.querySelectorAll<HTMLElement>(".is-after-sample").forEach((e) => { e.style.paddingLeft = ""; e.classList.remove("is-after-sample"); }); window.clearTimeout(t); window.removeEventListener("resize", place); window.removeEventListener("dq-floating-home", goHome); };
+    return () => { unpush(); window.clearTimeout(t); window.removeEventListener("resize", place); window.removeEventListener("dq-floating-home", goHome); };
   }, [on]);
   const grab = (e: React.PointerEvent<HTMLDivElement>) => {
     if ((e.target as Element).closest("button")) return;
@@ -64,14 +81,32 @@ export function SampleShopBar() {
   const move = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current; if (!d) return;
     const bar = e.currentTarget.getBoundingClientRect(); d.moved = true;
-    setPos({ x: Math.min(Math.max(4, e.clientX - d.dx), window.innerWidth - bar.width - 4), y: Math.min(Math.max(4, e.clientY - d.dy), window.innerHeight - bar.height - 4) });
+    setPos({ x: Math.min(Math.max(-bar.width + 30, e.clientX - d.dx), window.innerWidth - 30), y: Math.min(Math.max(-bar.height + 12, e.clientY - d.dy), window.innerHeight - 12) });
   };
-  const drop = () => { drag.current = null; };
+  const drop = () => {
+    const d = drag.current; drag.current = null;
+    const bar = barRef.current?.getBoundingClientRect();
+    if (!d?.moved || !bar) return;
+    const shown = (Math.min(bar.right, window.innerWidth) - Math.max(bar.left, 0)) * (Math.min(bar.bottom, window.innerHeight) - Math.max(bar.top, 0)) / (bar.width * bar.height);
+    if (shown > 0.55) return;
+    const side = bar.left < 0 && -bar.left >= bar.width / 3 ? "left" : bar.right > window.innerWidth && bar.right - window.innerWidth >= bar.width / 3 ? "right" : bar.top < 0 ? "top" : "bottom";
+    setTucked({ side, at: side === "left" || side === "right" ? Math.min(Math.max(8, bar.top + bar.height / 2), window.innerHeight - 40) : Math.min(Math.max(8, bar.left + bar.width / 2), window.innerWidth - 40) });
+  };
+  // The bar is smaller on the strip: measure its home again once it has its strip size.
+  useEffect(() => { if (on) window.dispatchEvent(new Event("resize")); }, [on, onStrip]);
+  // Moved or tucked away, the shop name gets its whole space back.
+  useEffect(() => { if (pos || tucked) unpush(); }, [pos, tucked]);
+  const bringBack = () => { setTucked(null); setPos(null); window.dispatchEvent(new Event("resize")); };
   const at = pos ?? home;
   useEffect(() => { document.documentElement.classList.toggle("in-sample", on); return () => document.documentElement.classList.remove("in-sample"); }, [on]);
   if (!on) return null;
   const leave = (to: "/" | "/signup") => { leaveSampleShop(); setOn(false); window.location.replace(to); };
-  return <div ref={barRef} className={at ? "sample-bar is-moved" : "sample-bar"} role="status" title={tr("Drag to move")} data-short={tr("Sample shop")} style={at ? { left: at.x, top: at.y, right: "auto", bottom: "auto", transform: "none" } : undefined}
+  if (tucked) {
+    const Arrow = tucked.side === "left" ? "›" : tucked.side === "right" ? "‹" : tucked.side === "top" ? "⌄" : "⌃";
+    const style = tucked.side === "left" ? { left: 0, top: tucked.at } : tucked.side === "right" ? { right: 0, top: tucked.at } : tucked.side === "top" ? { top: 0, left: tucked.at } : { bottom: 0, left: tucked.at };
+    return <button type="button" className={`sample-tab is-${tucked.side}`} style={style} onClick={bringBack} title={tr("Show the sample shop bar")} aria-label={tr("Show the sample shop bar")}>{Arrow}</button>;
+  }
+  return <div ref={barRef} className={cn("sample-bar", at && "is-moved", onStrip && !pos && "is-on-strip")} role="status" title={tr("Drag to move")} data-short={tr("Sample shop")} style={at ? { left: at.x, top: at.y, right: "auto", bottom: "auto", transform: "none" } : undefined}
     onPointerDown={grab} onPointerMove={move} onPointerUp={drop} onPointerCancel={drop}>
     <span className="sample-grip"><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>
@@ -128,21 +163,3 @@ export function Testimonials() {
   </section>;
 }
 
-/** A phone held upright shows the laptop view very small: once per device, suggest turning it sideways. */
-export function RotateHint() {
-  const { tr, language } = useLanguage();
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const f = () => {
-      let seen = false; try { seen = localStorage.getItem("shopbook.rotateHint") === "1"; } catch { /* show */ }
-      const phone = Math.min(window.screen.width, window.screen.height) < 600, upright = window.matchMedia("(orientation: portrait)").matches;
-      // Business Setup shows its own tip (one-page-fit.tsx).
-      setOn(!seen && phone && upright && window.location.pathname !== "/setup" && document.documentElement.classList.contains("laptop-view"));
-    };
-    const t = window.setTimeout(f, 800); window.addEventListener("orientationchange", f); window.addEventListener("resize", f);
-    return () => { window.clearTimeout(t); window.removeEventListener("orientationchange", f); window.removeEventListener("resize", f); };
-  }, []);
-  if (!on) return null;
-  const close = () => { try { localStorage.setItem("shopbook.rotateHint", "1"); } catch { /* this visit only */ } setOn(false); };
-  return <div className="rotate-hint" role="status"><RotateCw aria-hidden /><span>{tr("Turn your phone sideways for a bigger view")}{language !== "Swahili" && <small lang="sw">Geuza simu yako ilale upande</small>}</span><button type="button" onClick={close}>{tr("Got it")}</button></div>;
-}

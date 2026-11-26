@@ -167,7 +167,8 @@ export default function Dashboard() {
   const erpState = useShopErp();
   // Text keeps its readable size on tablets, laptops and desktops: a page too long for the screen scrolls instead of shrinking.
   const screenRef = useRef<HTMLDivElement>(null);
-  useScreenFit(screenRef, { min: 1 });
+  // One page on every screen (owner, 2026-11-26): shrinks until nothing in the page needs scrolling; the transactions list scrolls inside.
+  useScreenFit(screenRef, { min: 0.55, scroller: ".dash-main" });
   const s: ErpState = erpState || empty();
   const { tr: translate } = useLanguage();
   // Some short words are stored lower-case in the translation table ("credit", "out"); labels start upper-case.
@@ -314,6 +315,9 @@ export default function Dashboard() {
             {per.period === "Custom" && <p className="dash-range">
               <input type="date" value={per.custom[0]} max={per.custom[1]} onChange={(e) => per.setCustom([e.target.value, per.custom[1]])} aria-label={tr("From")} /> – <input type="date" value={per.custom[1]} min={per.custom[0]} onChange={(e) => per.setCustom([per.custom[0], e.target.value])} aria-label={tr("To")} />
             </p>}
+            <Link to={GO.sales.to} search={GO.sales.search} className="dash-pay-total is-top" aria-label={`${tr("Total Sales")}: ${exactFmt(cur, v.payTotal)}`}>
+              <span>{tr("Total Sales")}</span><Money value={v.payTotal} curr={cur} className="dash-fin-value" /><ArrowRight className="dash-pay-total-go" aria-hidden />
+            </Link>
             <div className="dash-pay-body">
               <div className={cn("dash-donut dash-pie", v.payTotal <= 0 && "is-empty")}>
                 {/* No sales: a plain ring, never invented shares. Real shares only when there are real sales. */}
@@ -370,9 +374,6 @@ export default function Dashboard() {
                     ))}
                   </tbody>
                 </table>
-                <Link to={GO.sales.to} search={GO.sales.search} className="dash-pay-total" aria-label={`${tr("Total Sales")}: ${exactFmt(cur, v.payTotal)}`}>
-                  <TrendingUp aria-hidden /><span>{tr("Total Sales")}:</span><b>{exactFmt(cur, v.payTotal)}</b><ArrowRight className="dash-pay-total-go" aria-hidden />
-                </Link>
               </div>
               {v.payTotal - k.sales > 0.005 && (
                 <p className="dash-pay-note">
@@ -401,7 +402,8 @@ export default function Dashboard() {
             </div>
           </Panel>
 
-        {/* Announcement ticker, then Actionable Alerts (owner's reference design, 2026-11-26) */}
+        {/* Announcement ticker and Actionable Alerts share one row, so the Dashboard stays one page (owner, 2026-11-26) */}
+        <div className="dash-news-row">
         <AnnouncementTicker tr={tr} />
 
         {/* 10. ACTIONABLE ALERTS: summary line, expand for every alert */}
@@ -428,6 +430,7 @@ export default function Dashboard() {
             </div>
           )}
         </section>
+        </div>
 
         {/* 11. RECENT TRANSACTIONS: one section with tabs and a Share menu */}
         <RecentTransactions s={s} moves={v.recentMoves} cur={cur} tr={tr} shop={account.shopName || ""} phone={account.phone} country={account.country} staff={!!staff} summary={summaryText} onSale={setViewSale} />

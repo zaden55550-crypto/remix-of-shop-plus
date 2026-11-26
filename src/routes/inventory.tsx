@@ -260,7 +260,7 @@ function Inventory() {
   const [acct, setAcct] = useState<Account | null>(null);
   // Tablets, laptops and desktops: the whole Inventory screen on one full screen (src/lib/fill-screen.ts).
   const screenRef = useRef<HTMLElement>(null);
-  useScreenFit(screenRef, { min: 1, scroller: ".inventory-content" }); // min 1: text keeps its size, long content scrolls inside
+  useScreenFit(screenRef, { min: 0.6, scroller: ".inventory-content" }); // min 1: text keeps its size, long content scrolls inside
   // A Dashboard link may name the starting tab and a product filter (?menu=…&sub=…&filter=LOW).
   const search = Route.useSearch();
   const [start] = useState(() => startView(MENUS, search, "overview"));

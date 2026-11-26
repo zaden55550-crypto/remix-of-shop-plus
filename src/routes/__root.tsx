@@ -4,7 +4,7 @@ import { startPdfSharing } from "@/lib/share-pdf";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
 import { AutoSummary } from "@/components/shopbook/auto-summary";
-import { RotateHint, SampleShopBar } from "@/components/shopbook/try-and-tour";
+import { SampleShopBar } from "@/components/shopbook/try-and-tour";
 import { OnePageFit } from "@/components/shopbook/one-page-fit";
 import { IdleLogout } from "@/components/shopbook/idle-logout";
 import { applyLaptopView } from "@/lib/laptop-view";
@@ -199,7 +199,6 @@ function RootComponent() {
       <FirstTimeHint />
       <AutoSummary />
       <SampleShopBar />
-      <RotateHint />
       <OnePageFit />
       <IdleLogout />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
