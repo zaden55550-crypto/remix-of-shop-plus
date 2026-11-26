@@ -3,6 +3,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Bell, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Info, LayoutGrid, MapPin, Moon, Settings as SettingsIcon, Store, Sun, Users } from "lucide-react";
+import { APPS } from "@/lib/shopbook";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { businessView, useErp, useShopErp } from "@/components/shopbook/product-search";
 import { useTheme } from "@/components/shopbook/ui";
@@ -101,6 +102,8 @@ export function GlobalApplicationHeader({
   const initials = name.trim().split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
   const inventoryHeader = moduleFirst && title === "Inventory";
   const go = (to: string) => { setMenuOpen(false); nav({ to }); };
+  // Phones show the app's icon in place of its name (owner, 2026-11-26).
+  const appIcon = APPS.find((a) => a.name === title)?.iconDark;
 
   return (
     <div className="dash-header app-header-bar">
@@ -114,6 +117,7 @@ export function GlobalApplicationHeader({
           <span className="dash-divider" />
           {inventoryHeader ? <><span className="app-header-module inventory-header-module-desktop">{tr(title)}</span><span className="dash-divider inventory-header-divider-desktop" /></> : !branded && (moduleFirst || title === "Dashboard") && <><span className="app-header-module app-header-module-desktop">{tr(title)}</span><span className="dash-divider app-header-divider-desktop" /></>}
           {branded && <span className="app-header-module app-header-module-phone">{tr(title)}</span>}
+          {appIcon && <img className="app-header-icon" src={appIcon} alt={tr(title)} title={tr(title)} />}
           <ConnectionStatus />
         </div>
 
@@ -241,6 +245,17 @@ export function GlobalApplicationHeader({
                     {chosen === l.id && <Check className="h-3.5 w-3.5" />}
                   </button>
                 ))}
+                {/* Go straight to another app without going back to the Apps page (owner, 2026-11-26). */}
+                <div className="app-switch" role="group" aria-label={tr("Go to another app")}>
+                  <div className="app-switch-title">{tr("Go to another app")}</div>
+                  <div className="app-switch-grid">
+                    {APPS.filter((a) => a.name !== title).map((a) => (
+                      <button key={a.id} type="button" className="app-switch-btn" title={tr(a.name)} onClick={() => go(`/${a.id}`)}>
+                        <img src={a.iconDark} alt="" /><span>{tr(a.name)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {menus.map((m) => (
                   <button
                     key={m}

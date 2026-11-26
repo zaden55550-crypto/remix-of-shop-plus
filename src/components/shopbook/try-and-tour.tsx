@@ -32,6 +32,7 @@ export function SampleShopBar() {
     f(); window.addEventListener("shopbook-session", f); window.addEventListener("storage", f);
     return () => { window.removeEventListener("shopbook-session", f); window.removeEventListener("storage", f); };
   }, []);
+  useEffect(() => { document.documentElement.classList.toggle("in-sample", on); return () => document.documentElement.classList.remove("in-sample"); }, [on]);
   if (!on) return null;
   const leave = (to: "/" | "/signup") => { leaveSampleShop(); setOn(false); window.location.replace(to); };
   return <div className="sample-bar" role="status" data-short={tr("Sample shop")}>

@@ -2,6 +2,7 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Go to another app|Nenda kwenye programu nyingine|Aller à une autre application|انتقل إلى تطبيق آخر|Ir a otra aplicación|Ir para outro aplicativo|Zu einer anderen App|Vai a un'altra app|前往其他应用|दूसरे ऐप पर जाएँ|U gudub app kale
 See how it works (30 s)|Tazama inavyofanya kazi (sekunde 30)|Voir comment ça marche (30 s)|شاهد كيف يعمل (30 ث)|Mira cómo funciona (30 s)|Veja como funciona (30 s)|So funktioniert es (30 s)|Guarda come funziona (30 s)|看看如何使用（30 秒）|देखें यह कैसे काम करता है (30 से.)|Eeg sida uu u shaqeeyo (30 il)
 Name free on this device|Jina linapatikana kwenye kifaa hiki|Nom libre sur cet appareil|الاسم متاح على هذا الجهاز|Nombre libre en este dispositivo|Nome livre neste dispositivo|Name auf diesem Gerät frei|Nome libero su questo dispositivo|此设备上名称可用|इस डिवाइस पर नाम उपलब्ध|Magacu waa bannaan yahay qalabkan
 This device already has this name|Kifaa hiki tayari kina jina hili|Cet appareil a déjà ce nom|هذا الجهاز لديه هذا الاسم بالفعل|Este dispositivo ya tiene este nombre|Este dispositivo já tem este nome|Dieses Gerät hat diesen Namen schon|Questo dispositivo ha già questo nome|此设备已有此名称|इस डिवाइस पर यह नाम पहले से है|Qalabkan horay ayuu magacan u leeyahay
