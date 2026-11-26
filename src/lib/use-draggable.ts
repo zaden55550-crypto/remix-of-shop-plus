@@ -32,9 +32,12 @@ export function useDraggable(key: string, onTap: () => void) {
   useEffect(() => {
     setSpot(read(key));
     const refit = () => setSpot((s) => (s ? inside(s) : s));
+    // Back to its starting place when another page or app opens (owner, 2026-11-26).
+    const home = () => { setSpot(null); try { localStorage.removeItem(key); } catch { /* nothing kept */ } };
     window.addEventListener("resize", refit);
     window.addEventListener("shopbook-prefs", refit);
-    return () => { window.removeEventListener("resize", refit); window.removeEventListener("shopbook-prefs", refit); };
+    window.addEventListener("dq-floating-home", home);
+    return () => { window.removeEventListener("resize", refit); window.removeEventListener("shopbook-prefs", refit); window.removeEventListener("dq-floating-home", home); };
   }, [key, inside]);
 
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {

@@ -28,7 +28,7 @@ export function SlotsFull({ tr, planId, staffOnly = false, onClose }: { tr: Tr; 
       {" "}{tr("Staff can work at any counter, shop or warehouse.")}</p>
     <p>{tr("To add more people, contact us. Extra places are added at an agreed extra charge.")}{!s.top && <> {tr("Or move to a bigger plan.")} <Link to="/plans" className="dash-link">{tr("View plans")}</Link></>}</p>
     <div className="slots-full-actions">
-      <a className="slots-full-btn is-whatsapp" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> WhatsApp</a>
+      <a data-plain="1" className="slots-full-btn is-whatsapp" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden /> WhatsApp</a>
       <a className="slots-full-btn" href={`mailto:${SUPPORT.email}?subject=${encodeURIComponent(tr("More user places"))}&body=${encodeURIComponent(message)}`}><Mail aria-hidden /> {tr("Email")}</a>
       <a className="slots-full-btn" href={`tel:${SUPPORT.phone}`}><Phone aria-hidden /> {SUPPORT.phone}</a>
       {onClose && <button type="button" className="slots-full-btn is-close" onClick={onClose}>{tr("Close")}</button>}

@@ -1,5 +1,6 @@
 // Fresh start: runs before anything reads device storage (src/lib/fresh-start.ts).
 import "@/lib/fresh-start";
+import { startPdfSharing } from "@/lib/share-pdf";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { FirstTimeHint } from "@/components/shopbook/first-time-hint";
 import { AutoSummary } from "@/components/shopbook/auto-summary";
@@ -124,6 +125,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=optional" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@500;600;700&display=swap" },
       {
         rel: "stylesheet",
         href: appCss,
@@ -170,6 +172,10 @@ function RootComponent() {
   useEffect(() => startExactAmounts(), []);
   // Translates any known phrase a screen printed without tr(), on every page (src/lib/dom-translate.ts).
   useEffect(() => startDomTranslate(), []);
+  // WhatsApp and SMS links send a PDF (src/lib/share-pdf.ts).
+  useEffect(() => startPdfSharing(), []);
+  // Floating ShopBot and the sample-shop bar go back to their starting place when another page opens (owner, 2026-11-26).
+  useEffect(() => { window.dispatchEvent(new Event("dq-floating-home")); }, [pathname]);
   const isAuthRoute = pathname === "/" || pathname === "/signup";
   useEffect(() => {
     // Invite a shop, get a free month: a code from /signup?ref= is recorded once the new owner is signed in online.

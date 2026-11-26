@@ -472,7 +472,7 @@ function SetupScreen({ acct, onDone }: { acct: Account; onDone: () => void }) {
     {dragging && <div className="bsetup-dropping" onDragLeave={() => setDragging(false)}><Upload aria-hidden /><b>{tr("Drop to bring your business over")}</b><small>{tr("Excel, CSV or zip from Odoo, QuickBooks, Zoho, Loyverse, Sage or any spreadsheet")}</small></div>}
     {moveIn && <GlassPage label={tr("Bring your business over")} onClose={() => setMoveIn(null)}><MoveInPanel tr={tr} files={moveIn.files} onClose={() => setMoveIn(null)} /></GlassPage>}
     {/* Help is one tap away (owner, 2026-11-25). */}
-    <a className="bsetup-help" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(tr("Hello DataQuill Solutions, I need help with Business Setup."))}`} target="_blank" rel="noopener noreferrer" title={tr("Need help? WhatsApp us")}><MessageCircle aria-hidden /> <span>{tr("Need help?")}</span></a>
+    <a data-plain="1" className="bsetup-help" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(tr("Hello DataQuill Solutions, I need help with Business Setup."))}`} target="_blank" rel="noopener noreferrer" title={tr("Need help? WhatsApp us")}><MessageCircle aria-hidden /> <span>{tr("Need help?")}</span></a>
     <header className="bsetup-head">
       {/* Left: the business's own logo from Create Account (or the DataQuill mark), the title, and the country and currency given at
           sign-up. Middle: where this page sits in getting started. Right: what Activate does, then Activate. */}

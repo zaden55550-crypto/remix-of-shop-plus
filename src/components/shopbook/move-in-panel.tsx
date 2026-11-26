@@ -34,7 +34,7 @@ export function MoveInPanel({ tr, files, onClose }: { tr: Tr; files?: File[] | u
       </div>}
       <div className="movein-team">
         <span>{tr("Stuck? Send us your file and our team will do it for you.")}</span>
-        <a className="movein-btn is-whatsapp" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener"><MessageCircle aria-hidden /> WhatsApp</a>
+        <a data-plain="1" className="movein-btn is-whatsapp" href={`https://wa.me/${SUPPORT.whatsapp}?text=${encodeURIComponent(message)}`} target="_blank" rel="noopener"><MessageCircle aria-hidden /> WhatsApp</a>
         <a className="movein-btn is-mail" href={`mailto:${SUPPORT.email}?subject=${encodeURIComponent(tr("Please import my records"))}&body=${encodeURIComponent(`${message}\n\n${tr("Attach your export files to this email.")}`)}`}><Mail aria-hidden /> {tr("Email")}</a>
       </div>
     </div>

@@ -1,6 +1,6 @@
 // Ways to win a new owner over (owner, 2026-11-23): Try a sample shop (Log In), the sample-shop bar while inside it, English /
 // Kiswahili on the first screen, a 30-second sale tour (Plans) and real customer words (shown only once some exist).
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CheckCircle2, Printer, RotateCw, ShoppingCart, Smartphone, Store, LogOut } from "lucide-react";
 import { toast } from "sonner";
@@ -32,11 +32,18 @@ export function SampleShopBar() {
     f(); window.addEventListener("shopbook-session", f); window.addEventListener("storage", f);
     return () => { window.removeEventListener("shopbook-session", f); window.removeEventListener("storage", f); };
   }, []);
+  // Carried by its shop icon like ShopBot (owner, 2026-11-26); back to its place when another page opens.
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const drag = useRef<{ dx: number; dy: number } | null>(null);
+  useEffect(() => { const home = () => setPos(null); window.addEventListener("dq-floating-home", home); return () => window.removeEventListener("dq-floating-home", home); }, []);
+  const grab = (e: React.PointerEvent<HTMLElement>) => { const bar = e.currentTarget.parentElement!.getBoundingClientRect(); drag.current = { dx: e.clientX - bar.left, dy: e.clientY - bar.top }; e.currentTarget.setPointerCapture(e.pointerId); };
+  const move = (e: React.PointerEvent<HTMLElement>) => { const d = drag.current; if (!d) return; const bar = e.currentTarget.parentElement!.getBoundingClientRect(); setPos({ x: Math.min(Math.max(4, e.clientX - d.dx), window.innerWidth - bar.width - 4), y: Math.min(Math.max(4, e.clientY - d.dy), window.innerHeight - bar.height - 4) }); };
+  const drop = () => { drag.current = null; };
   useEffect(() => { document.documentElement.classList.toggle("in-sample", on); return () => document.documentElement.classList.remove("in-sample"); }, [on]);
   if (!on) return null;
   const leave = (to: "/" | "/signup") => { leaveSampleShop(); setOn(false); window.location.replace(to); };
-  return <div className="sample-bar" role="status" data-short={tr("Sample shop")}>
-    <Store aria-hidden /><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
+  return <div className={pos ? "sample-bar is-moved" : "sample-bar"} role="status" data-short={tr("Sample shop")} style={pos ? { left: pos.x, top: pos.y, right: "auto", bottom: "auto", transform: "none" } : undefined}>
+    <span className="sample-grip" title={tr("Drag to move")} onPointerDown={grab} onPointerMove={move} onPointerUp={drop} onPointerCancel={drop}><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>
     <button type="button" className="is-leave" onClick={() => leave("/")} title={tr("Leave the sample shop")}><LogOut aria-hidden /> {tr("Exit")}</button>
   </div>;
