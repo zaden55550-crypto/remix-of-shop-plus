@@ -24,7 +24,7 @@ export function SampleShopButton() {
 }
 
 /** Shown on every page while inside the sample shop. */
-const unpush = () => document.querySelectorAll<HTMLElement>(".is-after-sample").forEach((e) => { e.style.paddingLeft = ""; e.classList.remove("is-after-sample"); });
+const unpush = () => document.querySelectorAll<HTMLElement>(".is-after-sample").forEach((e) => { e.style.removeProperty("padding-left"); e.classList.remove("is-after-sample"); });
 
 export function SampleShopBar() {
   const { tr } = useLanguage();
@@ -48,25 +48,18 @@ export function SampleShopBar() {
     if (!on) return;
     const place = () => {
       const bar = barRef.current;
-      const strip = document.querySelector<HTMLElement>(".dash-strip");
-      const anchor = document.querySelector(".dash-header-left, .apps-header-side");
-      setOnStrip(!!strip);
+      // After the last thing on the left (the Online status), even when the left side takes a whole line on phones.
+      const anchor = document.querySelector(".dash-header-left > :last-child, .apps-header-side");
+      setOnStrip(false);
       unpush();
-      if (!bar || (!strip && !anchor)) { setHome(null); return; }
+      if (!bar || !anchor) { setHome(null); return; }
       const b = bar.getBoundingClientRect();
-      if (strip) {
-        // In the gap between Days left and Explore plans, so neither is covered.
-        const r = strip.getBoundingClientRect(), first = strip.querySelector(".trial-banner.is-dashboard .trial-banner-text, .trial-banner-days")?.getBoundingClientRect(), last = strip.querySelector(".trial-banner-upgrade")?.getBoundingClientRect();
-        // A narrow phone has no room between them: the bar covers the whole strip there.
-        const wide = window.innerWidth >= 600, from = wide && first ? first.right : r.left, to = wide && last ? last.left : r.right;
-        setHome({ x: Math.max(4, (from + to) / 2 - b.width / 2), y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
-        return;
-      }
       const r = anchor!.getBoundingClientRect(), x = Math.max(4, Math.min(r.right + 10, window.innerWidth - b.width - 4));
       setHome({ x, y: Math.max(4, r.top + r.height / 2 - b.height / 2) });
       // The shop name starts after the bar, so part of it still shows on the right. The header may be zoomed: work in its own pixels.
       const title = document.querySelector<HTMLElement>(".dash-header-title, .apps-shop");
-      if (title) { const t = title.getBoundingClientRect(), k = t.width / (title.offsetWidth || 1) || 1; title.style.paddingLeft = `${Math.max(0, (x + b.width + 10 - t.left) / k)}px`; title.classList.add("is-after-sample"); }
+      const tr0 = title?.getBoundingClientRect(), barTop = r.top + r.height / 2 - b.height / 2;
+      if (title && tr0 && tr0.top < barTop + b.height && tr0.bottom > barTop) { const t = title.getBoundingClientRect(), k = t.width / (title.offsetWidth || 1) || 1; title.style.setProperty("padding-left", `${Math.max(0, (x + b.width + 10 - t.left) / k)}px`, "important"); title.classList.add("is-after-sample"); }
     };
     const goHome = () => { setPos(null); setTucked(null); window.setTimeout(place, 60); };
     place(); const t = window.setTimeout(place, 600);
@@ -109,7 +102,7 @@ export function SampleShopBar() {
   }
   return <div ref={barRef} className={cn("sample-bar", at && "is-moved", onStrip && !pos && "is-on-strip")} role="status" title={tr("Drag to move")} data-short={tr("Sample shop")} style={at ? { left: at.x, top: at.y, right: "auto", bottom: "auto", transform: "none" } : undefined}
     onPointerDown={grab} onPointerMove={move} onPointerUp={drop} onPointerCancel={drop}>
-    <span className="sample-grip"><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b> · {tr("Nothing here is real")}</span>
+    <span className="sample-grip"><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b><span className="sample-more"> · {tr("Nothing here is real")}</span></span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>
     <button type="button" className="is-leave" onClick={() => leave("/")} title={tr("Leave the sample shop")}><LogOut aria-hidden /> {tr("Exit")}</button>
   </div>;

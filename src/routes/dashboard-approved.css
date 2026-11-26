@@ -541,3 +541,119 @@
 }
 :root:not(#dq-dash) .dashboard-screen :is(.dash-att, .dash-att-text, .dash-attention) { font-size: 1em !important; }
 @media (max-width: 599px) { :root:not(#dq-dash) .dashboard-screen .dash-att { font-size: 1em !important; } }
+
+/* ===== OWNER'S PICTURE, ROUND 43 (2026-11-26) ===== */
+/* Header: Apps · Online · (sample bar) on the left; the shop name in the middle as plain text with ⌄ (choose a shop or all shops);
+   the period picker next to the bell, then theme and profile. */
+:root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { display: flex !important; flex-wrap: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { order: 1 !important; flex: 1 1 0 !important; justify-content: center !important; min-width: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-wrap { order: 2 !important; }
+:root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > * { order: 3; }
+:root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > :first-child { margin-left: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-biz-pill { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 0.3em !important; height: auto !important; gap: 0.35em; max-width: 100%; }
+:root:not(#dq-dash) .dashboard-screen .dash-biz-pill > svg:first-child { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-biz-pill h1 { font-size: 1.2em !important; font-weight: 800 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-biz-pill > svg:last-child { width: 1.1em !important; height: 1.1em !important; color: var(--d-text) !important; }
+
+/* Working Balance: green total box, accounts as tiles two by two, Receivables in yellow, Cash Flow full width */
+:root:not(#dq-dash) .dashboard-screen .dash-working { display: flex !important; flex-direction: column !important; gap: 0.5em; }
+:root:not(#dq-dash) .dashboard-screen .dash-working > .dash-panel-head { margin-bottom: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-total { display: flex !important; align-items: center; gap: 0.8em; padding: 0.5em 0.9em !important; margin: 0 !important; border: 1.5px solid #22c55e !important; border-radius: 0.8em; background: linear-gradient(90deg, rgb(21 128 61 / 0.45), rgb(6 78 59 / 0.25)) !important; box-shadow: 0 0 14px rgb(34 197 94 / 0.3); }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-total-icon { width: 2.4em; height: 2.4em; color: var(--d-green); flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-total-text { display: flex; flex-direction: column; min-width: 0; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-total .dash-fin-value { font-size: 1.9em !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-list { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 0.45em !important; border: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-tile, :root:not(#dq-dash) .dashboard-screen .dash-wb-owed { display: flex; align-items: center; gap: 0.6em; min-width: 0; padding: 0.4em 0.7em; border: 1.5px solid var(--d-line); border-radius: 0.7em; background: var(--d-card-flat); }
+:root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) > svg { width: 1.6em; height: 1.6em; color: var(--d-green); flex: none; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-tile-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-tile-text > span { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-money { font-weight: 800 !important; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) .dash-money > span, :root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) .dash-money small { color: inherit !important; -webkit-text-fill-color: currentColor !important; }
+:root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) .dash-money small { font-size: 1em !important; margin-right: 0.25em; }
+:root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) .dash-money-full { display: inline !important; }
+:root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) .dash-money-short { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed { border-color: var(--d-yellow); box-shadow: 0 0 10px rgb(250 204 21 / 0.2); }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed > svg { color: var(--d-yellow); }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed .dash-money { margin-left: auto; color: var(--d-yellow) !important; font-weight: 800 !important; font-size: 1.1em; white-space: nowrap; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-owed .dash-money small { color: var(--d-text) !important; -webkit-text-fill-color: var(--d-text) !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-wb-note { font-size: 0.78em !important; color: var(--d-muted) !important; font-weight: 600 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-working > .dash-cta { width: 100% !important; margin: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-working > .dash-more { margin-top: 0; }
+
+/* Payment card: pie | table, then Gross Sales · Returns · Net Sales tiles */
+:root:not(#dq-dash) .dashboard-screen .dash-pay { gap: 0.5em; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay > .dash-panel-head { margin-bottom: 0 !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-pay-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5em; margin-top: auto; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1em; min-width: 0; padding: 0.45em 0.4em; border-radius: 0.75em; border: 1.5px solid; color: #fff !important; text-decoration: none; text-align: center; font-weight: 700; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile svg { width: 1.3em; height: 1.3em; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile > span { font-size: 1em; line-height: 1.2; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money { font-size: 1.25em !important; font-weight: 800 !important; white-space: nowrap; color: #fff !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money > span, :root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money small { color: inherit !important; -webkit-text-fill-color: currentColor !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money small { font-size: 0.85em !important; margin-right: 0.2em; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money-full { display: inline !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money-short { display: none !important; }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile.is-gross { background: linear-gradient(180deg, #15803d, #0b5a2b); border-color: #4ade80; box-shadow: 0 0 12px rgb(34 197 94 / 0.35); }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile.is-returns { background: linear-gradient(180deg, #1d4ed8, #123a9c); border-color: #60a5fa; box-shadow: 0 0 12px rgb(59 130 246 / 0.35); }
+:root:not(#dq-dash) .dashboard-screen .dash-sum-tile.is-net { background: linear-gradient(180deg, #7e22ce, #581c87); border-color: #c084fc; box-shadow: 0 0 12px rgb(168 85 247 / 0.35); }
+
+/* References read clearly */
+:root:not(#dq-dash) .dashboard-screen .dash-tx-row:not(.is-head) .dash-tx-ref { font-weight: 800 !important; color: var(--d-text) !important; }
+
+/* Landscape: the older "Cash Flow beside the total" arrangement is replaced by the picture's */
+@media (min-width: 600px) and (orientation: landscape) {
+  :root:not(#dq-dash) .dashboard-screen .dash-working { display: flex !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-working > .dash-cta { padding: 0.35em 1em !important; font-size: 1em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile, :root:not(#dq-dash) .dashboard-screen .dash-wb-owed { padding-block: 0.3em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-total { padding-block: 0.35em !important; }
+}
+
+/* Phones: header on two lines (Apps · Online · sample bar … bell · theme · profile, then the shop name ⌄ and This Month);
+   the sample bar is smaller */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { flex-wrap: wrap !important; row-gap: 0.4em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { order: 0 !important; flex: 1 0 100% !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { order: 4 !important; flex: 1 1 0 !important; justify-content: flex-start !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-wrap { order: 5 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > * { order: 6 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-biz-pill h1 { font-size: 1.15em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-list { gap: 0.3em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile, :root:not(#dq-dash) .dashboard-screen .dash-wb-owed { padding: 0.3em 0.4em; gap: 0.35em; }
+  :root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-wb-owed) > svg { width: 1.2em; height: 1.2em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile-text { font-size: 0.82em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-total { padding: 0.35em 0.5em !important; gap: 0.4em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-total-icon { width: 1.6em; height: 1.6em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-total .dash-fin-value { font-size: 1.4em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-owed .dash-money { font-size: 0.9em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-pay-totals { gap: 0.3em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile { padding: 0.3em 0.2em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile > span { font-size: 0.75em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile .dash-money { font-size: 0.82em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-sum-tile svg { width: 1em; height: 1em; }
+}
+/* Phones (final): KSh is left off the small tiles' figures (it shows on the totals), so every digit fits */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen :is(.dash-wb-tile, .dash-sum-tile) .dash-money small { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-att .dash-att-text > span { font-size: 0.75em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-att .dash-att-text b { font-size: 0.8em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-att-icon { width: 1.5em !important; height: 1.5em !important; }
+}
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > .dash-period-wrap { order: 5 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > * { flex: none !important; }
+}
+/* iPads and narrow windows (600-1099px): the header on two lines like phones, so the shop name always shows in full */
+@media (min-width: 600px) and (max-width: 1099px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { flex-wrap: wrap !important; row-gap: 0.4em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { order: 0 !important; flex: 1 0 100% !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { order: 4 !important; flex: 1 1 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > * { order: 6 !important; flex: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > .dash-period-wrap { order: 5 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-needs-row .dash-att .dash-att-text b { font-size: 0.95em !important; }
+}
+@media (max-width: 1099px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { min-height: 2.7em; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { row-gap: 0.55em !important; }
+}
+@media (min-width: 600px) and (max-width: 1099px) {
+  html.in-sample :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left, html.in-sample:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { min-height: 50px !important; }
+}

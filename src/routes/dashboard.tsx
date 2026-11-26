@@ -5,6 +5,8 @@ import { KPI_COLOR } from "@/components/shopbook/kpi";
 import { Component, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   AlertTriangle,
+  BarChart3,
+  RotateCcw,
   ArrowLeftRight,
   ArrowRight,
   Banknote,
@@ -298,29 +300,34 @@ export default function Dashboard() {
               <Link to={GO.float.to} search={GO.float.search} className="dash-pill-btn">{tr("View Details")} <ArrowRight aria-hidden /></Link>
             </header>
             <div className="dash-wb-total">
-              <Money value={v.working.total} curr={cur} className="dash-fin-value" />
-              <small>{tr("Available business funds")}</small>
+              <Coins className="dash-wb-total-icon" aria-hidden />
+              <span className="dash-wb-total-text">
+                <Money value={v.working.total} curr={cur} className="dash-fin-value" />
+                <small>{tr("Available business funds")}</small>
+              </span>
             </div>
             <div className="dash-wb-list">
               {(wbOpen ? v.working.accounts : v.working.accounts.slice(0, LIST_START)).map(({ method, name, amount }) => {
                 const Icon = ACCOUNT_ICON[method] ?? (/bank/i.test(name) ? Landmark : WalletCards);
                 return (
-                  <span key={method} className="dash-wb-row">
+                  <span key={method} className="dash-wb-tile">
                     <Icon />
-                    <span>{method.startsWith("acct-") ? name : tr(name)}</span>
-                    <Money value={amount} curr={cur} />
+                    <span className="dash-wb-tile-text">
+                      <span>{method.startsWith("acct-") ? name : tr(name)}</span>
+                      <Money value={amount} curr={cur} />
+                    </span>
                   </span>
                 );
               })}
               {/* What customers owe: always last, shown apart and never part of the total above. */}
-              <span className="dash-wb-row dash-wb-owed">
-                <Users />
-                <span>{tr("Receivables")}<small className="dash-wb-note">{tr("Owed by customers, not included")}</small></span>
-                <Money value={v.receivables.amount} curr={cur} />
-              </span>
             </div>
+            <span className="dash-wb-owed">
+              <Users />
+              <span className="dash-wb-tile-text"><span>{tr("Receivables")}</span><small className="dash-wb-note">{tr("Owed by customers, not included")}</small></span>
+              <Money value={v.receivables.amount} curr={cur} />
+            </span>
             {v.working.accounts.length > LIST_START && <button type="button" className="dash-more" onClick={() => setWbOpen(!wbOpen)}>{tr(wbOpen ? "Show Less" : "Show More")} {wbOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
-            <Link to={GO.cashFlow.to} search={GO.cashFlow.search} className="dash-cta">{tr("Cash Flow")} <ArrowRight aria-hidden /></Link>
+            <Link to={GO.cashFlow.to} search={GO.cashFlow.search} className="dash-cta"><BarChart3 aria-hidden /> {tr("Cash Flow")} <ArrowRight aria-hidden /></Link>
           </section>
 
           <section className="dash-panel dash-pay dash-area-pay">
@@ -371,6 +378,11 @@ export default function Dashboard() {
                 </table>
                 {methodRows.length > LIST_START && <button type="button" className="dash-more" onClick={() => setPayOpen(!payOpen)}>{tr(payOpen ? "Show Less" : "Show More")} {payOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}</button>}
               </div>
+            </div>
+            <div className="dash-pay-totals">
+              <Link to={GO.sales.to} search={GO.sales.search} className="dash-sum-tile is-gross"><BarChart3 aria-hidden /><span>{tr("Gross Sales")}</span><Money value={v.payTotal} curr={cur} /></Link>
+              <Link to={GO.sales.to} search={GO.sales.search} className="dash-sum-tile is-returns"><RotateCcw aria-hidden /><span>{tr("Returns")}</span><Money value={Math.max(0, v.payTotal - k.sales)} curr={cur} /></Link>
+              <Link to={GO.sales.to} search={GO.sales.search} className="dash-sum-tile is-net"><Coins aria-hidden /><span>{tr("Net Sales")}</span><Money value={k.sales} curr={cur} /></Link>
             </div>
           </section>
         </div>
