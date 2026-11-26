@@ -56,7 +56,7 @@ export function SampleShopBar() {
       const b = bar.getBoundingClientRect();
       if (strip) {
         // In the gap between Days left and Explore plans, so neither is covered.
-        const r = strip.getBoundingClientRect(), first = strip.querySelector(".trial-banner-days")?.getBoundingClientRect(), last = strip.querySelector(".trial-banner-upgrade")?.getBoundingClientRect();
+        const r = strip.getBoundingClientRect(), first = strip.querySelector(".trial-banner.is-dashboard .trial-banner-text, .trial-banner-days")?.getBoundingClientRect(), last = strip.querySelector(".trial-banner-upgrade")?.getBoundingClientRect();
         // A narrow phone has no room between them: the bar covers the whole strip there.
         const wide = window.innerWidth >= 600, from = wide && first ? first.right : r.left, to = wide && last ? last.left : r.right;
         setHome({ x: Math.max(4, (from + to) / 2 - b.width / 2), y: Math.max(4, r.top + r.height / 2 - b.height / 2) });

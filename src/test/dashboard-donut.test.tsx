@@ -34,11 +34,11 @@ const signIn = () => {
 describe("Sales by payment method doughnut", () => {
   afterEach(() => { cleanup(); localStorage.clear(); pie.data = []; });
 
-  it("with no sales today: a plain ring, no shares, and the real zero total", async () => {
+  it("with no sales this month: a plain ring, no shares, and the real zero total", async () => {
     signIn();
     localStorage.setItem("shopbook.erp", "{}");
     const { container } = render(<Dashboard />);
-    await waitFor(() => expect(screen.getAllByText("No sales today").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText("No sales for this period").length).toBeGreaterThan(0));
     expect(container.querySelector(".dash-donut-ring")).toBeTruthy();
     expect(screen.queryByTestId("pie")).toBeNull();
     expect(pie.data).toHaveLength(0);

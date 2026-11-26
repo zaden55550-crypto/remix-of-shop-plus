@@ -84,7 +84,8 @@ describe("Dashboard states", () => {
     render(<Dashboard />);
     await waitFor(() => expect(screen.getByText("Owed by customers, not included")).toBeTruthy());
     expect(screen.queryByText("Credit", { selector: ".dash-wb-row span" })).toBeNull();
-    expect(screen.getByText("At cost")).toBeTruthy();
-    expect(screen.getByText("After expenses")).toBeTruthy();
+    // The reference design shows the plain names; what each figure means is in its card tooltip.
+    expect(document.querySelector('.dash-kpi-label[data-exact*="buying price"]')).toBeTruthy();
+    expect(document.querySelector('.dash-kpi-label[data-exact*="cost of goods sold and expenses"]')).toBeTruthy();
   });
 });

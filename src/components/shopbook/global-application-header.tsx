@@ -2,7 +2,7 @@
 // < Apps | Online — SHOP NAME / app name — notifications · theme · calendar · profile. Styles: the dash-header block in styles.css.
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Bell, Building2, CalendarDays, Check, ChevronLeft, ChevronRight, Info, LayoutGrid, MapPin, Moon, Settings as SettingsIcon, Store, Sun, Users } from "lucide-react";
+import { Bell, Building2, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Info, LayoutGrid, MapPin, Moon, Settings as SettingsIcon, Store, Sun, Users } from "lucide-react";
 import { APPS } from "@/lib/shopbook";
 import { ConnectionStatus } from "@/components/shopbook/connection-status";
 import { businessView, useErp, useShopErp } from "@/components/shopbook/product-search";
@@ -69,6 +69,7 @@ export function GlobalApplicationHeader({
   onMenu,
   period,
   branded = false,
+  pills = false,
 }: {
   title: string;
   shop: string;
@@ -81,6 +82,8 @@ export function GlobalApplicationHeader({
   /** The page's working period. A page that cannot filter by date passes nothing and has no calendar. */
   period?: HeaderPeriod | undefined;
   branded?: boolean | undefined;
+  /** Dashboard (owner's reference, 2026-11-26): the business name and the period are pills with a ⌄ in the middle of the bar. */
+  pills?: boolean | undefined;
 }) {
   const nav = useNavigate();
   const { tr } = useLanguage();
@@ -104,7 +107,7 @@ export function GlobalApplicationHeader({
   const go = (to: string) => { setMenuOpen(false); nav({ to }); };
 
   return (
-    <div className="dash-header app-header-bar">
+    <div className={cn("dash-header app-header-bar", pills && "is-pills")}>
       <div className="dash-header-row">
         <div className={cn("dash-header-left", inventoryHeader && "inventory-header-left")}>
           <Link to="/apps" className="dash-hbtn dash-apps dash-apps-control" title={tr("Back to Apps")} aria-label={tr("Back to Apps")}>
@@ -131,6 +134,11 @@ export function GlobalApplicationHeader({
               <span className="app-header-title-divider" aria-hidden="true" />
               <h1>{name.toUpperCase()}</h1>
             </>
+          ) : pills ? (
+            // The business pill opens the same menu as the profile button, where the business and shop are chosen.
+            <button type="button" className="dash-biz-pill" onClick={() => { setMenuOpen(!menuOpen); setCalOpen(false); setBellOpen(false); }} aria-haspopup="menu" aria-expanded={menuOpen} title={name}>
+              <Building2 aria-hidden="true" /><h1>{name}</h1><ChevronDown aria-hidden="true" />
+            </button>
           ) : (
             <>
               <h1>{name.toUpperCase()}</h1>
@@ -153,17 +161,18 @@ export function GlobalApplicationHeader({
           </button>
 
           {period && (
-            <div className="relative">
+            <div className={cn("relative", pills && "dash-period-wrap")}>
               <button
                 type="button"
                 onClick={() => { setCalOpen(!calOpen); setMenuOpen(false); setBellOpen(false); }}
-                className={cn("dash-hbtn dash-round", period.period && "dash-cal-on")}
+                className={cn(pills ? "dash-period-pill" : "dash-hbtn dash-round", period.period && "dash-cal-on")}
                 title={period.period ? `${tr("Period")}: ${tr(period.period)}` : tr("Period")}
                 aria-label={period.period ? `${tr("Period")}: ${tr(period.period)}` : tr("Period")}
                 aria-haspopup="menu"
                 aria-expanded={calOpen}
               >
                 <CalendarDays className="text-sky-400" />
+                {pills && <><span>{period.period === "Custom" ? tr("Custom Range") : tr(period.period ?? "All time")}</span><ChevronDown aria-hidden="true" /></>}
               </button>
               {calOpen && (
                 <div role="menu" className={cn(POPOVER, "w-56 bg-popover/95 p-2 space-y-1")}>
