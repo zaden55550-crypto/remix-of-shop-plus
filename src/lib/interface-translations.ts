@@ -2,6 +2,22 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+Announcement|Tangazo|Annonce|إعلان|Anuncio|Anúncio|Ankündigung|Annuncio|公告|घोषणा|Ogeysiis
+No announcements right now|Hakuna matangazo kwa sasa|Aucune annonce pour le moment|لا توجد إعلانات حالياً|No hay anuncios ahora|Nenhum anúncio no momento|Zurzeit keine Ankündigungen|Nessun annuncio al momento|目前没有公告|अभी कोई घोषणा नहीं|Hadda ogeysiis ma jiro
+Pause|Simamisha|Pause|إيقاف مؤقت|Pausar|Pausar|Pause|Pausa|暂停|रोकें|Jooji
+Resume|Endelea|Reprendre|استئناف|Reanudar|Retomar|Fortsetzen|Riprendi|继续|फिर शुरू करें|Sii wad
+Previous announcement|Tangazo lililotangulia|Annonce précédente|الإعلان السابق|Anuncio anterior|Anúncio anterior|Vorherige Ankündigung|Annuncio precedente|上一条公告|पिछली घोषणा|Ogeysiiskii hore
+Next announcement|Tangazo linalofuata|Annonce suivante|الإعلان التالي|Siguiente anuncio|Próximo anúncio|Nächste Ankündigung|Annuncio successivo|下一条公告|अगली घोषणा|Ogeysiiska xiga
+Recent Transactions|Miamala ya Karibuni|Transactions récentes|المعاملات الأخيرة|Transacciones recientes|Transações recentes|Letzte Buchungen|Transazioni recenti|最近交易|हाल के लेन-देन|Dhaqdhaqaaqyadii u dambeeyay
+Cash Moves|Mienendo ya Pesa|Mouvements de caisse|حركات النقد|Movimientos de caja|Movimentos de caixa|Kassenbewegungen|Movimenti di cassa|现金流动|नकद लेन-देन|Dhaqdhaqaaqa lacagta
+Cash Move|Mwenendo wa Pesa|Mouvement de caisse|حركة نقدية|Movimiento de caja|Movimento de caixa|Kassenbewegung|Movimento di cassa|现金流动|नकद लेन-देन|Dhaqdhaqaaq lacag
+Messages (SMS)|Ujumbe (SMS)|Messages (SMS)|الرسائل (SMS)|Mensajes (SMS)|Mensagens (SMS)|Nachrichten (SMS)|Messaggi (SMS)|短信 (SMS)|संदेश (SMS)|Fariimo (SMS)
+Export (PDF)|Hamisha (PDF)|Exporter (PDF)|تصدير (PDF)|Exportar (PDF)|Exportar (PDF)|Exportieren (PDF)|Esporta (PDF)|导出 (PDF)|निर्यात (PDF)|Dhoofi (PDF)
+Export (Excel)|Hamisha (Excel)|Exporter (Excel)|تصدير (Excel)|Exportar (Excel)|Exportar (Excel)|Exportieren (Excel)|Esporta (Excel)|导出 (Excel)|निर्यात (Excel)|Dhoofi (Excel)
+Today's summary (WhatsApp)|Muhtasari wa leo (WhatsApp)|Résumé du jour (WhatsApp)|ملخص اليوم (واتساب)|Resumen de hoy (WhatsApp)|Resumo de hoje (WhatsApp)|Heutige Übersicht (WhatsApp)|Riepilogo di oggi (WhatsApp)|今日摘要 (WhatsApp)|आज का सारांश (WhatsApp)|Soo koobidda maanta (WhatsApp)
+That couldn't be shared. Try again.|Haikuweza kushirikiwa. Jaribu tena.|Impossible de partager. Réessayez.|تعذّرت المشاركة. حاول مجدداً.|No se pudo compartir. Inténtalo de nuevo.|Não foi possível compartilhar. Tente novamente.|Teilen fehlgeschlagen. Bitte erneut versuchen.|Impossibile condividere. Riprova.|无法分享，请重试。|साझा नहीं हो सका। फिर कोशिश करें।|Lama wadaagi karin. Isku day mar kale.
+No transactions yet|Hakuna miamala bado|Aucune transaction pour le moment|لا توجد معاملات بعد|Aún no hay transacciones|Ainda não há transações|Noch keine Buchungen|Ancora nessuna transazione|暂无交易|अभी कोई लेन-देन नहीं|Weli dhaqdhaqaaq ma jiro
+Custom Range|Muda Maalum|Période personnalisée|نطاق مخصص|Rango personalizado|Período personalizado|Eigener Zeitraum|Intervallo personalizzato|自定义范围|अपनी अवधि|Muddo gaar ah
 Drag to move|Buruta ili kusogeza|Faites glisser pour déplacer|اسحب للتحريك|Arrastra para mover|Arraste para mover|Zum Verschieben ziehen|Trascina per spostare|拖动以移动|हिलाने के लिए खींचें|Jiid si aad u dhaqaajiso
 Go to another app|Nenda kwenye programu nyingine|Aller à une autre application|انتقل إلى تطبيق آخر|Ir a otra aplicación|Ir para outro aplicativo|Zu einer anderen App|Vai a un'altra app|前往其他应用|दूसरे ऐप पर जाएँ|U gudub app kale
 See how it works (30 s)|Tazama inavyofanya kazi (sekunde 30)|Voir comment ça marche (30 s)|شاهد كيف يعمل (30 ث)|Mira cómo funciona (30 s)|Veja como funciona (30 s)|So funktioniert es (30 s)|Guarda come funziona (30 s)|看看如何使用（30 秒）|देखें यह कैसे काम करता है (30 से.)|Eeg sida uu u shaqeeyo (30 il)

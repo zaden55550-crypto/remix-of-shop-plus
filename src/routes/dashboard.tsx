@@ -47,6 +47,7 @@ import { SetupChecklist } from "@/components/shopbook/setup-checklist";
 import { ALERT_GO, businessAlerts, dashboardView } from "@/lib/dashboard";
 import { cardFigure, toCurrencySymbol } from "@/lib/exact-amount";
 import { useSyncStatus } from "@/lib/shop-sync";
+import { AnnouncementTicker, RecentTransactions } from "@/components/shopbook/dash-extras";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -79,7 +80,7 @@ function Money({ value, curr, className }: { value: number; curr: string; classN
   );
 }
 
-const PAY_COLOR: Record<string, string> = { cash: "#22c55e", mpesa: "#06b6d4", bank: "#a855f7", credit: "#facc15" };
+const PAY_COLOR: Record<string, string> = { cash: "#22c55e", mpesa: "#2563eb", bank: "#a855f7", credit: "#facc15" };
 /** Named money accounts take these in the order they were added. */
 const ACCOUNT_COLORS = ["#f97316", "#ec4899", "#14b8a6", "#84cc16", "#6366f1", "#ef4444", "#0ea5e9"];
 const payColor = (m: Method, s: ErpState) => PAY_COLOR[m] ?? ACCOUNT_COLORS[Math.max(0, namedAccounts(s).findIndex((a) => a.id === m)) % ACCOUNT_COLORS.length] ?? "#94a3b8";
@@ -97,6 +98,17 @@ function PayTip({ active, payload, curr }: { active?: boolean; payload?: { name?
       <span>{p.payload?.pct ?? 0}%</span>
     </div>
   );
+}
+/** Inside each slice: its method and share, in white; small slices show the share only, so labels never overlap. */
+function PieLabel(p: { cx?: number; cy?: number; midAngle?: number; outerRadius?: number; percent?: number; name?: string }) {
+  const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, percent = 0, name = "" } = p;
+  if (percent < 0.03) return null;
+  const r = outerRadius * (percent > 0.9 ? 0.05 : 0.56), a = (-midAngle * Math.PI) / 180;
+  const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a), pct = `${(percent * 100).toFixed(1)}%`, small = percent < 0.12;
+  return <text x={x} y={y} textAnchor="middle" dominantBaseline="central" className="dash-pie-label">
+    {!small && <tspan x={x} dy="-0.55em">{(name.split(" (")[0] ?? name).slice(0, 12)}</tspan>}
+    <tspan x={x} dy={small ? 0 : "1.15em"}>{pct}</tspan>
+  </text>;
 }
 const tone = (color: string) => ({ "--tone": color }) as CSSProperties;
 /** Dashboard card with a title row; `to` makes the title open the detailed screen. */
@@ -214,8 +226,8 @@ export default function Dashboard() {
   // Four indicators, two by two. POS cash-up and sync problems surface in Actionable Alerts when they need attention.
   const attention: { go: Go; label: string; icon: LucideIcon; color: string; value: string; exact?: string; state: "ok" | "warn" | "bad" }[] = [
     { go: GO.lowStock, label: tr("Low Stock"), icon: PackageOpen, color: KPI_COLOR.warn, value: `${v.lowStock} ${tr("items")}`, state: v.lowStock > 0 ? "warn" : "ok" },
-    { go: GO.receivables, label: tr("Receivables"), icon: Users, color: KPI_COLOR.good, value: `${cur} ${compactFmt(v.receivables.amount)}`, exact: exactFmt(cur, v.receivables.amount), state: v.receivables.amount > 0 ? "warn" : "ok" },
     { go: GO.payables, label: tr("Payables"), icon: Building2, color: KPI_COLOR.bad, value: `${cur} ${compactFmt(v.payables.amount)}`, exact: exactFmt(cur, v.payables.amount), state: v.payables.amount > 0 ? "bad" : "ok" },
+    { go: GO.receivables, label: tr("Receivables"), icon: Users, color: KPI_COLOR.good, value: `${cur} ${compactFmt(v.receivables.amount)}`, exact: exactFmt(cur, v.receivables.amount), state: v.receivables.amount > 0 ? "warn" : "ok" },
     // No approval workflow exists yet, so nothing can be pending.
     { go: GO.settings, label: tr("Approvals"), icon: CheckSquare, color: KPI_COLOR.profit, value: `0 ${tr("Pending")}`, state: "ok" },
   ];
@@ -295,10 +307,15 @@ export default function Dashboard() {
             </span>
           </Link>
 
-          <Panel title={tr("Sales by Payment Method")} icon={Coins} go={GO.payMethods} className="dash-pay dash-area-pay">
-            <p role={loading ? "status" : undefined} className="dash-range">{loading ? tr("Loading records…") : periodName}</p>
+          <Panel title={tr("Sales by Payment Method")} icon={Coins} go={GO.payMethods} className="dash-pay dash-area-pay"
+            extra={<select className="dash-period-pick" aria-label={tr("Period")} value={per.period ?? "Today"} onChange={(e) => per.setPeriod(e.target.value as typeof per.period)}>
+              {(["Today", "This Week", "This Month", "This Year", "Custom"] as const).map((p) => <option key={p} value={p}>{p === "Custom" ? tr("Custom Range") : tr(p)}</option>)}
+            </select>}>
+            {per.period === "Custom" && <p className="dash-range">
+              <input type="date" value={per.custom[0]} max={per.custom[1]} onChange={(e) => per.setCustom([e.target.value, per.custom[1]])} aria-label={tr("From")} /> – <input type="date" value={per.custom[1]} min={per.custom[0]} onChange={(e) => per.setCustom([per.custom[0], e.target.value])} aria-label={tr("To")} />
+            </p>}
             <div className="dash-pay-body">
-              <div className={cn("dash-donut", v.payTotal <= 0 && "is-empty")}>
+              <div className={cn("dash-donut dash-pie", v.payTotal <= 0 && "is-empty")}>
                 {/* No sales: a plain ring, never invented shares. Real shares only when there are real sales. */}
                 {v.payTotal > 0 ? (
                 <ChartGuard message={chartFailed}>
@@ -309,8 +326,10 @@ export default function Dashboard() {
                       data={payRows.filter((p) => p.amount > 0)}
                       dataKey="amount"
                       nameKey="name"
-                      innerRadius="62%"
+                      innerRadius={0}
                       outerRadius="98%"
+                      labelLine={false}
+                      label={PieLabel}
                       paddingAngle={0}
                       stroke="none"
                       startAngle={90}
@@ -325,16 +344,9 @@ export default function Dashboard() {
                 </ResponsiveContainer>
                 </ChartGuard>
                 ) : <span className="dash-donut-ring" aria-hidden="true" />}
-                <div className="dash-donut-center">
-                  {loading ? (
-                    <small role="status">{tr("Loading records…")}</small>
-                  ) : (
-                    <>
-                      <small>{v.payTotal > 0 ? tr("Total Sales") : tr(per.period === "Today" ? "No sales today" : "No sales for this period")}</small>
-                      <b data-exact={exactFmt(cur, v.payTotal)}>{cur} {compactFmt(v.payTotal)}</b>
-                    </>
-                  )}
-                </div>
+                {(loading || v.payTotal <= 0) && <div className="dash-donut-center">
+                  <small role={loading ? "status" : undefined}>{loading ? tr("Loading records…") : tr(per.period === "Today" ? "No sales today" : "No sales for this period")}</small>
+                </div>}
               </div>
               {/* Narrow phones: the money fitter shrinks the whole table so every digit and % stays inside the card */}
               <div className="dash-pay-fit" data-fit-text="money">
@@ -357,16 +369,10 @@ export default function Dashboard() {
                       </tr>
                     ))}
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <td>{tr("Total Sales")}</td>
-                      <td colSpan={2} data-exact={exactFmt(cur, v.payTotal)}>
-                        <span className="dash-money-full">{cur} {Math.round(v.payTotal).toLocaleString()}</span>
-                        <span className="dash-money-short">{cur} {compactFmt(v.payTotal)}</span>
-                      </td>
-                    </tr>
-                  </tfoot>
                 </table>
+                <Link to={GO.sales.to} search={GO.sales.search} className="dash-pay-total" aria-label={`${tr("Total Sales")}: ${exactFmt(cur, v.payTotal)}`}>
+                  <TrendingUp aria-hidden /><span>{tr("Total Sales")}:</span><b>{exactFmt(cur, v.payTotal)}</b><ArrowRight className="dash-pay-total-go" aria-hidden />
+                </Link>
               </div>
               {v.payTotal - k.sales > 0.005 && (
                 <p className="dash-pay-note">
@@ -376,7 +382,9 @@ export default function Dashboard() {
             </div>
           </Panel>
 
-          <Panel title={tr("Needs Attention")} icon={AlertTriangle} className="dash-area-att" extra={<span className="dash-muted">{tr("Live Status")}</span>}>
+        </div>
+
+          <Panel title={tr("Needs Attention")} icon={AlertTriangle} className="dash-area-att dash-needs-row" extra={<span className="dash-muted">{tr("Live Status")}</span>}>
             <div className="dash-attention">
               {attention.map((a) => {
                 const inner = (
@@ -392,7 +400,9 @@ export default function Dashboard() {
               })}
             </div>
           </Panel>
-        </div>
+
+        {/* Announcement ticker, then Actionable Alerts (owner's reference design, 2026-11-26) */}
+        <AnnouncementTicker tr={tr} />
 
         {/* 10. ACTIONABLE ALERTS: summary line, expand for every alert */}
         <section className="dash-panel dash-alerts">
@@ -419,53 +429,8 @@ export default function Dashboard() {
           )}
         </section>
 
-        {/* 11–13. RECENT SALES · PURCHASES · CASH MOVES */}
-        <div className="dash-recent">
-          <Panel title={tr("Recent Sales")} icon={ReceiptText} extra={<span className="dash-summary-send">
-            {/* Today's summary to the owner (owner, 2026-11-23): sales, payments, cash in the drawer, low stock, by WhatsApp or SMS. */}
-            {!staff && <><a className="dash-summary-btn is-wa" href={waLink(summaryText(), account?.phone, account?.country)} target="_blank" rel="noopener" title={tr("Send today's summary to your WhatsApp")} aria-label={tr("Send today's summary to your WhatsApp")}><MessageCircle /></a>
-            <a className="dash-summary-btn is-sms" href={smsLink(summaryText(), account?.phone)} title={tr("Send today's summary by SMS")} aria-label={tr("Send today's summary by SMS")}><MessageSquare /></a></>}
-            <Link to={GO.sales.to} search={GO.sales.search} className="dash-link">{tr("View All")} <ArrowRight /></Link></span>}>
-            <div className="dash-rows">
-              {s.sales.slice(0, 4).map((sale) => (
-                <button key={sale.id} type="button" className="dash-row" onClick={() => setViewSale(sale)}>
-                  <span>{sale.ref}</span>
-                  <span title={saleWho(sale)}>{saleWho(sale)}</span>
-                  <b data-exact={exactFmt(cur, sale.total)}>{cur} {compactFmt(sale.total)}</b>
-                </button>
-              ))}
-              {!s.sales.length && <Empty text={tr("No sales recorded yet")} action={tr("Record a sale")} to="/pos" />}
-            </div>
-          </Panel>
-
-          <Panel title={tr("Recent Purchases")} icon={ShoppingBasket} extra={<Link to={GO.purchases.to} search={GO.purchases.search} className="dash-link">{tr("View All")} <ArrowRight /></Link>}>
-            <div className="dash-rows">
-              {s.purchases.slice(0, 4).map((p) => (
-                <Link key={p.id} to="/purchases" className="dash-row">
-                  <span>{p.ref}</span>
-                  {(() => { const who = s.suppliers.find((x) => x.id === p.supplierId)?.name ?? p.items.map((i) => i.name).join(", "); return <span title={who}>{who}</span>; })()}
-                  <b data-exact={exactFmt(cur, p.total)}>{cur} {compactFmt(p.total)}</b>
-                </Link>
-              ))}
-              {!s.purchases.length && <Empty text={tr("No purchases recorded yet")} action={tr("Record a purchase")} to="/purchases" />}
-            </div>
-          </Panel>
-
-          <Panel title={tr("Recent Cash Moves")} icon={ArrowLeftRight} extra={<Link to="/float" className="dash-link">{tr("View All")} <ArrowRight /></Link>}>
-            <div className="dash-rows">
-              {v.recentMoves.slice(0, 4).map((m) => (
-                <Link key={m.id} to="/float" className="dash-row">
-                  <span>{m.ref}</span>
-                  <span>{tr(MOVE_LABEL[m.kind] ?? m.kind)} · {tr(m.method)}</span>
-                  <b data-exact={`${m.amount < 0 ? "−" : "+"}${exactFmt(cur, Math.abs(m.amount))}`}>
-                    <i className={cn("dash-sign", m.amount < 0 ? "is-out" : "is-in")}>{m.amount < 0 ? "−" : "+"}</i>{cur} {compactFmt(Math.abs(m.amount))}
-                  </b>
-                </Link>
-              ))}
-              {!v.recentMoves.length && <Empty text={tr("No cash moves yet")} action={tr("Record cash movement")} to="/float" />}
-            </div>
-          </Panel>
-        </div>
+        {/* 11. RECENT TRANSACTIONS: one section with tabs and a Share menu */}
+        <RecentTransactions s={s} moves={v.recentMoves} cur={cur} tr={tr} shop={account.shopName || ""} phone={account.phone} country={account.country} staff={!!staff} summary={summaryText} onSale={setViewSale} />
       </main>
 
       {/* 14. SHOPBOT: shared floating icon + right-docked panel (same as every app) */}

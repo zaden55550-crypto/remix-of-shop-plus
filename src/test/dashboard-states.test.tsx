@@ -46,7 +46,7 @@ describe("Dashboard states", () => {
     account();
     localStorage.setItem("shopbook.erp", "{}");
     render(<Dashboard />);
-    await waitFor(() => expect(screen.getByText("No sales recorded yet")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("No transactions yet", { exact: false })).toBeTruthy());
     expect(screen.queryByText("Sales vs Purchases")).toBeNull();
     expect(screen.queryByText("Money In vs Out")).toBeNull();
     expect(screen.queryByText("Loading records…")).toBeNull();
@@ -56,9 +56,9 @@ describe("Dashboard states", () => {
     account();
     localStorage.setItem("shopbook.erp", "{}");
     const { container } = render(<Dashboard />);
-    await waitFor(() => expect(container.querySelector(".dash-grid .dash-area-att .dash-attention")).toBeTruthy());
+    await waitFor(() => expect(container.querySelector(".dash-needs-row .dash-attention")).toBeTruthy());
     const labels = [...container.querySelectorAll(".dash-att-text > span")].map((x) => x.textContent);
-    expect(labels).toEqual(["Low Stock", "Receivables", "Payables", "Approvals"]);
+    expect(labels).toEqual(["Low Stock", "Payables", "Receivables", "Approvals"]);
   });
 
   it("an employee waiting for their first copy sees loading, not zero activity", async () => {
@@ -74,7 +74,7 @@ describe("Dashboard states", () => {
     localStorage.setItem("shopbook.erp", "{}");
     chart.fail = true;
     render(<Dashboard />);
-    await waitFor(() => expect(screen.getByText("No sales recorded yet")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("No transactions yet", { exact: false })).toBeTruthy());
   });
 
   it("keeps receivables apart from the working balance, labelled", async () => {
