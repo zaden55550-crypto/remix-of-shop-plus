@@ -947,3 +947,28 @@
   :root:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard .trial-banner-upgrade { padding: 0.15em 0.55em !important; }
   :root:not(#dq-dash) .dashboard-screen .trial-banner-crown { width: 1em !important; height: 1em !important; }
 }
+
+/* ===== ROUND 49 (owner, 2026-11-27, phones) ===== */
+@media (max-width: 599px) {
+  /* Header copied from Inventory's: Apps with its back arrow · Wi-Fi in a circle · shop name · This Month (calendar) · bell · theme · profile */
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps .lucide-chevron-left { display: inline-block !important; width: 0.95em; height: 0.95em; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps { padding: 0 0.6em 0 0.45em !important; gap: 0.2em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left [aria-label="Connection status"] { border-radius: 999px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-biz-pill h1 { font-size: 0.85em !important; text-transform: uppercase; letter-spacing: 0.01em; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill { width: auto !important; padding: 0 0.5em !important; gap: 0.25em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill > :not(svg:first-child) { display: inline !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill > svg:last-child { display: inline-block !important; width: 0.8em !important; height: 0.8em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill span { font-size: 0.85em; font-weight: 800; white-space: nowrap; }
+
+  /* Working Balance: the total on top; accounts in one column on the left; Receivables then Cash Flow on the right */
+  :root:not(#dq-dash) .dashboard-screen .dash-working { display: grid !important; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr) !important; grid-template-areas: "head head" "total total" "list foot" "more foot" !important; align-content: start; column-gap: 0.35em !important; row-gap: 0.35em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-working > .dash-panel-head { grid-area: head; }
+  :root:not(#dq-dash) .dashboard-screen .dash-working > .dash-wb-total { grid-area: total; }
+  :root:not(#dq-dash) .dashboard-screen .dash-working > .dash-wb-list { grid-area: list; grid-template-columns: minmax(0, 1fr) !important; gap: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-working > .dash-more { grid-area: more; margin: 0.2em auto 0 !important; font-size: 0.85em; }
+  :root:not(#dq-dash) .dashboard-screen .dash-working > .dash-wb-foot { grid-area: foot; display: flex !important; flex-direction: column; gap: 0.35em; align-self: start; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-foot > * { width: 100% !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-foot .dash-wb-owed { flex-direction: column; align-items: flex-start; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-foot > .dash-cta { padding: 0.45em 0.3em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text { font-size: 0.75em !important; }
+}

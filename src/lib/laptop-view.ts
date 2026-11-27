@@ -38,7 +38,14 @@ export function applyLaptopView(pathname: string) {
   const on = laptopViewWanted(pathname);
   const content = on ? `width=${isPhone() ? PHONE_LAPTOP_WIDTH : LAPTOP_WIDTH}, viewport-fit=cover` : DEVICE;
   document.documentElement.classList.toggle("phone-device", isPhone());
-  if (meta.content !== content) meta.content = content;
+  // Moving between a page with its own phone design and a laptop-view page changes the viewport's scale: the page stays hidden
+  // for that moment so it never shows big and then small (owner, 2026-11-27).
+  if (meta.content !== content) {
+    const html = document.documentElement;
+    html.classList.add("vp-switching");
+    meta.content = content;
+    window.setTimeout(() => html.classList.remove("vp-switching"), 350);
+  }
   const was = document.documentElement.classList.contains("laptop-view");
   document.documentElement.classList.toggle("laptop-view", on);
   if (was !== on) window.dispatchEvent(new Event("resize"));
