@@ -31,25 +31,34 @@ export function laptopViewWanted(pathname: string) {
 }
 
 /** Sets the page's viewport for this route: laptop width on small screens, the device's own width otherwise. */
-let switchTimer = 0;
+let switchFrame = 0;
 export function applyLaptopView(pathname: string) {
   if (typeof document === "undefined") return;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
   if (!meta) return;
   const on = laptopViewWanted(pathname);
-  const content = on ? `width=${isPhone() ? PHONE_LAPTOP_WIDTH : LAPTOP_WIDTH}, viewport-fit=cover` : DEVICE;
+  // The scale is given exactly (screen width / layout width), so a phone applies it at once instead of zooming in steps.
+  const layout = isPhone() ? PHONE_LAPTOP_WIDTH : LAPTOP_WIDTH;
+  const content = on ? `width=${layout}, initial-scale=${+(deviceWidth() / layout).toFixed(4)}, viewport-fit=cover` : DEVICE;
   document.documentElement.classList.toggle("phone-device", isPhone());
   // Moving between a page with its own phone design and a laptop-view page changes the viewport's scale: the page stays hidden
-  // for that moment so it never shows big and then small (owner, 2026-11-27).
+  // until the browser really uses the new width, then two more frames for the screen to refit, so it never shows big, then
+  // small, then right (owner, 2026-11-27).
   if (meta.content !== content) {
     const html = document.documentElement;
     html.classList.add("vp-switching");
     meta.content = content;
-    // Shown again once the browser has applied the new scale and the screen has refitted (two frames after it settles).
-    window.clearTimeout(switchTimer);
-    const reveal = () => { window.clearTimeout(switchTimer); switchTimer = window.setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove("vp-switching"))), 180); };
-    window.addEventListener("resize", reveal, { once: true });
-    switchTimer = window.setTimeout(() => html.classList.remove("vp-switching"), 700);
+    const want = on ? layout : deviceWidth(), started = performance.now();
+    cancelAnimationFrame(switchFrame);
+    const check = () => {
+      const settled = Math.abs(window.innerWidth - want) <= 2;
+      if (settled || performance.now() - started > 1500) {
+        switchFrame = requestAnimationFrame(() => requestAnimationFrame(() => { window.dispatchEvent(new Event("resize")); switchFrame = requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove("vp-switching"))); }));
+        return;
+      }
+      switchFrame = requestAnimationFrame(check);
+    };
+    switchFrame = requestAnimationFrame(check);
   }
   const was = document.documentElement.classList.contains("laptop-view");
   document.documentElement.classList.toggle("laptop-view", on);

@@ -10,6 +10,8 @@ import { useEffect, useLayoutEffect, type RefObject } from "react";
 const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 const MIN_WIDTH = 600;
+/** How much a phone app screen may grow to fill the screen. */
+const PHONE_GROW = 1.45;
 
 export type ScreenFit = {
   /** Lowest zoom allowed before giving up and scrolling inside (Dashboard 0.55, apps 0.7). */
@@ -93,7 +95,18 @@ export function useScreenFit(ref: RefObject<HTMLElement | null>, o: ScreenFit) {
       clearFill(root);
       try {
         set(root, 1);
-        if (window.innerWidth < MIN_WIDTH || fits(root, o)) return;
+        if (window.innerWidth < MIN_WIDTH) return;
+        if (fits(root, o)) {
+          // Phones (laptop view, owner 2026-11-27): a screen with room to spare grows until it fills the phone, like the Dashboard.
+          const html = document.documentElement;
+          if (!html.classList.contains("phone-device") || !html.classList.contains("laptop-view")) return;
+          let lo = 1, hi = PHONE_GROW;
+          set(root, hi);
+          if (fits(root, o)) return;
+          for (let i = 0; i < 7; i++) { const mid = (lo + hi) / 2; set(root, mid); if (fits(root, o)) lo = mid; else hi = mid; }
+          set(root, Math.max(1, lo - 0.01));
+          return;
+        }
         // Largest zoom at which everything fits; each step is measured before the next paint.
         let lo = o.min ?? 0.7, hi = 1;
         set(root, lo);
