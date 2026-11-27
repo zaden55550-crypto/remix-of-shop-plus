@@ -972,3 +972,68 @@
   :root:not(#dq-dash) .dashboard-screen .dash-wb-foot > .dash-cta { padding: 0.45em 0.3em !important; }
   :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text { font-size: 0.75em !important; }
 }
+
+/* ===== ROUND 50 (owner, 2026-11-27, phones): the Dashboard header copies Inventory's look exactly (1.5x its size on a phone) =====
+   One glass bar: green Apps pill with back arrow · Wi-Fi in a glass circle · shop name in capitals · This Month (calendar) ·
+   red bell · amber sun · lilac profile ring. */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen > header { padding: 6px 6px 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-header.is-pills {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    background-image: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0) 70%), radial-gradient(120% 70% at 50% -15%, rgba(150, 195, 255, 0.12), rgba(0, 0, 0, 0) 60%) !important;
+    border: 1px solid rgba(190, 215, 255, 0.3) !important; border-radius: 21px !important;
+    box-shadow: rgba(255, 255, 255, 0.24) 0 1px 0 inset, rgba(0, 0, 0, 0.2) 0 -1px 0 inset, rgba(2, 6, 23, 0.3) 0 12px 30px !important;
+  }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { padding: 5px 8px !important; gap: 5px !important; column-gap: 5px !important; font-size: 12px !important; min-height: 40px; align-items: center !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { gap: 5px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps {
+    height: 28px !important; padding: 0 10px 0 7px !important; gap: 3px !important; border-radius: 999px !important; font: 700 12px/1 "Roboto Condensed", "Arial Narrow", sans-serif !important; color: #fff !important;
+    background-color: color(srgb 0.0196 0.5882 0.4118 / 0.62) !important; background-image: linear-gradient(rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0)) !important;
+    border: 1px solid color(srgb 0.4608 0.7735 0.6765) !important; box-shadow: rgba(255, 255, 255, 0.5) 0 1px 0 inset, color(srgb 0.0196 0.5882 0.4118 / 0.32) 0 6px 18px !important;
+  }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps svg { width: 13px !important; height: 13px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps > span { display: inline !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left [aria-label="Connection status"] {
+    width: 26px !important; min-width: 26px !important; height: 24px !important; padding: 0 !important; border-radius: 999px !important; justify-content: center !important;
+    background: rgba(255, 255, 255, 0.08) !important; border: 1px solid rgba(190, 215, 255, 0.3) !important; box-shadow: none !important; color: oklch(0.82 0.235 151) !important;
+  }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] svg { width: 14px !important; height: 14px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-biz-pill h1 { font: 700 11px/1.1 "Roboto Condensed", "Arial Narrow", sans-serif !important; text-transform: uppercase !important; color: oklch(0.97 0.008 250) !important; letter-spacing: 0.01em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-biz-pill > svg:last-child { width: 11px !important; height: 11px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills :is(.dash-hbtn.dash-round, .dash-period-pill) {
+    height: 29px !important; border-radius: 999px !important; backdrop-filter: blur(14px) saturate(1.75) !important;
+    box-shadow: rgba(255, 255, 255, 0.24) 0 1px 0 inset, rgba(0, 0, 0, 0.2) 0 -1px 0 inset, rgba(2, 6, 23, 0.3) 0 12px 30px !important;
+    background-image: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0) 70%), radial-gradient(120% 70% at 50% -15%, rgba(150, 195, 255, 0.12), rgba(0, 0, 0, 0) 60%) !important;
+  }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-hbtn.dash-round { width: 29px !important; min-width: 29px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-hbtn.dash-round svg { width: 15px !important; height: 15px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-bell { background-color: rgb(225, 29, 72) !important; background-image: linear-gradient(rgb(251, 113, 133) 0%, rgb(225, 29, 72) 52%, rgb(190, 18, 60) 100%) !important; border: 1px solid rgb(253, 164, 175) !important; color: #fff !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-bell svg { color: #fff !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Toggle Theme"] { background-color: oklab(0.9154 -0.003 0.1072 / 0.315) !important; border: 1px solid oklab(0.8776 -0.0061 0.0956 / 0.616) !important; color: rgb(252, 211, 77) !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Toggle Theme"] svg { color: rgb(252, 211, 77) !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill { width: auto !important; padding: 0 8px !important; gap: 4px !important; background-color: oklab(0.9 -0.0417 -0.0472 / 0.315) !important; border: 1px solid oklab(0.8614 -0.0466 -0.0657 / 0.616) !important; color: #fff !important; font: 700 11px/1 "Roboto Condensed", "Arial Narrow", sans-serif !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill svg { color: rgb(143, 220, 255) !important; width: 13px !important; height: 13px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill span { font-size: 11px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-avatar { background-color: oklab(0.9102 0.0215 -0.0446 / 0.315) !important; border: 1px solid oklab(0.8722 0.0195 -0.063 / 0.616) !important; color: rgb(216, 204, 255) !important; font: 700 11px/1 "Roboto Condensed", "Arial Narrow", sans-serif !important; box-shadow: oklab(0.8715 0.0307 -0.0638 / 0.13) 0 0 0 3.5px, oklab(0.8715 0.0307 -0.0638 / 0.32) 0 0 0 4.5px, rgba(2, 6, 23, 0.4) 0 2px 7px 1.75px !important; margin-right: 3px; }
+}
+:root:not(.dark):not(#dq-dash) .dashboard-screen .is-pills .dash-biz-pill h1 { color: var(--d-text) !important; }
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] > span { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { flex: 1 1 auto !important; min-width: 70px !important; overflow: hidden !important; justify-content: flex-end !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-shop-pick { justify-content: flex-end !important; min-width: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-biz-pill { min-width: 0 !important; max-width: 100% !important; padding: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-biz-pill h1 { min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; display: block !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill > svg:last-child { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill { padding: 0 7px !important; }
+}
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] > span:first-of-type, :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] > span:last-of-type { display: none !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row, :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { gap: 4px !important; column-gap: 4px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { padding: 5px 6px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps { padding: 0 8px 0 5px !important; font-size: 11px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { min-width: 56px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill { padding: 0 6px !important; gap: 3px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-period-pill span { font-size: 10.5px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-hbtn.dash-round { width: 28px !important; min-width: 28px !important; height: 28px !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-avatar { margin-right: 4px !important; }
+}
