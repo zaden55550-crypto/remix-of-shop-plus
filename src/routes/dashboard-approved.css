@@ -877,3 +877,55 @@
   :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text { font-size: 0.68em !important; }
 }
 @media (min-width: 600px) and (orientation: landscape) { :root:not(#dq-dash) .dashboard-screen .dash-main > .dash-tx { min-height: 24.5em !important; } }
+
+/* ===== ROUND 47 (owner, 2026-11-27) ===== */
+/* The shop name is plain bold text: no shine, glow or outline */
+:root:not(#dq-dash) .dashboard-screen .dash-biz-pill h1 { text-shadow: none !important; -webkit-text-stroke: 0 !important; paint-order: normal !important; filter: none !important; background: none !important; -webkit-text-fill-color: currentColor !important; color: var(--d-text) !important; }
+
+@media (max-width: 599px) {
+  /* Header like the laptop's, on two lines: Apps · Online … bell · theme · profile, then the shop name ⌄ and This Month */
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-row { flex-wrap: wrap !important; row-gap: 0.45em !important; column-gap: 0.4em !important; font-size: 1em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left { order: 0 !important; flex: 0 0 auto !important; gap: 0.4em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left :is([aria-label="Connection status"], > .relative) { order: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps > span { display: inline !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps { padding: 0 0.75em !important; height: 2.3em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-apps .lucide-chevron-left { display: inline-block !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] { width: auto !important; height: 2.3em !important; padding: 0 0.75em !important; gap: 0.35em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] > span { display: inline-grid !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] > span:first-of-type { display: inline-block !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] svg { width: 1.1em !important; height: 1.1em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > * { order: 1 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > :not(.dash-period-wrap):first-child { margin-left: auto !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-hbtn.dash-round { width: 2.3em !important; height: 2.3em !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { order: 5 !important; flex: 1 1 0 !important; justify-content: center !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-right > .dash-period-wrap { order: 6 !important; margin-left: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-biz-pill h1 { font-size: 1.2em !important; }
+
+  /* Trial bar: You are on a Full ERP Trial left, 30 Days Left centred, Explore Plans right */
+  :root:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard .trial-banner-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important; align-items: center !important; gap: 0.4em !important; }
+  :root:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard .trial-banner-text { justify-self: start; white-space: normal; line-height: 1.15; }
+  :root:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard .trial-banner-days { justify-self: center; margin: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard .trial-banner-upgrade { justify-self: end; }
+  :root:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard .trial-banner-sep { display: none !important; }
+
+  /* Working Balance: one column, each account its own glass card */
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-list { grid-template-columns: minmax(0, 1fr) !important; gap: 0.3em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile { border: 1.5px solid var(--d-line) !important; border-radius: 0.6em !important; background: linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.02)), var(--d-card-flat) !important; box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 0 8px rgb(59 130 246 / 0.18) !important; padding: 0.35em 0.5em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile > svg { display: inline-block !important; width: 1.1em !important; height: 1.1em !important; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text { font-size: 0.85em !important; }
+}
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] span[role="status"] { display: block !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"], :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] span { font-size: 0.95em !important; font-weight: 800 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills [aria-label="Connection status"] span span { font-size: 1em !important; }
+  /* Second line: the shop name (centred) and This Month */
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-title { flex: 1 0 58% !important; }
+}
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left > * { order: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left [aria-label="Connection status"] { order: 0 !important; min-width: 0 !important; }
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left > .relative { flex: none !important; }
+}
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .is-pills .dash-header-left [aria-label="Connection status"] { min-height: 0 !important; height: 2.3em !important; padding: 0 0.7em !important; }
+}
