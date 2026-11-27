@@ -1037,3 +1037,31 @@
   :root:not(#dq-dash) .dashboard-screen .is-pills .dash-hbtn.dash-round { width: 28px !important; min-width: 28px !important; height: 28px !important; }
   :root:not(#dq-dash) .dashboard-screen .is-pills .dash-avatar { margin-right: 4px !important; }
 }
+
+/* ===== ROUND 51 (owner, 2026-11-27): Inventory's liquid glass on the whole Dashboard, every screen ===== */
+:root.dark:not(#dq-dash) .dashboard-screen {
+  --d-card: linear-gradient(165deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 40%, rgba(255, 255, 255, 0) 70%), radial-gradient(120% 70% at 50% -15%, rgba(150, 195, 255, 0.12), rgba(0, 0, 0, 0) 60%), rgba(255, 255, 255, 0.08);
+  --d-card-flat: rgba(255, 255, 255, 0.08);
+  --d-line: rgba(190, 215, 255, 0.3);
+  --d-rule: rgba(190, 215, 255, 0.18);
+  --d-head: rgba(255, 255, 255, 0.1);
+  --d-glow: rgba(255, 255, 255, 0.24) 0 1px 0 inset, rgba(0, 0, 0, 0.2) 0 -1px 0 inset, rgba(2, 6, 23, 0.3) 0 12px 30px;
+  background: transparent !important;
+}
+/* Cards, tiles and bars are glass; coloured cards keep their coloured edge */
+:root.dark:not(#dq-dash) .dashboard-screen :is(.dash-panel, .dash-ticker, .dash-att, .dash-kpi, .dash-wb-tile, .dash-wb-owed, .dash-wb-total, .dash-pay-table thead th, .dash-tx-column, .trial-banner.is-dashboard, .dash-tx-find :is(input, select), .dash-period-cal) { background: var(--d-card) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen :is(.dash-panel, .dash-ticker) { border-color: var(--d-line) !important; box-shadow: var(--d-glow) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen :is(.dash-kpi, .dash-att) { box-shadow: rgba(255, 255, 255, 0.24) 0 1px 0 inset, 0 0 12px color-mix(in srgb, var(--tone) 30%, transparent) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen .dash-wb-total { border-color: rgba(74, 222, 128, 0.55) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen .dash-wb-owed { border-color: rgba(250, 204, 21, 0.6) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen .dash-tx-row.is-head, :root.dark:not(#dq-dash) .dashboard-screen .dash-pay-table thead th { background: rgba(255, 255, 255, 0.1) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen .trial-banner.is-dashboard { border-color: rgba(74, 222, 128, 0.6) !important; }
+:root.dark:not(#dq-dash) .dashboard-screen .dash-shop-menu, :root.dark:not(#dq-dash) .dashboard-screen .dash-alerts-list { background: rgba(20, 34, 78, 0.92) !important; backdrop-filter: blur(14px) saturate(1.6); }
+
+/* Phones: each account on its own row, names in one column and amounts in another */
+@media (max-width: 599px) {
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile { width: 100%; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text { display: grid !important; grid-template-columns: minmax(0, 1fr) auto !important; width: 100%; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-wb-tile-text > span { text-align: left; }
+  :root:not(#dq-dash) .dashboard-screen .dash-wb-tile .dash-money { justify-self: end; text-align: right; font-variant-numeric: tabular-nums; }
+}

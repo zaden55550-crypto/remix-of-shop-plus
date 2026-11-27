@@ -39,7 +39,9 @@ export function SampleShopBar() {
   // status, with the shop name pushed after it; it goes home when another page opens.
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   // Pushed mostly off the screen it tucks away behind the edge; a small arrow there brings it back (owner, 2026-11-26).
-  const [tucked, setTucked] = useState<null | { side: "left" | "right" | "top" | "bottom"; at: number }>(null);
+  // Folded by default (owner, 2026-11-27): a small arrow at the right edge; tapping it opens the bar.
+  const folded = { side: "right" as const, at: 96 };
+  const [tucked, setTucked] = useState<null | { side: "left" | "right" | "top" | "bottom"; at: number }>(folded);
   const [home, setHome] = useState<{ x: number; y: number } | null>(null);
   const [onStrip, setOnStrip] = useState(false);
   const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
@@ -64,7 +66,7 @@ export function SampleShopBar() {
       const tr0 = title?.getBoundingClientRect(), barTop = r.top + r.height / 2 - b.height / 2;
       if (title && tr0 && tr0.top < barTop + b.height && tr0.bottom > barTop) { const t = title.getBoundingClientRect(), k = t.width / (title.offsetWidth || 1) || 1; title.style.setProperty("padding-left", `${Math.max(0, (x + b.width + 10 - t.left) / k)}px`, "important"); title.classList.add("is-after-sample"); }
     };
-    const goHome = () => { setPos(null); setTucked(null); window.setTimeout(place, 60); };
+    const goHome = () => { setPos(null); setTucked(folded); window.setTimeout(place, 60); };
     place(); const t = window.setTimeout(place, 600);
     window.addEventListener("resize", place); window.addEventListener("dq-floating-home", goHome);
     return () => { unpush(); window.clearTimeout(t); window.removeEventListener("resize", place); window.removeEventListener("dq-floating-home", goHome); };
@@ -101,12 +103,13 @@ export function SampleShopBar() {
   if (tucked) {
     const Arrow = tucked.side === "left" ? "›" : tucked.side === "right" ? "‹" : tucked.side === "top" ? "⌄" : "⌃";
     const style = tucked.side === "left" ? { left: 0, top: tucked.at } : tucked.side === "right" ? { right: 0, top: tucked.at } : tucked.side === "top" ? { top: 0, left: tucked.at } : { bottom: 0, left: tucked.at };
-    return <button type="button" className={`sample-tab is-${tucked.side}`} style={style} onClick={bringBack} title={tr("Show the sample shop bar")} aria-label={tr("Show the sample shop bar")}>{Arrow}</button>;
+    return <button type="button" className={`sample-tab is-${tucked.side}`} style={style} onClick={bringBack} title={tr("Show the sample shop bar")} aria-label={tr("Show the sample shop bar")}><span className="sample-tab-text">{tr("Sample")}</span>{Arrow}</button>;
   }
   return <div ref={barRef} className={cn("sample-bar", at && "is-moved", onStrip && !pos && "is-on-strip")} role="status" title={tr("Drag to move")} data-short={tr("Sample shop")} style={at ? { left: at.x, top: at.y, right: "auto", bottom: "auto", transform: "none" } : undefined}
     onPointerDown={grab} onPointerMove={move} onPointerUp={drop} onPointerCancel={drop}>
-    <span className="sample-grip"><Store aria-hidden /></span><span><b>{tr("Sample shop")}</b><span className="sample-more"> · {tr("Nothing here is real")}</span></span>
+    <span className="sample-grip"><Store aria-hidden /></span><span><b>{tr("This is a sample business")}</b><span className="sample-more"> · {tr("Nothing here is real")}</span></span>
     <button type="button" className="is-go" onClick={() => leave("/signup")}>{tr("Create my business")}</button>
+    <button type="button" className="is-fold" onClick={() => { setPos(null); setTucked(folded); }} title={tr("Hide")} aria-label={tr("Hide")}>›</button>
     <button type="button" className="is-leave" onClick={() => leave("/")} title={tr("Leave the sample shop")}><LogOut aria-hidden /> {tr("Exit")}</button>
   </div>;
 }

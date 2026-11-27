@@ -26764,3 +26764,9 @@ html.phone-device:root:root:root:root:root:root:root:root:root:root:root:root:ro
 /* No size jump between apps (owner, 2026-11-27): a viewport change hides the page for a moment, and an app screen shows only once fitted */
 html.vp-switching body { opacity: 0 !important; }
 .fit-screen:not([data-fitted]) > * { visibility: hidden; }
+/* The sample bar folded into a small tab at the edge (owner, 2026-11-27): "‹ Sample" opens it, › on the bar folds it again */
+.sample-tab { display: inline-flex !important; align-items: center; gap: 4px; width: auto !important; height: 32px !important; padding: 0 10px 0 8px; font-size: 18px !important; }
+.sample-tab.is-right { border-radius: 16px 0 0 16px !important; }
+.sample-tab .sample-tab-text { order: 2; font-size: 13px; font-weight: 800; }
+.sample-bar .is-fold { width: 28px; min-width: 28px; display: grid; place-items: center; background: rgb(15 42 79 / 0.12) !important; color: #0f2a4f !important; font-size: 18px !important; font-weight: 900; padding: 0 !important; }
+@media (max-width: 599px) { .sample-tab { height: 24px !important; padding: 0 6px 0 5px; font-size: 14px !important; gap: 2px; border-width: 1.5px !important; } .sample-tab .sample-tab-text { font-size: 10px; } }

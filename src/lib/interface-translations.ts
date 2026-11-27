@@ -2,6 +2,8 @@ import { LANGS, type Lang } from './i18n';
 
 // Each row follows LANGS order. Product names and currency codes remain unchanged.
 const rows = `
+This is a sample business|Hii ni biashara ya mfano|Ceci est une entreprise exemple|هذا نشاط تجاري تجريبي|Este es un negocio de ejemplo|Este é um negócio de exemplo|Dies ist ein Beispielunternehmen|Questa è un'attività di esempio|这是示例企业|यह एक नमूना व्यवसाय है|Kani waa ganacsi tusaale ah
+Sample|Mfano|Exemple|تجريبي|Ejemplo|Exemplo|Beispiel|Esempio|示例|नमूना|Tusaale
 Account number (optional)|Nambari ya akaunti (si lazima)|Numéro de compte (facultatif)|رقم الحساب (اختياري)|Número de cuenta (opcional)|Número da conta (opcional)|Kontonummer (optional)|Numero di conto (facoltativo)|账号（可选）|खाता संख्या (वैकल्पिक)|Lambarka akoonka (ikhtiyaari)
 Mobile money name|Jina la pesa ya simu|Nom du mobile money|اسم خدمة المال عبر الجوال|Nombre del dinero móvil|Nome do dinheiro móvel|Name des Mobile Money|Nome del mobile money|移动支付名称|मोबाइल मनी का नाम|Magaca lacagta mobilka
 Till or Paybill number (optional)|Nambari ya Till au Paybill (si lazima)|Numéro Till ou Paybill (facultatif)|رقم Till أو Paybill (اختياري)|Número Till o Paybill (opcional)|Número Till ou Paybill (opcional)|Till- oder Paybill-Nummer (optional)|Numero Till o Paybill (facoltativo)|Till 或 Paybill 号码（可选）|Till या Paybill नंबर (वैकल्पिक)|Lambarka Till ama Paybill (ikhtiyaari)

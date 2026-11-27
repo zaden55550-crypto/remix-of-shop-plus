@@ -18,7 +18,9 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, type ReactNode } from "react";
+// The viewport is set before the new screen is drawn, so a screen never shows at the previous page's scale.
+const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
 import { applyUiSize } from "@/lib/prefs";
 import { applySettings } from "@/lib/settings-config";
 import { startCloudBackup } from "@/lib/cloud-backup";
@@ -162,7 +164,7 @@ function RootComponent() {
   const pathname = useRouterState({ select: (st) => st.location.pathname });
   useEffect(() => { applyUiSize(); }, [pathname]);
   // Phones and iPads show the laptop layout, shrunk to the screen (laptop-view.ts); re-checked when the device turns.
-  useEffect(() => { const f = () => { applyLaptopView(pathname); applyUiSize(); }; f(); window.addEventListener("orientationchange", f); window.screen.orientation?.addEventListener?.("change", f); return () => { window.removeEventListener("orientationchange", f); window.screen.orientation?.removeEventListener?.("change", f); }; }, [pathname]);
+  useBeforePaint(() => { const f = () => { applyLaptopView(pathname); applyUiSize(); }; f(); window.addEventListener("orientationchange", f); window.screen.orientation?.addEventListener?.("change", f); return () => { window.removeEventListener("orientationchange", f); window.screen.orientation?.removeEventListener?.("change", f); }; }, [pathname]);
   useEffect(() => startCloudBackup(), []);
   useEffect(() => startConnectivity(), []);
   useEffect(() => startAutoSnapshots(), []);

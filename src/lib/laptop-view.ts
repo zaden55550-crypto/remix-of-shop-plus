@@ -31,6 +31,7 @@ export function laptopViewWanted(pathname: string) {
 }
 
 /** Sets the page's viewport for this route: laptop width on small screens, the device's own width otherwise. */
+let switchTimer = 0;
 export function applyLaptopView(pathname: string) {
   if (typeof document === "undefined") return;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
@@ -44,7 +45,11 @@ export function applyLaptopView(pathname: string) {
     const html = document.documentElement;
     html.classList.add("vp-switching");
     meta.content = content;
-    window.setTimeout(() => html.classList.remove("vp-switching"), 350);
+    // Shown again once the browser has applied the new scale and the screen has refitted (two frames after it settles).
+    window.clearTimeout(switchTimer);
+    const reveal = () => { window.clearTimeout(switchTimer); switchTimer = window.setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove("vp-switching"))), 180); };
+    window.addEventListener("resize", reveal, { once: true });
+    switchTimer = window.setTimeout(() => html.classList.remove("vp-switching"), 700);
   }
   const was = document.documentElement.classList.contains("laptop-view");
   document.documentElement.classList.toggle("laptop-view", on);
